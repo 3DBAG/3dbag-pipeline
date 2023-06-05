@@ -1,0 +1,11 @@
+[
+    "/data/pointcloud/AHN4/disk/01_LAZ/C_31HZ1.LAZ",
+    "/data/pointcloud/AHN4/disk/01_LAZ/C_31HZ2.LAZ",
+    "/data/pointcloud/AHN4/disk/01_LAZ/C_32AN1.LAZ",
+    "/data/pointcloud/AHN4/disk/01_LAZ/C_32AN2.LAZ",
+    "/data/pointcloud/AHN4/disk/01_LAZ/C_32AZ1.LAZ",
+    {
+        "type": "filters.merge"
+    },
+    "/data/pointcloud/AHN4/ept_test/copc/tmp3.copc.laz"
+]

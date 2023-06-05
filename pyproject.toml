@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=65.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d-pipeline"
+version = "2022.1003"
+description = "3D BAG production pipeline"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Propietary" }
+authors = [
+    { name = "3DGI", email = "info@3dgi.nl" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: Other/Proprietary License"
+]
+urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+dependencies = [
+    "dagster",
+    "dagster-postgres",
+    "dagster-shell",
+    "docker",
+    "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2022.1011#egg=pgutils",
+    "psycopg[binary]",
+    "lxml>=4.6",
+    "fabric"
+]
+optional-dependencies = { dev = ["pytest", "bumpver", "dagit", "tox"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.bumpver]
+current_version = "2022.1003"
+version_pattern = "YYYY.BUILD"
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'version = "{version}"',
+]
+

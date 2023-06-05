@@ -1,0 +1,3 @@
+[submodule "docker/docker-copyedit"]
+	path = docker/docker-copyedit
+	url = git@github.com:gdraheim/docker-copyedit.git

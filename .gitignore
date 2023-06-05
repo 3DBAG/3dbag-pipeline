@@ -1,0 +1,27 @@
+# Local env
+/.env_balazs_local
+
+# IDE config
+/.run/
+.idea
+
+# Python build artefacts and chache
+/tests/.pytest_cache/
+/src/bag3d_pipeline.egg-info/
+/.tox/
+*__pycache__*
+
+# Test data
+/tmp/*
+/xsd/lvbag-extract-v20200601/
+/xsd/top10nl/
+
+# Local DAGSTER_HOME
+/tests/dagster_home/.logs_queue/
+/tests/dagster_home/.telemetry/
+/tests/dagster_home/history/
+/tests/dagster_home/schedules/
+/tests/dagster_home/storage/
+/tests/dagster_home/logs/
+/tests/dagster_home/.nux
+

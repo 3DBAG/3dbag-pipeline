@@ -1,0 +1,11 @@
+[
+    "/data/pointcloud/AHN4/ept_test/copc/tmp1.copc.laz",
+    "/data/pointcloud/AHN4/ept_test/copc/tmp2.copc.laz",
+    "/data/pointcloud/AHN4/ept_test/copc/tmp3.copc.laz",
+    "/data/pointcloud/AHN4/ept_test/copc/tmp4.copc.laz",
+    "/data/pointcloud/AHN4/ept_test/copc/tmp5.copc.laz",
+    {
+        "type": "filters.merge"
+    },
+    "/data/pointcloud/AHN4/ept_test/copc/ahn_25.copc.laz"
+]

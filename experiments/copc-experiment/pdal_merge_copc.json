@@ -1,0 +1,8 @@
+[
+    "/data/pointcloud/AHN4/ept_test/copc/c_31hz1.copc.laz",
+    "/data/pointcloud/AHN4/ept_test/copc/c_31hz2.copc.laz",
+    {
+        "type": "filters.merge"
+    },
+    "/data/pointcloud/AHN4/ept_test/copc/ahn_2.copc.laz"
+]

@@ -1,0 +1,74 @@
+---
+title: "Cloud optimized point cloud vs. flat tiles reading performance"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+copc <- read.csv(file = "/home/balazs/Development/copc-experiment/copc_quote.csv")
+copc_2 <- read.csv(file = "/home/balazs/Development/copc-experiment/copc_ahn_2.csv",
+                   sep = "\t")
+
+flat_tiles <- read.csv(file = "/home/balazs/Development/copc-experiment/flat_tiles_quote.csv")
+```
+
+```{r}
+flat_ <- flat_tiles %>% 
+    select(identificatie, run_ns) %>%
+    mutate(type="flat")
+copc_2_ <- copc_2 %>% 
+    select(identificatie, run_ns) %>% 
+    mutate(type="copc_2")
+copc_flat_long <- copc %>% 
+    select(identificatie, run_ns) %>% 
+    mutate(type="copc") %>% 
+    bind_rows(flat_) %>% 
+    bind_rows(copc_2_)
+copc_flat_long$type <- as.factor(copc_flat_long$type)
+
+flat_id <- flat_tiles %>% 
+    select(id, run_ns) %>%
+    mutate(type="flat", run_s=run_ns*1e-9)
+copc_flat_long_id <- copc %>% 
+    select(id, run_ns) %>% 
+    mutate(type="copc", run_s=run_ns*1e-9) %>% 
+    bind_rows(flat_)
+copc_flat_long_id$type <- as.factor(copc_flat_long_id$type)
+```
+
+```{r}
+copc_flat_long %>% 
+    group_by(type) %>% 
+    summarise(median=median(run_ns), avg=mean(run_ns), sd=sd(run_ns))
+```
+
+```{r}
+copc_s <- copc$run_ns*1e-9
+copc_2_s <- copc_2$run_ns*1e-9
+
+flat_tiles$nr_laz_tiles <- factor(flat_tiles$nr_laz_tiles)
+flat_tiles$run_s <- flat_tiles$run_ns * 1e-9
+ggplot(flat_tiles, aes(nr_laz_tiles, run_s)) + 
+    geom_boxplot() +
+    labs(x="Nr. of LAZ tiles read", y="Run time [s]",
+         title="Reading from flat tiles (200m) w.r.t number of tiles",
+         subtitle = "Incl. reading from COPC (red=1 AHN file, blue=2 AHN files)",
+         colour="COPC") +
+    geom_boxplot(aes(x=2, y=copc_s), color="red") +
+    geom_boxplot(aes(x=3, y=copc_2_s), color="blue") +
+    scale_fill_manual("PC Reading", values = c("green", "yellow", "blue"))
+```
+
+```{r}
+flat_tiles$nr_laz_tiles <- factor(flat_tiles$nr_laz_tiles)
+flat_tiles$run_s <- flat_tiles$run_ns * 1e-9
+ggplot(copc, aes(nr_laz_tiles, run_s)) + 
+    geom_boxplot() +
+    labs(x="Nr. of LAZ tiles read", y="Run time [s]",
+         title="Reading from flat tiles w.r.t number of tiles")
+```
