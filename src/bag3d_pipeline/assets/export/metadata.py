@@ -6,7 +6,24 @@ import csv
 from dagster import asset, AssetKey, Output
 
 from bag3d_pipeline.core import (get_upstream_data_version, format_date,
-                                 bag3d_export_dir)
+                                 bag3d_export_dir, geoflow_crop_dir)
+
+
+@asset(
+    non_argument_deps={
+        AssetKey(("reconstruction", "reconstructed_building_models"))
+    },
+    required_resource_keys={"file_store", "file_store_fastssd", "db_connection"}
+)
+def something_function(context):
+    """Compare the reconstruction output to the input, for each feature.
+    Check if all LoD-s are generated for the feature."""
+    reconstructed_root_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    output_csv = output_dir.joinpath("reconstructed_features.csv")
+    # TODO: fill in here
+    return output_csv
 
 
 @asset(
@@ -32,14 +49,16 @@ def export_index(context):
                 if row[3] == "true" and int(row[2]) > 0:
                     leaf_id = row[0]
                     leaf_id_in_filename = leaf_id.replace("/", "-")
-                    has_cityjson = path_tiles_dir.joinpath(leaf_id, f"{leaf_id_in_filename}.city.json").exists()
+                    has_cityjson = path_tiles_dir.joinpath(leaf_id,
+                                                           f"{leaf_id_in_filename}.city.json").exists()
                     gpkg_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
                                    if f.suffix == ".gpkg")
                     has_all_gpkg = gpkg_cnt == 9
                     obj_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
-                                   if f.suffix == ".obj")
+                                  if f.suffix == ".obj")
                     has_all_obj = obj_cnt == 3
-                    csvwriter.writerow([leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]])
+                    csvwriter.writerow(
+                        [leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]])
     return path_export_index
 
 
