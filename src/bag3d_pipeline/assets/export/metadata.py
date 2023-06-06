@@ -13,8 +13,11 @@ from bag3d_pipeline.core import (bag3d_export_dir, format_date,
 
 
 def get_lods_per_cityobject(path: Path) -> Dict[str, Dict]:
-    """ Creates a csv with the city object id and three bool columns
-        indicating the presence of lod 1.2, 1.3 and 2.2
+    """ Given the path to a jsonl file, it returns the information about
+        the available LoD level per city object. The output is a dictionary
+        with the cityobject ids as keys. The value is a dictionary with 
+        the available lod-levels, as follows:
+        {'NL.IMBAG.Pand.0614100000003764':{'1.2': 0, '1.3': 0, '2.2': 0}}
     """
     all_objects = {}
     with open(path) as f:
