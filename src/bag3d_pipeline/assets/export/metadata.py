@@ -76,7 +76,6 @@ def feature_evaluation(context):
     input_buildings = set([row[0] for row in res])
 
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
-    print(f"Not reconstructed: {len(not_reconstructed)}")
 
     for feature in not_reconstructed:
         cityobjects[feature] = {'1.2': 0, '1.3': 0, '2.2': 0}
