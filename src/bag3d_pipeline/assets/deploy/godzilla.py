@@ -3,6 +3,7 @@ import tarfile
 
 from dagster import asset, AssetIn, Output
 from fabric import Connection
+from datetime import datetime
 
 
 @asset(
@@ -44,7 +45,12 @@ def downloadable_godzilla(context, compressed_export_zuid_holland):
 @asset
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
-    schema = "public"
+    schema = "bag3d_tmp"
+    old_schema = "bag3d_latest"
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema}; create schema {schema};'")
+        
     deploy_dir = downloadable_godzilla
     cmd = [
         "PG_USE_COPY=YES",
@@ -88,4 +94,12 @@ def webservice_godzilla(context, downloadable_godzilla):
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
 
-    return f"{schema}.lod12_2d", f"{schema}.lod13_2d", f"{schema}.lod22_2d", f"{schema}.tile_index"
+    extension = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO {"bag3d_" + extension} ;'")
+        c.run(
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {new_schema} name RENAME TO {old_schema} ;'")
+        
+    return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"
