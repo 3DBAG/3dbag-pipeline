@@ -108,7 +108,8 @@ job_zuid_holland_export = define_asset_job(
     name="zuid_holland_export",
     description="Run the tyler export and 3D Tiles steps for the province of "
                 "Zuid-Holland.",
-    selection=AssetSelection.keys(["export", "export_index"]) |
+    selection=AssetSelection.keys(["export", "feature_evaluation"]) |
+              AssetSelection.keys(["export", "export_index"]) |
               AssetSelection.keys(["export", "metadata"]) |
               AssetSelection.keys(["export", "geopackage_nl"]) |
               AssetSelection.keys(["export", "reconstruction_output_multitiles_zuid_holland"]) |

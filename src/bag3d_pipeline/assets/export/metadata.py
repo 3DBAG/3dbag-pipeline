@@ -52,7 +52,7 @@ def features_to_csv(output_csv: Path,
 
 @asset(
     non_argument_deps={
-        AssetKey(("reconstruction", "reconstructed_building_models"))
+        AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
     required_resource_keys={"file_store", "file_store_fastssd", "db_connection"}
 )
