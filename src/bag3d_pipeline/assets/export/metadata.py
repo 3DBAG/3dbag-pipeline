@@ -1,28 +1,90 @@
-import json
-from uuid import uuid1
-from datetime import date
 import csv
+import json
+from datetime import date
+from pathlib import Path
+from typing import Dict
+from uuid import uuid1
 
-from dagster import asset, AssetKey, Output
+from dagster import AssetKey, Output, asset
+from psycopg.sql import SQL
 
-from bag3d_pipeline.core import (get_upstream_data_version, format_date,
-                                 bag3d_export_dir, geoflow_crop_dir)
+from bag3d_pipeline.core import (bag3d_export_dir, format_date,
+                                 geoflow_crop_dir, get_upstream_data_version)
+
+
+def get_lods_per_cityobject(path: Path) -> Dict[str, Dict]:
+    """ Given the path to a jsonl file, it returns the information about
+        the available LoD level per city object. The output is a dictionary
+        with the cityobject ids as keys. The value is a dictionary with 
+        the available lod-levels, as follows:
+        {'NL.IMBAG.Pand.0614100000003764':{'1.2': 0, '1.3': 0, '2.2': 0}}
+    """
+    all_objects = {}
+    with open(path) as f:
+        cityjson = json.load(f)
+        for object in cityjson['CityObjects']:
+            if 'parents' in cityjson['CityObjects'][object].keys():
+                lods = {'1.2': 0, '1.3': 0, '2.2': 0}
+                for geometry in cityjson['CityObjects'][object]['geometry']:
+                    lods[geometry['lod']] = 1
+                all_objects[object] = lods
+    return all_objects
+
+
+def features_to_csv(output_csv: Path,
+                    features: Dict[str, Dict[str, int]]) -> None:
+    """ Creates a csv with the city object id and three bool columns
+        indicating the presence of lod 1.2, 1.3 and 2.2
+    """
+    with open(output_csv, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile,
+                                fieldnames=['id',
+                                            'lod_12',
+                                            'lod_13',
+                                            'lod_22'])
+        writer.writeheader()
+        for feature, lods in features.items():
+            writer.writerow({'id': feature,
+                             'lod_12': lods['1.2'],
+                             'lod_13': lods['1.3'],
+                             'lod_22': lods['2.2']})
 
 
 @asset(
     non_argument_deps={
-        AssetKey(("reconstruction", "reconstructed_building_models"))
+        AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
     required_resource_keys={"file_store", "file_store_fastssd", "db_connection"}
 )
-def something_function(context):
+def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature."""
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir)
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    # TODO: fill in here
+    conn = context.resources.db_connection
+
+    reconstructed_buildings = set()
+    cityobjects = {}
+    for path in Path(reconstructed_root_dir).rglob('*.city.jsonl'):
+        reconstructed_buildings.add(path.stem[:-5])
+        cityobjects.update(get_lods_per_cityobject(path))
+
+    res = conn.get_query(
+        SQL("""
+        SELECT identificatie
+        FROM reconstruction_input.reconstruction_input;
+        """))
+    input_buildings = set([row[0] for row in res])
+
+    not_reconstructed = input_buildings.difference(reconstructed_buildings)
+
+    for feature in not_reconstructed:
+        cityobjects[feature] = {'1.2': 0, '1.3': 0, '2.2': 0}
+
+    features_to_csv(output_csv, cityobjects)
+
     return output_csv
 
 
