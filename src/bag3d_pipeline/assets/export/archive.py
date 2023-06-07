@@ -81,7 +81,8 @@ def geopackage_nl(context):
                 "geom"
             ]
             cmd = " ".join(cmd)
-            return_code, output = context.resources.gdal.execute("ogr2ogr", cmd, silent=True)
+            return_code, output = context.resources.gdal.execute("ogr2ogr", cmd,
+                                                                 silent=True)
             if return_code != 0:
                 failed.append((lid, output))
         return failed

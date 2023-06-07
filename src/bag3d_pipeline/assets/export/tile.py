@@ -42,7 +42,7 @@ def reconstruction_output_tiles_func(context, format: str):
         raise ValueError(f"invalid format: {format}, only 'multi' and '3dtiles' are "
                          f"allowed")
     context.log.debug(" ".join(cmd))
-    context.resources.tyler.execute("tyler", " ".join(cmd))
+    context.resources.tyler.execute("tyler", " ".join(cmd), cwd=output_dir)
     return output_dir
 
 

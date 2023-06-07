@@ -545,8 +545,8 @@ def pdal_info(pdal, file_path: Path,
     cmd_list = ["{exe}", "info", ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
-    return_code, output = pdal.execute(
-        "pdal", command=" ".join(cmd_list), local_path=file_path)
+    return_code, output = pdal.execute("pdal", command=" ".join(cmd_list),
+                                       local_path=file_path)
 
     return return_code, json.loads(output)
 

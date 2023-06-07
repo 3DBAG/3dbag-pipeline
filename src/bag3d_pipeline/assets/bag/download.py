@@ -216,8 +216,8 @@ def load_bag_layer(context, extract_dir: Path, layer: str, shortdate: str,
     cmd = " ".join(cmd)
 
     # Execute
-    return_code, output = context.resources.gdal.execute(
-        "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir)
+    return_code, output = context.resources.gdal.execute("ogr2ogr", cmd, kwargs=kwargs,
+                                                         local_path=extract_dir)
     return True if return_code == 0 else False
 
 

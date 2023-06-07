@@ -274,9 +274,9 @@ def reconstruct_building_models_func(context, cropped_input_and_config):
             config_path = feature.joinpath("config_.toml")
             cmd = cmd_template.format(config_path=config_path)
             try:
-                return_code, output = context.resources.geoflow.execute(
-                    "geof", cmd, local_path=flowchart, silent=True
-                )
+                return_code, output = context.resources.geoflow.execute("geof", cmd,
+                                                                        local_path=flowchart,
+                                                                        silent=True)
                 if return_code == 0:
                     cnt += 1
                 else:

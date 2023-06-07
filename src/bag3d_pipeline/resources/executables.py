@@ -95,7 +95,7 @@ class AppImage:
             self.container_mount_point = None
 
     def execute(self, exe_name: str, command: str, kwargs: dict = None,
-                local_path: Path = None, silent=False) -> Tuple[int, str]:
+                local_path: Path = None, silent=False, cwd=None) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
 
@@ -171,12 +171,14 @@ class AppImage:
             if silent:
                 output, return_code = execute_shell_command_silent(
                     shell_command=command.format(**kwargs_with_exe),
+                    cwd=cwd
                 )
             else:
                 output, return_code = execute_shell_command(
                     shell_command=command.format(**kwargs_with_exe),
                     log=self.logger,
-                    output_logging="STREAM"
+                    output_logging="STREAM",
+                    cwd=cwd
                 )
         if return_code != 0:
             raise Failure(f"{kwargs_with_exe['exe']} failed with output:\n{output}")
