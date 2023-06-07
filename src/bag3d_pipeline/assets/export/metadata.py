@@ -69,7 +69,7 @@ def feature_evaluation(context):
     cityobjects = {}
     for path in Path(reconstructed_root_dir).rglob('*.city.jsonl'):
         reconstructed_buildings.add(path.stem[:-5])
-        cityobjects = cityobjects | get_lods_per_cityobject(path)
+        cityobjects.update(get_lods_per_cityobject(path))
 
     res = conn.get_query(
         SQL("""
