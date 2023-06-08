@@ -94,12 +94,12 @@ def webservice_godzilla(context, downloadable_godzilla):
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
 
-    extension = datetime.now().date()
+    extension = str(datetime.now().date())
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO {"bag3d_" + extension} ;'")
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {new_schema} name RENAME TO {old_schema} ;'")
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
         
     return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"
