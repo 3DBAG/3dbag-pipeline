@@ -46,7 +46,7 @@ def downloadable_godzilla(context, compressed_export_zuid_holland):
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "bag3d_tmp"
-    old_schema = "bag3d_latest"
+    old_schema = "bag3d_latest_test"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema}; create schema {schema};'")
