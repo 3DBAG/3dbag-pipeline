@@ -33,6 +33,13 @@ def roofer_version():
 
 
 def geoflow_version():
-    version, returncode = execute_shell_command_silent(
+    version_geof, returncode = execute_shell_command_silent(
+        f"{EXE_PATH_GEOF} --version --verbose")
+    version_plugins, returncode = execute_shell_command_silent(
         f"{EXE_PATH_GEOF} --list-plugins --verbose")
+    gv = version_geof.strip().replace("\n", ", ")
+    plugin_versions = version_plugins.find(" >")
+    pv = version_plugins[plugin_versions:].strip().replace("\n   ", ", ").replace("\n",
+                                                                                  ",")
+    version = f"{gv}. Plugins: {pv}"
     return format_version_stdout(version)
