@@ -5,10 +5,11 @@ from bag3d_pipeline.assets import (source_assets, input_assets, sample_data_asse
                                    reconstruction_assets, export_assets, deploy_assets)
 from bag3d_pipeline.resources import RESOURCES_LOCAL, RESOURCES_PROD, RESOURCES_PYTEST
 from bag3d_pipeline.jobs import (job_sample_data, sensor_sample_data,
+                                 job_source_input,
                                  sensor_clean_containers, job_clean_containers,
                                  job_ahn3, job_ahn4, job_zuid_holland_reconstruct,
                                  job_zuid_holland_export, job_zuid_holland_deploy,
-                                    job_zuid_holland_export_deploy,
+                                 job_zuid_holland_export_deploy,
                                  job_nl_reconstruct, job_nl_export, job_nl_deploy)
 from bag3d_pipeline.simple_for_testing import (asset_testing, job_testing, test_table1,
                                                test_table2)
@@ -29,6 +30,7 @@ all_jobs = [
     job_testing,
     job_sample_data,
     job_clean_containers,
+    job_source_input,
     job_ahn3,
     job_ahn4,
     job_zuid_holland_reconstruct,

@@ -9,7 +9,8 @@ from bag3d_pipeline.resources.files import make_temp_path, file_store
 from bag3d_pipeline.resources.wkt import ZUID_HOLLAND
 from bag3d_pipeline.core import clean_storage, get_run_id
 from bag3d_pipeline.simple_for_testing import job_testing
-from bag3d_pipeline.assets.reconstruction.reconstruction import PartitionDefinition3DBagReconstruction
+from bag3d_pipeline.assets.reconstruction.reconstruction import \
+    PartitionDefinition3DBagReconstruction
 from bag3d_pipeline.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
@@ -94,11 +95,20 @@ job_ahn4 = define_asset_job(
               AssetSelection.keys(["ahn", "lasindex_ahn4"])
 )
 
+job_source_input = define_asset_job(
+    name="source_input",
+    description="Update the source data sets and prepare the input for the reconstruction.",
+    selection=AssetSelection.groups("bag") |
+              AssetSelection.groups("top10nl") |
+              AssetSelection.groups("input"),
+)
+
 job_nl_reconstruct = define_asset_job(
     name="nl_reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
     selection=AssetSelection.keys(["reconstruction", "cropped_input_and_config_nl"]) |
-              AssetSelection.keys(["reconstruction", "reconstructed_building_models_nl"]),
+              AssetSelection.keys(
+                  ["reconstruction", "reconstructed_building_models_nl"]),
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
@@ -125,8 +135,10 @@ job_nl_deploy = define_asset_job(
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
     description="Run the crop and reconstruct steps for the province of Zuid-Holland.",
-    selection=AssetSelection.keys(["reconstruction", "cropped_input_and_config_zuid_holland"]) |
-              AssetSelection.keys(["reconstruction", "reconstructed_building_models_zuid_holland"]),
+    selection=AssetSelection.keys(
+        ["reconstruction", "cropped_input_and_config_zuid_holland"]) |
+              AssetSelection.keys(
+                  ["reconstruction", "reconstructed_building_models_zuid_holland"]),
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
     ),
@@ -140,8 +152,10 @@ job_zuid_holland_export = define_asset_job(
               AssetSelection.keys(["export", "export_index"]) |
               AssetSelection.keys(["export", "metadata"]) |
               AssetSelection.keys(["export", "geopackage_nl"]) |
-              AssetSelection.keys(["export", "reconstruction_output_multitiles_zuid_holland"]) |
-              AssetSelection.keys(["export", "reconstruction_output_3dtiles_zuid_holland"]),
+              AssetSelection.keys(
+                  ["export", "reconstruction_output_multitiles_zuid_holland"]) |
+              AssetSelection.keys(
+                  ["export", "reconstruction_output_3dtiles_zuid_holland"]),
 )
 
 job_zuid_holland_deploy = define_asset_job(
