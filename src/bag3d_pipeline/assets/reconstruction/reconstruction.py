@@ -54,9 +54,10 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "reconstruction_input": AssetIn(key_prefix="input"),
     },
     required_resource_keys={"db_connection", "roofer", "file_store",
-                            "file_store_fastssd"}
+                            "file_store_fastssd"},
+    code_version=roofer_version()
 )
-def cropped_input_and_config(context, regular_grid_200m, tiles, index,
+def cropped_input_and_config_nl(context, regular_grid_200m, tiles, index,
                              reconstruction_input):
     """Runs roofer for cropping the input data per feature and selects the best point
     cloud for the reconstruction per feature.
@@ -102,12 +103,13 @@ def cropped_input_and_config_zuid_holland(context, regular_grid_200m, tiles, ind
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
-    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"}
+    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
+    code_version=geoflow_version()
 )
-def reconstructed_building_models(context, cropped_input_and_config):
+def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition. Runs geof."""
-    return reconstruct_building_models_func(context, cropped_input_and_config)
+    return reconstruct_building_models_func(context, cropped_input_and_config_nl)
 
 
 @asset(

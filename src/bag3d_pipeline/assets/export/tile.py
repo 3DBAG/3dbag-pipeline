@@ -48,11 +48,11 @@ def reconstruction_output_tiles_func(context, format: str):
 
 @asset(
     non_argument_deps={
-        AssetKey(("reconstruction", "reconstructed_building_models"))
+        AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store"}
 )
-def reconstruction_output_multitiles(context):
+def reconstruction_output_multitiles_nl(context):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
     Generated with tyler."""
     return reconstruction_output_tiles_func(context, format="multi")
@@ -60,11 +60,11 @@ def reconstruction_output_multitiles(context):
 
 @asset(
     non_argument_deps={
-        AssetKey(("reconstruction", "reconstructed_building_models"))
+        AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store"}
 )
-def reconstruction_output_3dtiles(context):
+def reconstruction_output_3dtiles_nl(context):
     """3D Tiles v1.1 generated with tyler."""
     return reconstruction_output_tiles_func(context, format="3dtiles")
 

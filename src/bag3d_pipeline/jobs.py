@@ -94,6 +94,34 @@ job_ahn4 = define_asset_job(
               AssetSelection.keys(["ahn", "lasindex_ahn4"])
 )
 
+job_nl_reconstruct = define_asset_job(
+    name="nl_reconstruct",
+    description="Run the crop and reconstruct steps for the Netherlands.",
+    selection=AssetSelection.keys(["reconstruction", "cropped_input_and_config_nl"]) |
+              AssetSelection.keys(["reconstruction", "reconstructed_building_models_nl"]),
+    partitions_def=PartitionDefinition3DBagReconstruction(
+        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
+    ),
+)
+
+job_nl_export = define_asset_job(
+    name="nl_export",
+    description="Run the tyler export and 3D Tiles steps for the Netherlands.",
+    selection=AssetSelection.keys(["export", "feature_evaluation"]) |
+              AssetSelection.keys(["export", "export_index"]) |
+              AssetSelection.keys(["export", "metadata"]) |
+              AssetSelection.keys(["export", "geopackage_nl"]) |
+              AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]),
+)
+
+job_nl_deploy = define_asset_job(
+    name="nl_deploy",
+    description="Deploy the Netherland data.",
+    selection=AssetSelection.keys(["deploy", "compressed_export_nl"]) |
+              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
+              AssetSelection.keys(["deploy", "webservice_godzilla"]),
+)
+
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
     description="Run the crop and reconstruct steps for the province of Zuid-Holland.",

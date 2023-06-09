@@ -5,6 +5,27 @@ from dagster import asset, AssetIn, Output
 from fabric import Connection
 from datetime import datetime
 
+@asset(
+    ins={
+        "reconstruction_output_multitiles_nl": AssetIn(key_prefix="export"),
+        "geopackage_nl": AssetIn(key_prefix="export"),
+        "export_index": AssetIn(key_prefix="export"),
+        "metadata": AssetIn(key_prefix="export"),
+    },
+    required_resource_keys={"file_store"}
+)
+def compressed_export_nl(context,
+                         reconstruction_output_multitiles_nl,
+                         geopackage_nl, export_index, metadata
+                         ):
+    """A .tar.gz compressed full directory tree of the exports"""
+    export_dir = reconstruction_output_multitiles_nl
+    output_tarfile = export_dir.parent / "export.tar.gz"
+    with tarfile.open(output_tarfile, "w:gz") as tar:
+        tar.add(export_dir, arcname="export")
+    metadata_output = {"size [Gb]": output_tarfile.stat().st_size * 1e-9,
+                       "path": str(output_tarfile)}
+    return Output(output_tarfile, metadata=metadata_output)
 
 @asset(
     ins={
@@ -12,7 +33,6 @@ from datetime import datetime
         "geopackage_nl": AssetIn(key_prefix="export"),
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
-        # "reconstruction_output_3dtiles_zuid_holland": AssetIn(key_prefix="export"),
     },
     required_resource_keys={"file_store"}
 )
@@ -26,7 +46,7 @@ def compressed_export_zuid_holland(context,
     with tarfile.open(output_tarfile, "w:gz") as tar:
         tar.add(export_dir, arcname="export")
     metadata_output = {"size [Gb]": output_tarfile.stat().st_size * 1e-9,
-                "path": str(output_tarfile)}
+                       "path": str(output_tarfile)}
     return Output(output_tarfile, metadata=metadata_output)
 
 
