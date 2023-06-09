@@ -580,7 +580,9 @@ def geoflow_crop_dir(root_dir):
 
 
 def bag3d_export_dir(root_dir):
-    return bag3d_dir(root_dir) / "export"
+    export_dir = bag3d_dir(root_dir) / "export"
+    export_dir.mkdir(exist_ok=True)
+    return export_dir
 
 
 def format_date(input_date: date, version: bool = True) -> str:

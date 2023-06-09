@@ -95,7 +95,7 @@ class AppImage:
             self.container_mount_point = None
 
     def execute(self, exe_name: str, command: str, kwargs: dict = None,
-                local_path: Path = None, silent=False, cwd=None) -> Tuple[int, str]:
+                local_path: Path = None, silent=False, cwd: str = None) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
 
