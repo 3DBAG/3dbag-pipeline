@@ -177,16 +177,18 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
     CITYJSON_SCALE_Z=0.001
     """
     tile_id = context.asset_partition_key_for_output()
-    query_laz_tiles = SQL("""
-    SELECT id
-    FROM {tiles_ahn} g JOIN {tiles_bag} b
-    ON st_intersects(b.boundary, g.geom)
-    WHERE b.tile_id = {tile_id}
+    query_laz_tiles = SQL("""    
+    SELECT DISTINCT g.id
+    FROM {tile_index} AS i
+             JOIN {reconstruction_input} USING (fid)
+             JOIN {tiles_ahn} g ON st_intersects(geometrie, g.geom)
+    WHERE i.tile_id = {tile_id};
     """)
     res = context.resources.db_connection.get_query(
         query_laz_tiles, query_params={
             "tiles_ahn": regular_grid_200m,
-            "tiles_bag": tiles,
+            "reconstruction_input": reconstruction_input,
+            "tile_index": index,
             "tile_id": tile_id
         }
     )
