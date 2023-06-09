@@ -11,19 +11,17 @@ from bag3d_pipeline.custom_types import PostgresTableIdentifier
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
-        "metadata_table_ahn4": AssetIn(key_prefix="ahn")
     },
     op_tags={"kind": "sql"}
 )
-def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, metadata_table_ahn4):
+def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
     """The input for the building reconstruction, where:
-    - oorspronkelijkbouwjaar < ahn_jaar
+    - duplicates are removed
     """
     create_schema(context, context.resources.db_connection, RECONSTRUCTION_INPUT_SCHEMA)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
                                    "bag_kas_warenhuis": bag_kas_warenhuis,
-                                   "metadata_ahn": metadata_table_ahn4,
                                    "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
     context.resources.db_connection.send_query(
