@@ -152,6 +152,21 @@ job_zuid_holland_deploy = define_asset_job(
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
+job_zuid_holland_export_deploy = define_asset_job(
+    name="zuid_holland_export_deploy",
+    description="Run the tyler export and 3D Tiles and deploy steps for the province of "
+                "Zuid-Holland.",
+    selection=AssetSelection.keys(["export", "feature_evaluation"]) |
+              AssetSelection.keys(["export", "export_index"]) |
+              AssetSelection.keys(["export", "metadata"]) |
+              AssetSelection.keys(["export", "geopackage_nl"]) |
+              AssetSelection.keys(
+                  ["export", "reconstruction_output_multitiles_zuid_holland"]) |
+              AssetSelection.keys(["deploy", "compressed_export_zuid_holland"]) |
+              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
+              AssetSelection.keys(["deploy", "webservice_godzilla"]),
+)
+
 
 @run_status_sensor(
     run_status=DagsterRunStatus.SUCCESS,

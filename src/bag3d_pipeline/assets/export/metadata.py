@@ -10,6 +10,8 @@ from psycopg.sql import SQL
 
 from bag3d_pipeline.core import (bag3d_export_dir, format_date,
                                  geoflow_crop_dir, get_upstream_data_version)
+from bag3d_pipeline.resources.temp_until_configurableresource import geoflow_version, \
+    roofer_version, tyler_version, tyler_db_version
 
 
 def get_lods_per_cityobject(path: Path) -> Dict[str, Dict]:
@@ -130,7 +132,11 @@ def export_index(context):
 def metadata(context):
     """3D BAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
-    https://geonovum.github.io/Metadata-ISO19115/."""
+    https://geonovum.github.io/Metadata-ISO19115/.
+
+    For extended ISO lineage, see 19115-2, https://wiki.esipfed.org/ISO_Lineage. This
+    has XML examples. And also https://wiki.esipfed.org/Data_Understanding_-_Provenance_(ISO-19115-1).
+    """
     date_3dbag = format_date(date.today(), version=False)
     version_3dbag = f"v{format_date(date.today(), version=True)}"
     uuid_3dbag = str(uuid1())
@@ -139,6 +145,14 @@ def metadata(context):
         ("bag", "extract_bag")))
     data_version_top10nl = get_upstream_data_version(context, AssetKey(
         ("top10nl", "extract_top10nl")))
+
+    # TODO: add processsteps with the used software versions
+    # What should we include in the lineage from the software?
+    # - software name
+    # - version
+    # - repository
+    # - documentation
+    # - process step description
 
     metadata = {
         "identificationInfo": {

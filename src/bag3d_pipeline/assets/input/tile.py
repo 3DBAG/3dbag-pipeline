@@ -2,7 +2,7 @@ import os
 
 from dagster import AssetOut, multi_asset, Output
 from pgutils import PostgresConnection
-from psycopg import OperationalError
+from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
 
 from bag3d_pipeline.custom_types import PostgresTableIdentifier
@@ -62,7 +62,7 @@ def reconstruction_input_tiles(context, reconstruction_input):
         PostgresTableIdentifier(output_schema, "index"), output_name="index")
 
 
-def get_tile_ids(schema, table_tiles, logger, wkt: str = None):
+def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
     """Get the input tile IDs from the database. If 'wkt' is provided, then get the
     tile IDs that intersect the wkt polygon. The SRID for the wkt is set to 28992."""
     if wkt:
@@ -82,5 +82,8 @@ def get_tile_ids(schema, table_tiles, logger, wkt: str = None):
     except OperationalError:
         logger.error(
             f"cannot establish database connection from the environment variables DAGSTER_DB_*")
+        tile_ids = []
+    except UndefinedTable:
+        logger.error(f"tiles table {schema}.{table_tiles} does not exist")
         tile_ids = []
     return tile_ids
