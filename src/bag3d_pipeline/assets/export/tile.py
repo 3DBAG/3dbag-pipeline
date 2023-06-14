@@ -5,7 +5,13 @@ from dagster import AssetKey, asset
 from bag3d_pipeline.core import (geoflow_crop_dir, bag3d_export_dir, format_date)
 from bag3d_pipeline.resources.temp_until_configurableresource import tyler_version
 
-
+@asset(
+    non_argument_deps={
+        AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
+    },
+    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
+    code_version=tyler_version()
+)
 def reconstruction_output_tiles_func(context, format: str):
     """Run tyler on the reconstruction output directory.
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
