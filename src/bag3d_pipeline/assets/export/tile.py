@@ -51,7 +51,7 @@ def reconstruction_output_tiles_func(context, format: str):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"tyler", "geoflow", "file_store"}
+    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"}
 )
 def reconstruction_output_multitiles_nl(context):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
