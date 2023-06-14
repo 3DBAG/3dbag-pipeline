@@ -124,6 +124,18 @@ job_nl_export = define_asset_job(
               AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]),
 )
 
+
+@run_status_sensor(
+    run_status=DagsterRunStatus.SUCCESS,
+    name=f"nl_export_sensor",
+    description=f"Run the nl_export job if the nl_reconstruct succeeded.",
+    monitored_jobs=[job_nl_reconstruct, ],
+    request_job=job_nl_export
+)
+def sensor_nl_export(context):
+    RunRequest(run_key="nl_export_sensor")
+
+
 job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
