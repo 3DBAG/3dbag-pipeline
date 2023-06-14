@@ -51,7 +51,7 @@ def compressed_export_zuid_holland(context,
 
 
 @asset
-def downloadable_godzilla(context, compressed_export_zuid_holland):
+def downloadable_godzilla(context, compressed_export_nl):
     """Downloadable files hosted on godzilla"""
     deploy_dir = "/data/3DBAGv3"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:

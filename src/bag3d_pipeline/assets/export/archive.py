@@ -7,7 +7,7 @@ from bag3d_pipeline.core import bag3d_export_dir
 
 @asset(
     non_argument_deps={
-        AssetKey(("export", "reconstruction_output_multitiles_zuid_holland"))
+        AssetKey(("export", "reconstruction_output_multitiles_nl"))
     },
     required_resource_keys={"file_store", "gdal"}
 )
