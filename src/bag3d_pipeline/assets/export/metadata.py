@@ -146,14 +146,6 @@ def metadata(context):
     data_version_top10nl = get_upstream_data_version(context, AssetKey(
         ("top10nl", "extract_top10nl")))
 
-    # TODO: add processsteps with the used software versions
-    # What should we include in the lineage from the software?
-    # - software name
-    # - version
-    # - repository
-    # - documentation
-    # - process step description
-
     metadata = {
         "identificationInfo": {
             "citation": {
@@ -181,63 +173,89 @@ def metadata(context):
                     "otherConstraints": [
                         {
                             "href": "http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1",
-                            "text": "Naamensvermelding verplicht, 3D BAG by 3D geoinformation research group"
+                            "text": "Naamensvermelding verplicht, 3D BAG door de 3D geoinformation onderzoeksgroep (TU Delft) en 3DGI"
                         }
                     ]
                 }
             ],
         },
         "language": "dut",
-        "metadataStandardName": "ISO 19115",
-        "metadataStandardVersion": "Nederlands metadata profiel op ISO 19115 voor geografie 2.1.0",
         "referenceSystemInfo": [
             {
                 "referenceSystemIdentifier": "https://www.opengis.net/def/crs/EPSG/0/7415"
             }
         ],
         "dataQualityInfo": {
-            "lineage": [
-                {
-                    "source": {
-                        "description": "Basisregistratie Adressen en Gebouwen (BAG) 2.0 Extract.",
-                        "author": "Het Kadaster",
-                        "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
-                        "date": data_version_extract_bag,
-                        "dateType": "creation",
-                        "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
+            "lineage": {
+                "source": [
+                    {
+                        "source": {
+                            "description": "Basisregistratie Adressen en Gebouwen (BAG) 2.0 Extract.",
+                            "author": "Het Kadaster",
+                            "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
+                            "date": data_version_extract_bag,
+                            "dateType": "creation",
+                            "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
+                        },
                     },
-                },
-                {
-                    "source": {
-                        "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
-                        "author": "Het Kadaster",
-                        "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
-                        "date": data_version_top10nl,
-                        "dateType": "access",
-                        "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                    {
+                        "source": {
+                            "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
+                            "author": "Het Kadaster",
+                            "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
+                            "date": data_version_top10nl,
+                            "dateType": "access",
+                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                        },
                     },
-                },
-                {
-                    "source": {
-                        "description": "Actueel Hoogtebestaand Nederland (AHN) 3 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
-                        "author": "Het Waterschapshuis",
-                        "website": "https://www.ahn.nl",
-                        "date": "2014-2019",
-                        "dateType": "creation",
-                        "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                    {
+                        "source": {
+                            "description": "Actueel Hoogtebestaand Nederland (AHN) 3 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
+                            "author": "Het Waterschapshuis",
+                            "website": "https://www.ahn.nl",
+                            "date": ["2014", "2019"],
+                            "dateType": "creation",
+                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                        },
                     },
-                },
-                {
-                    "source": {
-                        "description": "Actueel Hoogtebestaand Nederland (AHN) 4 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
-                        "author": "Het Waterschapshuis",
-                        "website": "https://www.ahn.nl",
-                        "date": "2020-2022",
-                        "dateType": "creation",
-                        "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                    {
+                        "source": {
+                            "description": "Actueel Hoogtebestaand Nederland (AHN) 4 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
+                            "author": "Het Waterschapshuis",
+                            "website": "https://www.ahn.nl",
+                            "date": ["2020", "2022"],
+                            "dateType": "creation",
+                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
+                        },
                     },
-                },
-            ],
+                ],
+                "software": [
+                    {
+                        "name": "geoflow-bundle",
+                        "version": geoflow_version(),
+                        "repository": "https://github.com/geoflow3d/geoflow-bundle",
+                        "description": "3D building model reconstruction"
+                    },
+                    {
+                        "name": "roofer",
+                        "version": roofer_version(),
+                        "repository": "https://github.com/3DGI/roofer",
+                        "description": "Point cloud selection and cropping"
+                    },
+                    {
+                        "name": "tyler",
+                        "version": tyler_version(),
+                        "repository": "https://github.com/3DGI/tyler",
+                        "description": "Generating GeoPackage, OBJ and CityJSON tiles"
+                    },
+                    {
+                        "name": "tyler-db",
+                        "version": tyler_db_version(),
+                        "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
+                        "description": "Input tiling"
+                    },
+                ]
+            },
         }
 
     }

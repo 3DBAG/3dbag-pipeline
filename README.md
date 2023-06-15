@@ -33,6 +33,25 @@ You can start writing assets in `bag3d_pipeline/assets/`. The assets are automat
 Except, if you create a new sub-package under `assets`.
 In this case you'll need to add the new asset-sub-package manually.
 
+## Terminate all in the queue
+
+Need to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
+This is currently `/opt/dagster/venv` on gilfoyle.
+On gilfoyle, need to source all the environment variables first (`/opt/dagster/dagster_home/.env`).
+
+```python
+from dagster import DagsterInstance, RunsFilter, DagsterRunStatus
+
+instance = DagsterInstance.get() # needs your DAGSTER_HOME to be set, DAGSTER_HOME=/opt/dagster/dagster_home on gilfoyle
+
+while True:
+    queued_runs = instance.get_runs(limit=100, filters=RunsFilter(statuses=[DagsterRunStatus.QUEUED]))
+    if not queued_runs:
+        break
+    for run in queued_runs:
+        instance.report_run_canceled(run)
+```
+
 ## Development
 
 
