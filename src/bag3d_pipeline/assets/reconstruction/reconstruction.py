@@ -14,6 +14,8 @@ from bag3d_pipeline.assets.input.tile import get_tile_ids
 from bag3d_pipeline.resources.wkt import ZUID_HOLLAND
 from bag3d_pipeline.resources.temp_until_configurableresource import geoflow_version, \
     roofer_version
+# debug
+from bag3d_pipeline.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 
 
 def generate_3dbag_version_date(context):
@@ -110,6 +112,19 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition. Runs geof."""
     return reconstruct_building_models_func(context, cropped_input_and_config_nl)
+
+
+@asset(
+    partitions_def=StaticPartitionsDefinition(
+        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
+    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
+    code_version=geoflow_version()
+)
+def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl):
+    """Rerun the reconstruction with just a specific set of partitions.
+    """
+    return reconstruct_building_models_func(context, cropped_input_and_config_nl)
+
 
 
 @asset(
