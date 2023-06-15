@@ -1,8 +1,11 @@
 import csv
+import zipfile
+from zipfile import ZipFile
 
 from dagster import asset, Output, AssetKey
 
 from bag3d_pipeline.core import bag3d_export_dir
+
 
 @asset(
     non_argument_deps={
@@ -72,10 +75,6 @@ def geopackage_nl(context):
         except Exception as e:
             failed.append((lid, output))
 
-    metadata = {}
-    metadata[f"nr_failed"] = len(failed)
-    metadata[f"ids_failed"] = [f[0] for f in failed]
-
     layers = ["pand", "lod12_2d", "lod12_3d", "lod13_2d", "lod13_3d",
               "lod22_2d", "lod22_3d",]
     for name_layer in layers:
@@ -88,6 +87,17 @@ def geopackage_nl(context):
         ]
         cmd = " ".join(cmd)
         context.resources.gdal.execute("ogrinfo", cmd)
+
+    path_nl_zip = path_nl.with_suffix(".zip")
+    with ZipFile(path_nl_zip, "w", compression=zipfile.ZIP_DEFLATED,
+                 compresslevel=9) as myzip:
+        myzip.write(path_nl)
+
+    metadata = {}
+    metadata[f"nr_failed"] = len(failed)
+    metadata[f"ids_failed"] = [f[0] for f in failed]
+    metadata["size uncompressed [Mb]"] = path_nl.stat().st_size * 1e-9
+    metadata["size compressed [Mb]"] = path_nl_zip.stat().st_size * 1e-9
 
     return Output(path_nl, metadata=metadata)
 
