@@ -140,8 +140,8 @@ job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
     selection=AssetSelection.keys(["deploy", "compressed_export_nl"]) |
-              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
-              AssetSelection.keys(["deploy", "webservice_godzilla"]),
+              AssetSelection.keys(["deploy", "downloadable_godzilla"]),
+              # AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
 job_zuid_holland_reconstruct = define_asset_job(
