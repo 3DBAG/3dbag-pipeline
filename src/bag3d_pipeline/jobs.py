@@ -2,7 +2,8 @@ import os
 from datetime import datetime
 
 from dagster import (define_asset_job, AssetSelection, run_status_sensor,
-                     DagsterRunStatus, RunRequest, SkipReason, config_mapping, job)
+                     DagsterRunStatus, RunRequest, SkipReason, config_mapping, job,
+                     StaticPartitionsDefinition)
 
 from bag3d_pipeline.resources.database import make_container_id, container
 from bag3d_pipeline.resources.files import make_temp_path, file_store
@@ -11,6 +12,7 @@ from bag3d_pipeline.core import clean_storage, get_run_id
 from bag3d_pipeline.simple_for_testing import job_testing
 from bag3d_pipeline.assets.reconstruction.reconstruction import \
     PartitionDefinition3DBagReconstruction
+from bag3d_pipeline.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 from bag3d_pipeline.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
@@ -112,6 +114,15 @@ job_nl_reconstruct = define_asset_job(
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
+)
+
+job_nl_reconstruct_rerun = define_asset_job(
+    name="nl_reconstruct_rerun",
+    description="Run the crop and reconstruct steps for the Netherlands.",
+    selection=AssetSelection.keys(["reconstruction", "cropped_input_and_config_nl_rerun"]) |
+              AssetSelection.keys(
+                  ["reconstruction", "reconstructed_building_models_nl_rerun"]),
+    partitions_def=StaticPartitionsDefinition(partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
 )
 
 job_nl_export = define_asset_job(

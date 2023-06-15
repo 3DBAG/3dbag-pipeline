@@ -117,13 +117,34 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
 @asset(
     partitions_def=StaticPartitionsDefinition(
         partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
+    ins={
+        "regular_grid_200m": AssetIn(key_prefix="ahn"),
+        "tiles": AssetIn(key_prefix="input"),
+        "index": AssetIn(key_prefix="input"),
+        "reconstruction_input": AssetIn(key_prefix="input"),
+    },
+    required_resource_keys={"db_connection", "roofer", "file_store",
+                            "file_store_fastssd"},
+    code_version=roofer_version()
+)
+def cropped_input_and_config_nl_rerun(context, regular_grid_200m, tiles, index,
+                                          reconstruction_input):
+    """Rerun the reconstruction with just a specific set of partitions.
+    """
+    return cropped_input_and_config_func(context, index, reconstruction_input,
+                                         regular_grid_200m, tiles)
+
+
+@asset(
+    partitions_def=StaticPartitionsDefinition(
+        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
     code_version=geoflow_version()
 )
-def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl):
+def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_rerun):
     """Rerun the reconstruction with just a specific set of partitions.
     """
-    return reconstruct_building_models_func(context, cropped_input_and_config_nl)
+    return reconstruct_building_models_func(context, cropped_input_and_config_nl_rerun)
 
 
 

@@ -11,7 +11,8 @@ from bag3d_pipeline.jobs import (job_sample_data, sensor_sample_data,
                                  job_zuid_holland_export, job_zuid_holland_deploy,
                                  job_zuid_holland_export_deploy,
                                  job_nl_reconstruct, job_nl_export, job_nl_deploy,
-                                 sensor_nl_export)
+job_nl_reconstruct_rerun,
+                                 sensor_nl_export,)
 from bag3d_pipeline.simple_for_testing import (asset_testing, job_testing, test_table1,
                                                test_table2)
 
@@ -41,6 +42,7 @@ all_jobs = [
     job_nl_reconstruct,
     job_nl_export,
     job_nl_deploy,
+    job_nl_reconstruct_rerun,
     sensor_nl_export,
     sensor_sample_data,
     sensor_clean_containers
