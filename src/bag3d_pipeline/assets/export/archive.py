@@ -98,6 +98,7 @@ def geopackage_nl(context):
     metadata[f"ids_failed"] = [f[0] for f in failed]
     metadata["size uncompressed [Mb]"] = path_nl.stat().st_size * 1e-9
     metadata["size compressed [Mb]"] = path_nl_zip.stat().st_size * 1e-9
+    path_nl.unlink(missing_ok=True)
 
     return Output(path_nl, metadata=metadata)
 
