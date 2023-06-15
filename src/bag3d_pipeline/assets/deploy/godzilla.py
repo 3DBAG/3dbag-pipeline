@@ -66,7 +66,7 @@ def downloadable_godzilla(context, compressed_export_nl):
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "bag3d_tmp"
-    old_schema = "bag3d_latest_test"
+    old_schema = "bag3d_latest"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema}; create schema {schema};'")
@@ -116,10 +116,10 @@ def webservice_godzilla(context, downloadable_godzilla):
 
     extension = str(datetime.now().date())
 
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
-        c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     c.run(
+    #         f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
+    #     c.run(
+    #         f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
         
     return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"

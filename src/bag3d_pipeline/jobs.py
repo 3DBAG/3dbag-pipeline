@@ -155,6 +155,19 @@ job_nl_deploy = define_asset_job(
               # AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
+job_nl_export_deploy = define_asset_job(
+    name="nl_export_deploy",
+    description="Run the tyler export and 3D Tiles steps for the Netherlands.",
+    selection=AssetSelection.keys(["export", "feature_evaluation"]) |
+              AssetSelection.keys(["export", "export_index"]) |
+              AssetSelection.keys(["export", "metadata"]) |
+              AssetSelection.keys(["export", "geopackage_nl"]) |
+              AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]) |
+              AssetSelection.keys(["deploy", "compressed_export_nl"]) |
+              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
+              AssetSelection.keys(["deploy", "webservice_godzilla"]),
+)
+
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
     description="Run the crop and reconstruct steps for the province of Zuid-Holland.",
