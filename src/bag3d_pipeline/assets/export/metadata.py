@@ -4,8 +4,6 @@ from datetime import date
 from pathlib import Path
 from typing import Dict
 from uuid import uuid1
-import zipfile
-from concurrent.futures import ProcessPoolExecutor
 
 from dagster import AssetKey, Output, asset
 from psycopg.sql import SQL
@@ -126,40 +124,6 @@ def export_index(context):
                     csvwriter.writerow(
                         [leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]])
     return path_export_index
-
-
-@asset(
-    required_resource_keys={"file_store_fastssd"}
-)
-def compressed_tiles(context, export_index):
-    """Each format is gzipped individually in each tile, for better transfer over the
-    web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
-    path_tiles_dir = path_export_dir.joinpath("tiles")
-    with export_index.open("r") as fo:
-        csvreader = csv.reader(fo)
-        next(csvreader) # skip header
-        tile_ids = tuple(row[0] for row in csvreader)
-
-    def compress_files(tile_id, path_tiles_dir):
-        path_tile_dir = path_tiles_dir.joinpath(tile_id)
-        lid_in_filename = tile_id.replace("/", "-")
-        # OBJ
-        obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}_obj.zip")
-        obj_root = str(path_tile_dir) + lid_in_filename
-        obj_files = (
-            f"{obj_root}-LoD12-3D.obj",
-            f"{obj_root}-LoD12-3D.obj.mtl",
-            f"{obj_root}-LoD13-3D.obj",
-            f"{obj_root}-LoD13-3D.obj.mtl",
-            f"{obj_root}-LoD22-3D.obj",
-            f"{obj_root}-LoD22-3D.obj.mtl",
-        )
-        with zipfile.ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
-                             compresslevel=9) as oz:
-            for f in obj_files:
-                oz.write(filename=f)
-                Path(f).unlink()
 
 
 @asset(

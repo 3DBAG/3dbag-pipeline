@@ -11,11 +11,12 @@ from datetime import datetime
         "geopackage_nl": AssetIn(key_prefix="export"),
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
+        "compressed_tiles": AssetIn(key_prefix="export"),
     },
 )
 def compressed_export_nl(context,
                          reconstruction_output_multitiles_nl,
-                         geopackage_nl, export_index, metadata
+                         geopackage_nl, export_index, metadata, compressed_tiles
                          ):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
