@@ -12,7 +12,6 @@ from datetime import datetime
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
-    required_resource_keys={"file_store"}
 )
 def compressed_export_nl(context,
                          reconstruction_output_multitiles_nl,
@@ -34,7 +33,6 @@ def compressed_export_nl(context,
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
-    required_resource_keys={"file_store"}
 )
 def compressed_export_zuid_holland(context,
                                    reconstruction_output_multitiles_zuid_holland,

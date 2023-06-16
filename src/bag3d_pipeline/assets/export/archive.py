@@ -11,12 +11,12 @@ from bag3d_pipeline.core import bag3d_export_dir
     non_argument_deps={
         AssetKey(("export", "reconstruction_output_multitiles_nl"))
     },
-    required_resource_keys={"file_store", "gdal"}
+    required_resource_keys={"file_store_fastssd", "gdal"}
 )
 def geopackage_nl(context):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers.
     """
-    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
 

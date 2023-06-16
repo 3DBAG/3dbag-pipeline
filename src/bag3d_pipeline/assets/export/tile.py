@@ -12,7 +12,7 @@ def reconstruction_output_tiles_func(context, format: str):
     TODO: Generalize the paths that are currently hardcoded for gilfoyle.
     """
     reconstructed_root_dir = geoflow_crop_dir(context.resources.file_store_fastssd.data_dir)
-    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
     # on gilfoyle
     metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
@@ -51,7 +51,7 @@ def reconstruction_output_tiles_func(context, format: str):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"}
+    required_resource_keys={"tyler", "geoflow", "file_store_fastssd"}
 )
 def reconstruction_output_multitiles_nl(context):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
@@ -63,7 +63,7 @@ def reconstruction_output_multitiles_nl(context):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"tyler", "geoflow", "file_store"}
+    required_resource_keys={"tyler", "geoflow", "file_store_fastssd"}
 )
 def reconstruction_output_3dtiles_nl(context):
     """3D Tiles v1.1 generated with tyler."""
@@ -74,7 +74,7 @@ def reconstruction_output_3dtiles_nl(context):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
+    required_resource_keys={"tyler", "geoflow", "file_store_fastssd"},
     code_version=tyler_version()
 )
 def reconstruction_output_multitiles_zuid_holland(context):
@@ -87,7 +87,7 @@ def reconstruction_output_multitiles_zuid_holland(context):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
+    required_resource_keys={"tyler", "geoflow", "file_store_fastssd"},
     code_version=tyler_version()
 )
 def reconstruction_output_3dtiles_zuid_holland(context):
