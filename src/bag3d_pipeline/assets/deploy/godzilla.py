@@ -79,7 +79,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         "-lco", "SPATIAL_INDEX=NONE",
         "-f", "PostgreSQL",
         f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-        f"{deploy_dir}/export/3dbag_nl.gpkg"
+        f"{deploy_dir}/export/3dbag_nl.gpkg.zip"
     ]
     for layer in ["LoD12-2D", "LoD13-2D", "LoD22-2D"]:
         cmd.append(layer)
