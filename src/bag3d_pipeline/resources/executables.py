@@ -225,6 +225,10 @@ class AppImage:
             "ogrinfo": Field(
                 Noneable(str), default_value=None,
                 description="Path to the ogrinfo executable"
+            ),
+            "sozip": Field(
+                Noneable(str), default_value=None,
+                description="Path to the sozip executable"
             )
         },
         "docker": {
@@ -248,6 +252,7 @@ def gdal(context):
         with_docker = True
         gdal_exes["ogrinfo"] = "ogrinfo"
         gdal_exes["ogr2ogr"] = "ogr2ogr"
+        gdal_exes["sozip"] = "sozip"
     else:
         with_docker = False
     return AppImage(exes=gdal_exes,

@@ -92,10 +92,14 @@ def geopackage_nl(context):
         cmd = " ".join(cmd)
         context.resources.gdal.execute("ogrinfo", cmd)
 
-    path_nl_zip = path_nl.with_suffix(".zip")
-    with ZipFile(path_nl_zip, "w", compression=zipfile.ZIP_DEFLATED,
-                 compresslevel=9) as myzip:
-        myzip.write(path_nl)
+    path_nl_zip = path_nl.with_suffix(".gpkg.zip")
+    cmd = [
+        "{exe}",
+        str(path_nl_zip),
+        str(path_nl)
+    ]
+    cmd = " ".join(cmd)
+    context.resources.gdal.execute("sozip", cmd)
 
     metadata = {}
     metadata[f"nr_failed"] = len(failed)
@@ -104,7 +108,7 @@ def geopackage_nl(context):
     metadata["size compressed [Gb]"] = path_nl_zip.stat().st_size * 1e-9
     path_nl.unlink(missing_ok=True)
 
-    return Output(path_nl, metadata=metadata)
+    return Output(path_nl_zip, metadata=metadata)
 
 
 def create_path_layer(id_layer, path_tiles_dir):
