@@ -56,14 +56,14 @@ def features_to_csv(output_csv: Path,
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"file_store_fastssd", "db_connection"}
+    required_resource_keys={"file_store", "db_connection"}
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature."""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir)
-    output_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
+        context.resources.file_store.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection
 
@@ -94,11 +94,11 @@ def feature_evaluation(context):
     non_argument_deps={
         AssetKey(("export", "reconstruction_output_multitiles_nl"))
     },
-    required_resource_keys={"file_store_fastssd"}
+    required_resource_keys={"file_store"}
 )
 def export_index(context):
     """Index of the distribution tiles."""
-    path_export_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
+    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
 
@@ -127,7 +127,7 @@ def export_index(context):
 
 
 @asset(
-    required_resource_keys={"file_store_fastssd"}
+    required_resource_keys={"file_store"}
 )
 def metadata(context):
     """3D BAG metadata for distribution.
@@ -260,7 +260,7 @@ def metadata(context):
 
     }
 
-    output_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
         json.dump(metadata, fo)
