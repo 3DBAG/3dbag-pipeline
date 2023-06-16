@@ -74,7 +74,7 @@ RESOURCES_PYTEST = {
 # Production config ---
 
 # Configure for gilfoyle
-file_store_gilfoyle = file_store.configured({"data_dir": "/data"})
+file_store_gilfoyle = file_store.configured({"data_dir": "/fastssd/data"})
 file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"})
 
 gdal_prod = gdal.configured({

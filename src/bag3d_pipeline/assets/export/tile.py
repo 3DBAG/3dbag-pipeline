@@ -27,7 +27,7 @@ def reconstruction_output_tiles_func(context, format: str):
         "--exe-geof", str(context.resources.geoflow.exes["geof"]),
         "--object-type", "Building",
         "--object-type", "BuildingPart",
-        "--qtree-capacity", "160000",
+        "--qtree-capacity", "280000",
     ]
     if format == "multi":
         cmd.append("--grid-export")
