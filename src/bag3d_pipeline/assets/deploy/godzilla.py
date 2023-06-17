@@ -68,50 +68,50 @@ def webservice_godzilla(context, downloadable_godzilla):
     old_schema = "bag3d_latest"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema}; create schema {schema};'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
         
     deploy_dir = downloadable_godzilla
-    cmd = [
-        "PG_USE_COPY=YES",
-        "OGR_TRUNCATE=YES",
-        "ogr2ogr",
-        "-gt", "65536",
-        "-lco", "SPATIAL_INDEX=NONE",
-        "-f", "PostgreSQL",
-        f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-        f"{deploy_dir}/export/3dbag_nl.gpkg.zip"
-    ]
-    for layer in ["LoD12-2D", "LoD13-2D", "LoD22-2D"]:
-        cmd.append(layer)
-        cmd = " ".join(cmd)
+    for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
+        cmd = " ".join([
+            "PG_USE_COPY=YES",
+            "OGR_TRUNCATE=YES",
+            "ogr2ogr",
+            "-gt", "65536",
+            "-lco", "SPATIAL_INDEX=NONE",
+            "-f", "PostgreSQL",
+            f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
+            f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
+            layer
+        ])
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run(cmd)
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod12_2d_geom_idx on {schema}.lod12_2d using gist (geom)'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod12_2d_geom_idx on {schema}.lod12_2d using gist (geom)'")
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod13_2d_geom_idx on {schema}.lod13_2d using gist (geom)'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod13_2d_geom_idx on {schema}.lod13_2d using gist (geom)'")
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod22_2d_geom_idx on {schema}.lod22_2d using gist (geom)'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod22_2d_geom_idx on {schema}.lod22_2d using gist (geom)'")
 
-    cmd = [
-        "PG_USE_COPY=YES",
-        "OGR_TRUNCATE=YES",
-        "ogr2ogr",
-        "-gt", "65536",
-        "-lco", "SPATIAL_INDEX=NONE",
-        "-f", "PostgreSQL",
-        f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-        f"{deploy_dir}/export/export_index.csv",
-        "-nln", "tile_index"
-    ]
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(cmd)
-
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
+    # TODO: need to install gdal with CSV driver on godzill for this to work
+    # cmd = " ".join([
+    #     "PG_USE_COPY=YES",
+    #     "OGR_TRUNCATE=YES",
+    #     "ogr2ogr",
+    #     "-gt", "65536",
+    #     "-lco", "SPATIAL_INDEX=NONE",
+    #     "-f", "PostgreSQL",
+    #     f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
+    #     f"{deploy_dir}/export/export_index.csv",
+    #     "-nln", "tile_index"
+    # ])
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     c.run(cmd)
+    #
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     c.run(
+    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
 
     extension = str(datetime.now().date())
 
