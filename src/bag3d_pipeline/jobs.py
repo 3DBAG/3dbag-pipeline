@@ -119,10 +119,12 @@ job_nl_reconstruct = define_asset_job(
 job_nl_reconstruct_rerun = define_asset_job(
     name="nl_reconstruct_rerun",
     description="Run the crop and reconstruct steps for the Netherlands.",
-    selection=AssetSelection.keys(["reconstruction", "cropped_input_and_config_nl_rerun"]) |
+    selection=AssetSelection.keys(
+        ["reconstruction", "cropped_input_and_config_nl_rerun"]) |
               AssetSelection.keys(
                   ["reconstruction", "reconstructed_building_models_nl_rerun"]),
-    partitions_def=StaticPartitionsDefinition(partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
+    partitions_def=StaticPartitionsDefinition(
+        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
 )
 
 job_nl_export = define_asset_job(
@@ -132,28 +134,16 @@ job_nl_export = define_asset_job(
               AssetSelection.keys(["export", "export_index"]) |
               AssetSelection.keys(["export", "metadata"]) |
               AssetSelection.keys(["export", "geopackage_nl"]) |
-AssetSelection.keys(["export", "compressed_tiles"]) |
+              AssetSelection.keys(["export", "compressed_tiles"]) |
               AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]),
 )
-
-
-@run_status_sensor(
-    run_status=DagsterRunStatus.SUCCESS,
-    name=f"nl_export_sensor",
-    description=f"Run the nl_export job if the nl_reconstruct succeeded.",
-    monitored_jobs=[job_nl_reconstruct, ],
-    request_job=job_nl_export
-)
-def sensor_nl_export(context):
-    RunRequest(run_key="nl_export_sensor")
-
 
 job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
     selection=AssetSelection.keys(["deploy", "compressed_export_nl"]) |
-              AssetSelection.keys(["deploy", "downloadable_godzilla"]),
-              # AssetSelection.keys(["deploy", "webservice_godzilla"]),
+              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
+              AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
 job_nl_export_deploy = define_asset_job(
@@ -163,12 +153,24 @@ job_nl_export_deploy = define_asset_job(
               AssetSelection.keys(["export", "export_index"]) |
               AssetSelection.keys(["export", "metadata"]) |
               AssetSelection.keys(["export", "geopackage_nl"]) |
-                AssetSelection.keys(["export", "compressed_tiles"]) |
+              AssetSelection.keys(["export", "compressed_tiles"]) |
               AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]) |
               AssetSelection.keys(["deploy", "compressed_export_nl"]) |
               AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
+
+
+@run_status_sensor(
+    run_status=DagsterRunStatus.SUCCESS,
+    name=f"nl_export_deploy_sensor",
+    description=f"Run the nl_export_deploy job if the nl_reconstruct succeeded.",
+    monitored_jobs=[job_nl_reconstruct, ],
+    request_job=job_nl_export_deploy
+)
+def sensor_nl_export_deploy(context):
+    return RunRequest(run_key="nl")
+
 
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
