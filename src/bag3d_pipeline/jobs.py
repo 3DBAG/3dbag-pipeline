@@ -169,7 +169,7 @@ job_nl_export_deploy = define_asset_job(
     request_job=job_nl_export_deploy
 )
 def sensor_nl_export_deploy(context):
-    return RunRequest(run_key="nl")
+    return RunRequest()
 
 
 job_zuid_holland_reconstruct = define_asset_job(
