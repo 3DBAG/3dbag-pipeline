@@ -166,7 +166,8 @@ job_nl_export_deploy = define_asset_job(
     name=f"nl_export_deploy_sensor",
     description=f"Run the nl_export_deploy job if the nl_reconstruct succeeded.",
     monitored_jobs=[job_nl_reconstruct, ],
-    request_job=job_nl_export_deploy
+    request_job=job_nl_export_deploy,
+    minimum_interval_seconds=300
 )
 def sensor_nl_export_deploy(context):
     return RunRequest(run_key="nl-1")
