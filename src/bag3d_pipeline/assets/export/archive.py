@@ -131,42 +131,47 @@ def compressed_tiles(context, export_index):
     path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
-        next(csvreader) # skip header
+        _ = next(csvreader) # skip header
         tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
 
-    def compress_files(tile_id, path_tiles_dir):
-        path_tile_dir = path_tiles_dir.joinpath(tile_id)
-        lid_in_filename = tile_id.replace("/", "-")
-        # OBJ
-        obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}_obj.zip")
-        obj_root = str(path_tile_dir) + lid_in_filename
-        obj_files = (
-            f"{obj_root}-LoD12-3D.obj",
-            f"{obj_root}-LoD12-3D.obj.mtl",
-            f"{obj_root}-LoD13-3D.obj",
-            f"{obj_root}-LoD13-3D.obj.mtl",
-            f"{obj_root}-LoD22-3D.obj",
-            f"{obj_root}-LoD22-3D.obj.mtl",
-        )
-        with ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
-                             compresslevel=9) as oz:
-            for f in obj_files:
-                oz.write(filename=f)
-                Path(f).unlink()
-        # CityJSON
-        cj_file = path_tile_dir.joinpath(f"{lid_in_filename}.city.json")
-        cj_zip = str(cj_file) + ".gz"
-        with cj_file.open("rb") as f_in:
-            with gzip.open(cj_zip, "wb") as f_out:
-                copyfileobj(f_in, f_out)
-        cj_file.unlink()
-        # GPKG
-        gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
-        gpkg_zip = str(gpkg_file) + ".gz"
-        with gpkg_file.open("rb") as f_in:
-            with gzip.open(gpkg_zip, "wb") as f_out:
-                copyfileobj(f_in, f_out)
-        gpkg_file.unlink()
+    dagster_max_concurrent_runs = context.instance.run_coordinator.inst_data.config_dict[
+        "max_concurrent_runs"]
+    with ProcessPoolExecutor(max_workers=dagster_max_concurrent_runs) as executor:
+        for result in executor.map(compress_files, tile_ids):
+            pass
 
-    with ProcessPoolExecutor() as executor:
-        zip(tile_ids, executor.map(compress_files, *tile_ids))
+
+def compress_files(input):
+    tile_id, path_tiles_dir = input
+    path_tile_dir = path_tiles_dir.joinpath(tile_id)
+    lid_in_filename = tile_id.replace("/", "-")
+    # OBJ
+    obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}-obj.zip")
+    obj_root = str(path_tile_dir) + "/" + lid_in_filename
+    obj_files = (
+        f"{obj_root}-LoD12-3D.obj",
+        f"{obj_root}-LoD12-3D.obj.mtl",
+        f"{obj_root}-LoD13-3D.obj",
+        f"{obj_root}-LoD13-3D.obj.mtl",
+        f"{obj_root}-LoD22-3D.obj",
+        f"{obj_root}-LoD22-3D.obj.mtl",
+    )
+    with ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
+                         compresslevel=9) as oz:
+        for f in obj_files:
+            oz.write(filename=f)
+            Path(f).unlink()
+    # CityJSON
+    cj_file = path_tile_dir.joinpath(f"{lid_in_filename}.city.json")
+    cj_zip = str(cj_file) + ".gz"
+    with cj_file.open("rb") as f_in:
+        with gzip.open(cj_zip, "wb") as f_out:
+            copyfileobj(f_in, f_out)
+    cj_file.unlink()
+    # GPKG
+    gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
+    gpkg_zip = str(gpkg_file) + ".gz"
+    with gpkg_file.open("rb") as f_in:
+        with gzip.open(gpkg_zip, "wb") as f_out:
+            copyfileobj(f_in, f_out)
+    gpkg_file.unlink()
