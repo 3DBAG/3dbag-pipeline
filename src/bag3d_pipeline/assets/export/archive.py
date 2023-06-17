@@ -3,7 +3,6 @@ import zipfile
 from zipfile import ZipFile
 import gzip
 from shutil import copyfileobj
-from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
 from dagster import asset, Output, AssetKey
@@ -147,20 +146,13 @@ def compress_files(input):
     lid_in_filename = tile_id.replace("/", "-")
     # OBJ
     obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}-obj.zip")
-    obj_root = str(path_tile_dir) + "/" + lid_in_filename
-    obj_files = (
-        f"{obj_root}-LoD12-3D.obj",
-        f"{obj_root}-LoD12-3D.obj.mtl",
-        f"{obj_root}-LoD13-3D.obj",
-        f"{obj_root}-LoD13-3D.obj.mtl",
-        f"{obj_root}-LoD22-3D.obj",
-        f"{obj_root}-LoD22-3D.obj.mtl",
-    )
+    obj_files = (p for p in path_tiles_dir.iterdir()
+                 if p.suffix == ".obj" or p.suffix == ".mtl")
     with ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
                          compresslevel=9) as oz:
         for f in obj_files:
-            oz.write(filename=f)
-            Path(f).unlink()
+            oz.write(filename=f, arcname=f.name)
+            f.unlink()
     # CityJSON
     cj_file = path_tile_dir.joinpath(f"{lid_in_filename}.city.json")
     cj_zip = str(cj_file) + ".gz"
