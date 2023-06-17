@@ -16,7 +16,11 @@ def reconstruction_output_tiles_func(context, format: str):
     context.log.debug(f"{reconstructed_root_dir=}")
     # on gilfoyle
     metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
+    # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
+    # num_threads = context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
+    num_threads = 40
     cmd = [
+        f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
         "TYLER_RESOURCES_DIR=/home/bdukai/software/tyler/resources",
         "{exe}",

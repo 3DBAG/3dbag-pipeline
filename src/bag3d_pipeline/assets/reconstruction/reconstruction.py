@@ -172,13 +172,11 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
 
     [[input.pointclouds]]
     name = "AHN3"
-    date = 2014
     quality = 1
     path = '{ahn3_files}'
 
     [[input.pointclouds]]
     name = "AHN4"
-    date = 2020
     quality = 0
     path = '{ahn4_files}'
 
