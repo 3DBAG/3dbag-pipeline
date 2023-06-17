@@ -80,7 +80,8 @@ file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"
 gdal_prod = gdal.configured({
     "exes": {
         "ogr2ogr": "/opt/bin/ogr2ogr",
-        "ogrinfo": "/opt/bin/ogrinfo"
+        "ogrinfo": "/opt/bin/ogrinfo",
+        "sozip": "/opt/bin/sozip"
     }
 })
 
