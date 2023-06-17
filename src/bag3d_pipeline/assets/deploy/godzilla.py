@@ -56,7 +56,7 @@ def downloadable_godzilla(context, compressed_export_nl):
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(f"rm -f {deploy_dir}/export.tar.gz")
         c.run(f"rm -rf {deploy_dir}/export")
-        c.put(compressed_export_zuid_holland, remote=deploy_dir)
+        c.put(compressed_export_nl, remote=deploy_dir)
         c.run(f"tar -C {deploy_dir} -xzvf {deploy_dir}/export.tar.gz")
     return deploy_dir
 
