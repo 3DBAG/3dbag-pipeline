@@ -56,13 +56,13 @@ def features_to_csv(output_csv: Path,
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"file_store", "db_connection"}
+    required_resource_keys={"file_store_fastssd", "db_connection"}
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature."""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store.data_dir)
+        context.resources.file_store_fastssd.data_dir)
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection
