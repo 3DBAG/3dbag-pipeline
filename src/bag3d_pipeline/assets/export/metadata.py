@@ -157,15 +157,15 @@ def metadata(context):
             },
             "abstract": "De 3D BAG is een up-to-date landsdekkende dataset met 3D gebouwmodellen van Nederland. De 3D BAG is open data. Het bevat 3D modellen op verscheidene detailniveaus welke zijn gegenereerd door de combinatie van twee open datasets: de pand-gegevens uit de BAG en de hoogtegegevens uit de AHN. De 3D BAG wordt regelmatig geüpdatet met de meest recente openlijk beschikbare pand- en hoogtegegevens.",
             "pointOfContact": {
-                "organisationName": "3DGI",
+                "organisationName": "3D BAG",
                 "contactInfo": {
                     "address": {
                         "country": "Nederland",
                         "electronicMailAddress": "info@3dbag.nl",
                     },
-                    "onlineResource": "https://3dgi.nl"
+                    "onlineResource": "https://3dbag.nl"
                 },
-                "role": "originator"
+                "role": "pointOfContact"
             },
             "resourceConstraints": [
                 {
