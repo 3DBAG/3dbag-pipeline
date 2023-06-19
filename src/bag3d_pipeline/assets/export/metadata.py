@@ -56,7 +56,7 @@ def features_to_csv(output_csv: Path,
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
-    required_resource_keys={"file_store_fastssd", "db_connection"}
+    required_resource_keys={"file_store", "file_store_fastssd", "db_connection"}
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
