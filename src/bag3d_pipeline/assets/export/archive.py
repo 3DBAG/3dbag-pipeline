@@ -146,7 +146,7 @@ def compress_files(input):
     lid_in_filename = tile_id.replace("/", "-")
     # OBJ
     obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}-obj.zip")
-    obj_files = (p for p in path_tiles_dir.iterdir()
+    obj_files = (p for p in path_tile_dir.iterdir()
                  if p.suffix == ".obj" or p.suffix == ".mtl")
     with ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
                          compresslevel=9) as oz:
@@ -156,14 +156,16 @@ def compress_files(input):
     # CityJSON
     cj_file = path_tile_dir.joinpath(f"{lid_in_filename}.city.json")
     cj_zip = str(cj_file) + ".gz"
-    with cj_file.open("rb") as f_in:
-        with gzip.open(cj_zip, "wb") as f_out:
-            copyfileobj(f_in, f_out)
-    cj_file.unlink()
+    if cj_file.exists():
+        with cj_file.open("rb") as f_in:
+            with gzip.open(cj_zip, "wb") as f_out:
+                copyfileobj(f_in, f_out)
+        cj_file.unlink()
     # GPKG
     gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
     gpkg_zip = str(gpkg_file) + ".gz"
-    with gpkg_file.open("rb") as f_in:
-        with gzip.open(gpkg_zip, "wb") as f_out:
-            copyfileobj(f_in, f_out)
-    gpkg_file.unlink()
+    if gpkg_file.exists():
+        with gpkg_file.open("rb") as f_in:
+            with gzip.open(gpkg_zip, "wb") as f_out:
+                copyfileobj(f_in, f_out)
+        gpkg_file.unlink()
