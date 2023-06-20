@@ -41,12 +41,14 @@ def features_to_csv(output_csv: Path,
     with open(output_csv, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile,
                                 fieldnames=['id',
+                                            'identificatie',
                                             'lod_12',
                                             'lod_13',
                                             'lod_22'])
         writer.writeheader()
         for feature, lods in features.items():
             writer.writerow({'id': feature,
+                             'identificatie': feature[:30],
                              'lod_12': lods['1.2'],
                              'lod_13': lods['1.3'],
                              'lod_22': lods['2.2']})
@@ -72,6 +74,8 @@ def feature_evaluation(context):
     for path in Path(reconstructed_root_dir).rglob('*.city.jsonl'):
         reconstructed_buildings.add(path.stem[:-5])
         cityobjects.update(get_lods_per_cityobject(path))
+    context.log.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
+    context.log.debug(f"len(cityobjects)={len(cityobjects)}")
 
     res = conn.get_query(
         SQL("""
@@ -79,8 +83,10 @@ def feature_evaluation(context):
         FROM reconstruction_input.reconstruction_input;
         """))
     input_buildings = set([row[0] for row in res])
+    context.log.debug(f"len(input_buildings)={len(input_buildings)}")
 
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
+    context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
     for feature in not_reconstructed:
         cityobjects[feature] = {'1.2': 0, '1.3': 0, '2.2': 0}
