@@ -12,8 +12,7 @@ def reconstruction_output_tiles_func(context, format: str):
     TODO: Generalize the paths that are currently hardcoded for gilfoyle.
     """
     reconstructed_root_dir = geoflow_crop_dir(context.resources.file_store_fastssd.data_dir)
-    # output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
-    output_dir = bag3d_export_dir(context.resources.file_store_fastssd.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
     # on gilfoyle
     metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
