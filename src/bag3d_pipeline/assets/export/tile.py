@@ -18,7 +18,7 @@ def reconstruction_output_tiles_func(context, format: str):
     metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
     # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
     # num_threads = context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
-    num_threads = 20
+    num_threads = 4
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
