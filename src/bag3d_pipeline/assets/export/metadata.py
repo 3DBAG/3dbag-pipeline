@@ -123,10 +123,10 @@ def export_index(context):
                                                            f"{leaf_id_in_filename}.city.json").exists()
                     gpkg_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
                                    if f.suffix == ".gpkg")
-                    has_all_gpkg = gpkg_cnt == 9
+                    has_all_gpkg = gpkg_cnt == 1
                     obj_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
                                   if f.suffix == ".obj")
-                    has_all_obj = obj_cnt == 3
+                    has_all_obj = obj_cnt == 6
                     csvwriter.writerow(
                         [leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]])
     return path_export_index
