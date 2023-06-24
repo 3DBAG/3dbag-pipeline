@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import re
 import csv
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 
 def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
@@ -16,7 +16,9 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         "cj_schema_valid": None,
         "cj_schema_warnings": None
     }
-    inputfile = dirpath / "7-80-368.city.json"
+    inputfile = dirpath / f"{file_id}.city.json"
+    # temp fix for messup
+    inputfile.unlink(missing_ok=True)
 
     # test zip
     try:
@@ -212,16 +214,14 @@ def check_formats(input) -> dict:
     return {"tile": tile_id, **cj_results, **obj_results, **gpkg_results}
 
 
-export_dir = Path("/data/3DBAG/export")
-with open("/data/3DBAG/export/export_index.csv", "r") as fo:
-    csvreader = csv.reader(fo)
-    h = next(csvreader)
-    tileids = [(export_dir.joinpath("tiles", row[0]), row[0]) for row in csvreader]
+if __name__ == "__main__":
+    export_dir = Path("/data/3DBAG/export")
+    with open("/data/3DBAG/export/export_index.csv", "r") as fo:
+        csvreader = csv.reader(fo)
+        h = next(csvreader)
+        tileids = [(export_dir.joinpath("tiles", row[0]), row[0]) for row in csvreader]
 
-with ThreadPoolExecutor(max_workers=120) as executor:
-    all_results = [result for result in executor.map(check_formats, tileids)]
-
-with export_dir.joinpath("check_all_formats.csv").open("w") as fo:
+    fo = export_dir.joinpath("check_all_formats.csv").open("w")
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC,
         fieldnames=['tile', 'cj_zip_ok', 'cj_nr_features', 'cj_nr_invalid',
@@ -229,4 +229,10 @@ with export_dir.joinpath("check_all_formats.csv").open("w") as fo:
                     'obj_zip_ok', 'obj_nr_features', 'obj_nr_invalid', 'obj_all_errors',
                     'gpkg_zip_ok', 'gpkg_ok', 'gpkg_nr_features'])
     csvwriter.writeheader()
-    csvwriter.writerows(all_results)
+
+    try:
+        with ProcessPoolExecutor() as executor:
+            for result in executor.map(check_formats, tileids):
+                csvwriter.writerow(result)
+    finally:
+        fo.close()
