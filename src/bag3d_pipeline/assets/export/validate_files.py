@@ -14,6 +14,7 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         "cj_nr_features": None,
         "cj_nr_invalid": None,
         "cj_all_errors": None,
+        "cj_lod": None,
         "cj_schema_valid": None,
         "cj_schema_warnings": None,
         "cj_download": None,
@@ -21,6 +22,7 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
     }
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
+    inputfile.unlink(missing_ok=True) # in case a prev run failed
 
     # test zip
     try:
@@ -137,6 +139,8 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
         dirpath / f"{file_id}-LoD13-3D.obj", dirpath / f"{file_id}-LoD13-3D.obj.mtl",
         dirpath / f"{file_id}-LoD22-3D.obj", dirpath / f"{file_id}-LoD22-3D.obj.mtl"
     ]
+    for inputfile in inputfiles:
+        inputfile.unlink(missing_ok=True)
 
     # test zip
     try:
@@ -317,7 +321,7 @@ if __name__ == "__main__":
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC,
         fieldnames=["tile", "cj_zip_ok", "cj_nr_features", "cj_nr_invalid",
-                    "cj_all_errors", "cj_schema_valid", "cj_schema_warnings",
+                    "cj_all_errors", "cj_schema_valid", "cj_schema_warnings", "cj_lod",
                     "cj_download", "cj_sha256",
                     "obj_zip_ok", "obj_nr_features", "obj_nr_invalid", "obj_all_errors",
                     "obj_download", "obj_sha256",
