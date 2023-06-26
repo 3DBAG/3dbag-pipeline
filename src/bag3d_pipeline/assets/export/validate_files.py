@@ -4,6 +4,7 @@ import json
 import re
 import csv
 from concurrent.futures import ProcessPoolExecutor
+import ast
 
 
 def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
@@ -60,6 +61,25 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         inputfile.unlink(missing_ok=True)
         return results
 
+    # cjio feature and lod count
+    try:
+        cmd = " ".join(
+            ["/home/bdukai/software/3dbag-pipeline/venv/bin/cjio", str(inputfile), "info", "--long"])
+        output, returncode = execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+        try:
+            cj_nr_features = int(re.search(r"(?<=BuildingPart \()\d+", output).group(0))
+        except Exception:
+            cj_nr_features = None
+        try:
+            cj_lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
+        except Exception:
+            cj_lod = None
+        results["cj_nr_features"] = cj_nr_features
+        results["cj_lod"] = cj_lod
+    except Exception:
+        inputfile.unlink(missing_ok=True)
+        return results
+
     # val3dity
     reportfile = dirpath / "report.json"
     logfile = dirpath / "val3dity.log"
@@ -71,10 +91,8 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
         with reportfile.open("r") as fo:
             report = json.load(fo)
-        cj_nr_features = report["features_overview"][0]["total"]
         cj_nr_invalid = report["features_overview"][0]["total"] - \
                         report["features_overview"][0]["valid"]
-        results["cj_nr_features"] = cj_nr_features
         results["cj_nr_invalid"] = cj_nr_invalid
         results["cj_all_errors"] = report["all_errors"]
         reportfile.unlink()
@@ -249,7 +267,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
             try:
                 n = int(re.search(r"(?<=Feature Count: )\d+", output).group(0))
             except Exception:
-                n = 0
+                n = None
             nf.append(n)
         except Exception:
             return results
