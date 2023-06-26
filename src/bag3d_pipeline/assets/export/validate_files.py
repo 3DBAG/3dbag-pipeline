@@ -36,10 +36,21 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         inputfile.unlink(missing_ok=True)
         return results
 
+    # unzip
+    try:
+        cmd = " ".join([
+            "gunzip", "--keep",
+            str(inputzipfile)
+        ])
+        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+    except Exception:
+        inputfile.unlink(missing_ok=True)
+        return results
+
     # download link and sha256
     try:
         cmd = " ".join([
-            "sha256sum", str(inputzipfile)
+            "sha256sum", str(inputfile)
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
@@ -48,17 +59,6 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         results["cj_download"] = create_download_link(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
         )
-    except Exception:
-        inputfile.unlink(missing_ok=True)
-        return results
-
-    # unzip
-    try:
-        cmd = " ".join([
-            "gunzip", "--keep",
-            str(inputzipfile)
-        ])
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
         inputfile.unlink(missing_ok=True)
         return results
@@ -228,6 +228,8 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         "gpkg_download": None
     }
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
+    inputfile = dirpath.joinpath(file_id).with_suffix(".gpkg")
+    propertiesfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz.properties")
 
     # test zip
     try:
@@ -240,10 +242,21 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
     except Exception:
         return results
 
+    # unzip
+    try:
+        cmd = " ".join([
+            "gunzip", "--keep",
+            str(inputzipfile)
+        ])
+        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+    except Exception:
+        inputfile.unlink(missing_ok=True)
+        return results
+
     # download link and sha256
     try:
         cmd = " ".join([
-            "sha256sum", str(inputzipfile)
+            "sha256sum", str(inputfile)
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
@@ -254,6 +267,8 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         )
     except Exception:
         return results
+    finally:
+        inputfile.unlink(missing_ok=True)
 
     # ogrinfo
     nf = []
@@ -276,6 +291,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         except Exception:
             return results
     results["gpkg_nr_features"] = nf[0] if len(set(nf)) == 1 else -1
+    propertiesfile.unlink(missing_ok=True)
 
     return results
 
