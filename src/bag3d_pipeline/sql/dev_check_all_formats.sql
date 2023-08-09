@@ -1,6 +1,6 @@
 -- WARNING: geoserver does not understand postgres arrays
 
-CREATE TABLE bag3d_tmp.tile_index_tmp AS
+CREATE TABLE bag3d_tmp.tiles AS
 WITH check_all_formats_cast AS (SELECT tile::text                                                        AS tile_id
                                      , CASE
                                            WHEN cj_zip_ok ISNULL OR length(cj_zip_ok) = 0
@@ -64,7 +64,7 @@ WITH check_all_formats_cast AS (SELECT tile::text                               
                                      , gpkg_download::text
                                      , gpkg_sha256::text
                                 FROM bag3d_tmp.check_all_formats)
-SELECT ti.tile_id
+SELECT ti.id AS tile_id
      , af.cj_zip_ok
      , af.cj_nr_features
      , af.cj_nr_invalid
@@ -85,6 +85,6 @@ SELECT ti.tile_id
      , af.gpkg_nr_features
      , af.gpkg_download
      , af.gpkg_sha256
-     , ti.geometry
-FROM bag3d_tmp.tile_index ti
-         JOIN check_all_formats_cast af USING (tile_id);
+     , ti.wkt as geometry
+FROM bag3d_tmp.export_index ti
+         JOIN check_all_formats_cast af ON ti.id = af.tile_id;
