@@ -326,7 +326,7 @@ def check_formats(input) -> dict:
 if __name__ == "__main__":
     export_dir = Path("/data/3DBAG/export")
     url_root = "https://data.3dbag.nl"
-    version = "v20230622"
+    version = "v20230809"
     with open("/data/3DBAG/export/export_index.csv", "r") as fo:
         csvreader = csv.reader(fo)
         h = next(csvreader)
