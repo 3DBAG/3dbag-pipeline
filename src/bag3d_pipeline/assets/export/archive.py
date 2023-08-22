@@ -57,7 +57,7 @@ def geopackage_nl(context):
     return_code, output = context.resources.gdal.execute("ogr2ogr", cmd)
 
     failed = []
-    for lid in leaf_ids[first_i_with_data:]:
+    for lid in leaf_ids[first_i_with_data + 1:]:
         path_with_data = create_path_layer(lid, path_tiles_dir)
         cmd = [
             "OGR_SQLITE_SYNCHRONOUS=OFF",
