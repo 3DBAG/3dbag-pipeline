@@ -1,9 +1,11 @@
 """Deploy 3D BAG to godzilla"""
 import tarfile
-
-from dagster import asset, AssetIn, Output
-from fabric import Connection
 from datetime import datetime
+from pathlib import Path
+
+from dagster import AssetIn, Output, asset
+from fabric import Connection
+
 
 @asset(
     ins={
@@ -71,7 +73,8 @@ def webservice_godzilla(context, downloadable_godzilla):
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
         
     deploy_dir = downloadable_godzilla
-    for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
+
+    for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join([
             "PG_USE_COPY=YES",
             "OGR_TRUNCATE=YES",
@@ -86,13 +89,15 @@ def webservice_godzilla(context, downloadable_godzilla):
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run(cmd)
 
+    sql = (
+        (Path(__file__).parent / "sql" / "prepare_wfs_wms_db.sql")
+        .open()
+        .read()
+    )
+    sql = sql.replace('{ schema }', schema)
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod12_2d_geom_idx on {schema}.lod12_2d using gist (geom)'")
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod13_2d_geom_idx on {schema}.lod13_2d using gist (geom)'")
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index lod22_2d_geom_idx on {schema}.lod22_2d using gist (geom)'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     # TODO: need to install gdal with CSV driver on godzill for this to work
     # cmd = " ".join([
@@ -115,10 +120,10 @@ def webservice_godzilla(context, downloadable_godzilla):
 
     extension = str(datetime.now().date())
 
-    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #     c.run(
-    #         f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
-    #     c.run(
-    #         f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
+        c.run(
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
         
     return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"
