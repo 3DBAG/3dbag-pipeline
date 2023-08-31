@@ -91,22 +91,30 @@ def webservice_godzilla(context, downloadable_godzilla):
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run(cmd)
 
-    path_to_sql = "prepare_wfs_wms_db.sql"
     pand_table = PostgresTableIdentifier(schema, "pand")
     lod12_table = PostgresTableIdentifier(schema, "lod12_2d")
     lod13_table = PostgresTableIdentifier(schema, "lod13_2d")
     lod22_table = PostgresTableIdentifier(schema, "lod22_2d")
+    mat_view_lod12 = PostgresTableIdentifier(schema, "lod12")
+    mat_view_lod13 = PostgresTableIdentifier(schema, "lod13")
+    mat_view_lod22 = PostgresTableIdentifier(schema, "lod22")
 
-    sql = load_sql(filename=path_to_sql, query_params={
-        'pand_table': pand_table,
-        'lod12_table': lod12_table,
-        'lod13_table': lod13_table,
-        'lod22_table': lod22_table})
+    sql = load_sql(filename="prepare_wfs_wms_db.sql",
+                   query_params={
+                       'pand_table': pand_table,
+                       'lod12_table': lod12_table,
+                       'lod13_table': lod13_table,
+                       'lod22_table': lod22_table,
+                       'mat_view_lod12': mat_view_lod12,
+                       'mat_view_lod13': mat_view_lod13,
+                       'mat_view_lod22': mat_view_lod22
+                       })
+    sql = sql.as_string(context=context)
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
-
+        
     # TODO: need to install gdal with CSV driver on godzill for this to work
     # cmd = " ".join([
     #     "PG_USE_COPY=YES",
@@ -127,11 +135,17 @@ def webservice_godzilla(context, downloadable_godzilla):
     #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
 
     extension = str(datetime.now().date())
+    grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
+    grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
         c.run(
             f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'")
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'")
         
     return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"
