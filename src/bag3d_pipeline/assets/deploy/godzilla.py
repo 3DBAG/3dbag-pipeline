@@ -86,18 +86,19 @@ def webservice_godzilla(context, downloadable_godzilla):
             "-f", "PostgreSQL",
             f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
             f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
-            layer
+            layer,
+            "-nln", layer + "_tmp"
         ])
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run(cmd)
 
-    pand_table = PostgresTableIdentifier(schema, "pand")
-    lod12_table = PostgresTableIdentifier(schema, "lod12_2d")
-    lod13_table = PostgresTableIdentifier(schema, "lod13_2d")
-    lod22_table = PostgresTableIdentifier(schema, "lod22_2d")
-    mat_view_lod12 = PostgresTableIdentifier(schema, "lod12")
-    mat_view_lod13 = PostgresTableIdentifier(schema, "lod13")
-    mat_view_lod22 = PostgresTableIdentifier(schema, "lod22")
+    pand_table = PostgresTableIdentifier(schema, "pand_tmp")
+    lod12_table = PostgresTableIdentifier(schema, "lod12_2d_tmp")
+    lod13_table = PostgresTableIdentifier(schema, "lod13_2d_tmp")
+    lod22_table = PostgresTableIdentifier(schema, "lod22_2d_tmp")
+    mat_view_lod12 = PostgresTableIdentifier(schema, "lod12_2d")
+    mat_view_lod13 = PostgresTableIdentifier(schema, "lod13_2d")
+    mat_view_lod22 = PostgresTableIdentifier(schema, "lod22_2d")
 
     sql = load_sql(filename="prepare_wfs_wms_db.sql",
                    query_params={
