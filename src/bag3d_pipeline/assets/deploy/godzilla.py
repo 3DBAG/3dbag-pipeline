@@ -135,8 +135,8 @@ def webservice_godzilla(context, downloadable_godzilla):
     #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
 
     extension = str(datetime.now().date())
-    grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
-    grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
+    grant_usage = f"GRANT USAGE ON SCHEMA {old_schema} TO bag_geoserver;"
+    grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {old_schema} TO bag_geoserver;"
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
