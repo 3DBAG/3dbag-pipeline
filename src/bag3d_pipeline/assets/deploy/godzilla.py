@@ -6,6 +6,8 @@ from pathlib import Path
 from dagster import AssetIn, Output, asset
 from fabric import Connection
 
+from bag3d_pipeline.core import PostgresTableIdentifier, load_sql
+
 
 @asset(
     ins={
@@ -89,16 +91,19 @@ def webservice_godzilla(context, downloadable_godzilla):
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run(cmd)
 
-    sql = (
-        (Path(__file__).parent / "sql" / "prepare_wfs_wms_db.sql")
-        .open()
-        .read()
-    )
-    sql = sql.replace('{ schema }', schema)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    path_to_sql = "prepare_wfs_wms_db.sql"
+    pand_table = PostgresTableIdentifier(schema, "pand")
+    lod12_table = PostgresTableIdentifier(schema, "lod12_2d")
+    lod13_table = PostgresTableIdentifier(schema, "lod13_2d")
+    lod22_table = PostgresTableIdentifier(schema, "lod22_2d")
 
+    sql = load_sql(filename=path_to_sql, query_params={
+        'pand_table': pand_table,
+        'lod12_table': lod12_table,
+        'lod13_table': lod13_table,
+        'lod22_table': lod22_table})
+
+    context.resources.db_connection.send_query(sql)
     # TODO: need to install gdal with CSV driver on godzill for this to work
     # cmd = " ".join([
     #     "PG_USE_COPY=YES",
