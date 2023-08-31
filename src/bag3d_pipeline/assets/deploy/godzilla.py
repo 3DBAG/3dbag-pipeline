@@ -103,7 +103,10 @@ def webservice_godzilla(context, downloadable_godzilla):
         'lod13_table': lod13_table,
         'lod22_table': lod22_table})
 
-    context.resources.db_connection.send_query(sql)
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+
     # TODO: need to install gdal with CSV driver on godzill for this to work
     # cmd = " ".join([
     #     "PG_USE_COPY=YES",
