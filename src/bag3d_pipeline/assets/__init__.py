@@ -1,7 +1,7 @@
 from dagster import load_assets_from_package_module
 
 from bag3d_pipeline.assets import (ahn, bag, bgt, top10nl, input, sample,
-                                   reconstruction, export, deploy)
+                                   reconstruction, export, deploy, party_walls)
 
 BAG = "bag"
 TOP10NL = "top10nl"
@@ -12,6 +12,7 @@ SAMPLE = "sample"
 RECONSTRUCTION = "reconstruction"
 EXPORT = "export"
 DEPLOY = "deploy"
+PARTY_WALLS = "party_walls"
 
 ahn_assets = load_assets_from_package_module(
     package_module=ahn,
@@ -67,4 +68,10 @@ deploy_assets = load_assets_from_package_module(
     package_module=deploy,
     key_prefix="deploy",
     group_name=DEPLOY
+)
+
+party_walls_assets = load_assets_from_package_module(
+    package_module=party_walls,
+    key_prefix="party_walls",
+    group_name=PARTY_WALLS
 )

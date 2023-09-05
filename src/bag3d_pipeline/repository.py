@@ -2,7 +2,8 @@ import os
 from dagster import repository, with_resources, Definitions
 
 from bag3d_pipeline.assets import (source_assets, input_assets, sample_data_assets,
-                                   reconstruction_assets, export_assets, deploy_assets)
+                                   reconstruction_assets, export_assets, deploy_assets,
+                                   party_walls_assets)
 from bag3d_pipeline.resources import RESOURCES_LOCAL, RESOURCES_PROD, RESOURCES_PYTEST
 from bag3d_pipeline.jobs import (job_sample_data, sensor_sample_data,
                                  job_source_input,
@@ -26,7 +27,8 @@ all_assets = [
     *sample_data_assets,
     *reconstruction_assets,
     *export_assets,
-    *deploy_assets
+    *deploy_assets,
+    *party_walls_assets
 ]
 
 all_jobs = [

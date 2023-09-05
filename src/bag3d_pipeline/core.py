@@ -580,6 +580,7 @@ def geoflow_crop_dir(root_dir):
 
 
 def bag3d_export_dir(root_dir):
+    """Create the 3DBAG export directory"""
     export_dir = bag3d_dir(root_dir) / "export"
     export_dir.mkdir(exist_ok=True)
     return export_dir

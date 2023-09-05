@@ -8,6 +8,7 @@ from uuid import uuid1
 from dagster import AssetKey, Output, asset
 from psycopg.sql import SQL
 
+from bag3d_pipeline.assets.export.tile import check_export_results
 from bag3d_pipeline.core import (bag3d_export_dir, format_date,
                                  geoflow_crop_dir, get_upstream_data_version)
 from bag3d_pipeline.resources.temp_until_configurableresource import geoflow_version, \
@@ -107,28 +108,12 @@ def export_index(context):
     path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
+    path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
 
     with path_export_index.open("w") as fw:
         csvwriter = csv.writer(fw)
         csvwriter.writerow(["id", "has_cityjson", "has_all_gpkg", "has_all_obj", "wkt"])
-        with path_export_dir.joinpath("quadtree.tsv").open("r") as fo:
-            csvreader = csv.reader(fo, delimiter="\t")
-            # skip header, which is [id, level, nr_items, leaf, wkt]
-            next(csvreader)
-            for row in csvreader:
-                if row[3] == "true" and int(row[2]) > 0:
-                    leaf_id = row[0]
-                    leaf_id_in_filename = leaf_id.replace("/", "-")
-                    has_cityjson = path_tiles_dir.joinpath(leaf_id,
-                                                           f"{leaf_id_in_filename}.city.json").exists()
-                    gpkg_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
-                                   if f.suffix == ".gpkg")
-                    has_all_gpkg = gpkg_cnt == 1
-                    obj_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
-                                  if f.suffix == ".obj")
-                    has_all_obj = obj_cnt == 6
-                    csvwriter.writerow(
-                        [leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]])
+        csvwriter.writerows(check_export_results(path_quadtree_tsv, path_tiles_dir))
     return path_export_index
 
 
