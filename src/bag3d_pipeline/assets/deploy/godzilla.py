@@ -115,9 +115,7 @@ def webservice_godzilla(context, downloadable_godzilla):
                        'lod12_2d': lod12_2d,
                        'lod13_2d': lod13_2d,
                        'lod22_2d': lod22_2d})
-
-    conn = context.resources.db_connection
-    sql = sql.as_string(context=conn)
+    sql = context.resources.db_connection.print_query(sql)
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
