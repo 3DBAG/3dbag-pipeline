@@ -93,23 +93,22 @@ def webservice_godzilla(context, downloadable_godzilla):
             c.run(cmd)
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
-    lod12_table = PostgresTableIdentifier(schema, "lod12_2d_tmp")
-    lod13_table = PostgresTableIdentifier(schema, "lod13_2d_tmp")
-    lod22_table = PostgresTableIdentifier(schema, "lod22_2d_tmp")
-    mat_view_lod12 = PostgresTableIdentifier(schema, "lod12_2d")
-    mat_view_lod13 = PostgresTableIdentifier(schema, "lod13_2d")
-    mat_view_lod22 = PostgresTableIdentifier(schema, "lod22_2d")
+    lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")
+    lod13_2d_tmp = PostgresTableIdentifier(schema, "lod13_2d_tmp")
+    lod22_2d_tmp = PostgresTableIdentifier(schema, "lod22_2d_tmp")
+    lod12_2d = PostgresTableIdentifier(schema, "lod12_2d")
+    lod13_2d = PostgresTableIdentifier(schema, "lod13_2d")
+    lod22_2d = PostgresTableIdentifier(schema, "lod22_2d")
 
     sql = load_sql(filename="prepare_wfs_wms_db.sql",
                    query_params={
                        'pand_table': pand_table,
-                       'lod12_table': lod12_table,
-                       'lod13_table': lod13_table,
-                       'lod22_table': lod22_table,
-                       'mat_view_lod12': mat_view_lod12,
-                       'mat_view_lod13': mat_view_lod13,
-                       'mat_view_lod22': mat_view_lod22
-                       })
+                       'lod12_2d_tmp': lod12_2d_tmp,
+                       'lod13_2d_tmp': lod13_2d_tmp,
+                       'lod22_2d_tmp': lod22_2d_tmp,
+                       'lod12_2d': lod12_2d,
+                       'lod13_2d': lod13_2d,
+                       'lod22_2d': lod22_2d})
     sql = sql.as_string(context=context)
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
