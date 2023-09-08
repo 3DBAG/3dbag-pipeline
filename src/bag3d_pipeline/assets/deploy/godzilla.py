@@ -1,7 +1,6 @@
 """Deploy 3D BAG to godzilla"""
 import tarfile
 from datetime import datetime
-from pathlib import Path
 
 from dagster import AssetIn, Output, asset
 from fabric import Connection
@@ -18,10 +17,12 @@ from bag3d_pipeline.core import PostgresTableIdentifier, load_sql
         "compressed_tiles": AssetIn(key_prefix="export"),
     },
 )
-def compressed_export_nl(context,
-                         reconstruction_output_multitiles_nl,
-                         geopackage_nl, export_index, metadata, compressed_tiles
-                         ):
+def compressed_export_nl(
+    context,
+    reconstruction_output_multitiles_nl,
+    geopackage_nl, export_index, metadata,
+    compressed_tiles
+):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
     output_tarfile = export_dir.parent / "export.tar.gz"
@@ -31,18 +32,23 @@ def compressed_export_nl(context,
                        "path": str(output_tarfile)}
     return Output(output_tarfile, metadata=metadata_output)
 
+
 @asset(
     ins={
-        "reconstruction_output_multitiles_zuid_holland": AssetIn(key_prefix="export"),
+        "reconstruction_output_multitiles_zuid_holland":
+        AssetIn(key_prefix="export"),
         "geopackage_nl": AssetIn(key_prefix="export"),
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
 )
-def compressed_export_zuid_holland(context,
-                                   reconstruction_output_multitiles_zuid_holland,
-                                   geopackage_nl, export_index, metadata
-                                   ):
+def compressed_export_zuid_holland(
+    context,
+    reconstruction_output_multitiles_zuid_holland,
+    geopackage_nl,
+    export_index,
+    metadata
+):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_zuid_holland
     output_tarfile = export_dir.parent / "export.tar.gz"
@@ -109,12 +115,14 @@ def webservice_godzilla(context, downloadable_godzilla):
                        'lod12_2d': lod12_2d,
                        'lod13_2d': lod13_2d,
                        'lod22_2d': lod22_2d})
-    sql = sql.as_string(context=context)
+
+    conn = context.resources.db_connection
+    sql = sql.as_string(context=conn)
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
-        
+
     # TODO: need to install gdal with CSV driver on godzill for this to work
     # cmd = " ".join([
     #     "PG_USE_COPY=YES",
