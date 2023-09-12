@@ -2,20 +2,21 @@ from hashlib import sha1
 from datetime import date
 import time
 
-from dagster import (asset, StaticPartitionsDefinition, AssetIn, Output, Failure,
-                     get_dagster_logger, AssetKey, DataVersion)
+from dagster import asset, StaticPartitionsDefinition, AssetIn, Output, Failure, \
+    get_dagster_logger
 from psycopg.sql import SQL
 from pgutils import PostgresTableIdentifier
 
-from bag3d_pipeline.assets.ahn.core import (ahn_dir)
-from bag3d_pipeline.core import geoflow_crop_dir, format_date, get_upstream_data_version
-from bag3d_pipeline.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d_pipeline.assets.input.tile import get_tile_ids
-from bag3d_pipeline.resources.wkt import ZUID_HOLLAND
-from bag3d_pipeline.resources.temp_until_configurableresource import geoflow_version, \
+from bag3d.common.utils.files import geoflow_crop_dir
+from bag3d.common.utils.dagster import format_date
+from bag3d.common.resources.wkt import ZUID_HOLLAND
+from bag3d.common.resources.temp_until_configurableresource import geoflow_version, \
     roofer_version
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
+from bag3d.core.assets.input.tile import get_tile_ids
+from bag3d.core.assets.ahn.core import ahn_dir
 # debug
-from bag3d_pipeline.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
+from bag3d.core.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 
 
 def generate_3dbag_version_date(context):
@@ -60,7 +61,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     code_version=roofer_version()
 )
 def cropped_input_and_config_nl(context, regular_grid_200m, tiles, index,
-                             reconstruction_input):
+                                reconstruction_input):
     """Runs roofer for cropping the input data per feature and selects the best point
     cloud for the reconstruction per feature.
 
@@ -128,7 +129,7 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     code_version=roofer_version()
 )
 def cropped_input_and_config_nl_rerun(context, regular_grid_200m, tiles, index,
-                                          reconstruction_input):
+                                      reconstruction_input):
     """Rerun the reconstruction with just a specific set of partitions.
     """
     return cropped_input_and_config_func(context, index, reconstruction_input,
@@ -145,7 +146,6 @@ def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_
     """Rerun the reconstruction with just a specific set of partitions.
     """
     return reconstruct_building_models_func(context, cropped_input_and_config_nl_rerun)
-
 
 
 @asset(
@@ -274,7 +274,7 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
     context.resources.roofer.execute("crop", "{exe} -c {local_path}",
                                      local_path=path_toml)
     context.resources.db_connection.send_query(
-        SQL("drop view {tile_view}"), query_params={"tile_view": tile_view}
+        SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
     )
     # TODO: what are the conditions for partition failure?
     objects_dir = output_dir.joinpath("objects")

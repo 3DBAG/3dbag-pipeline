@@ -6,9 +6,10 @@ from pgutils import PostgresTableIdentifier, inject_parameters
 from psycopg.sql import SQL
 from psycopg import Connection
 
-from bag3d_pipeline.assets.ahn.core import (generate_grid, PartitionDefinitionAHN,
+from bag3d.common.utils.database import (create_schema, load_sql)
+from bag3d.common.utils.geodata import wkt_from_bbox
+from bag3d.core.assets.ahn.core import (generate_grid, PartitionDefinitionAHN,
                                             ahn_dir, ahn_laz_dir, ahn_filename)
-from bag3d_pipeline.core import (create_schema, load_sql, wkt_from_bbox)
 
 # The tile index bbox was computed from download_ahn_index_esri(3, True)
 PDOK_TILE_INDEX_BBOX = (13000, 306250, 279000, 616250)

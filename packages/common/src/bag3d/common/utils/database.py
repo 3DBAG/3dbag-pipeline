@@ -5,10 +5,9 @@ from dagster import get_dagster_logger, OpExecutionContext, MarkdownMetadataValu
 from psycopg.sql import SQL, Composed, Identifier
 from pgutils import inject_parameters, PostgresTableIdentifier
 
-from bag3d.common import sqlfiles
 
-
-def load_sql(filename: str = None, query_params: dict = None):
+def load_sql(filename: str = None,
+             query_params: dict = None):
     """Load SQL from a file and inject parameters if provided.
 
     If providing query parametes, they need to be in a dict, where the keys are the
@@ -35,8 +34,17 @@ def load_sql(filename: str = None, query_params: dict = None):
             load_sql() # loads my_func.sql from bag3d_pipeline.sql
 
     """
+    # Find the name of the main package. This should be bag3d.<package>, e.g. bag3d.core
+    stk = inspect.stack()[1]
+    mod = inspect.getmodule(stk[0])
+    pkgs = mod.__package__.split(".")
+    if pkgs[0] != "bag3d" and len(pkgs) < 2:
+        raise RuntimeError(
+            "Trying to load SQL files from a namspace that is not bag3d.<package>.")
+    sqlfiles_module = ".".join([pkgs[0], pkgs[1], "sqlfiles"])
+    # Get the name of the calling function
     _f = filename if filename is not None else f"{inspect.stack()[1].function}.sql"
-    _sql = resources.read_text(sqlfiles, _f)
+    _sql = resources.files(sqlfiles_module).joinpath(_f).read_text()
     _pysql = _sql.replace("${", "{")
     return inject_parameters(_pysql, query_params)
 

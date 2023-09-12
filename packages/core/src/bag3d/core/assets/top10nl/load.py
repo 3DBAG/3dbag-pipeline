@@ -1,8 +1,9 @@
 from dagster import (asset, Output)
 
-from bag3d_pipeline.core import (load_sql, postgrestable_from_query, ogr2postgres,
-                                 drop_table, create_schema)
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
+from bag3d.common.utils.database import load_sql, postgrestable_from_query, drop_table, \
+    create_schema
+from bag3d.common.utils.geodata import ogr2postgres
+from bag3d.common.custom_types import PostgresTableIdentifier
 
 
 @asset(required_resource_keys={"db_connection", "gdal"})
@@ -31,11 +32,13 @@ def top10nl_gebouw(context, stage_top10nl_gebouw) -> Output[PostgresTableIdentif
     query = load_sql(query_params={"gebouw_tbl": stage_top10nl_gebouw,
                                    "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    context.resources.db_connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
     context.resources.db_connection.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)")
     context.resources.db_connection.send_query(
         f"CREATE INDEX {table_name}_typegebouw_idx ON {new_table} USING gin (typegebouw)")
-    context.resources.db_connection.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
+    context.resources.db_connection.send_query(
+        f"CLUSTER {new_table} USING {geom_idx_name}")
     return Output(new_table, metadata=metadata)

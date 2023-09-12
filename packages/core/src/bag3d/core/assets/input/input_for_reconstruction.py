@@ -1,9 +1,10 @@
 from dagster import asset, Output, AssetIn
 from psycopg.sql import SQL
 
-from bag3d_pipeline.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d_pipeline.core import create_schema, load_sql, postgrestable_from_query
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
+from bag3d.common.utils.database import create_schema, load_sql, \
+    postgrestable_from_query
+from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @asset(
@@ -19,7 +20,8 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
     - duplicates are removed
     """
     create_schema(context, context.resources.db_connection, RECONSTRUCTION_INPUT_SCHEMA)
-    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input")
+    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA,
+                                        "reconstruction_input")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
                                    "bag_kas_warenhuis": bag_kas_warenhuis,
                                    "new_table": new_table})
@@ -29,7 +31,6 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
         query_params={"new_table": new_table}
     )
     return Output(new_table, metadata=metadata)
-
 
 # @asset(
 #     required_resource_keys={"db_connection"},

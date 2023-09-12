@@ -1,10 +1,11 @@
 from dagster import asset, AssetIn, StaticPartitionsDefinition, get_dagster_logger
 
-from bag3d_pipeline.assets.export.tile import get_tile_ids
+from bag3d.core.assets.export.tile import get_tile_ids
 
 
 class PartitionDefinition3DBagExport(StaticPartitionsDefinition):
     """Distribution tiles"""
+
     def __init__(self):
         logger = get_dagster_logger("PartitionDefinition3DBagExport")
         try:

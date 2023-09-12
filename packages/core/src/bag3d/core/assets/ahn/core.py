@@ -158,7 +158,7 @@ def tile_index_origin() -> Tuple[float, float, float, float]:
     return minx, miny, maxx, maxy
 
 
-def generate_grid(bbox: tuple, cellsize: int):
+def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
     """Generates a grid of fixed cell-size for a BBOX.
     The origin of the grid is the BBOX min coordinates.
 

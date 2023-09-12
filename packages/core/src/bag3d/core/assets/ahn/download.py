@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 from dagster import (asset, Output, get_dagster_logger)
 
-from bag3d_pipeline.assets.ahn.core import (PartitionDefinitionAHN, format_laz_log,
-                                            ahn_filename, download_ahn_index_esri,
-                                            ahn_laz_dir)
-from bag3d_pipeline.core import (download_file, download_as_str)
+from bag3d.common.utils.requests import (download_file, download_as_str)
+from bag3d.core.assets.ahn.core import (PartitionDefinitionAHN, format_laz_log,
+                                        ahn_filename, download_ahn_index_esri,
+                                        ahn_laz_dir)
 
 logger = get_dagster_logger("ahn.download")
 
@@ -127,7 +127,8 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     match the reference.
     """
     tile_id = context.asset_partition_key_for_output()
-    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 3) / ahn_filename(tile_id)
+    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 3) / ahn_filename(
+        tile_id)
     url_laz = tile_index_ahn3_pdok[tile_id]["properties"]["AHN3_LAZ"]
     lazdownload = download_ahn_laz(fpath=fpath, sha_reference=md5_pdok_ahn3,
                                    sha_func=HashChunkwise("md5"),
@@ -147,7 +148,8 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
     match the reference.
     """
     tile_id = context.asset_partition_key_for_output()
-    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 4) / ahn_filename(tile_id)
+    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 4) / ahn_filename(
+        tile_id)
     url_laz = tile_index_ahn4_pdok[tile_id]["properties"]["AHN4_LAZ"]
     lazdownload = download_ahn_laz(fpath=fpath, sha_reference=md5_pdok_ahn4,
                                    sha_func=HashChunkwise("md5"),

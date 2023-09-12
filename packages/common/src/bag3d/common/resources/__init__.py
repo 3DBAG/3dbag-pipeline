@@ -40,36 +40,36 @@ db_connection_docker = db_connection.configured({
 })
 
 
-# # The local resources are set up to run with the 3dbag-sample-data docker image
-# RESOURCES_LOCAL = {
-#     "gdal": gdal,
-#     "file_store": file_store,
-#     "db_connection": db_connection_docker,
-#     "container": container,
-#     "simple_docker": conf_simpl_dock,
-#     "docker_hub": docker_hub_conf,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "roofer": roofer
-# }
-#
-# # pytest config ---
-#
-# RESOURCES_PYTEST = {
-#     "gdal": gdal_local,
-#     "file_store": file_store,
-#     "db_connection": db_connection_docker,
-#     "container": container,
-#     "simple_docker": conf_simpl_dock,
-#     "docker_hub": docker_hub_conf,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "roofer": roofer
-# }
+# The local resources are set up to run with the 3dbag-sample-data docker image
+RESOURCES_LOCAL = {
+    "gdal": gdal,
+    "file_store": file_store,
+    "file_store_fastssd": file_store,
+    "db_connection": db_connection_docker,
+    "container": container,
+    "docker_hub": docker_hub_conf,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer
+}
+
+# pytest config ---
+
+RESOURCES_PYTEST = {
+    "gdal": gdal_local,
+    "file_store": file_store,
+    "file_store_fastssd": file_store,
+    "db_connection": db_connection_docker,
+    "container": container,
+    "docker_hub": docker_hub_conf,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer
+}
 
 # Production config ---
 

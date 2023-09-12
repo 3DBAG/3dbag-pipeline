@@ -5,9 +5,9 @@ from pgutils import PostgresConnection
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
 
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
-from bag3d_pipeline.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d_pipeline.resources.temp_until_configurableresource import tyler_db_version
+from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.common.resources.temp_until_configurableresource import tyler_db_version
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @multi_asset(

@@ -7,7 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 from dagster import asset, Output, AssetKey
 
-from bag3d_pipeline.core import bag3d_export_dir
+from bag3d.common.utils.files import bag3d_export_dir
 
 
 @asset(
@@ -72,14 +72,14 @@ def geopackage_nl(context):
         cmd = " ".join(cmd)
         try:
             return_code, output = context.resources.gdal.execute("ogr2ogr", cmd,
-                                                             silent=True)
+                                                                 silent=True)
             if return_code != 0:
                 failed.append((lid, output))
         except Exception as e:
             failed.append((lid, output))
 
     layers = ["pand", "lod12_2d", "lod12_3d", "lod13_2d", "lod13_3d",
-              "lod22_2d", "lod22_3d",]
+              "lod22_2d", "lod22_3d", ]
     for name_layer in layers:
         cmd = [
             "OGR_SQLITE_SYNCHRONOUS=OFF",
@@ -130,10 +130,11 @@ def compressed_tiles(context, export_index):
     path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
-        _ = next(csvreader) # skip header
+        _ = next(csvreader)  # skip header
         tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
 
-    dagster_max_concurrent_runs = context.instance.run_coordinator.inst_data.config_dict[
+    dagster_max_concurrent_runs = \
+    context.instance.run_coordinator.inst_data.config_dict[
         "max_concurrent_runs"]
     with ProcessPoolExecutor(max_workers=dagster_max_concurrent_runs) as executor:
         for result in executor.map(compress_files, tile_ids):
@@ -149,7 +150,7 @@ def compress_files(input):
     obj_files = (p for p in path_tile_dir.iterdir()
                  if p.suffix == ".obj" or p.suffix == ".mtl")
     with ZipFile(file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED,
-                         compresslevel=9) as oz:
+                 compresslevel=9) as oz:
         for f in obj_files:
             oz.write(filename=f, arcname=f.name)
             f.unlink()

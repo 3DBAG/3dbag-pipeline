@@ -1,8 +1,8 @@
 from dagster import (asset, Output)
 
-from bag3d_pipeline.core import load_sql, postgrestable_from_query, create_schema
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
-
+from bag3d.common.utils.database import load_sql, postgrestable_from_query, \
+    create_schema
+from bag3d.common.custom_types import PostgresTableIdentifier
 
 NEW_SCHEMA = "lvbag"
 
@@ -41,13 +41,15 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
     query = load_sql(query_params={"pand_tbl": stage_bag_pand,
                                    "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    context.resources.db_connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     geom_idx_name = f"{table_name}_geometrie_idx"
     context.resources.db_connection.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)")
     context.resources.db_connection.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)")
-    context.resources.db_connection.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
+    context.resources.db_connection.send_query(
+        f"CLUSTER {new_table} USING {geom_idx_name}")
     return Output(new_table, metadata=metadata)
 
 

@@ -4,8 +4,8 @@ from typing import Iterator, Tuple, Sequence
 
 from dagster import AssetKey, asset
 
-from bag3d_pipeline.core import (geoflow_crop_dir, bag3d_export_dir, format_date)
-from bag3d_pipeline.resources.temp_until_configurableresource import tyler_version
+from bag3d.common.utils.files import geoflow_crop_dir, bag3d_export_dir
+from bag3d.common.resources.temp_until_configurableresource import tyler_version
 
 
 def reconstruction_output_tiles_func(context, format: str):
@@ -13,7 +13,8 @@ def reconstruction_output_tiles_func(context, format: str):
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
     TODO: Generalize the paths that are currently hardcoded for gilfoyle.
     """
-    reconstructed_root_dir = geoflow_crop_dir(context.resources.file_store_fastssd.data_dir)
+    reconstructed_root_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.data_dir)
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
     # on gilfoyle
@@ -80,7 +81,7 @@ def reconstruction_output_3dtiles_nl(context):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
-    required_resource_keys={"tyler", "geoflow","file_store", "file_store_fastssd"},
+    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
     code_version=tyler_version()
 )
 def reconstruction_output_multitiles_zuid_holland(context):
@@ -93,7 +94,7 @@ def reconstruction_output_multitiles_zuid_holland(context):
     non_argument_deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
-    required_resource_keys={"tyler", "geoflow","file_store", "file_store_fastssd"},
+    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
     code_version=tyler_version()
 )
 def reconstruction_output_3dtiles_zuid_holland(context):
@@ -127,11 +128,16 @@ def check_export_results(path_quadtree_tsv: Path, path_tiles_dir: Path) -> Itera
 
 
 def get_tile_ids() -> Sequence[str]:
-    """Get the IDs of the distribution tiles from the file system.
-    """
+    """Get the IDs of the distribution tiles from the file system."""
     # FIXME: hardcoded for gilfoyle
-    HARDCODED_PATH_GILFOYLE = "/data"
-    output_dir = bag3d_export_dir(HARDCODED_PATH_GILFOYLE)
-    path_tiles_dir = output_dir.joinpath("tiles")
-    path_quadtree_tsv = output_dir.joinpath("quadtree.tsv")
-    return [row[0] for row in check_export_results(path_quadtree_tsv, path_tiles_dir)]
+    if Path("/data").exists():
+        HARDCODED_PATH_GILFOYLE = "/data"
+        output_dir = bag3d_export_dir(HARDCODED_PATH_GILFOYLE)
+        path_tiles_dir = output_dir.joinpath("tiles")
+        path_quadtree_tsv = output_dir.joinpath("quadtree.tsv")
+        if path_quadtree_tsv.exists():
+            return [row[0] for row in check_export_results(path_quadtree_tsv, path_tiles_dir)]
+        else:
+            return []
+    else:
+        return []

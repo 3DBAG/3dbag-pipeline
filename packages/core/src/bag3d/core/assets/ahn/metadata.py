@@ -6,8 +6,9 @@ from dagster import asset, Output, Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
 
-from bag3d_pipeline.assets.ahn.core import PartitionDefinitionAHN
-from bag3d_pipeline.core import pdal_info, create_schema, load_sql
+from bag3d.common.utils.geodata import pdal_info
+from bag3d.common.utils.database import create_schema, load_sql
+from bag3d.core.assets.ahn.core import PartitionDefinitionAHN
 
 
 @asset
@@ -69,6 +70,7 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_
     return compute_load_metadata(context, laz_files_ahn4, metadata_table_ahn4,
                                  tile_index_ahn4_pdok)
 
+
 # TODO: add some op or sensor or sth that indexes and clusters the metadata table after
 #   the partitioned job is completed. Keep in mind that some partitions might fail, but
 #   we still need to index the table.
@@ -118,14 +120,14 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
     query = SQL("""
         INSERT INTO {metadata_table}(
             tile_id,
-            hash,
+            HASH,
             download_time,
             pdal_info,
             boundary
         ) 
         VALUES (
             {tile_id}, 
-            {hash}, 
+            {HASH}, 
             {download_time}, 
             {pdal_info}, 
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)

@@ -9,8 +9,7 @@ import pytest
 import docker
 from docker import errors
 
-from bag3d_pipeline.resources.database import (DatabaseConnection, db_connection,
-                                               container)
+from bag3d.common.resources.database import DatabaseConnection, db_connection, container
 
 RES_CONTAINER_ID = "pytest-3dbag-pipeline-db_connection"
 

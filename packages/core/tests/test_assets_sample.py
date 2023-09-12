@@ -1,7 +1,7 @@
 from dagster import build_op_context
 
-from bag3d_pipeline.assets.sample import sample_data
-from bag3d_pipeline.resources import file_store, container, docker_hub
+from bag3d.core.assets.sample import sample_data
+from bag3d.common.resources import file_store, container, docker_hub
 
 
 def test_sample_data_image(temp_file_store, docker_client):

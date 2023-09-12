@@ -29,3 +29,5 @@
 /packages/common/.tox/
 /packages/common/tests/.pytest_cache/
 /venvs/venv_*
+/packages/core/src/bag3d_core.egg-info/
+/packages/core/tests/.pytest_cache/

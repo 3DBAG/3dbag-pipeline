@@ -1,7 +1,8 @@
 from dagster import (asset, Output, Field, DataVersion)
 
-from bag3d_pipeline.core import download_extract, ogrinfo, add_info
-from bag3d_pipeline.custom_types import Path
+from bag3d.common.utils.requests import download_extract
+from bag3d.common.utils.geodata import ogrinfo, add_info
+from bag3d.common.custom_types import Path
 
 
 @asset(
@@ -32,7 +33,8 @@ def extract_top10nl(context) -> Output[Path]:
     )
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")
-    metadata["XSD"] = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
+    metadata[
+        "XSD"] = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     info = ogrinfo(context, dataset="top10nl", extract_path=extract_path,
                    feature_types=context.op_config["featuretypes"],
                    xsd=metadata["XSD"])

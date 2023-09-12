@@ -5,7 +5,8 @@ from datetime import datetime
 from dagster import AssetIn, Output, asset
 from fabric import Connection
 
-from bag3d_pipeline.core import PostgresTableIdentifier, load_sql
+from bag3d.common.utils.database import load_sql
+from bag3d.common.custom_types import PostgresTableIdentifier
 
 
 @asset(
@@ -18,10 +19,10 @@ from bag3d_pipeline.core import PostgresTableIdentifier, load_sql
     },
 )
 def compressed_export_nl(
-    context,
-    reconstruction_output_multitiles_nl,
-    geopackage_nl, export_index, metadata,
-    compressed_tiles
+        context,
+        reconstruction_output_multitiles_nl,
+        geopackage_nl, export_index, metadata,
+        compressed_tiles
 ):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
@@ -36,18 +37,18 @@ def compressed_export_nl(
 @asset(
     ins={
         "reconstruction_output_multitiles_zuid_holland":
-        AssetIn(key_prefix="export"),
+            AssetIn(key_prefix="export"),
         "geopackage_nl": AssetIn(key_prefix="export"),
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
 )
 def compressed_export_zuid_holland(
-    context,
-    reconstruction_output_multitiles_zuid_holland,
-    geopackage_nl,
-    export_index,
-    metadata
+        context,
+        reconstruction_output_multitiles_zuid_holland,
+        geopackage_nl,
+        export_index,
+        metadata
 ):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_zuid_holland
@@ -79,7 +80,7 @@ def webservice_godzilla(context, downloadable_godzilla):
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
-        
+
     deploy_dir = downloadable_godzilla
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
@@ -153,5 +154,5 @@ def webservice_godzilla(context, downloadable_godzilla):
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'")
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'")
-        
+
     return f"{old_schema}.lod12_2d", f"{old_schema}.lod13_2d", f"{old_schema}.lod22_2d", f"{old_schema}.tile_index"

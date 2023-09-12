@@ -1,1 +1,1 @@
-recursive-include src/bag3d/core/sql *.sql
+recursive-include src/bag3d/core/sqlfiles *.sql

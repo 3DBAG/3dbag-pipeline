@@ -1,8 +1,9 @@
 from dagster import (asset, Output)
 
-from bag3d_pipeline.core import (postgrestable_from_query, load_sql, ogr2postgres,
-                                 drop_table, create_schema)
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
+from bag3d.common.utils.database import (postgrestable_from_query, load_sql,
+                                         drop_table, create_schema)
+from bag3d.common.utils.geodata import ogr2postgres
+from bag3d.common.custom_types import PostgresTableIdentifier
 
 SCHEMA_STAGE = "stage_bgt"
 SCHEMA_PROD = "bgt"

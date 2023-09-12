@@ -1,6 +1,6 @@
 from dagster import load_assets_from_package_module
 
-from bag3d_pipeline.assets import ahn
+from bag3d.core.assets import ahn
 
 
 def test_load_ahn_assets():

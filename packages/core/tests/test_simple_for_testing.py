@@ -5,7 +5,7 @@ run quickly without big dependencies, and help in developing some new concept,
 workflow, logic etc.
 """
 from dagster import build_op_context
-from bag3d_pipeline.simple_for_testing import test_table1, test_table2
+from bag3d.core.simple_for_testing import test_table1, test_table2
 
 
 def test_tables(resource_db_connection_docker, resource_container):

@@ -1,4 +1,4 @@
-from bag3d_pipeline.resources.executables import execute_shell_command_silent
+from bag3d.common.resources.executables import execute_shell_command_silent
 from pathlib import Path
 import json
 import re
@@ -22,7 +22,7 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
     }
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
-    inputfile.unlink(missing_ok=True) # in case a prev run failed
+    inputfile.unlink(missing_ok=True)  # in case a prev run failed
 
     # test zip
     try:
@@ -66,8 +66,10 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
     # cjio feature and lod count
     try:
         cmd = " ".join(
-            ["/home/bdukai/software/3dbag-pipeline/venv/bin/cjio", str(inputfile), "info", "--long"])
-        output, returncode = execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+            ["/home/bdukai/software/3dbag-pipeline/venv/bin/cjio", str(inputfile),
+             "info", "--long"])
+        output, returncode = execute_shell_command_silent(shell_command=cmd,
+                                                          cwd=str(dirpath))
         try:
             cj_nr_features = int(re.search(r"(?<=BuildingPart \()\d+", output).group(0))
         except Exception:

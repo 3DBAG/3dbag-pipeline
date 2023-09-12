@@ -1,7 +1,7 @@
 from dagster import load_assets_from_package_module
 
-from bag3d_pipeline.assets import (ahn, bag, bgt, top10nl, input, sample,
-                                   reconstruction, export, deploy, party_walls)
+from bag3d.core.assets import (ahn, bag, bgt, top10nl, input, sample,
+                               reconstruction, export, deploy, party_walls)
 
 BAG = "bag"
 TOP10NL = "top10nl"

@@ -1,11 +1,11 @@
-# bag3d_common – common resources, utilities and types for the 3D BAG pipeline
+# bag3d-common – common resources, utilities and types for the 3D BAG pipeline
 
 This package contains the resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows.
 Therefore, this package is meant to be a dependency of the workflow packages and does not contain data assets for instance.
 
 ## Install and use in dependent workflow package
 
-Install this `bag3d_common` package manually in the virtual environment of the workflow package:
+Install this `bag3d-common` package manually in the virtual environment of the workflow package:
 
 ```shell
 pip install 3dbag-pipeline/packages/common
@@ -15,7 +15,7 @@ pip install 3dbag-pipeline/packages/common
 
 ```toml
 dependencies = [
-    "bag3d_common",
+    "bag3d-common",
 ]
 ```
 

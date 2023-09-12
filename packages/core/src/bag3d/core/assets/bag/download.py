@@ -5,9 +5,12 @@ from copy import deepcopy
 from dagster import asset, Output, OpExecutionContext, Field, DataVersion
 from lxml import objectify
 
-from bag3d_pipeline.core import (bbox_from_wkt, download_file, unzip, drop_table,
-                                 create_schema, postgrestable_metadata)
-from bag3d_pipeline.custom_types import PostgresTableIdentifier, Path
+from bag3d.common.utils.geodata import bbox_from_wkt
+from bag3d.common.utils.files import unzip
+from bag3d.common.utils.requests import download_file
+from bag3d.common.utils.database import (create_schema, drop_table,
+                                         postgrestable_metadata)
+from bag3d.common.custom_types import PostgresTableIdentifier, Path
 
 
 # TODO: The LVBAG schemas are at

@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bag3d_core"
+name = "bag3d-core"
 version = "2022.1003"
-description = "3D BAG production pipeline"
+description = "Workflow for producing the 3D BAG core data set"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Propietary" }
@@ -20,6 +20,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
 dependencies = [
+    "bag3d-common",
     "dagster",
     "dagster-postgres",
     "dagster-shell",
@@ -29,7 +30,7 @@ dependencies = [
     "lxml>=4.6",
     "fabric"
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "dagit", "tox"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver"] }
 
 [tool.bumpver]
 current_version = "2022.1003"

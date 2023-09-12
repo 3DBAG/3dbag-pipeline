@@ -8,8 +8,8 @@ import docker
 from docker.errors import ImageNotFound
 from dagster import (resource, asset, AssetSelection, AssetIn, define_asset_job, Output)
 
-from bag3d_pipeline.core import load_sql, postgrestable_from_query
-from bag3d_pipeline.custom_types import PostgresTableIdentifier
+from bag3d.common.utils.database import load_sql, postgrestable_from_query
+from bag3d.common.custom_types import PostgresTableIdentifier
 
 
 class SimpleDocker:

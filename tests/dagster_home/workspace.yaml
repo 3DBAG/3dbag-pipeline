@@ -1,2 +1,10 @@
 load_from:
-  - python_module: bag3d_pipeline
+  # The value of python_file should specify a path relative to workspace.yaml leading to a file that contains a code location definition.
+  - python_file:
+      relative_path: ../../packages/core/src/bag3d/core/code_location.py
+      location_name: core_py_311_virtual_env
+      executable_path: ../../venvs/venv_core/bin/python
+#  - python_file:
+#      relative_path: ../../packages/party_walls/src/bag3d/party_walls/code_location.py
+#      location_name: party_walls_py_311_virtual_env
+#      executable_path: ../../venvs/venv_party_walls/bin/python

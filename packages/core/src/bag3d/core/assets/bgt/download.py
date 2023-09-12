@@ -1,7 +1,8 @@
 from dagster import (asset, Output, Field)
 
-from bag3d_pipeline.core import download_extract, ogrinfo, add_info
-from bag3d_pipeline.custom_types import Path
+from bag3d.common.utils.requests import download_extract
+from bag3d.common.utils.geodata import ogrinfo, add_info
+from bag3d.common.custom_types import Path
 
 
 @asset(
