@@ -1,1 +1,0 @@
-recursive-include src/bag3d_pipeline/sql *.sql

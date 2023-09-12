@@ -5,7 +5,7 @@ from pytest import mark
 from dagster import build_init_resource_context
 import docker
 
-from bag3d_pipeline import resources
+from bag3d.common import resources
 
 
 @mark.parametrize(

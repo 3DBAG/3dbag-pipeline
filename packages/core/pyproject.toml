@@ -1,16 +1,17 @@
 [build-system]
-requires = ["setuptools>=65.3"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bag3d-pipeline"
+name = "bag3d_core"
 version = "2022.1003"
 description = "3D BAG production pipeline"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Propietary" }
 authors = [
-    { name = "3DGI", email = "info@3dgi.nl" }
+    { name = "3DGI", email = "info@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -29,9 +30,6 @@ dependencies = [
     "fabric"
 ]
 optional-dependencies = { dev = ["pytest", "bumpver", "dagit", "tox"] }
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.bumpver]
 current_version = "2022.1003"

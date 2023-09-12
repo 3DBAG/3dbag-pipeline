@@ -1,11 +1,11 @@
 import os
 
-from bag3d_pipeline.resources.executables import gdal, partialzip, pdal, lastools, tyler, geoflow, roofer
-from bag3d_pipeline.resources.files import FileStore, file_store
-from bag3d_pipeline.resources.database import db_connection, container, docker_hub
-from bag3d_pipeline.simple_for_testing import conf_simpl_dock
+from bag3d.common.resources.executables import gdal, partialzip, pdal, lastools, tyler, geoflow, roofer
+from bag3d.common.resources.files import FileStore, file_store
+from bag3d.common.resources.database import db_connection, container, docker_hub
+# from bag3d.common.simple_for_testing import conf_simpl_dock
 
-from bag3d_pipeline.resources.temp_until_configurableresource import (
+from bag3d.common.resources.temp_until_configurableresource import (
 EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
 FLOWCHART_PATH_RECONSTRUCT
 )
@@ -40,36 +40,36 @@ db_connection_docker = db_connection.configured({
 })
 
 
-# The local resources are set up to run with the 3dbag-sample-data docker image
-RESOURCES_LOCAL = {
-    "gdal": gdal,
-    "file_store": file_store,
-    "db_connection": db_connection_docker,
-    "container": container,
-    "simple_docker": conf_simpl_dock,
-    "docker_hub": docker_hub_conf,
-    "pdal": pdal,
-    "lastools": lastools,
-    "tyler": tyler,
-    "geoflow": geoflow,
-    "roofer": roofer
-}
-
-# pytest config ---
-
-RESOURCES_PYTEST = {
-    "gdal": gdal_local,
-    "file_store": file_store,
-    "db_connection": db_connection_docker,
-    "container": container,
-    "simple_docker": conf_simpl_dock,
-    "docker_hub": docker_hub_conf,
-    "pdal": pdal,
-    "lastools": lastools,
-    "tyler": tyler,
-    "geoflow": geoflow,
-    "roofer": roofer
-}
+# # The local resources are set up to run with the 3dbag-sample-data docker image
+# RESOURCES_LOCAL = {
+#     "gdal": gdal,
+#     "file_store": file_store,
+#     "db_connection": db_connection_docker,
+#     "container": container,
+#     "simple_docker": conf_simpl_dock,
+#     "docker_hub": docker_hub_conf,
+#     "pdal": pdal,
+#     "lastools": lastools,
+#     "tyler": tyler,
+#     "geoflow": geoflow,
+#     "roofer": roofer
+# }
+#
+# # pytest config ---
+#
+# RESOURCES_PYTEST = {
+#     "gdal": gdal_local,
+#     "file_store": file_store,
+#     "db_connection": db_connection_docker,
+#     "container": container,
+#     "simple_docker": conf_simpl_dock,
+#     "docker_hub": docker_hub_conf,
+#     "pdal": pdal,
+#     "lastools": lastools,
+#     "tyler": tyler,
+#     "geoflow": geoflow,
+#     "roofer": roofer
+# }
 
 # Production config ---
 
@@ -135,7 +135,7 @@ RESOURCES_PROD = {
     "db_connection": db_connection_from_env,
     "container": container,
     "docker_hub": docker_hub_conf,
-    "simple_docker": conf_simpl_dock,
+    # "simple_docker": conf_simpl_dock,
     "pdal": pdal_prod,
     "lastools": lastools_prod,
     "tyler": tyler_prod,

@@ -25,3 +25,7 @@
 /tests/dagster_home/logs/
 /tests/dagster_home/.nux
 
+/packages/common/src/bag3d_common.egg-info/
+/packages/common/.tox/
+/packages/common/tests/.pytest_cache/
+/venvs/venv_*

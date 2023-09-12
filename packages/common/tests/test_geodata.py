@@ -5,39 +5,9 @@ from pytest import mark
 from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 
-from bag3d_pipeline.core import (get_metadata, get_extract_download_link, ogrinfo,
-                                 add_info, parse_ogrinfo, ogr2postgres, load_sql,
-                                 geojson_poly_to_wkt)
-from bag3d_pipeline.resources import gdal
-
-
-def test_load_sql():
-    query_params = {
-        'tbl': PostgresTableIdentifier('myschema', 'mytable'),
-    }
-    query = load_sql(filename="test_table2.sql", query_params=query_params)
-    expect = "Composed([SQL('create table table2 as select * from '), Identifier('myschema', 'mytable'), SQL(';')])"
-    assert str(query) == expect
-
-
-def test_get_metadata():
-    res = get_metadata("https://api.pdok.nl/brt/top10nl/download/v1_0/dataset")
-    assert res
-
-
-@mark.parametrize("geofilter", ("testarea", None), ids=["testarea", "NL"])
-def test_download_link(wkt_testarea, geofilter):
-    """Can we get a valid download link with a WKT geofilter and also with a None,
-    which should download the whole NL?"""
-    if geofilter == "testarea":
-        geofilter = wkt_testarea
-    res = get_extract_download_link(
-        url="https://api.pdok.nl/brt/top10nl/download/v1_0/full/custom",
-        featuretypes=["gebouw",],
-        data_format="gml",
-        geofilter=geofilter
-    )
-    assert res
+from bag3d.common.resources import gdal
+from bag3d.common.utils.geodata import (ogrinfo, add_info, parse_ogrinfo, ogr2postgres,
+                                        geojson_poly_to_wkt)
 
 
 @mark.parametrize("config", ({"exes": {"ogrinfo": "ogrinfo"}},
@@ -59,8 +29,10 @@ def test_info_exes(config, docker_gdal_image, database):
     assert "gebouw" in res
 
 
-@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ], "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
-                           ("bgt.zip", "bgt", ["pand", "wegdeel"], "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
+@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ],
+                            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
+                           ("bgt.zip", "bgt", ["pand", "wegdeel"],
+                            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
                   ids=lambda val: val[1]
                   )
 def test_info_data(data, docker_gdal_image, database):
@@ -174,8 +146,10 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     layername, layerinfo = parse_ogrinfo(ogrinfo_stdout, "pand")
 
 
-@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ], "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
-                           ("bgt.zip", "bgt", ["pand", "wegdeel"], "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
+@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ],
+                            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
+                           ("bgt.zip", "bgt", ["pand", "wegdeel"],
+                            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
                   ids=lambda val: val[1]
                   )
 def test_ogr2postgres(data, docker_gdal_image, database, resource_container):
@@ -196,6 +170,8 @@ def test_ogr2postgres(data, docker_gdal_image, database, resource_container):
 
 
 def test_geojson_poly_to_wkt():
-    geometry = {'coordinates': [[[45000, 387500], [45000, 393750], [50000, 393750], [50000, 387500], [45000, 387500]]], 'type': 'Polygon'}
+    geometry = {'coordinates': [
+        [[45000, 387500], [45000, 393750], [50000, 393750], [50000, 387500],
+         [45000, 387500]]], 'type': 'Polygon'}
     wkt = geojson_poly_to_wkt(geometry)
     print(wkt)

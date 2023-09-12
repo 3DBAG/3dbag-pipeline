@@ -8,7 +8,7 @@ from dagster import resource, get_dagster_logger, Field
 import docker
 from docker.errors import NotFound
 
-from bag3d_pipeline.core import get_run_id
+from bag3d.common.utils.dagster import get_run_id
 
 logger = get_dagster_logger("resources.file_store")
 

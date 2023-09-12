@@ -3,7 +3,7 @@ Need to migrate the whole resources and repository definitions to the new
 ConfigurableResource and Definitions API,
 https://docs.dagster.io/concepts/resources#resources.
 """
-from bag3d_pipeline.resources.executables import execute_shell_command_silent
+from bag3d.common.resources.executables import execute_shell_command_silent
 
 EXE_PATH_TYLER = "/opt/bin/tyler"
 EXE_PATH_TYLER_DB = "/opt/bin/tyler-db"

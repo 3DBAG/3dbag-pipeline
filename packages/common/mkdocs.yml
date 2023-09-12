@@ -1,0 +1,22 @@
+site_name: bag3d_common
+
+theme:
+  name: mkdocs
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+      - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings
+
+markdown_extensions:
+  - markdown_include.include:
+      base_path: docs
+
+nav:
+  - Overview: index.md
+  - API Reference: reference/

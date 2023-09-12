@@ -6,7 +6,7 @@ import docker
 from docker.errors import ImageNotFound, NotFound
 from pgutils import PostgresConnection, PostgresFunctions
 
-from bag3d_pipeline.core import get_run_id
+from bag3d.common.utils.dagster import get_run_id
 
 
 class DockerHub:

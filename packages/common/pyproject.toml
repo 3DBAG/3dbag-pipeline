@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d_common"
+version = "2023.1001"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Propietary" }
+authors = [
+    { name = "3DGI", email = "info@3dgi.nl" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: Other/Proprietary License"
+]
+urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+dependencies = [
+    "dagster",
+    "dagster-shell",
+    "docker",
+    "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2022.1011#egg=pgutils",
+    "psycopg[binary]",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bumpver",
+    "tox",
+    "pytest"
+]
+docs = [
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+    "markdown-include"
+]

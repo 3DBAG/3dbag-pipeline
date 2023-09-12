@@ -5,9 +5,9 @@ from copy import deepcopy
 import signal
 from subprocess import PIPE, STDOUT, Popen
 
-import docker
 from dagster import (get_dagster_logger, resource, Field, Noneable, Failure)
 from dagster_shell import execute_shell_command
+import docker
 from docker.errors import ImageNotFound
 
 DOCKER_PDAL_IMAGE = "pdal/pdal:sha-cfa827b6"  # PDAL 2.4.3
@@ -35,6 +35,7 @@ def execute_shell_command_silent(shell_command: str,
         stdout/stderr output of running the shell command and the second element is
         the return code.
     """
+
     def pre_exec():
         # Restore default signal disposition and invoke setsid
         for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
@@ -95,7 +96,8 @@ class AppImage:
             self.container_mount_point = None
 
     def execute(self, exe_name: str, command: str, kwargs: dict = None,
-                local_path: Path = None, silent=False, cwd: str = None) -> Tuple[int, str]:
+                local_path: Path = None, silent=False, cwd: str = None) -> Tuple[
+        int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
 
