@@ -1,0 +1,1 @@
+# bag3d-party-walls – Workflow for calculating the party walls from the 3D BAG

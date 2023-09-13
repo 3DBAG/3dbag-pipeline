@@ -31,3 +31,5 @@
 /venvs/venv_*
 /packages/core/src/bag3d_core.egg-info/
 /packages/core/tests/.pytest_cache/
+/packages/core/.tox/
+/packages/party_walls/src/bag3d_party_walls.egg-info/

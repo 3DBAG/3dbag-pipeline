@@ -142,3 +142,13 @@ RESOURCES_PROD = {
     "geoflow": geoflow_prod,
     "roofer": roofer_prod
 }
+
+# Resource definitions for import
+
+resource_defs_by_deployment_name = {
+    "prod": RESOURCES_PROD,
+    "local": RESOURCES_LOCAL,
+    "pytest": RESOURCES_PYTEST
+}
+deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
+resource_defs = resource_defs_by_deployment_name[deployment_name]

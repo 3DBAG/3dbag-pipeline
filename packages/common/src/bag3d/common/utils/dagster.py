@@ -1,7 +1,11 @@
+"""Utilities for working with the dagster instance"""
 from datetime import date
 
-from dagster import TableColumn, TableSchema, OpExecutionContext, AssetKey
+from dagster import TableColumn, TableSchema, OpExecutionContext, AssetKey, \
+    StaticPartitionsDefinition, get_dagster_logger
 from dagster._core.definitions.data_version import extract_data_version_from_entry
+
+from bag3d.common.utils.files import get_export_tile_ids
 
 
 def get_run_id(context, short=True):
@@ -47,3 +51,16 @@ def get_upstream_data_version(context: OpExecutionContext, asset_key: AssetKey) 
         asset_key).event_log_entry
     upstream_data_version = extract_data_version_from_entry(upstream_entry)
     return upstream_data_version.value
+
+
+class PartitionDefinition3DBagDistribution(StaticPartitionsDefinition):
+    """Distribution tiles"""
+
+    def __init__(self):
+        logger = get_dagster_logger("PartitionDefinition3DBagDistribution")
+        try:
+            tile_ids = get_export_tile_ids()
+        except BaseException as e:
+            logger.exception(e)
+            tile_ids = []
+        super().__init__(partition_keys=sorted(list(tile_ids)))

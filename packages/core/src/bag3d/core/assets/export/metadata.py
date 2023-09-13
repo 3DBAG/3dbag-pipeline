@@ -12,7 +12,7 @@ from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date, get_upstream_data_version
 from bag3d.common.resources.temp_until_configurableresource import geoflow_version, \
     roofer_version, tyler_version, tyler_db_version
-from bag3d.core.assets.export.tile import check_export_results
+from bag3d.common.utils.files import check_export_results
 
 
 def get_lods_per_cityobject(path: Path) -> Dict[str, Dict]:

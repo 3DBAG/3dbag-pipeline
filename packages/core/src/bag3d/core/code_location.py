@@ -1,8 +1,6 @@
-import os
-
 from dagster import Definitions
 
-from bag3d.common.resources import RESOURCES_LOCAL, RESOURCES_PROD, RESOURCES_PYTEST
+from bag3d.common.resources import resource_defs
 from bag3d.core.assets import (source_assets, input_assets,
                                reconstruction_assets, export_assets, deploy_assets,)
 from bag3d.core.jobs import (job_source_input, job_clean_containers,
@@ -36,14 +34,6 @@ all_jobs = [
     job_nl_reconstruct_rerun,
     job_nl_export_deploy,
 ]
-
-resource_defs_by_deployment_name = {
-    "prod": RESOURCES_PROD,
-    "local": RESOURCES_LOCAL,
-    "pytest": RESOURCES_PYTEST
-}
-deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
-resource_defs = resource_defs_by_deployment_name[deployment_name]
 
 defs = Definitions(
     resources=resource_defs,

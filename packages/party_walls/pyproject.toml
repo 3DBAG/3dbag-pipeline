@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d-party-walls"
+version = "2023.1001"
+description = "Workflow for calculating the party walls in the 3D BAG."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Propietary" }
+authors = [
+    { name = "3DGI", email = "info@3dgi.nl" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: Other/Proprietary License"
+]
+urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+dependencies = [
+    "bag3d-common",
+    "dagster",
+    "dagster-shell",
+]
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver"] }
+
+[tool.bumpver]
+current_version = "2023.1001"
+version_pattern = "YYYY.BUILD"
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'version = "{version}"',
+]
+
