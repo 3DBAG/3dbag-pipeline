@@ -97,6 +97,6 @@ def get_export_tile_ids() -> Sequence[str]:
         path_tiles_dir = output_dir.joinpath("tiles")
         path_quadtree_tsv = output_dir.joinpath("quadtree.tsv")
         if path_quadtree_tsv.exists():
-            tileids = [row[0] for row in
+            tileids = [er.tile_id for er in
                        check_export_results(path_quadtree_tsv, path_tiles_dir)]
     return tileids
