@@ -25,7 +25,7 @@ dependencies = [
     "numpy",
     "pandas",
     "dagster",
-    "dagster-postgres",
+    "dagster-postgres", # always need dagster-postgres, because we are using Postgres as the dagster run storage
 ]
 optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver"] }
 
