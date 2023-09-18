@@ -44,8 +44,8 @@ def distribution_tiles_files_index(context,
     export_results_gen = filter(
         lambda t: t.has_cityjson,
         check_export_results(
-            path_quadtree_tsv=config.quadtree_tsv_path,
-            path_tiles_dir=config.tiles_dir_path
+            path_quadtree_tsv=Path(config.quadtree_tsv_path),
+            path_tiles_dir=Path(config.tiles_dir_path)
         )
     )
     export_results = dict((t.tile_id, t) for t in export_results_gen)
@@ -60,6 +60,7 @@ def distribution_tiles_files_index(context,
 
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
+    required_resource_keys={"db_connection"}
 )
 def party_walls_nl(context,
                    distribution_tiles_files_index: TilesFilesIndex) -> DataFrame:
@@ -82,7 +83,7 @@ def party_walls_nl(context,
 
     df = city_stats(
         inputs=[export_result.cityjson_path, ] + paths_neighbours,
-        dsn="\"dbname=baseregisters\"",
+        dsn=context.resources.db_connection.dsn,
         break_on_error=True
     )
     context.add_output_metadata(
