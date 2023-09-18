@@ -20,12 +20,12 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DGI/3dbag-pipeline.git@2023.1001#subdirectory=packages/common",
+    "bag3d-common @ git+ssh://git@github.com:3DGI/3dbag-pipeline.git@2023.1001#subdirectory=packages/common",
     "dagster",
     "dagster-postgres",
     "dagster-shell",
     "docker",
-    "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2022.1011#egg=pgutils",
+    "pgutils @ git+ssh://git@github.com:balazsdukai/pgutils.git@2022.1011#egg=pgutils",
     "psycopg[binary]",
     "lxml>=4.6",
     "fabric"
