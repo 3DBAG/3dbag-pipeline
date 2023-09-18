@@ -11,13 +11,12 @@ from urban_morphology_3d.cityStats import city_stats
 
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
 from bag3d.common.utils.files import check_export_results, geoflow_crop_dir, bag3d_export_dir
-from bag3d.common.types import ExportResult, LocalPath
 
 
 class TileExportConfig(Config):
     """Location of the multi-tiles export output of *tyler*"""
-    tiles_dir_path: LocalPath
-    quadtree_tsv_path: LocalPath
+    tiles_dir_path: str
+    quadtree_tsv_path: str
 
 
 @dataclass
