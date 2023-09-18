@@ -10,7 +10,7 @@ from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
 from bag3d.common.utils.database import (create_schema, drop_table,
                                          postgrestable_metadata)
-from bag3d.common.custom_types import PostgresTableIdentifier, Path
+from bag3d.common.types import PostgresTableIdentifier, Path
 
 
 # TODO: The LVBAG schemas are at

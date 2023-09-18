@@ -6,7 +6,7 @@ from dagster import AssetIn, Output, asset
 from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
-from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.common.types import PostgresTableIdentifier
 
 
 @asset(

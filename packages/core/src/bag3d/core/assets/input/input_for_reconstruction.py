@@ -3,7 +3,7 @@ from psycopg.sql import SQL
 
 from bag3d.common.utils.database import create_schema, load_sql, \
     postgrestable_from_query
-from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 

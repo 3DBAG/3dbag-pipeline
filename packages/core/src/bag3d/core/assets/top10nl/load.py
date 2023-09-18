@@ -3,7 +3,7 @@ from dagster import (asset, Output)
 from bag3d.common.utils.database import load_sql, postgrestable_from_query, drop_table, \
     create_schema
 from bag3d.common.utils.geodata import ogr2postgres
-from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.common.types import PostgresTableIdentifier
 
 
 @asset(required_resource_keys={"db_connection", "gdal"})
