@@ -1,7 +1,7 @@
 site_name: bag3d-common
 
 theme:
-  name: mkdocs
+  name: material
 
 plugins:
   - search

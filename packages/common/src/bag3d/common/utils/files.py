@@ -1,4 +1,4 @@
-"""Working with files"""
+"""Working with file inputs and outputs"""
 from typing import Tuple, Sequence, Iterator
 import csv
 from pathlib import Path
@@ -6,8 +6,11 @@ from zipfile import ZipFile
 
 from dagster import get_dagster_logger
 
+from bag3d.common.types import ExportResult
+
 
 class BadArchiveError(OSError):
+    """The archive contains a bad file"""
     pass
 
 
@@ -18,8 +21,8 @@ def unzip(file: Path, dest: Path):
         file: The Path to the zip.
         dest: The Path to the destination directory.
 
-    Returns:
-        None
+    Raises:
+        BadArchiveError: The archive contains at least one bad file
     """
     logger = get_dagster_logger()
     logger.info(f"Uncompressing {file} to {dest}")
@@ -34,50 +37,59 @@ def unzip(file: Path, dest: Path):
 
 
 def bag3d_dir(root_dir: Path):
+    """The 3D BAG data directory"""
     return Path(root_dir) / "3DBAG"
 
 
 def geoflow_crop_dir(root_dir):
+    """Directory for the Geoflow crop-reconstruct output"""
     return bag3d_dir(root_dir) / "crop_reconstruct"
 
 
 def bag3d_export_dir(root_dir):
-    """Create the 3DBAG export directory"""
+    """Create the 3DBAG export directory if does not exist"""
     export_dir = bag3d_dir(root_dir) / "export"
     export_dir.mkdir(exist_ok=True)
     return export_dir
 
 
 def check_export_results(path_quadtree_tsv: Path, path_tiles_dir: Path) -> Iterator[
-    Tuple[str, bool, bool, bool, str]]:
-    """Parse the quadtree.tsv written by tyler, check if all formats exists for each
+    ExportResult]:
+    """Parse the `quadtree.tsv` written by *tyler*, check if all formats exists for each
     tile, add the tile WKT.
 
     Returns:
-         Generator of leaf_id, has_cityjson, has_all_gpkg, has_all_obj, wkt
+         Generator of ExportResult
     """
     with path_quadtree_tsv.open("r") as fo:
-        csvreader = csv.reader(fo, delimiter="\t")
-        # skip header, which is [id, level, nr_items, leaf, wkt]
-        next(csvreader)
+        csvreader = csv.DictReader(fo, delimiter="\t")
         for row in csvreader:
-            if row[3] == "true" and int(row[2]) > 0:
-                leaf_id = row[0]
+            if row["leaf"] == "true" and int(row["nr_items"]) > 0:
+                leaf_id = row["id"]
                 leaf_id_in_filename = leaf_id.replace("/", "-")
-                has_cityjson = path_tiles_dir.joinpath(leaf_id,
-                                                       f"{leaf_id_in_filename}.city.json").exists()
-                gpkg_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
-                               if f.suffix == ".gpkg")
-                has_all_gpkg = gpkg_cnt == 1
-                obj_cnt = sum(1 for f in path_tiles_dir.joinpath(leaf_id).iterdir()
-                              if f.suffix == ".obj")
-                has_all_obj = obj_cnt == 6
-                yield leaf_id, has_cityjson, has_all_gpkg, has_all_obj, row[4]
+                obj_paths = tuple(p for p in path_tiles_dir.joinpath(leaf_id).iterdir()
+                                  if p.suffix == ".obj")
+                basename = path_tiles_dir.joinpath(leaf_id, leaf_id_in_filename)
+                yield ExportResult(
+                    tile_id=leaf_id,
+                    cityjson_path=basename.with_suffix(".city.json"),
+                    gpkg_path=basename.with_suffix(".gpkg"),
+                    obj_paths=obj_paths,
+                    wkt=row["wkt"]
+                )
 
 
 def get_export_tile_ids() -> Sequence[str]:
-    """Get the IDs of the distribution tiles from the file system."""
-    # FIXME: hardcoded for gilfoyle
+    """Get the IDs of the distribution tiles from the file system.
+    It reads the `quadtree.tsv` output from *tyler* and extracts the IDs of the
+    leaf tiles.
+
+    Fixme:
+        * path is hardcoded for gilfoyle
+
+    Returns:
+        List of tile IDs
+    """
     tileids = []
     if Path("/data").exists():
         HARDCODED_PATH_GILFOYLE = "/data"

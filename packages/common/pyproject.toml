@@ -39,5 +39,6 @@ docs = [
     "mkdocs-gen-files",
     "mkdocs-literate-nav",
     "mkdocs-section-index",
-    "markdown-include"
+    "mkdocs-material",
+    "markdown-include",
 ]
