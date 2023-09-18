@@ -10,7 +10,9 @@ from pandas import DataFrame
 from urban_morphology_3d.cityStats import city_stats
 
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
-from bag3d.common.utils.files import check_export_results, geoflow_crop_dir, bag3d_export_dir
+from bag3d.common.utils.files import check_export_results, geoflow_crop_dir, \
+    bag3d_export_dir
+from bag3d.common.types import ExportResult
 
 
 class TileExportConfig(Config):
