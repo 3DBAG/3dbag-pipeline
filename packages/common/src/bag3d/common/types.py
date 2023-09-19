@@ -49,4 +49,4 @@ class ExportResult:
     @property
     def has_obj(self) -> bool:
         """Has all the OBJ files and they exist"""
-        return len(self.obj_paths) == 6 and all(p.exists() for p in self.obj_paths)
+        return len(self.obj_paths) == 3 and all(p.exists() for p in self.obj_paths)

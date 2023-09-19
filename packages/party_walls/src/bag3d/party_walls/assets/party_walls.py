@@ -49,9 +49,6 @@ def distribution_tiles_files_index(context,
         )
     )
     export_results = dict((t.tile_id, t) for t in export_results_gen)
-    _keys = list(export_results)[:3]
-    for k in _keys:
-        context.log.debug(export_results[k])
     tree = STRtree(tuple(from_wkt(t.wkt) for t in export_results.values()))
     paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
     return TilesFilesIndex(
