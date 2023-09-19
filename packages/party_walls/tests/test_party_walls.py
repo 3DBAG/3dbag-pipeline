@@ -2,8 +2,9 @@ import pytest
 import os
 from dagster import build_asset_context, materialize_to_memory, RunConfig
 from bag3d.party_walls.assets.party_walls import distribution_tiles_files_index, \
-    TileExportConfig, party_walls_nl
+    TileExportConfig, party_walls_nl, cityjsonfeatures_with_party_walls_nl
 from bag3d.common.resources.database import db_connection, container
+import pandas as pd
 
 
 @pytest.fixture(scope="function")
@@ -46,7 +47,7 @@ def test_distribution_tiles_files_index(tile_export_config):
 
 
 def test_party_walls(tile_export_config, resource_db_connection, resource_container,
-                     export_dir_uncompressed):
+                     export_dir_uncompressed, output_data_dir):
     """Can we compute the party walls and other statistics?"""
     result = materialize_to_memory(
         [distribution_tiles_files_index, party_walls_nl],
@@ -59,5 +60,17 @@ def test_party_walls(tile_export_config, resource_db_connection, resource_contai
         resources={"db_connection": resource_db_connection,
                    "container": resource_container}
     )
-    df = result.asset_value("part_walls_nl")
+    df = result.asset_value("party_walls_nl")
+    df.to_csv(str(output_data_dir / "party_walls_nl.csv"))
     assert result.success
+
+
+def test_cityjsonfeatures_with_party_walls_nl(output_data_dir):
+    """Can we create cityjsonfeatures with the party wall data?
+    Currently, this test uses the csv that is created by `test_party_walls`.
+    """
+    party_walls_nl = pd.read_csv(output_data_dir / "party_walls_nl.csv")
+    result = cityjsonfeatures_with_party_walls_nl(
+        context=build_asset_context(),
+        party_walls_nl=party_walls_nl
+    )

@@ -54,6 +54,7 @@ Thus, you need to create a `.env` file and set these variables:
 # contents of .env
 SERVER_NAME="server URL that will be used by rsync"
 SERVER_3DBAG_DIR="path to the 3D BAG data directory on the server"
+SERVER_RECONSTRUCTION_DIR="path to the crop_reconstruct dir"
 ```
 
 The test data setup across all packages is managed with just from the root directory.

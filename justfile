@@ -1,5 +1,5 @@
 set dotenv-load := true
-datadir := "tests/data"
+datadir := "tests" / "data"
 inputdir := datadir / "input"
 
 # Create the directories for storing the input and output data
@@ -13,9 +13,18 @@ prepare:
 download: prepare
     #!/usr/bin/env bash
     set -euxo pipefail
-    # Download tiles
+    # Download the reconstructed features
+    tiles_reconstruction=("9/560/624" "10/564/626" "10/566/626" "10/564/624" "10/566/624")
+    for tile_id in "${tiles_reconstruction[@]}" ;
+    do
+        tiledir="$SERVER_RECONSTRUCTION_DIR/$tile_id"
+        inputdir_tile="{{inputdir}}/crop_reconstruct/$tile_id"
+        mkdir -p "$inputdir_tile"
+        rsync --ignore-existing --exclude "objects/*/crop" --exclude "objects/*/config_.toml" --exclude "crop.toml" --exclude "features.txt" --exclude -av $SERVER_NAME:"$tiledir/*" "$inputdir_tile/"
+    done
+    # Download exported tiles
     tiles_exported=("9/560/624" "10/564/626" "10/566/626" "10/564/624" "10/566/624")
-    for tile_id in "${tiles_exported[@]}"
+    for tile_id in "${tiles_exported[@]}" ;
     do
         tiledir="$SERVER_3DBAG_DIR/export/tiles/$tile_id"
         inputdir_tile="{{inputdir}}/export/tiles/$tile_id"
@@ -33,7 +42,7 @@ download: prepare
             if [ $extension = 'gz' ]; then
                 gunzip --keep -c $fullfile > "$inputdir_tile_uncompressed/$filename"
             elif [ $extension = 'zip' ]; then
-                unzip $fullfile -d "$inputdir_tile_uncompressed"
+                unzip -o $fullfile -d "$inputdir_tile_uncompressed"
             else
                 ln -sf $fullfile "$inputdir_tile_uncompressed/"
             fi

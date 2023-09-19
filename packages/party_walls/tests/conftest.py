@@ -18,6 +18,12 @@ def input_data_dir(root_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
-def export_dir_uncompressed(input_data_dir):
+def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"
+
+
+@pytest.fixture(scope="session")
+def output_data_dir(root_data_dir) -> Path:
+    """Directory for data generated during test runs"""
+    return root_data_dir / "output"
