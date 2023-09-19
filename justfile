@@ -9,8 +9,7 @@ prepare:
     mkdir -p "packages/party_walls/tests/data/output"
     mkdir -p "packages/core/tests/data/output"
 
-
-# Download the test data
+# Download the test data, area is POLYGON((153568 462867, 153559 463931, 155658 463916, 155651 462867, 153568 462867))
 download: prepare
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -47,6 +46,7 @@ download: prepare
     ln -fsnr {{inputdir}} "packages/party_walls/tests/data"
     ln -fsnr {{inputdir}} "packages/core/tests/data"
 
+# Delete all data files from the packages
 clean-links:
     rm -rf "packages/core/tests/data"
     rm -rf "packages/party_walls/tests/data"
