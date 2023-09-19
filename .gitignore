@@ -15,6 +15,9 @@
 /tmp/*
 /xsd/lvbag-extract-v20200601/
 /xsd/top10nl/
+/tests/data/
+/packages/party_walls/tests/data/
+/packages/core/tests/data/
 
 # Local DAGSTER_HOME
 /tests/dagster_home/.logs_queue/
@@ -33,3 +36,5 @@
 /packages/core/tests/.pytest_cache/
 /packages/core/.tox/
 /packages/party_walls/src/bag3d_party_walls.egg-info/
+/packages/party_walls/tests/.pytest_cache/
+/.env

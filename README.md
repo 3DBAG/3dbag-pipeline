@@ -25,12 +25,47 @@ The documentation of the components of the workflow packages can be viewed in th
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
 The virtual environment names follow the pattern of `venv_<package>`, e.g. `/venvs/venv_core`, `/venvs/venv_party_walls`.
 
+The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages.
+This mimicks our deployment setup.
 Create another one for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
+
+The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI.
+In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance.
+If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
 
 ```shell
 cd 3dbag-pipeline/tests/dagster_home
 dagster dev
 ```
+
+The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
+
+### Data
+
+Dependencies:
+- [just](https://just.systems/)
+- docker
+
+*Just* reads some variables from a dotenv (`.env`) file from the root `3dbag-pipeline` directory.
+These variables define the download server and the location of the data.
+Thus, you need to create a `.env` file and set these variables:
+
+```shell
+# contents of .env
+SERVER_NAME="server URL that will be used by rsync"
+SERVER_3DBAG_DIR="path to the 3D BAG data directory on the server"
+```
+
+The test data setup across all packages is managed with just from the root directory.
+You need to init the data directories and download all test files:
+
+```shell
+just download
+```
+
+The downloaded files are placed into `3dbag-pipeline/tests/data` and symlinked to each package so that *pytest* can find them easily.
+
+Finally, you can clean up with `just clean`.
 
 ### Conventions
 
