@@ -136,14 +136,14 @@ job_nl_export = define_asset_job(
               AssetSelection.keys(["export", "export_index"]) |
               AssetSelection.keys(["export", "metadata"]) |
               AssetSelection.keys(["export", "geopackage_nl"]) |
-              AssetSelection.keys(["export", "compressed_tiles"]) |
               AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]),
 )
 
 job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
-    selection=AssetSelection.keys(["deploy", "compressed_export_nl"]) |
+    selection=AssetSelection.keys(["export", "compressed_tiles"]) |
+              AssetSelection.keys(["deploy", "compressed_export_nl"]) |
               AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
