@@ -4,10 +4,10 @@ inputdir := datadir / "input"
 
 # Create the directories for storing the input and output data
 prepare:
-    mkdir -p "tests/data/output"
     mkdir -p {{inputdir}}
-    mkdir -p "packages/party_walls/tests/data/output"
-    mkdir -p "packages/core/tests/data/output"
+    mkdir -p "tests/data/output/3DBAG"
+    mkdir -p "packages/party_walls/tests/data/output/3DBAG"
+    mkdir -p "packages/core/tests/data/output/3DBAG"
 
 # Download the test data, area is POLYGON((153568 462867, 153559 463931, 155658 463916, 155651 462867, 153568 462867))
 download: prepare

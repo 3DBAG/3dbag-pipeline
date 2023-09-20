@@ -18,6 +18,12 @@ def input_data_dir(root_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
+def crop_reconstruct_data_dir(input_data_dir) -> Path:
+    """Directory for the reconstruction data"""
+    return input_data_dir / "crop_reconstruct"
+
+
+@pytest.fixture(scope="session")
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"

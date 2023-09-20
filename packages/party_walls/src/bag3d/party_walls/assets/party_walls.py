@@ -1,6 +1,8 @@
 from pathlib import Path
 from dataclasses import dataclass
-import csv
+from concurrent.futures import ThreadPoolExecutor
+from typing import Iterable
+import json
 
 from dagster import asset, Config, MetadataValue
 from shapely import STRtree, from_wkt
@@ -95,22 +97,83 @@ def party_walls_nl(context,
     return df
 
 
-@asset
-def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame) -> Path:
+def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
+    for x_level in z_level.iterdir():
+        for y_level in x_level.iterdir():
+            for identificatie in y_level.joinpath("objects").iterdir():
+                # cannot use Path methods here, because we have '.' in the file name
+                feature_path = Path(
+                    f"{identificatie / 'reconstruct'}/{identificatie.name}.city.jsonl")
+                if feature_path.exists():
+                    yield identificatie.name, feature_path
+
+
+def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
+    # We are at the root dir of the reconstructed features
+    dir_z = [d for d in path_features.iterdir()]
+    with ThreadPoolExecutor() as executor:
+        for g in executor.map(visit_directory, dir_z):
+            for identificatie, path in g:
+                yield identificatie, path
+
+
+@asset(
+    required_resource_keys={"file_store_fastssd"}
+)
+def features_file_index(context) -> dict[str, Path]:
+    reconstructed_root_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.data_dir)
+    return dict(features_file_index_generator(reconstructed_root_dir))
+
+
+@asset(
+    required_resource_keys={"file_store"}
+)
+def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
+                                         features_file_index: dict[str, Path]) -> list[
+    Path]:
     """Writes the content of the party walls DataFrame back to the reconstructed
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
     CityJSON tiles that is created with *tyler*."""
-    reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir)
     export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     # For now, we do not overwrite the reconstructed features with the part walls
     # attributes, but save a new file
     output_dir = export_dir.joinpath("party_walls_features")
-    context.log.debug(f"{reconstructed_root_dir=}")
+    files_written = []
 
-    # df["identificatie"]
-    # df['tile']
 
-    output_csv = output_dir.joinpath(party_walls_nl["tile"]).with_suffix(".csv")
-    party_walls_nl.to_csv(output_csv, sep=",", quoting=csv.QUOTE_ALL)
-    return output_csv
+    output_dir_tiles = []
+    for tile in party_walls_nl["tile"].unique():
+        output_dir_tile = output_dir.joinpath(tile)
+        output_dir_tile.mkdir(parents=True, exist_ok=True)
+        output_dir_tiles.append(str(output_dir_tile))
+    for row in party_walls_nl.itertuples(name="CityStats"):
+        # identificatie without building part
+        identificatie_bag = row.identificatie
+        try:
+            feature_path = features_file_index[identificatie_bag]
+        except KeyError as e:
+            context.log.error(f"Did not find object {e} in the feature files")
+            continue
+        with feature_path.open(encoding="utf-8", mode="r") as fo:
+            feature_json = json.load(fo)
+        attributes = feature_json["CityObjects"][identificatie_bag]["attributes"]
+        attributes["b3_area_ground"] = row.area_ground
+        attributes["b3_area_roof_flat"] = row.area_roof_flat
+        attributes["b3_area_roof_sloped"] = row.area_roof_sloped
+        attributes["b3_area_party_wall"] = row.area_shared_wall
+        attributes["b3_area_exterior_wall"] = row.area_exterior_wall
+
+        output_dir_tile = output_dir.joinpath(row.tile)
+        feature_party_wall_path = Path(f"{output_dir_tile}/{identificatie_bag}.city.jsonl")
+        with feature_party_wall_path.open("w") as fo:
+            json.dump(feature_json, fo, separators=(',', ':'))
+        files_written.append(feature_party_wall_path)
+
+    context.add_output_metadata(
+        metadata={
+            "Nr. features": len(files_written),
+            "Path": output_dir_tiles,
+        }
+    )
+    return files_written
