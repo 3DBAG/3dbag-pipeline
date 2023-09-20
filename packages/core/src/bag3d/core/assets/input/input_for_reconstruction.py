@@ -12,10 +12,11 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
+        "bag_bag_overlap": AssetIn(key_prefix="intermediary"),
     },
     op_tags={"kind": "sql"}
 )
-def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
+def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, bag_bag_overlap):
     """The input for the building reconstruction, where:
     - duplicates are removed
     """
@@ -24,6 +25,7 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
                                         "reconstruction_input")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
                                    "bag_kas_warenhuis": bag_kas_warenhuis,
+                                   "bag_bag_overlap": bag_bag_overlap,
                                    "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
     context.resources.db_connection.send_query(
@@ -31,6 +33,7 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis):
         query_params={"new_table": new_table}
     )
     return Output(new_table, metadata=metadata)
+
 
 # @asset(
 #     required_resource_keys={"db_connection"},
