@@ -1,10 +1,14 @@
-from bag3d.common.resources.executables import execute_shell_command_silent
 from pathlib import Path
 import json
 import re
 import csv
 from concurrent.futures import ProcessPoolExecutor
 import ast
+
+from dagster import asset, AssetIn
+
+from bag3d.common.resources.executables import execute_shell_command_silent
+from bag3d.common.utils.files import bag3d_export_dir
 
 
 def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
@@ -325,17 +329,42 @@ def check_formats(input) -> dict:
     return {"tile": tile_id, **cj_results, **obj_results, **gpkg_results}
 
 
-if __name__ == "__main__":
-    export_dir = Path("/data/3DBAG/export")
+@asset(
+    ins={
+        "export_index": AssetIn(key_prefix="export"),
+        "metadata": AssetIn(key_prefix="export"),
+    },
+    required_resource_keys={"file_store"}
+)
+def validate_compressed_files(context, export_index: Path, metadata: Path) -> Path:
+    """Validates the compressed distribution tiles, for each format.
+    Save the validation results to a CSV.
+    Validation is done concurrently per tile.
+
+    Validation:
+
+    - check if the archive is valid
+    - compute the SHA-256 of the archive
+    - add the download links per format
+    - number of features per format
+    - run val3dity on the CityJSON and OBJ formats and record the number of invalids
+        and the error codes
+    - CityJSON schema validation
+    - CityJSON LoD-s present in the file
+    """
+    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     url_root = "https://data.3dbag.nl"
-    version = "v20230809"
-    with open("/data/3DBAG/export/export_index.csv", "r") as fo:
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
+    with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         h = next(csvreader)
-        tileids = [(export_dir.joinpath("tiles", row[0]), row[0], url_root, version)
+        tileids = [(path_export_dir.joinpath("tiles", row[0]), row[0], url_root, version)
                    for row in csvreader]
 
-    fo = export_dir.joinpath("check_all_formats.csv").open("w")
+    output_path = path_export_dir.joinpath("check_all_formats.csv")
+    fo = output_path.open("w")
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC,
         fieldnames=["tile", "cj_zip_ok", "cj_nr_features", "cj_nr_invalid",
@@ -353,3 +382,5 @@ if __name__ == "__main__":
                 csvwriter.writerow(result)
     finally:
         fo.close()
+
+    return output_path
