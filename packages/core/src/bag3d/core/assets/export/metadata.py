@@ -121,6 +121,10 @@ def export_index(context):
 
 
 @asset(
+    deps=[
+        AssetKey(("bag", "extract_bag")),
+        AssetKey(("top10nl", "extract_top10nl")),
+    ],
     required_resource_keys={"file_store"}
 )
 def metadata(context):
