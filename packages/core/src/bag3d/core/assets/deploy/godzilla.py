@@ -107,7 +107,8 @@ def webservice_godzilla(context, downloadable_godzilla):
     lod13_2d = PostgresTableIdentifier(schema, "lod13_2d")
     lod22_2d = PostgresTableIdentifier(schema, "lod22_2d")
 
-    sql = load_sql(filename="prepare_wfs_wms_db.sql",
+    # Create the LoD tables
+    sql = load_sql(filename="webservice_lod.sql",
                    query_params={
                        'pand_table': pand_table,
                        'lod12_2d_tmp': lod12_2d_tmp,
@@ -117,29 +118,40 @@ def webservice_godzilla(context, downloadable_godzilla):
                        'lod13_2d': lod13_2d,
                        'lod22_2d': lod22_2d})
     sql = context.resources.db_connection.print_query(sql)
-
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
-    # TODO: need to install gdal with CSV driver on godzill for this to work
-    # cmd = " ".join([
-    #     "PG_USE_COPY=YES",
-    #     "OGR_TRUNCATE=YES",
-    #     "ogr2ogr",
-    #     "-gt", "65536",
-    #     "-lco", "SPATIAL_INDEX=NONE",
-    #     "-f", "PostgreSQL",
-    #     f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-    #     f"{deploy_dir}/export/export_index.csv",
-    #     "-nln", "tile_index"
-    # ])
-    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #     c.run(cmd)
-    #
-    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #     c.run(
-    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'create index tile_index_geom_idx on {schema}.tile_index using gist (geom)'")
+    # Create the intermediary tables for the 'tiles' table
+    export_index = PostgresTableIdentifier(schema, "export_index")
+    validate_compressed_files = PostgresTableIdentifier(schema, "validate_compressed_files")
+    sql = load_sql(filename="webservice_tiles_intermediary.sql",
+                   query_params={
+                       "export_index": export_index,
+                       "validate_compressed_files": validate_compressed_files
+                   })
+    sql = context.resources.db_connection.print_query(sql)
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    # Load the CSV files into the tables
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{deploy_dir}/export/export_index.csv' DELIMITER ',' CSV'")
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{deploy_dir}/export/validate_compressed_files.csv' DELIMITER ',' CSV'")
+    # Create the public 'tiles' table
+    tiles = PostgresTableIdentifier(schema, "tiles")
+    sql = load_sql(filename="webservice_tiles.sql",
+                   query_params={
+                       "new_table": tiles,
+                       "export_index": export_index,
+                       "validate_compressed_files": validate_compressed_files
+                   })
+    sql = context.resources.db_connection.print_query(sql)
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     extension = str(datetime.now().date())
     grant_usage = f"GRANT USAGE ON SCHEMA {old_schema} TO bag_geoserver;"

@@ -326,7 +326,7 @@ def check_formats(input) -> dict:
     obj_results = obj(dirpath, file_id, planarity_n_tol=20.0, planarity_d2p_tol=0.001,
                       url_root=url_root, version=version)
     gpkg_results = gpkg(dirpath, file_id, url_root=url_root, version=version)
-    return {"tile": tile_id, **cj_results, **obj_results, **gpkg_results}
+    return {"tile_id": tile_id, **cj_results, **obj_results, **gpkg_results}
 
 
 @asset(
@@ -363,11 +363,11 @@ def validate_compressed_files(context, export_index: Path, metadata: Path) -> Pa
         tileids = [(path_export_dir.joinpath("tiles", row[0]), row[0], url_root, version)
                    for row in csvreader]
 
-    output_path = path_export_dir.joinpath("check_all_formats.csv")
+    output_path = path_export_dir.joinpath("validate_compressed_files.csv")
     fo = output_path.open("w")
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC,
-        fieldnames=["tile", "cj_zip_ok", "cj_nr_features", "cj_nr_invalid",
+        fieldnames=["tile_id", "cj_zip_ok", "cj_nr_features", "cj_nr_invalid",
                     "cj_all_errors", "cj_schema_valid", "cj_schema_warnings", "cj_lod",
                     "cj_download", "cj_sha256",
                     "obj_zip_ok", "obj_nr_features", "obj_nr_invalid", "obj_all_errors",
