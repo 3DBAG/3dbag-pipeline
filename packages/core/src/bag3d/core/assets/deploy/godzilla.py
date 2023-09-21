@@ -1,6 +1,8 @@
 """Deploy 3D BAG to godzilla"""
 import tarfile
 from datetime import datetime
+from pathlib import Path
+import json
 
 from dagster import AssetIn, Output, asset
 from fabric import Connection
@@ -60,15 +62,29 @@ def compressed_export_zuid_holland(
     return Output(output_tarfile, metadata=metadata_output)
 
 
-@asset
-def downloadable_godzilla(context, compressed_export_nl):
-    """Downloadable files hosted on godzilla"""
+@asset(
+    ins={
+        "metadata": AssetIn(key_prefix="export")
+    }
+)
+def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
+    """Downloadable files hosted on godzilla.
+    """
     deploy_dir = "/data/3DBAGv3"
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(f"rm -f {deploy_dir}/export.tar.gz")
-        c.run(f"rm -rf {deploy_dir}/export")
         c.put(compressed_export_nl, remote=deploy_dir)
+        # delete symlink here, because the uncompressed tar archive is also 'export',
+        # so we have a bit of downtime here, but that's ok
+        c.run(f"rm {deploy_dir}/export")
         c.run(f"tar -C {deploy_dir} -xzvf {deploy_dir}/export.tar.gz")
+        c.run(f"mv {deploy_dir}/export {deploy_dir}/export_{version}")
+        # symlink to latest version so the fileserver picks up the data
+        c.run(f"ln -s {deploy_dir}/export_{version} {deploy_dir}/export")
+        # add version to the tar so that we can archive the data
+        c.run(f"mv {deploy_dir}/export.tar.gz {deploy_dir}/export_{version}.tar.gz")
     return deploy_dir
 
 
