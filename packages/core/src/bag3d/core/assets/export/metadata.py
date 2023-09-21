@@ -111,9 +111,12 @@ def export_index(context):
     path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
 
     with path_export_index.open("w") as fw:
-        csvwriter = csv.writer(fw)
-        csvwriter.writerow(["id", "has_cityjson", "has_all_gpkg", "has_all_obj", "wkt"])
-        csvwriter.writerows(check_export_results(path_quadtree_tsv, path_tiles_dir))
+        fieldnames = ["tile_id", "has_cityjson", "has_all_gpkg", "has_all_obj", "wkt"]
+        csvwriter = csv.DictWriter(fw, fieldnames=fieldnames)
+        csvwriter.writeheader()
+        export_results_gen = check_export_results(path_quadtree_tsv, path_tiles_dir)
+        csvwriter.writerows(dict(export_result)
+                            for export_result in export_results_gen)
     return path_export_index
 
 

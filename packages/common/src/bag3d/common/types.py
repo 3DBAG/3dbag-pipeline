@@ -50,3 +50,8 @@ class ExportResult:
     def has_obj(self) -> bool:
         """Has all the OBJ files and they exist"""
         return len(self.obj_paths) == 3 and all(p.exists() for p in self.obj_paths)
+
+    def __iter__(self):
+        for key in self.__dir__():
+            if key[:2] != "__":
+                yield key, getattr(self, key)

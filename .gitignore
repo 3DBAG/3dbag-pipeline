@@ -27,6 +27,7 @@
 /tests/dagster_home/storage/
 /tests/dagster_home/logs/
 /tests/dagster_home/.nux
+/tests/dagster_home/tmp*
 
 /packages/common/src/bag3d_common.egg-info/
 /packages/common/.tox/
