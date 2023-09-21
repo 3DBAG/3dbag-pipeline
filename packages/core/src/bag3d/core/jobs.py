@@ -118,17 +118,6 @@ job_nl_reconstruct = define_asset_job(
     ),
 )
 
-job_nl_reconstruct_rerun = define_asset_job(
-    name="nl_reconstruct_rerun",
-    description="Run the crop and reconstruct steps for the Netherlands.",
-    selection=AssetSelection.keys(
-        ["reconstruction", "cropped_input_and_config_nl_rerun"]) |
-              AssetSelection.keys(
-                  ["reconstruction", "reconstructed_building_models_nl_rerun"]),
-    partitions_def=StaticPartitionsDefinition(
-        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS),
-)
-
 job_nl_export = define_asset_job(
     name="nl_export",
     description="Run the tyler export and 3D Tiles steps for the Netherlands.",
@@ -149,31 +138,16 @@ job_nl_deploy = define_asset_job(
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
-job_nl_export_deploy = define_asset_job(
-    name="nl_export_deploy",
-    description="Run the tyler export and 3D Tiles steps for the Netherlands.",
-    selection=AssetSelection.keys(["export", "feature_evaluation"]) |
-              AssetSelection.keys(["export", "export_index"]) |
-              AssetSelection.keys(["export", "metadata"]) |
-              AssetSelection.keys(["export", "geopackage_nl"]) |
-              AssetSelection.keys(["export", "compressed_tiles"]) |
-              AssetSelection.keys(["export", "reconstruction_output_multitiles_nl"]) |
-              AssetSelection.keys(["deploy", "compressed_export_nl"]) |
-              AssetSelection.keys(["deploy", "downloadable_godzilla"]) |
-              AssetSelection.keys(["deploy", "webservice_godzilla"]),
-)
-
-
-@run_status_sensor(
-    run_status=DagsterRunStatus.SUCCESS,
-    name=f"nl_export_deploy_sensor",
-    description=f"Run the nl_export_deploy job if the nl_reconstruct succeeded.",
-    monitored_jobs=[job_nl_reconstruct, ],
-    request_job=job_nl_export_deploy,
-    minimum_interval_seconds=300
-)
-def sensor_nl_export_deploy(context):
-    return RunRequest(run_key="nl-2")
+# @run_status_sensor(
+#     run_status=DagsterRunStatus.SUCCESS,
+#     name=f"nl_export_deploy_sensor",
+#     description=f"Run the nl_export_deploy job if the nl_reconstruct succeeded.",
+#     monitored_jobs=[job_nl_reconstruct, ],
+#     request_job=job_nl_export_deploy,
+#     minimum_interval_seconds=300
+# )
+# def sensor_nl_export_deploy(context):
+#     return RunRequest(run_key="nl-2")
 
 
 job_zuid_holland_reconstruct = define_asset_job(

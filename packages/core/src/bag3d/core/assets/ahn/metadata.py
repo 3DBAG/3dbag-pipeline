@@ -11,12 +11,6 @@ from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import PartitionDefinitionAHN
 
 
-@asset
-def acquisition_date_ahn3():
-    """Acquisition years of the AHN3."""
-    return Output(None)
-
-
 @asset(required_resource_keys={"db_connection"})
 def metadata_table_ahn3(context):
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
