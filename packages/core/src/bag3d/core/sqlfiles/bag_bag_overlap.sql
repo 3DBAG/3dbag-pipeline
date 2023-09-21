@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS ${new_table} CASCADE;
 
+CREATE TABLE ${new_table} AS
 WITH isect AS (SELECT bag1.fid
                     , ST_Intersection(bag1.geometrie, bag2.geometrie) isection
                FROM ${bag_cleaned} bag1
