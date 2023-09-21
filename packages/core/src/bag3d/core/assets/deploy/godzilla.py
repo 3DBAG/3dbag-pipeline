@@ -69,6 +69,10 @@ def compressed_export_zuid_holland(
 )
 def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     """Downloadable files hosted on godzilla.
+    - Transfer the export.tar.gz archive to `godzilla:/data/3DBAGv3`
+    - Uncompress the archive and add the current version to the directory name
+    - Symlink to the 'export' to the current version
+    - Add the current version to the tar.gz archive
     """
     deploy_dir = "/data/3DBAGv3"
     with metadata.open("r") as fo:
