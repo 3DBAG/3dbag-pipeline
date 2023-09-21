@@ -28,7 +28,7 @@ SELECT fid
      , tijdstipinactieflv
      , tijdstipnietbaglv
      , kas_warenhuis
-     , bag_bag_overlap_m2 AS
+     , b3_bag_bag_overlap
      , geometrie
 FROM duplicates
 WHERE rn = 1;
