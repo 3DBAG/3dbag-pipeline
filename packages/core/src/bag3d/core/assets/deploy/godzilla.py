@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import json
 
-from dagster import AssetIn, Output, asset
+from dagster import AssetIn, Output, asset, AssetKey
 from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
@@ -13,19 +13,17 @@ from bag3d.common.types import PostgresTableIdentifier
 
 @asset(
     ins={
-        "reconstruction_output_multitiles_nl": AssetIn(key_prefix="export"),
-        "geopackage_nl": AssetIn(key_prefix="export"),
-        "export_index": AssetIn(key_prefix="export"),
-        "metadata": AssetIn(key_prefix="export"),
-        "compressed_tiles": AssetIn(key_prefix="export"),
+        "reconstruction_output_multitiles_nl": AssetIn(key_prefix="export")
     },
+    deps=[
+        AssetKey(("export", "geopackage_nl")),
+        AssetKey(("export", "export_index")),
+        AssetKey(("export", "metadata")),
+        AssetKey(("export", "compressed_tiles")),
+        AssetKey(("export", "compressed_tiles_validation")),
+    ],
 )
-def compressed_export_nl(
-        context,
-        reconstruction_output_multitiles_nl,
-        geopackage_nl, export_index, metadata,
-        compressed_tiles
-):
+def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
     output_tarfile = export_dir.parent / "export.tar.gz"

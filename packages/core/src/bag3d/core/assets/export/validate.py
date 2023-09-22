@@ -339,7 +339,7 @@ def check_formats(input) -> dict:
     ],
     required_resource_keys={"file_store"}
 )
-def validate_compressed_files(context, export_index: Path, metadata: Path) -> Path:
+def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
     """Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
     Validation is done concurrently per tile.
