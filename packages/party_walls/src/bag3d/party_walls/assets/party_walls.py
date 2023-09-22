@@ -115,6 +115,8 @@ def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
 def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
     # We are at the root dir of the reconstructed features
     dir_z = [d for d in path_features.iterdir()]
+    # Using ThreadPoolExecutor, because a Generator (returned by visit_directory)
+    # cannot be pickled, and the ProcessPoolExecutor only accepts pickle-able objects.
     with ThreadPoolExecutor() as executor:
         for g in executor.map(visit_directory, dir_z):
             for identificatie, path in g:
@@ -125,12 +127,22 @@ def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Pa
     required_resource_keys={"file_store_fastssd"}
 )
 def features_file_index(context) -> dict[str, Path]:
+    """A mapping of {feature ID: feature file path} for the reconstructed features in
+    the geoflow output directory.
+
+    It walks the directory tree, concurrently for each z-level (z/x/y) of the
+    reconstructed feature tiles. Parallelization is done with a
+    [ThreadPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor).
+
+    Returns a dict of {feature ID: feature file path}.
+    """
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir)
     return dict(features_file_index_generator(reconstructed_root_dir))
 
 
 @asset(
+    partitions_def=PartitionDefinition3DBagDistribution(),
     required_resource_keys={"file_store"}
 )
 def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
@@ -162,11 +174,11 @@ def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
         with feature_path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)
         attributes = feature_json["CityObjects"][identificatie_bag]["attributes"]
-        attributes["b3_area_ground"] = row.area_ground
-        attributes["b3_area_roof_flat"] = row.area_roof_flat
-        attributes["b3_area_roof_sloped"] = row.area_roof_sloped
-        attributes["b3_area_party_wall"] = row.area_shared_wall
-        attributes["b3_area_exterior_wall"] = row.area_exterior_wall
+        attributes["b3_opp_grond"] = row.area_ground
+        attributes["b3_opp_dak_plat"] = row.area_roof_flat
+        attributes["b3_opp_dak_schuin"] = row.area_roof_sloped
+        attributes["b3_opp_afscheidingsmuur"] = row.area_shared_wall
+        attributes["b3_opp_buitenmuur"] = row.area_exterior_wall
 
         output_dir_tile = output_dir.joinpath(row.tile)
         feature_party_wall_path = Path(f"{output_dir_tile}/{identificatie_bag}.city.jsonl")
