@@ -32,7 +32,7 @@ class TilesFilesIndex:
     paths_array: NDArray
 
 
-@asset
+@asset()
 def distribution_tiles_files_index(context,
                                    config: TileExportConfig) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
@@ -40,8 +40,11 @@ def distribution_tiles_files_index(context,
 
     The index is a [Shapely RTree index](https://shapely.readthedocs.io/en/stable/strtree.html).
 
-    Returns:
-        A collection type, storing the ExportResults per tile, the R-Tree of the tiles
+    Args:
+        context: asset execution context
+        config: asset configuration
+
+    Returns a collection type, storing the ExportResults per tile, the R-Tree of the tiles
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
     export_results_gen = filter(

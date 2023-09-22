@@ -75,6 +75,11 @@ SQL files are stored in the `sqlfiles` subpackage, so that the `bag3d.common.uti
 The dependency graph of the 3D BAG packages is strictly `common`<--*workflow packages*, thus workflow packages cannot depend on each other.
 If you find that you need to depend on functionality in another workflow package, move that function to `common`.
 
+Docstrings follow the [Google style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings). 
+However, *dagster* is too smart for it's own good and if you describe the return value with the `Returns:` section, then *dagster* will only display the text of the `Returns:` section in the dagster UI.
+A workaround for this is to include the `Returns:` heading in the return value description.
+For example `Returns a collection type, storing the...`
+
 ### Unit testing
 
 Tests are run separately for each package and they are located in the `tests` directory of the package.
