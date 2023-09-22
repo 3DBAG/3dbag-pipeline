@@ -98,10 +98,14 @@ def get_export_tile_ids() -> Sequence[str]:
     """
     tileids = []
     export_dir = Path(os.environ.get("3DBAG_EXPORT_DIR", "/data/3DBAG/export"))
+    print(export_dir)
     if export_dir.exists():
         path_tiles_dir = export_dir.joinpath("tiles")
         path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
         if path_quadtree_tsv.exists():
             tileids = [er.tile_id for er in
                        check_export_results(path_quadtree_tsv, path_tiles_dir)]
+    print(f"len(tileids)={len(tileids)}")
+    if len(tileids) >=3:
+        print(f"tileids[:3] {tileids[:3]}")
     return tileids
