@@ -37,6 +37,7 @@ def distribution_tiles_files_index(context,
                                    config: TileExportConfig) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
     that has an existing CityJSON file.
+
     The index is a [Shapely RTree index](https://shapely.readthedocs.io/en/stable/strtree.html).
 
     Returns:
