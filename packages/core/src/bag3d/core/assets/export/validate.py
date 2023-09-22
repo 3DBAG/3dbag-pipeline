@@ -5,7 +5,7 @@ import csv
 from concurrent.futures import ProcessPoolExecutor
 import ast
 
-from dagster import asset, AssetIn
+from dagster import asset, AssetIn, AssetKey
 
 from bag3d.common.resources.executables import execute_shell_command_silent
 from bag3d.common.utils.files import bag3d_export_dir
@@ -334,6 +334,9 @@ def check_formats(input) -> dict:
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
+    deps=[
+        AssetKey(("export", "compressed_tiles"))
+    ],
     required_resource_keys={"file_store"}
 )
 def validate_compressed_files(context, export_index: Path, metadata: Path) -> Path:

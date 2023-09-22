@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict
 from uuid import uuid1
 
-from dagster import AssetKey, Output, asset
+from dagster import AssetKey, Output, asset, AssetExecutionContext
 from psycopg.sql import SQL
 
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
@@ -127,7 +127,7 @@ def export_index(context):
     ],
     required_resource_keys={"file_store"}
 )
-def metadata(context):
+def metadata(context: AssetExecutionContext):
     """3D BAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
