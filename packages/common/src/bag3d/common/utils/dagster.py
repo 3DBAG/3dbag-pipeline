@@ -1,9 +1,8 @@
 """Utilities for working with the dagster instance"""
 from datetime import date
 
-from dagster import TableColumn, TableSchema, OpExecutionContext, AssetKey, \
+from dagster import TableColumn, TableSchema, AssetExecutionContext, AssetKey, \
     StaticPartitionsDefinition, get_dagster_logger
-from dagster._core.definitions.data_version import extract_data_version_from_entry
 
 from bag3d.common.utils.files import get_export_tile_ids
 
@@ -43,14 +42,12 @@ def format_date(input_date: date, version: bool = True) -> str:
         return input_date.strftime("%Y-%m-%d")
 
 
-def get_upstream_data_version(context: OpExecutionContext, asset_key: AssetKey) -> str:
-    """Workaround for getting the upstream data version of an asset.
-    Might change in future dagster.
-    https://dagster.slack.com/archives/C01U954MEER/p1681931980941599?thread_ts=1681930694.932489&cid=C01U954MEER"""
-    upstream_entry = context.get_step_execution_context().get_input_asset_record(
-        asset_key).event_log_entry
-    upstream_data_version = extract_data_version_from_entry(upstream_entry)
-    return upstream_data_version.value
+def get_upstream_data_version(context: AssetExecutionContext, asset_key: AssetKey) -> str:
+    """Get the data version of an upstream asset.
+    The upstream asset must be a dependency of the current asset that passes its
+    execution context into this function."""
+    step_execution_context = context.get_step_execution_context()
+    return str(step_execution_context.input_asset_records[asset_key].data_version.value)
 
 
 class PartitionDefinition3DBagDistribution(StaticPartitionsDefinition):
