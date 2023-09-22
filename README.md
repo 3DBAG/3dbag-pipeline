@@ -80,6 +80,8 @@ However, *dagster* is too smart for it's own good and if you describe the return
 A workaround for this is to include the `Returns:` heading in the return value description.
 For example `Returns a collection type, storing the...`
 
+Assets are usually some results of computations, therefore their names are nouns, not verbs.
+
 ### Unit testing
 
 Tests are run separately for each package and they are located in the `tests` directory of the package.
@@ -234,3 +236,5 @@ The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
 
 The deployment configurations are managed with the `DAGSTER_DEPLOYMENT` environment variable.
 Possible values are in `bag3d.common.resources`.
+
+Sometimes the dagster instance storage schema changes and the schema needs to be updated with `dagster instance migrate`.
