@@ -93,8 +93,8 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
 @asset
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
-    schema = "bag3d_new"
-    old_schema = "bag3d_tmp"
+    schema = "dev_bag3d_new"
+    old_schema = "dev_bag3d_tmp"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
