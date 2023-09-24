@@ -144,7 +144,7 @@ def features_file_index(context) -> dict[str, Path]:
 
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
-    required_resource_keys={"file_store"}
+    required_resource_keys={"file_store_fastssd"}
 )
 def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
                                          features_file_index: dict[str, Path]) -> list[
@@ -152,12 +152,12 @@ def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
     """Writes the content of the party walls DataFrame back to the reconstructed
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
     CityJSON tiles that is created with *tyler*."""
-    export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    reconstructed_features_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.data_dir)
     # For now, we do not overwrite the reconstructed features with the part walls
     # attributes, but save a new file
-    output_dir = export_dir.joinpath("party_walls_features")
+    output_dir = reconstructed_features_dir.parent.joinpath("party_walls_features")
     files_written = []
-
 
     output_dir_tiles = []
     for tile in party_walls_nl["tile"].unique():
@@ -182,7 +182,8 @@ def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
         attributes["b3_opp_buitenmuur"] = row.area_exterior_wall
 
         output_dir_tile = output_dir.joinpath(row.tile)
-        feature_party_wall_path = Path(f"{output_dir_tile}/{identificatie_bag}.city.jsonl")
+        feature_party_wall_path = Path(
+            f"{output_dir_tile}/{identificatie_bag}.city.jsonl")
         with feature_party_wall_path.open("w") as fo:
             json.dump(feature_json, fo, separators=(',', ':'))
         files_written.append(feature_party_wall_path)
