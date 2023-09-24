@@ -87,8 +87,9 @@ def party_walls_nl(context,
         if neighbour_path != export_result.cityjson_path:
             paths_neighbours.append(neighbour_path)
 
+    paths_inputs = [export_result.cityjson_path, ] + paths_neighbours
     df = city_stats(
-        inputs=[export_result.cityjson_path, ] + paths_neighbours,
+        inputs=paths_inputs,
         dsn=context.resources.db_connection.dsn,
         break_on_error=True
     )
