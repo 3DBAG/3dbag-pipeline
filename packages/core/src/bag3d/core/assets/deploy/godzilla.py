@@ -90,7 +90,9 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     return deploy_dir
 
 
-@asset
+@asset(
+    required_resource_keys={"db_connection"}
+)
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "dev_bag3d_new"
