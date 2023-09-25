@@ -147,29 +147,30 @@ def webservice_godzilla(context, downloadable_godzilla):
     #     c.run(
     #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
-    # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
+    # # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
     export_index = PostgresTableIdentifier(schema, "export_index")
     validate_compressed_files = PostgresTableIdentifier(schema, "validate_compressed_files")
-    sql = load_sql(filename="webservice_tiles_intermediary.sql",
-                   query_params={
-                       "export_index": export_index,
-                       "validate_compressed_files": validate_compressed_files
-                   })
-    sql = context.resources.db_connection.print_query(sql)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        context.log.debug(sql)
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    # sql = load_sql(filename="webservice_tiles_intermediary.sql",
+    #                query_params={
+    #                    "export_index": export_index,
+    #                    "validate_compressed_files": validate_compressed_files
+    #                })
+    # sql = context.resources.db_connection.print_query(sql)
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     context.log.debug(sql)
+    #     c.run(
+    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
     # Load the CSV files into the intermediary tables
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         filepath = f"{deploy_dir}/export/export_index.csv"
+        copy_cmd = r"'\copy"
         context.log.debug(f"Loading {filepath}")
         c.run(
-            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{filepath}' DELIMITER ',' CSV'")
+            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c {copy_cmd} {export_index} FROM '{filepath}' DELIMITER ',' CSV'")
         filepath = f"{deploy_dir}/export/validate_compressed_files.csv"
         context.log.debug(f"Loading {filepath}")
         c.run(
-            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{filepath}' DELIMITER ',' CSV'")
+            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c {copy_cmd} {validate_compressed_files} FROM '{filepath}' DELIMITER ',' CSV'")
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
     sql = load_sql(filename="webservice_tiles.sql",
