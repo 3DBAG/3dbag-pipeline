@@ -97,9 +97,11 @@ def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "dev_bag3d_new"
     old_schema = "dev_bag3d_tmp"
+    sql = f"drop schema if exists {schema} cascade; create schema {schema};"
     # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     context.log.debug(sql)
     #     c.run(
-    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
+    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     deploy_dir = downloadable_godzilla
 
@@ -117,7 +119,9 @@ def webservice_godzilla(context, downloadable_godzilla):
     #         "-nln", layer + "_tmp"
     #     ])
     #     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #         context.log.debug(cmd)
     #         c.run(cmd)
+
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
     lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")
@@ -139,6 +143,7 @@ def webservice_godzilla(context, downloadable_godzilla):
                        'lod22_2d': lod22_2d})
     sql = context.resources.db_connection.print_query(sql)
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
@@ -152,14 +157,19 @@ def webservice_godzilla(context, downloadable_godzilla):
                    })
     sql = context.resources.db_connection.print_query(sql)
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
     # Load the CSV files into the tables
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        filepath = f"{deploy_dir}/export/export_index.csv"
+        context.log.debug(f"Loading {filepath}")
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{deploy_dir}/export/export_index.csv' DELIMITER ',' CSV'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{filepath}' DELIMITER ',' CSV'")
+        filepath = f"{deploy_dir}/export/validate_compressed_files.csv"
+        context.log.debug(f"Loading {filepath}")
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{deploy_dir}/export/validate_compressed_files.csv' DELIMITER ',' CSV'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{filepath}' DELIMITER ',' CSV'")
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
     sql = load_sql(filename="webservice_tiles.sql",
@@ -170,20 +180,27 @@ def webservice_godzilla(context, downloadable_godzilla):
                    })
     sql = context.resources.db_connection.print_query(sql)
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     extension = str(datetime.now().date())
+    alter_to_archive = f"ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension};"
+    alter_to_old = f"ALTER SCHEMA {schema} name RENAME TO {old_schema};"
     grant_usage = f"GRANT USAGE ON SCHEMA {old_schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {old_schema} TO bag_geoserver;"
 
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(alter_to_archive)
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension} ;'")
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
+        context.log.debug(alter_to_old)
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c 'ALTER SCHEMA {schema} name RENAME TO {old_schema} ;'")
+            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_old}'")
+        context.log.debug(grant_usage)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'")
+        context.log.debug(grant_select)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'")
 
