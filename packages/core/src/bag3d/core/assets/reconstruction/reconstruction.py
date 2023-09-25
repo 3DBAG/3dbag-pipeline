@@ -168,7 +168,7 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
     toml_template = """
     [input.footprint]
     path = '{footprint_file}'
-    bid = "identificatie"
+    id_attribute = "identificatie"
 
     [[input.pointclouds]]
     name = "AHN3"
