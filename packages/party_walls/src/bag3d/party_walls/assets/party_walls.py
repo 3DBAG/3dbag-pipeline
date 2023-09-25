@@ -17,12 +17,6 @@ from bag3d.common.utils.files import check_export_results, geoflow_crop_dir, \
 from bag3d.common.types import ExportResult
 
 
-class TileExportConfig(Config):
-    """Location of the multi-tiles export output of *tyler*"""
-    tiles_dir_path: str
-    quadtree_tsv_path: str
-
-
 @dataclass
 class TilesFilesIndex:
     """A collection type, storing the ExportResults per tile, the R-Tree of the tiles
@@ -32,9 +26,10 @@ class TilesFilesIndex:
     paths_array: NDArray
 
 
-@asset()
-def distribution_tiles_files_index(context,
-                                   config: TileExportConfig) -> TilesFilesIndex:
+@asset(
+    required_resource_keys={"file_store"}
+)
+def distribution_tiles_files_index(context) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
     that has an existing CityJSON file.
 
@@ -42,16 +37,19 @@ def distribution_tiles_files_index(context,
 
     Args:
         context: asset execution context
-        config: asset configuration
 
     Returns a collection type, storing the ExportResults per tile, the R-Tree of the tiles
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
+    path_quadtree_tsv = bag3d_export_dir(
+        context.resources.file_store.data_dir).joinpath("quadtree.tsv")
+    path_tiles_dir = bag3d_export_dir(context.resources.file_store.data_dir).joinpath(
+        "tiles")
     export_results_gen = filter(
         lambda t: t.has_cityjson,
         check_export_results(
-            path_quadtree_tsv=Path(config.quadtree_tsv_path),
-            path_tiles_dir=Path(config.tiles_dir_path)
+            path_quadtree_tsv=path_quadtree_tsv,
+            path_tiles_dir=path_tiles_dir
         )
     )
     export_results = dict((t.tile_id, t) for t in export_results_gen)

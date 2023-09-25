@@ -154,5 +154,5 @@ COMMIT;
 BEGIN;
 CREATE INDEX lod12_geom_idx ON ${lod12_2d} USING gist (geom);
 CREATE INDEX lod13_geom_idx ON ${lod13_2d} USING gist (geom);
-CREATE INDEX lod13_geom_idx ON ${lod22_2d} USING gist (geom);
+CREATE INDEX lod22_geom_idx ON ${lod22_2d} USING gist (geom);
 COMMIT;

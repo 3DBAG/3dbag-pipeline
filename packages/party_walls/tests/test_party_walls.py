@@ -2,19 +2,11 @@ import pytest
 import os
 from dagster import build_asset_context, materialize_to_memory, RunConfig
 from bag3d.party_walls.assets.party_walls import distribution_tiles_files_index, \
-    TileExportConfig, party_walls_nl, cityjsonfeatures_with_party_walls_nl, \
+    party_walls_nl, cityjsonfeatures_with_party_walls_nl, \
     features_file_index_generator
 from bag3d.common.resources.database import db_connection, container
 from bag3d.common.resources.files import file_store
 import pandas as pd
-
-
-@pytest.fixture(scope="function")
-def tile_export_config(export_dir_uncompressed):
-    return TileExportConfig(
-        tiles_dir_path=str(export_dir_uncompressed.joinpath("tiles")),
-        quadtree_tsv_path=str(
-            export_dir_uncompressed.joinpath("quadtree.tsv")))
 
 
 @pytest.fixture(scope="session")
@@ -40,31 +32,30 @@ def resource_file_store(output_data_dir):
     return file_store.configured({"data_dir": str(output_data_dir), })
 
 
-def test_distribution_tiles_files_index(tile_export_config):
+def test_distribution_tiles_files_index(export_dir_uncompressed):
     """Can we parse the CityJSON tiles and return valid data?
     Currently hardcoded for Balázs' local test data.
     """
     tile_ids = ('10/564/624', '10/564/626', '10/566/624', '10/566/626', '9/560/624')
+
     result = distribution_tiles_files_index(
-        context=build_asset_context(),
-        config=tile_export_config)
+        context=build_asset_context(
+            resources={"file_store": file_store.configured(
+                {"data_dir": str(export_dir_uncompressed), })}
+        )
+    )
     assert len(result.tree.geometries) == len(tile_ids)
     assert len(result.paths_array) == len(tile_ids)
     result_tile_ids = tuple(sorted(result.export_results.keys()))
     assert result_tile_ids == tile_ids
 
 
-def test_party_walls(tile_export_config, resource_db_connection, resource_container,
+def test_party_walls(resource_db_connection, resource_container,
                      export_dir_uncompressed, output_data_dir):
     """Can we compute the party walls and other statistics?"""
     result = materialize_to_memory(
         [distribution_tiles_files_index, party_walls_nl],
         partition_key='10/564/624',
-        run_config=RunConfig(
-            ops={
-                "distribution_tiles_files_index": tile_export_config
-            }
-        ),
         resources={"db_connection": resource_db_connection,
                    "container": resource_container}
     )
