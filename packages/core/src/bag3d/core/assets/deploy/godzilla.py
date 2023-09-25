@@ -165,11 +165,11 @@ def webservice_godzilla(context, downloadable_godzilla):
         filepath = f"{deploy_dir}/export/export_index.csv"
         context.log.debug(f"Loading {filepath}")
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{filepath}' DELIMITER ',' CSV'")
+            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {export_index} FROM '{filepath}' DELIMITER ',' CSV'")
         filepath = f"{deploy_dir}/export/validate_compressed_files.csv"
         context.log.debug(f"Loading {filepath}")
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{filepath}' DELIMITER ',' CSV'")
+            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '\copy {validate_compressed_files} FROM '{filepath}' DELIMITER ',' CSV'")
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
     sql = load_sql(filename="webservice_tiles.sql",
