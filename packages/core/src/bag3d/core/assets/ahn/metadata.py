@@ -114,14 +114,14 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
     query = SQL("""
         INSERT INTO {metadata_table}(
             tile_id,
-            HASH,
+            hash,
             download_time,
             pdal_info,
             boundary
         ) 
         VALUES (
             {tile_id}, 
-            {HASH}, 
+            {hash}, 
             {download_time}, 
             {pdal_info}, 
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
