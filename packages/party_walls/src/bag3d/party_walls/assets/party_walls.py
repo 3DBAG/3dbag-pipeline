@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
 import json
 
-from dagster import asset, Config, MetadataValue
+from dagster import asset, MetadataValue
 from shapely import STRtree, from_wkt
 import numpy as np
 from numpy.typing import NDArray

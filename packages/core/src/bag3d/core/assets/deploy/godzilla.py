@@ -72,7 +72,7 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
-    deploy_dir = "/data/3DBAGv3_test"
+    deploy_dir = "/data/3DBAGv3"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
