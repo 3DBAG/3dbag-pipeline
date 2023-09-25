@@ -131,23 +131,23 @@ def webservice_godzilla(context, downloadable_godzilla):
     lod13_2d = PostgresTableIdentifier(schema, "lod13_2d")
     lod22_2d = PostgresTableIdentifier(schema, "lod22_2d")
 
-    # Create the LoD tables
-    sql = load_sql(filename="webservice_lod.sql",
-                   query_params={
-                       'pand_table': pand_table,
-                       'lod12_2d_tmp': lod12_2d_tmp,
-                       'lod13_2d_tmp': lod13_2d_tmp,
-                       'lod22_2d_tmp': lod22_2d_tmp,
-                       'lod12_2d': lod12_2d,
-                       'lod13_2d': lod13_2d,
-                       'lod22_2d': lod22_2d})
-    sql = context.resources.db_connection.print_query(sql)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        context.log.debug(sql)
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    # # Create the LoD tables
+    # sql = load_sql(filename="webservice_lod.sql",
+    #                query_params={
+    #                    'pand_table': pand_table,
+    #                    'lod12_2d_tmp': lod12_2d_tmp,
+    #                    'lod13_2d_tmp': lod13_2d_tmp,
+    #                    'lod22_2d_tmp': lod22_2d_tmp,
+    #                    'lod12_2d': lod12_2d,
+    #                    'lod13_2d': lod13_2d,
+    #                    'lod22_2d': lod22_2d})
+    # sql = context.resources.db_connection.print_query(sql)
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     context.log.debug(sql)
+    #     c.run(
+    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
-    # Create the intermediary tables for the 'tiles' table
+    # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
     export_index = PostgresTableIdentifier(schema, "export_index")
     validate_compressed_files = PostgresTableIdentifier(schema, "validate_compressed_files")
     sql = load_sql(filename="webservice_tiles_intermediary.sql",
@@ -160,7 +160,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
-    # Load the CSV files into the tables
+    # Load the CSV files into the intermediary tables
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         filepath = f"{deploy_dir}/export/export_index.csv"
         context.log.debug(f"Loading {filepath}")

@@ -1,4 +1,3 @@
--- Create the export_index and validate_compressed_files tables so that they can be populated from the CSV files
 CREATE TABLE ${export_index}
 (
     tile_id      text,
