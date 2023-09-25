@@ -97,27 +97,27 @@ def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "dev_bag3d_new"
     old_schema = "dev_bag3d_tmp"
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
+    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #     c.run(
+    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c 'drop schema if exists {schema} cascade; create schema {schema};'")
 
     deploy_dir = downloadable_godzilla
 
-    for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
-        cmd = " ".join([
-            "PG_USE_COPY=YES",
-            "OGR_TRUNCATE=YES",
-            "ogr2ogr",
-            "-gt", "65536",
-            "-lco", "SPATIAL_INDEX=NONE",
-            "-f", "PostgreSQL",
-            f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-            f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
-            layer,
-            "-nln", layer + "_tmp"
-        ])
-        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-            c.run(cmd)
+    # for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
+    #     cmd = " ".join([
+    #         "PG_USE_COPY=YES",
+    #         "OGR_TRUNCATE=YES",
+    #         "ogr2ogr",
+    #         "-gt", "65536",
+    #         "-lco", "SPATIAL_INDEX=NONE",
+    #         "-f", "PostgreSQL",
+    #         f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
+    #         f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
+    #         layer,
+    #         "-nln", layer + "_tmp"
+    #     ])
+    #     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    #         c.run(cmd)
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
     lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")

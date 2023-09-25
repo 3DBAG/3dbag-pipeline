@@ -1,4 +1,4 @@
-
+BEGIN;
 CREATE INDEX lod12_2d_id_idx ON ${lod12_2d_tmp} USING btree (identificatie);
 
 CREATE INDEX lod13_2d_id_idx ON ${lod13_2d_tmp} USING btree (identificatie);
@@ -6,7 +6,9 @@ CREATE INDEX lod13_2d_id_idx ON ${lod13_2d_tmp} USING btree (identificatie);
 CREATE INDEX lod22_2d_id_idx ON ${lod22_2d_tmp} USING btree (identificatie);
 
 CREATE INDEX pand_id_idx ON ${pand_table} USING btree (identificatie);
+COMMIT;
 
+BEGIN;
 DROP TABLE IF EXISTS ${lod12_2d};
 CREATE TABLE ${lod12_2d} AS
 SELECT
@@ -147,8 +149,10 @@ FROM
     ${lod22_2d_tmp} ld
     JOIN ${pand_table} p 
     ON p.identificatie = ld.identificatie;
+COMMIT;
 
-
+BEGIN;
 CREATE INDEX lod12_geom_idx ON ${lod12_2d} USING gist (geom);
 CREATE INDEX lod13_geom_idx ON ${lod13_2d} USING gist (geom);
 CREATE INDEX lod13_geom_idx ON ${lod22_2d} USING gist (geom);
+COMMIT;
