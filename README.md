@@ -100,6 +100,15 @@ Need to be executed in the environment where the Dagster UI and the Dagster-daem
 This is currently `/opt/dagster/venv` on gilfoyle.
 On gilfoyle, need to source all the environment variables first (`/opt/dagster/dagster_home/.env`).
 
+On gilfyole:
+
+```shell
+su dagster
+export DAGSTER_HOME=/opt/dagster/dagster_home
+source DAGSTER_HOME=/opt/dagster/dagster_home/.env
+source /opt/dagster/venv/bin/activate
+```
+
 ```python
 from dagster import DagsterInstance, RunsFilter, DagsterRunStatus
 
