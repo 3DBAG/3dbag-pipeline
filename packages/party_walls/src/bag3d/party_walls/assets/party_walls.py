@@ -176,7 +176,7 @@ def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
         attributes["b3_opp_grond"] = row.area_ground
         attributes["b3_opp_dak_plat"] = row.area_roof_flat
         attributes["b3_opp_dak_schuin"] = row.area_roof_sloped
-        attributes["b3_opp_afscheidingsmuur"] = row.area_shared_wall
+        attributes["b3_opp_scheidingsmuur"] = row.area_shared_wall
         attributes["b3_opp_buitenmuur"] = row.area_exterior_wall
 
         output_dir_tile = output_dir.joinpath(row.tile)
