@@ -163,15 +163,15 @@ def webservice_godzilla(context, downloadable_godzilla):
     # Load the CSV files into the intermediary tables
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         filepath = f"{deploy_dir}/export/export_index.csv"
-        copy_cmd = f""" "\copy {str(export_index)}  FROM '{filepath}' DELIMITER ',' CSV HEADER " """
+        copy_cmd = fr""" copy {str(export_index)}  FROM '{filepath}' DELIMITER ',' CSV HEADER """
         context.log.debug(f"{copy_cmd}")
         c.run(
-            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c {copy_cmd}")
+            fr"""psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" """)
         filepath = f"{deploy_dir}/export/validate_compressed_files.csv"
-        copy_cmd = f""" "\copy {str(validate_compressed_files)}  FROM '{filepath}' DELIMITER ',' CSV HEADER " """
+        copy_cmd = fr""" copy {str(validate_compressed_files)}  FROM '{filepath}' DELIMITER ',' CSV HEADER """
         context.log.debug(f"{copy_cmd}")
         c.run(
-            fr"psql --dbname baseregisters --port 5432 --host localhost --user etl -c {copy_cmd}")
+            fr"""psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" """)
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
     sql = load_sql(filename="webservice_tiles.sql",
