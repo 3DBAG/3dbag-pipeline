@@ -70,18 +70,18 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
     # cjio feature and lod count
     try:
         cmd = " ".join(
-            ["/home/bdukai/software/3dbag-pipeline/venv/bin/cjio", str(inputfile),
+            ["/home/bdukai/software/3dbag-pipeline/venvs/venv_core/bin/cjio", str(inputfile),
              "info", "--long"])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
         try:
             cj_nr_features = int(re.search(r"(?<=BuildingPart \()\d+", output).group(0))
         except Exception:
-            cj_nr_features = None
+            cj_nr_features = -1
         try:
             cj_lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
         except Exception:
-            cj_lod = None
+            cj_lod = ""
         results["cj_nr_features"] = cj_nr_features
         results["cj_lod"] = cj_lod
     except Exception:
