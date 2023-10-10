@@ -12,10 +12,10 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                              , CASE
                                                    WHEN cj_all_errors ISNULL OR length(cj_all_errors) = 0
                                                        THEN NULL::int[]
-                                                   ELSE replace(
-                                                           replace(cj_all_errors, '[', '{'),
+                                                   ELSE string_to_array(replace(
+                                                           replace(cj_all_errors, '[', ''),
                                                            ']',
-                                                           '}')::int[] END                                       AS cj_all_errors
+                                                           ''), ',')::int[] END                                       AS cj_all_errors
                                              , CASE
                                                    WHEN cj_schema_valid ISNULL OR
                                                         length(cj_schema_valid) = 0
@@ -29,7 +29,10 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                              , CASE
                                                    WHEN cj_lod ISNULL OR length(cj_lod) = 0
                                                        THEN NULL::text[]
-                                                   ELSE replace(replace(cj_lod, '[', '{'), ']', '}')::text[] END AS cj_lod
+                                                   ELSE string_to_array(replace(
+                                                           replace(cj_lod, '[', ''),
+                                                           ']',
+                                                           ''), ',')::text[] END AS cj_lod
                                              , cj_download::text
                                              , cj_sha256::text
                                              , CASE
@@ -40,17 +43,17 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                              , CASE
                                                    WHEN obj_nr_invalid ISNULL OR length(obj_nr_invalid) = 0
                                                        THEN NULL::int[]
-                                                   ELSE replace(
-                                                           replace(obj_nr_invalid, '[', '{'),
+                                                   ELSE string_to_array(replace(
+                                                           replace(obj_nr_invalid, '[', ''),
                                                            ']',
-                                                           '}')::int[] END                                       AS obj_nr_invalid
+                                                           ''), ',')::int[] END                                       AS obj_nr_invalid
                                              , CASE
                                                    WHEN obj_all_errors ISNULL OR length(obj_all_errors) = 0
                                                        THEN NULL::int[]
-                                                   ELSE replace(
-                                                           replace(obj_all_errors, '[', '{'),
+                                                   ELSE string_to_array(replace(
+                                                           replace(obj_all_errors, '[', ''),
                                                            ']',
-                                                           '}')::int[] END                                       AS obj_all_errors
+                                                           ''), ',')::int[] END                                       AS obj_all_errors
                                              , obj_download::text
                                              , obj_sha256::text
                                              , CASE
