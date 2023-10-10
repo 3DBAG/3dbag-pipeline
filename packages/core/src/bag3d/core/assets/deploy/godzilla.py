@@ -96,7 +96,7 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "dev_bag3d_new"
-    old_schema = "dev_bag3d_tmp"
+    old_schema = "bag3d_tmp"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
     # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
     #     context.log.debug(sql)
@@ -187,8 +187,8 @@ def webservice_godzilla(context, downloadable_godzilla):
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     extension = str(datetime.now().date())
-    alter_to_archive = f"ALTER SCHEMA {old_schema} name RENAME TO bag3d_{extension};"
-    alter_to_old = f"ALTER SCHEMA {schema} name RENAME TO {old_schema};"
+    alter_to_archive = f"ALTER SCHEMA {old_schema} RENAME TO bag3d_{extension};"
+    alter_to_old = f"ALTER SCHEMA {schema} RENAME TO {old_schema};"
     grant_usage = f"GRANT USAGE ON SCHEMA {old_schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {old_schema} TO bag_geoserver;"
 
