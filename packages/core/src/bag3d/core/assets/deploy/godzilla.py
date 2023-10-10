@@ -195,10 +195,10 @@ def webservice_godzilla(context, downloadable_godzilla):
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         context.log.debug(alter_to_archive)
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
         context.log.debug(alter_to_old)
         c.run(
-            f"pgsql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_old}'")
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_old}'")
         context.log.debug(grant_usage)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'")
