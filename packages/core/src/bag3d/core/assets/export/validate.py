@@ -133,7 +133,7 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
         url_root: str, version: str) -> dict:
     results = {
         "obj_zip_ok": None,
-        "obj_nr_features": None,
+        "obj_nr_features": -1,
         "obj_nr_invalid": None,
         "obj_all_errors": None,
         "obj_download": None,
