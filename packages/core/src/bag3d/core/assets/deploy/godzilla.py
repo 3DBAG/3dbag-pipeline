@@ -95,32 +95,32 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
 )
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
-    schema = "dev_bag3d_new"
-    old_schema = "bag3d_tmp"
+    schema = "webservice_dev"
+    old_schema = "webservice_latest"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #     context.log.debug(sql)
-    #     c.run(
-    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(sql)
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     deploy_dir = downloadable_godzilla
 
-    # for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
-    #     cmd = " ".join([
-    #         "PG_USE_COPY=YES",
-    #         "OGR_TRUNCATE=YES",
-    #         "ogr2ogr",
-    #         "-gt", "65536",
-    #         "-lco", "SPATIAL_INDEX=NONE",
-    #         "-f", "PostgreSQL",
-    #         f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-    #         f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
-    #         layer,
-    #         "-nln", layer + "_tmp"
-    #     ])
-    #     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #         context.log.debug(cmd)
-    #         c.run(cmd)
+    for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
+        cmd = " ".join([
+            "PG_USE_COPY=YES",
+            "OGR_TRUNCATE=YES",
+            "ogr2ogr",
+            "-gt", "65536",
+            "-lco", "SPATIAL_INDEX=NONE",
+            "-f", "PostgreSQL",
+            f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
+            f"/vsizip/{deploy_dir}/export/3dbag_nl.gpkg.zip",
+            layer,
+            "-nln", layer + "_tmp"
+        ])
+        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+            context.log.debug(cmd)
+            c.run(cmd)
 
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
@@ -131,21 +131,21 @@ def webservice_godzilla(context, downloadable_godzilla):
     lod13_2d = PostgresTableIdentifier(schema, "lod13_2d")
     lod22_2d = PostgresTableIdentifier(schema, "lod22_2d")
 
-    # # Create the LoD tables
-    # sql = load_sql(filename="webservice_lod.sql",
-    #                query_params={
-    #                    'pand_table': pand_table,
-    #                    'lod12_2d_tmp': lod12_2d_tmp,
-    #                    'lod13_2d_tmp': lod13_2d_tmp,
-    #                    'lod22_2d_tmp': lod22_2d_tmp,
-    #                    'lod12_2d': lod12_2d,
-    #                    'lod13_2d': lod13_2d,
-    #                    'lod22_2d': lod22_2d})
-    # sql = context.resources.db_connection.print_query(sql)
-    # with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-    #     context.log.debug(sql)
-    #     c.run(
-    #         f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+    # Create the LoD tables
+    sql = load_sql(filename="webservice_lod.sql",
+                   query_params={
+                       'pand_table': pand_table,
+                       'lod12_2d_tmp': lod12_2d_tmp,
+                       'lod13_2d_tmp': lod13_2d_tmp,
+                       'lod22_2d_tmp': lod22_2d_tmp,
+                       'lod12_2d': lod12_2d,
+                       'lod13_2d': lod13_2d,
+                       'lod22_2d': lod22_2d})
+    sql = context.resources.db_connection.print_query(sql)
+    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        context.log.debug(sql)
+        c.run(
+            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
     # # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
     export_index = PostgresTableIdentifier(schema, "export_index")
