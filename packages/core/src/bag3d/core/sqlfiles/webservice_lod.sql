@@ -1,12 +1,12 @@
-BEGIN;
-CREATE INDEX lod12_2d_id_idx ON ${lod12_2d_tmp} USING btree (identificatie);
+-- BEGIN;
+-- CREATE INDEX lod12_2d_id_idx ON ${lod12_2d_tmp} USING btree (identificatie);
 
-CREATE INDEX lod13_2d_id_idx ON ${lod13_2d_tmp} USING btree (identificatie);
+-- CREATE INDEX lod13_2d_id_idx ON ${lod13_2d_tmp} USING btree (identificatie);
 
-CREATE INDEX lod22_2d_id_idx ON ${lod22_2d_tmp} USING btree (identificatie);
+-- CREATE INDEX lod22_2d_id_idx ON ${lod22_2d_tmp} USING btree (identificatie);
 
-CREATE INDEX pand_id_idx ON ${pand_table} USING btree (identificatie);
-COMMIT;
+-- CREATE INDEX pand_id_idx ON ${pand_table} USING btree (identificatie);
+-- COMMIT;
 
 BEGIN;
 DROP TABLE IF EXISTS ${lod12_2d};
