@@ -62,6 +62,8 @@ FROM
     JOIN ${pand_table} p 
     ON p.identificatie = ld.identificatie;
 
+ALTER TABLE ${lod12_2d} ADD PRIMARY KEY (fid);
+
 DROP TABLE IF EXISTS ${lod13_2d};
 CREATE TABLE ${lod13_2d} AS
 SELECT
@@ -115,6 +117,8 @@ FROM
     JOIN ${pand_table} p 
     ON p.identificatie = ld.identificatie;
 
+ALTER TABLE ${lod13_2d} ADD PRIMARY KEY (fid);
+
 DROP TABLE IF EXISTS ${lod22_2d};
 CREATE TABLE ${lod22_2d} AS
 SELECT
@@ -167,6 +171,9 @@ FROM
     ${lod22_2d_tmp} ld
     JOIN ${pand_table} p 
     ON p.identificatie = ld.identificatie;
+
+ALTER TABLE ${lod22_2d} ADD PRIMARY KEY (fid);
+
 COMMIT;
 
 BEGIN;
