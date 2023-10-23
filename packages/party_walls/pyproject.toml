@@ -20,7 +20,7 @@ classifiers = [
 urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
 dependencies = [
     "bag3d-common @ git+ssh://git@github.com/3DGI/3dbag-pipeline.git#egg=bag3d-common&subdirectory=packages/common",
-    "urban-morphology-3d @ git+ssh://git@github.com/balazsdukai/urban-morphology-3d.git@onlysharedwalls#egg=urban-morphology-3d",
+    "urban-morphology-3d @ git+ssh://git@github.com/3DGI/urban-morphology-3d.git@onlysharedwalls#egg=urban-morphology-3d",
     "shapely",
     "numpy",
     "pandas",
