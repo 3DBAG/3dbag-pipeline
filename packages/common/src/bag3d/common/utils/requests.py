@@ -48,20 +48,21 @@ def download_file(url: str, target_path: Path, chunk_size: int = 1024,
         fpath = target_path
     logger.info(f"Downloading from {url} to {fpath}")
     session = requests.Session()  # https://stackoverflow.com/a/63417213
-    r = session.get(url, params=parameters, stream=True)
-    if r.ok:
-        try:
+    
+    try:
+        r = session.get(url, params=parameters, stream=True)
+        if r.ok:
             with fpath.open('wb') as fd:
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     fd.write(chunk)
             return fpath
-        except requests.exceptions.HTTPError as e:
-            logger.exception(e)
-            return None
-        finally:
-            r.close()
-    else:
-        r.raise_for_status()
+        else:
+            r.raise_for_status()
+    except requests.exceptions.BaseHTTPError as e:
+        logger.exception(e)
+        return None
+    finally:
+        r.close()
 
 
 def get_metadata(url_api: str):
