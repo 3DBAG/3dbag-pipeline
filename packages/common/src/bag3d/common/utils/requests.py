@@ -58,7 +58,7 @@ def download_file(url: str, target_path: Path, chunk_size: int = 1024,
             return fpath
         else:
             r.raise_for_status()
-    except requests.exceptions.BaseHTTPError as e:
+    except (requests.exceptions.BaseHTTPError, requests.exceptions.HTTPError) as e:
         logger.exception(e)
         return None
     finally:
