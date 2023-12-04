@@ -1,7 +1,7 @@
 from dagster import Definitions
 
 from bag3d.common.resources import resource_defs
-from bag3d.core.assets import (source_assets, input_assets,
+from bag3d.core.asset_groups import (source_assets, input_assets,
                                reconstruction_assets, export_assets, deploy_assets,)
 from bag3d.core.jobs import (job_source_input, job_clean_containers,
                              job_ahn3, job_ahn4, job_zuid_holland_reconstruct,
