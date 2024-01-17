@@ -24,10 +24,17 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings."""
     create_schema(context, context.resources.db_connection, NEW_SCHEMA)
-    new_table = PostgresTableIdentifier(NEW_SCHEMA, "verblijfsobjectactueelbestaand")
+    table_name = "verblijfsobjectactueelbestaand"
+    new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     query = load_sql(query_params={"vbo_tbl": stage_bag_verblijfsobject,
                                    "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
+    context.resources.db_connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    context.resources.db_connection.send_query(
+        f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)")
+    context.resources.db_connection.send_query(
+        f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)")
     return Output(new_table, metadata=metadata)
 
 
