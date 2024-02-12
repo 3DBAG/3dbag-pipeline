@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d-floors-estimation"
+version = "2024.1001"
+description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis.."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Propietary" }
+authors = [
+    { name = "3DGI", email = "info@3dgi.nl" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: Other/Proprietary License"
+]
+urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+dependencies = [
+    "bag3d-common @ git+ssh://git@github.com/3DGI/3dbag-pipeline.git#egg=bag3d-common&subdirectory=packages/common",
+    "sklearn-pandas",
+    "pandas",
+    "dagster",
+    "dagster-postgres",
+]
+optional-dependencies = { dev = ["pytest"] }
