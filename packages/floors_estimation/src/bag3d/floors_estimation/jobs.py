@@ -5,7 +5,7 @@ job_floors_estimation = define_asset_job(
     description="""Estimate the number of floors per building and write the
     results back to the CityJSONFeatures.""",
     selection=AssetSelection.keys(["floors_estimation",
-                                   "extract_building_features"]) |
+                                   "extract_external_features"]) |
               AssetSelection.keys(
                   ["floors_estimation",
                    "create_building_features_table"])
