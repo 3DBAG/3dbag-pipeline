@@ -72,12 +72,13 @@ SET building_function = subquery.building_function
 FROM
 (
 	SELECT  identificatie
-	       ,CASE WHEN uses = '{woonfunctie}' THEN 0
-	             WHEN uses != '{woonfunctie}' AND 'woonfunctie' = ANY(uses) THEN 1
-	             WHEN 'woonfunctie' != ANY(uses) AND uses != '{overige gebruiksfunctie}' AND cardinality(uses) = 1 THEN 2
-	             WHEN 'woonfunctie' != ANY(uses) AND uses != '{overige gebruiksfunctie}' AND cardinality(uses) > 1 THEN 3
-	             WHEN uses = '{overige gebruiksfunctie}' THEN 4
-	             WHEN uses IS NULL THEN 5 END AS building_function
+	       ,CASE WHEN uses = array['woonfunctie']::varchar[] THEN 0
+	             WHEN uses != array['woonfunctie']::varchar[] AND 'woonfunctie' = ANY(uses) THEN 1
+	             WHEN 'woonfunctie' != ANY(uses) AND uses != array['overige gebruiksfunctie']::varchar[] AND cardinality(uses) = 1 THEN 2
+	             WHEN 'woonfunctie' != ANY(uses) AND uses != array['overige gebruiksfunctie']::varchar[] AND cardinality(uses) > 1 THEN 3
+	             WHEN uses = array['overige gebruiksfunctie']::varchar[] THEN 4
+	             ELSE 5
+				 END AS building_function
 	FROM ${new_table}
 ) AS subquery
 WHERE ${new_table}.identificatie = subquery.identificatie; 
