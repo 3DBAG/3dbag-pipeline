@@ -140,10 +140,9 @@ def extract_external_features(context) -> Output[PostgresTableIdentifier]:
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
     create_schema(context, context.resources.db_connection, SCHEMA)
-    table_name = "building_features_external_test"
+    table_name = "building_features_external"
     new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table,
-                                   "table_name": table_name})
+    query = load_sql(query_params={"new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
     return Output(new_table, metadata=metadata)
 
