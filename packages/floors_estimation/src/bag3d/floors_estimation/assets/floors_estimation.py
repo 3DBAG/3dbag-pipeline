@@ -1,9 +1,11 @@
 from dagster import asset, Output
 
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.utils.database import (create_schema,
-                                         load_sql,
-                                         postgrestable_from_query)
+from bag3d.common.utils.database import (
+    create_schema,
+    load_sql,
+    postgrestable_from_query,
+)
 
 SCHEMA = "floors_estimation"
 
@@ -14,8 +16,7 @@ def extract_external_features(context):
     create_schema(context, context.resources.db_connection, SCHEMA)
     table_name = "building_features_external_test"
     new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table,
-                                   "table_name": table_name})
+    query = load_sql(query_params={"new_table": new_table, "table_name": table_name})
     metadata = postgrestable_from_query(context, query, new_table)
     return Output(new_table, metadata=metadata)
 
