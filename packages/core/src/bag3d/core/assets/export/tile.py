@@ -1,6 +1,4 @@
-import csv
-from pathlib import Path
-from typing import Iterator, Tuple, Sequence
+import json
 
 from dagster import AssetKey, asset
 
@@ -8,7 +6,7 @@ from bag3d.common.utils.files import geoflow_crop_dir, bag3d_export_dir
 from bag3d.common.resources.temp_until_configurableresource import tyler_version
 
 
-def reconstruction_output_tiles_func(context, format: str):
+def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     """Run tyler on the reconstruction output directory.
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
     TODO: Generalize the paths that are currently hardcoded for gilfoyle.
@@ -17,6 +15,7 @@ def reconstruction_output_tiles_func(context, format: str):
         context.resources.file_store_fastssd.data_dir)
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
+    version_3dbag = kwargs["version_3dbag"]
     # on gilfoyle
     metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
     # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
@@ -60,10 +59,14 @@ def reconstruction_output_tiles_func(context, format: str):
     },
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"}
 )
-def reconstruction_output_multitiles_nl(context):
+def reconstruction_output_multitiles_nl(context, metadata):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
     Generated with tyler."""
-    return reconstruction_output_tiles_func(context, format="multi")
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(context, format="multi",
+                                            version_3dbag=version_3dbag)
 
 
 @asset(
