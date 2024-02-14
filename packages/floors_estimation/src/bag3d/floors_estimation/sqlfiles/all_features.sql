@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS ${new_table};
+DROP TABLE IF EXISTS ${all_features};
 CREATE TABLE
-  ${new_table} AS (
+  ${all_features} AS (
     SELECT
       bf.identificatie,
       bf.no_vertices,
@@ -35,7 +35,7 @@ CREATE TABLE
       bfd.volume_lod12
     FROM
       ${external_features} bf
-      JOIN ${3dbag_feautures} bfd ON bf.identificatie = bfd.id
+      JOIN ${bag3d_feautures} bfd ON bf.identificatie = bfd.id
     WHERE
       bf.building_function = 0
       or bf.building_function = 1

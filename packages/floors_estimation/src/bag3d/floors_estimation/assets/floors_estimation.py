@@ -50,7 +50,7 @@ def process_chunk(conn, chunk_files: List[str], chunk_id: int, table: PostgresTa
     ]
 
     query = f"""
-        INSERT INTO {table.schema}.{table.name} 
+        INSERT INTO {table.schema}.{table.name}
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;"""
 
@@ -154,16 +154,16 @@ def external_features(context) -> Output[PostgresTableIdentifier]:
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def all_building_features(context,              
+def all_building_features(context,        
                           external_features: PostgresTableIdentifier,
                           bag3d_features:  PostgresTableIdentifier)\
                                     -> Output[PostgresTableIdentifier]:
-    """Creates the `floors_estimation.building_all_features` table."""
+    """Creates the `floors_estimation.building_features_all` table."""
     create_schema(context, context.resources.db_connection, SCHEMA)
-    table_name = "all_building_features"
-    new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table,
+    table_name = "building_features_all"
+    all_features = PostgresTableIdentifier(SCHEMA, table_name)
+    query = load_sql(query_params={"all_features": all_features,
                                    "external_features": external_features,
                                    "bag3d_features": bag3d_features})
-    metadata = postgrestable_from_query(context, query, new_table)
-    return Output(new_table, metadata=metadata)
+    metadata = postgrestable_from_query(context, query, all_features)
+    return Output(all_features, metadata=metadata)
