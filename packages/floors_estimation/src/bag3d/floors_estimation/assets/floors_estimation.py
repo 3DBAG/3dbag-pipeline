@@ -25,7 +25,7 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
     return attributes
 
 
-def process_chunk(conn, chunk_files: List[str], chunk_id: int):
+def process_chunk(conn, chunk_files: List[str], chunk_id: int, table: PostgresTableIdentifier):
     chunk_features = [
         Attributes(**extract_attributes_from_path(path, ex_id))
         for ex_id, path in chunk_files.items()
@@ -49,8 +49,8 @@ def process_chunk(conn, chunk_files: List[str], chunk_id: int):
         for attr in chunk_features
     ]
 
-    query = """
-        INSERT INTO floors_estimation.building_features_3dbag_test
+    query = f"""
+        INSERT INTO {table.schema}.{table.name} 
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;"""
 
@@ -105,15 +105,15 @@ def features_file_index(context) -> dict[str, Path]:
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def extract_3DBAG_features(context, features_file_index: dict[str, Path]):
+def bag3d_features(context, features_file_index: dict[str, Path]):
     """Extract 3DBAG features from the cityJSONL files on Gilfoyle.
     The 3DBAG data are extracted only for the buildings for which
     external features have already been extracted."""
     context.log.info("Extracting 3DBAG features.")
-    table_name = "building_features_3dbag_test"
-    new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table})
-    metadata = postgrestable_from_query(context, query, new_table)
+    table_name = "bag3d_features"
+    bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
+    query = load_sql(query_params={"bag3d_features": bag3d_features_table})
+    metadata = postgrestable_from_query(context, query, bag3d_features_table)
 
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
     # Keep only the ones for the training data
@@ -127,6 +127,7 @@ def extract_3DBAG_features(context, features_file_index: dict[str, Path]):
                 context.resources.db_connection,
                 chunk,
                 cid,
+                bag3d_features_table
             ): cid
             for cid, chunk in enumerate(chunks)
         }
@@ -135,24 +136,33 @@ def extract_3DBAG_features(context, features_file_index: dict[str, Path]):
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def extract_external_features(context) -> Output[PostgresTableIdentifier]:
+def external_features(context) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
     create_schema(context, context.resources.db_connection, SCHEMA)
     table_name = "building_features_external"
-    new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table})
-    metadata = postgrestable_from_query(context, query, new_table)
-    return Output(new_table, metadata=metadata)
+    external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
+    query = load_sql(query_params={"external_features":
+                                   external_features_table})
+    metadata = postgrestable_from_query(context,
+                                        query,
+                                        external_features_table)
+    return Output(external_features_table,
+                  metadata=metadata)
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def create_building_features_table(context) -> Output[PostgresTableIdentifier]:
-    """Creates the `floors_estimation.building_features` table."""
+def all_building_features(context,              
+                          external_features: PostgresTableIdentifier,
+                          bag3d_features:  PostgresTableIdentifier)\
+                                    -> Output[PostgresTableIdentifier]:
+    """Creates the `floors_estimation.building_all_features` table."""
     create_schema(context, context.resources.db_connection, SCHEMA)
-    table_name = "building_features_test"
+    table_name = "all_building_features"
     new_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"new_table": new_table})
+    query = load_sql(query_params={"new_table": new_table,
+                                   "external_features": external_features,
+                                   "bag3d_features": bag3d_features})
     metadata = postgrestable_from_query(context, query, new_table)
     return Output(new_table, metadata=metadata)

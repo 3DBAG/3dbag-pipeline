@@ -34,8 +34,8 @@ CREATE TABLE
       bfd.volume_lod22,
       bfd.volume_lod12
     FROM
-      floors_estimation.building_features_external bf
-      JOIN floors_estimation.building_features_3dbag bfd ON bf.identificatie = bfd.id
+      ${external_features} bf
+      JOIN ${3dbag_feautures} bfd ON bf.identificatie = bfd.id
     WHERE
       bf.building_function = 0
       or bf.building_function = 1
