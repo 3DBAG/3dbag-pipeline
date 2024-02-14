@@ -28,7 +28,9 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
 def process_chunk(conn,
                   chunk_files: List[str],
                   chunk_id: int,
-                  table: PostgresTableIdentifier):
+                  table: PostgresTableIdentifier,
+                  logger):
+    logger.info(f"Processing chunk {chunk_id}.")
     chunk_features = [
         Attributes(**extract_attributes_from_path(path, ex_id))
         for ex_id, path in chunk_files.items()
@@ -125,17 +127,25 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
     # for now only one tile in rotterdam
     pool = ThreadPoolExecutor(max_workers=8)
     with ThreadPoolExecutor(8) as pool:
-        _ = {
+        future = {
             pool.submit(
                 process_chunk,
                 features_file_index,
                 context.resources.db_connection,
                 chunk,
                 cid,
-                bag3d_features_table
+                bag3d_features_table,
+                context.log
             ): cid
             for cid, chunk in enumerate(chunks)
         }
+        exception = future.exception()
+        # handle exceptional case
+        if exception:
+            context.log.info(exception)
+        else:
+            result = future.result()
+            context.log.info(result)
 
     return Output(bag3d_features_table,
                   metadata=metadata)
