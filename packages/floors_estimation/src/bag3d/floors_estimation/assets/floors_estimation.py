@@ -103,7 +103,7 @@ def features_file_index(context) -> dict[str, Path]:
         )
     res = dict(features_file_index_generator(
         reconstructed_with_party_walls_dir))
-    context.log.info(res["NL.IMBAG.Pand.0664100000008035"])
+    context.log.info(f"Retrieved {len(res)} features.")
     return res
 
 
@@ -113,12 +113,15 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
     The 3DBAG data are extracted only for the buildings for which
     external features have already been extracted."""
     context.log.info("Extracting 3DBAG features.")
+    context.log.info(f"Creating the {bag3d_features_table} table.")
     table_name = "building_features_bag3d"
     bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
     metadata = postgrestable_from_query(context, query, bag3d_features_table)
-
+    context.log.info(f"Extracting 3DBAG features for {len(features_file_index)} buildings.")    
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
+    
+    context.log.info(f"Processing {len(chunks)} chunks.")
     # Keep only the ones for the training data
     # for now only one tile in rotterdam
     pool = ThreadPoolExecutor(max_workers=8)
