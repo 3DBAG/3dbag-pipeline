@@ -110,7 +110,7 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
     The 3DBAG data are extracted only for the buildings for which
     external features have already been extracted."""
     context.log.info("Extracting 3DBAG features.")
-    table_name = "bag3d_features"
+    table_name = "building_features_bag3d"
     bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
     metadata = postgrestable_from_query(context, query, bag3d_features_table)
@@ -132,7 +132,8 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
             for cid, chunk in enumerate(chunks)
         }
 
-    return Output(new_table, metadata=metadata)
+    return Output(bag3d_features_table,
+                  metadata=metadata)
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})

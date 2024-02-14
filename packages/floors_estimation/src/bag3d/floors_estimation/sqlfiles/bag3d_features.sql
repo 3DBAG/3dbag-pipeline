@@ -1,8 +1,8 @@
 DROP TABLE
-  IF EXISTS ${new_table};
+  IF EXISTS ${bag3d_features};
 
 CREATE TABLE
-  ${new_table} (
+  ${bag3d_features} (
     id VARCHAR,
     construction_year INT,
     roof_type VARCHAR,
