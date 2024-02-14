@@ -54,9 +54,10 @@ def process_chunk(conn,
     ]
 
     query = f"""
-        INSERT INTO {table.schema}.{table.name}
+        INSERT INTO {table}
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;"""
+    logger.debug(query)
 
     with connect(conn.dsn) as connection:
         with connection.cursor() as cur:
