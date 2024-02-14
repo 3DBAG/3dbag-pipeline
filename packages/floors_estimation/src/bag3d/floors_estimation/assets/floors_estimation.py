@@ -144,7 +144,7 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
         for i, future in enumerate(as_completed(processing)):
             try:
                 res = future.result()
-                context.log.info(f"Res: {res} .")
+                context.log.debug(f"Res: {res} .")
             except Exception as e:
                 context.log.error(f"Error in chunk {i} raised an exception: {e}")
 
