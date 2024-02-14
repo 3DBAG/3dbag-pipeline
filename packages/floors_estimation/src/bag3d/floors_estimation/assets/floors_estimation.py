@@ -29,7 +29,6 @@ def process_chunk(conn,
                   chunk_id: int,
                   table: PostgresTableIdentifier,
                   logger):
-    logger.info(f"Processing chunk {chunk_id}.")
     chunk_features = [
         Attributes(**extract_attributes_from_path(path, ex_id))
         for ex_id, path in chunk_files.items()
@@ -57,7 +56,6 @@ def process_chunk(conn,
         INSERT INTO {table}
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;"""
-    logger.debug(query)
 
     with connect(conn.dsn) as connection:
         with connection.cursor() as cur:
@@ -102,6 +100,7 @@ def features_file_index(context) -> dict[str, Path]:
             "party_walls_features"
         )
 
+    # TODO: remove this when the party_walls is run
     if not reconstructed_with_party_walls_dir.exists():
         reconstructed_with_party_walls_dir = Path(
             "/data/work/rypeters/bag_v20231008/crop_reconstruct"
@@ -114,20 +113,21 @@ def features_file_index(context) -> dict[str, Path]:
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
 def bag3d_features(context, features_file_index: dict[str, Path]):
-    """Extract 3DBAG features from the cityJSONL files on Gilfoyle.
-    The 3DBAG data are extracted only for the buildings for which
-    external features have already been extracted."""
+    """Creates the `floors_estimation.building_features_bag3d` table.
+    Extracts 3DBAG features from the cityJSONL files on Gilfoyle,
+    which already contain the party walls information."""
     context.log.info("Extracting 3DBAG features.")
     table_name = "building_features_bag3d"
     bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     context.log.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
     metadata = postgrestable_from_query(context, query, bag3d_features_table)
-    context.log.info(f"Extracting 3DBAG features for {len(features_file_index)} buildings.")    
+    context.log.info(
+        f"Extracting 3DBAG features for {len(features_file_index)} buildings."
+    )
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
     context.log.info(f"Processing {len(chunks)} chunks.")
-    # Keep only the ones for the training data
-    # for now only one tile in rotterdam
+
     pool = ThreadPoolExecutor(max_workers=8)
     with ThreadPoolExecutor(8) as pool:
         processing = {
@@ -143,13 +143,13 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
         }
         for i, future in enumerate(as_completed(processing)):
             try:
-                res = future.result()
-                context.log.debug(f"Res: {res} .")
+                _ = future.result()
             except Exception as e:
-                context.log.error(f"Error in chunk {i} raised an exception: {e}")
+                context.log.error(
+                    f"Error in chunk {i} raised an exception: {e}"
+                    )
 
-    return Output(bag3d_features_table,
-                  metadata=metadata)
+    return Output(bag3d_features_table, metadata=metadata)
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
@@ -170,7 +170,7 @@ def external_features(context) -> Output[PostgresTableIdentifier]:
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def all_features(context,        
+def all_features(context,
                  external_features: PostgresTableIdentifier,
                  bag3d_features:  PostgresTableIdentifier)\
                         -> Output[PostgresTableIdentifier]:
