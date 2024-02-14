@@ -35,7 +35,7 @@ CREATE TABLE
       bfd.volume_lod12
     FROM
       ${external_features} bf
-      JOIN ${bag3d_feautures} bfd ON bf.identificatie = bfd.id
+      JOIN ${bag3d_features} bfd ON bf.identificatie = bfd.id
     WHERE
       bf.building_function = 0
       or bf.building_function = 1
