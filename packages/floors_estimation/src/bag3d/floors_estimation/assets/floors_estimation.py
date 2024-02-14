@@ -20,8 +20,7 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
     with Path(path).open(encoding="utf-8", mode="r") as fo:
         feature_json = json.load(fo)
     attributes = feature_json[
-        "CityObjects"][
-            "NL.IMBAG.Pand." + pand_id]["attributes"]
+        "CityObjects"][pand_id]["attributes"]
     return attributes
 
 
