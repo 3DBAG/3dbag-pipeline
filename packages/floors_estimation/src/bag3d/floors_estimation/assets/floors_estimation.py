@@ -62,6 +62,9 @@ def process_chunk(conn,
     with connect(conn.dsn) as connection:
         with connection.cursor() as cur:
             cur.executemany(query, data, returning=True)
+            connection.commit()
+
+    logger.info(f"Chunk {chunk_id} done.")
 
 
 def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
@@ -141,9 +144,9 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
         for i, future in enumerate(as_completed(processing)):
             try:
                 res = future.result()
-                context.log.info(f"Chunk {i} processed.")
+                context.log.info(f"Res: {res} .")
             except Exception as e:
-                context.error(f"Error in chunk {i} raised an exception: {e}")
+                context.log.error(f"Error in chunk {i} raised an exception: {e}")
 
     return Output(bag3d_features_table,
                   metadata=metadata)
