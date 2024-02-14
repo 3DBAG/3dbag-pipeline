@@ -24,8 +24,8 @@ CREATE TEMP table verblijfsobject_features AS (
 );
 
 -- extract features from cbs, ESRI, and BAG for all buildings
-DROP TABLE IF EXISTS ${external_features_table};
-CREATE TABLE ${external_features_table} AS (
+DROP TABLE IF EXISTS ${external_features};
+CREATE TABLE ${external_features} AS (
 SELECT  p.identificatie
        ,p.geometrie
        ,ST_Buffer(p.geometrie,0.1,'join=mitre')                     AS geometrie_buffer
@@ -52,13 +52,13 @@ AND p.eindgeldigheid IS NULL
 
 -- Add indexes
 CREATE index building_features_external_geom_idx
-ON ${external_features_table} USING gist(geometrie);
+ON ${external_features} USING gist(geometrie);
 
 CREATE index building_features_external_buffer_idx
-ON ${external_features_table} USING gist(geometrie_buffer);
+ON ${external_features} USING gist(geometrie_buffer);
 
 CREATE index building_features_external_centroid_idx
-ON ${external_features_table} USING gist(centroid);
+ON ${external_features} USING gist(centroid);
 
 
 -- 'Residential': 0
@@ -67,7 +67,7 @@ ON ${external_features_table} USING gist(centroid);
 -- 'Non-residential (multi-function)': 3
 -- 'Other': 4
 -- 'Unknown': 5
-UPDATE ${external_features_table}
+UPDATE ${external_features}
 SET building_function = subquery.building_function
 FROM
 (
@@ -79,19 +79,19 @@ FROM
 	             WHEN uses = array['overige gebruiksfunctie']::varchar[] THEN 4
 	             ELSE 5
 				 END AS building_function
-	FROM ${external_features_table}
+	FROM ${external_features}
 ) AS subquery
-WHERE ${external_features_table}.identificatie = subquery.identificatie; 
+WHERE ${external_features}.identificatie = subquery.identificatie; 
 
 
-UPDATE ${external_features_table}
+UPDATE ${external_features}
 SET no_adjacent_neighbours = subquery.no_adjacent
 FROM
 (
 	SELECT  a.identificatie
 	       ,COUNT(*) AS no_adjacent
-	FROM ${external_features_table} AS a
-	JOIN ${external_features_table} AS b
+	FROM ${external_features} AS a
+	JOIN ${external_features} AS b
 	ON ST_INTERSECTS(a.geometrie_buffer, b.geometrie)
 	WHERE a.identificatie != b.identificatie
 	AND a.building_function != 4
@@ -100,9 +100,9 @@ FROM
 	AND b.building_function != 5
 	GROUP BY  a.identificatie
 ) AS subquery
-WHERE ${external_features_table}.identificatie = subquery.identificatie; 
+WHERE ${external_features}.identificatie = subquery.identificatie; 
 
-UPDATE ${external_features_table}
+UPDATE ${external_features}
 SET no_neighbours_100 = subquery.no_neighbours
 FROM
 (
@@ -111,14 +111,14 @@ FROM
 	FROM
 	(
 		SELECT  *
-		FROM ${external_features_table}
+		FROM ${external_features}
 		WHERE building_function != 4
 		AND building_function != 5 
 	) AS a
 	JOIN
 	(
 		SELECT  *
-		FROM ${external_features_table}
+		FROM ${external_features}
 		WHERE building_function != 4
 		AND building_function != 5 
 	) AS b
@@ -126,7 +126,7 @@ FROM
 	WHERE a.identificatie != b.identificatie
 	GROUP BY  a.identificatie
 ) AS subquery
-WHERE ${external_features_table}.identificatie = subquery.identificatie;
+WHERE ${external_features}.identificatie = subquery.identificatie;
 
 DROP TABLE IF EXISTS cbs_data_per_neighbourhood;
 CREATE TEMP TABLE cbs_data_per_neighbourhood AS(
@@ -143,12 +143,12 @@ ON cb.bu_code = ckfdn."WijkenEnBuurten"
 WHERE ckfdn."SoortRegio_2" = 'Buurt' ); 
 
 
-UPDATE ${external_features_table}
+UPDATE ${external_features}
 SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold_2023,
 cbs_pop_per_km2 = cdpn.cbs_pop_per_km2_2023,
 cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca_2021
 FROM cbs_data_per_neighbourhood cdpn
-WHERE st_intersects(${external_features_table}.geometrie, cdpn.geometrie);
+WHERE st_intersects(${external_features}.geometrie, cdpn.geometrie);
 
 -- twee-onder-een-kap : 0
 -- vrijstaande woning: 1
@@ -156,7 +156,7 @@ WHERE st_intersects(${external_features_table}.geometrie, cdpn.geometrie);
 -- hoekwoning: 3
 -- tussenwoning/geschakeld: 4
 -- onbekend: 5
-UPDATE ${external_features_table}
+UPDATE ${external_features}
 SET buildingtype = 
  				 CASE 
 	 				 WHEN ebt.woningtypering  = 'twee-onder-een-kap' THEN 0
@@ -167,4 +167,4 @@ SET buildingtype =
 		             ELSE 5 
 				 END 
 FROM floors_estimation.esri_building_type ebt 
-WHERE concat('NL.IMBAG.Pand.',ebt.identificatie)  = ${external_features_table}.identificatie;
+WHERE concat('NL.IMBAG.Pand.',ebt.identificatie)  = ${external_features}.identificatie;
