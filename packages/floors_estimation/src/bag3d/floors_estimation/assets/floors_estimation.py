@@ -25,7 +25,10 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
     return attributes
 
 
-def process_chunk(conn, chunk_files: List[str], chunk_id: int, table: PostgresTableIdentifier):
+def process_chunk(conn,
+                  chunk_files: List[str],
+                  chunk_id: int,
+                  table: PostgresTableIdentifier):
     chunk_features = [
         Attributes(**extract_attributes_from_path(path, ex_id))
         for ex_id, path in chunk_files.items()
@@ -154,10 +157,10 @@ def external_features(context) -> Output[PostgresTableIdentifier]:
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def all_building_features(context,        
-                          external_features: PostgresTableIdentifier,
-                          bag3d_features:  PostgresTableIdentifier)\
-                                    -> Output[PostgresTableIdentifier]:
+def all_features(context,        
+                 external_features: PostgresTableIdentifier,
+                 bag3d_features:  PostgresTableIdentifier)\
+                        -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
     create_schema(context, context.resources.db_connection, SCHEMA)
     table_name = "building_features_all"
