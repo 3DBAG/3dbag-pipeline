@@ -1,5 +1,5 @@
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import islice
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -127,10 +127,9 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
     # for now only one tile in rotterdam
     pool = ThreadPoolExecutor(max_workers=8)
     with ThreadPoolExecutor(8) as pool:
-        future = {
+        processing = {
             pool.submit(
                 process_chunk,
-                features_file_index,
                 context.resources.db_connection,
                 chunk,
                 cid,
@@ -139,13 +138,12 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
             ): cid
             for cid, chunk in enumerate(chunks)
         }
-        exception = future.exception()
-        # handle exceptional case
-        if exception:
-            context.log.info(exception)
-        else:
-            result = future.result()
-            context.log.info(result)
+        for i, future in enumerate(as_completed(processing)):
+            try:
+                res = future.result()
+                context.log.info(f"Chunk {i} processed.")
+            except Exception as e:
+                context.error(f"Error in chunk {i} raised an exception: {e}")
 
     return Output(bag3d_features_table,
                   metadata=metadata)
