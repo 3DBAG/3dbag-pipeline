@@ -51,13 +51,13 @@ AND p.eindgeldigheid IS NULL
 
 
 -- Add indexes
-CREATE index ${external_features_table_name}_geom_idx
+CREATE index building_features_external_geom_idx
 ON ${external_features} USING gist(geometrie);
 
-CREATE index ${external_features_table_name}_buffer_idx
+CREATE index building_features_external_buffer_idx
 ON ${external_features} USING gist(geometrie_buffer);
 
-CREATE index ${external_features_table_name}_centroid_idx
+CREATE index building_features_external_centroid_idx
 ON ${external_features} USING gist(centroid);
 
 

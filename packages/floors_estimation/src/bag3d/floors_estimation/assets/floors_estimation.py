@@ -166,9 +166,7 @@ def external_features(context
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features":
-                                   external_features_table,
-                                   "external_features_table_name":
-                                   str(external_features_table.table)
+                                   external_features_table
                                    })
     metadata = postgrestable_from_query(context,
                                         query,
