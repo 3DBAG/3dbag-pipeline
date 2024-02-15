@@ -17,7 +17,7 @@ CREATE TEMP table verblijfsobject_features AS (
         oppervlakte,
 		gebruiksdoel
       FROM
-        lvbag.verblijfsobjectactueelbestaand
+        ${bag_verblijfsobjectactueelbestaand}
     ) p
   GROUP BY
     p.pandid
@@ -42,7 +42,7 @@ SELECT  p.identificatie
 	   , NULL::int AS cbs_pop_per_km2
 	   , NULL::int AS cbs_dist_to_horeca
 	   , NULL::int AS buildingtype
-FROM lvbag.pandactueelbestaand p
+FROM ${bag_pandactueelbestaand} p
 JOIN verblijfsobject_features v
 ON p.identificatie = v.pandid
 WHERE p.status LIKE 'Pand in gebruik%' 
@@ -51,13 +51,13 @@ AND p.eindgeldigheid IS NULL
 
 
 -- Add indexes
-CREATE index building_features_external_geom_idx
+CREATE index ${external_features_table_name}_geom_idx
 ON ${external_features} USING gist(geometrie);
 
-CREATE index building_features_external_buffer_idx
+CREATE index ${external_features_table_name}_buffer_idx
 ON ${external_features} USING gist(geometrie_buffer);
 
-CREATE index building_features_external_centroid_idx
+CREATE index ${external_features_table_name}_centroid_idx
 ON ${external_features} USING gist(centroid);
 
 

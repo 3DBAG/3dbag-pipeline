@@ -9,6 +9,8 @@ from bag3d.common.utils.database import (create_schema, load_sql,
                                          postgrestable_from_query)
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.floors_estimation.assets.Attributes import Attributes
+from bag3d.core.assets.load import (bag_pandactueelbestaand,
+                                    bag_verblijfsobjectactueelbestaand)
 from dagster import Output, asset
 from psycopg import connect
 
@@ -95,6 +97,8 @@ def features_file_index(context) -> dict[str, Path]:
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir
     )
+
+    # TODO
     reconstructed_with_party_walls_dir = \
         reconstructed_root_dir.parent.joinpath(
             "party_walls_features"
@@ -102,6 +106,7 @@ def features_file_index(context) -> dict[str, Path]:
 
     # TODO: remove this when the party_walls is run
     if not reconstructed_with_party_walls_dir.exists():
+        context.log.warning("Files retrieved from old directory.")
         reconstructed_with_party_walls_dir = Path(
             "/data/work/rypeters/bag_v20231008/crop_reconstruct"
         )
@@ -153,7 +158,10 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def external_features(context) -> Output[PostgresTableIdentifier]:
+def external_features(context,
+                      bag_pandactueelbestaand: PostgresTableIdentifier,
+                      bag_verblijfsobjectactueelbestaand: PostgresTableIdentifier,
+                      ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
@@ -161,7 +169,14 @@ def external_features(context) -> Output[PostgresTableIdentifier]:
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features":
-                                   external_features_table})
+                                   external_features_table,
+                                   "external_features_table_name":
+                                   external_features_table.table,
+                                   "bag_pandactueelbestaand":
+                                   bag_pandactueelbestaand,
+                                   "bag_verblijfsobjectactueelbestaand":
+                                   bag_verblijfsobjectactueelbestaand
+                                   })
     metadata = postgrestable_from_query(context,
                                         query,
                                         external_features_table)
