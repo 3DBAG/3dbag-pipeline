@@ -17,7 +17,7 @@ CREATE TEMP table verblijfsobject_features AS (
         oppervlakte,
 		gebruiksdoel
       FROM
-        ${bag_verblijfsobjectactueelbestaand}
+        lvbag.verblijfsobjectactueelbestaand
     ) p
   GROUP BY
     p.pandid
@@ -42,7 +42,7 @@ SELECT  p.identificatie
 	   , NULL::int AS cbs_pop_per_km2
 	   , NULL::int AS cbs_dist_to_horeca
 	   , NULL::int AS buildingtype
-FROM ${bag_pandactueelbestaand} p
+FROM lvbag.pandactueelbestaand p
 JOIN verblijfsobject_features v
 ON p.identificatie = v.pandid
 WHERE p.status LIKE 'Pand in gebruik%' 

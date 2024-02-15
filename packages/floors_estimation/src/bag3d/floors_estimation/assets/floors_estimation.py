@@ -9,8 +9,7 @@ from bag3d.common.utils.database import (create_schema, load_sql,
                                          postgrestable_from_query)
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.floors_estimation.assets.Attributes import Attributes
-from bag3d.core.assets.load import (bag_pandactueelbestaand,
-                                    bag_verblijfsobjectactueelbestaand)
+
 from dagster import Output, asset
 from psycopg import connect
 
@@ -158,9 +157,7 @@ def bag3d_features(context, features_file_index: dict[str, Path]):
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def external_features(context,
-                      bag_pandactueelbestaand: PostgresTableIdentifier,
-                      bag_verblijfsobjectactueelbestaand: PostgresTableIdentifier,
+def external_features(context
                       ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
@@ -171,11 +168,7 @@ def external_features(context,
     query = load_sql(query_params={"external_features":
                                    external_features_table,
                                    "external_features_table_name":
-                                   external_features_table.table,
-                                   "bag_pandactueelbestaand":
-                                   bag_pandactueelbestaand,
-                                   "bag_verblijfsobjectactueelbestaand":
-                                   bag_verblijfsobjectactueelbestaand
+                                   external_features_table.table
                                    })
     metadata = postgrestable_from_query(context,
                                         query,
