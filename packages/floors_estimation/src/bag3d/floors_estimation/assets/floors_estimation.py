@@ -168,7 +168,7 @@ def external_features(context
     query = load_sql(query_params={"external_features":
                                    external_features_table,
                                    "external_features_table_name":
-                                   external_features_table.table
+                                   str(external_features_table.table)
                                    })
     metadata = postgrestable_from_query(context,
                                         query,
