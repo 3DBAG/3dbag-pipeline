@@ -3,6 +3,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import islice
 from pathlib import Path
 from typing import Dict, Iterable, List
+from joblib import load
+import pandas as pd
+from psycopg.sql import SQL
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (create_schema, load_sql,
@@ -116,7 +119,8 @@ def features_file_index(context) -> dict[str, Path]:
 
 
 @asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def bag3d_features(context, features_file_index: dict[str, Path]):
+def bag3d_features(context, features_file_index: dict[str, Path])\
+            -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
     Extracts 3DBAG features from the cityJSONL files on Gilfoyle,
     which already contain the party walls information."""
@@ -189,3 +193,25 @@ def all_features(context,
                                    "bag3d_features": bag3d_features})
     metadata = postgrestable_from_query(context, query, all_features)
     return Output(all_features, metadata=metadata)
+
+
+@asset(required_resource_keys={"db_connection"})
+def preprocessed_features(context,
+                          all_features: Output[PostgresTableIdentifier])\
+                            -> pd.DataFrame:
+    """Runs the inference on the features."""
+    res = context.resources.db_connection.get_query(
+        SQL(f"""
+        SELECT identificatie
+        FROM {all_features.id};
+        """))
+    data = pd.DataFrame(res)
+    return data
+
+@asset(required_resource_keys={"file_store", "db_connection"})
+def inference(context,
+              preprocessed_features: pd.Dataframe,
+              features_file_index: dict[str, Path]) -> None:
+    """Runs the inference on the features."""
+    pipeline = load(context.resources.model_path)
+    context.log.info("Running the inference.")

@@ -10,7 +10,7 @@ all_assets = load_assets_from_modules(
 )
 
 defs = Definitions(
-    resources=resource_defs,
+    resources=resource_defs.update({"model_path": '/data2/floors-estimation/models/pipeline_model1_gbr_untuned.joblib'}),
     assets=all_assets,
     jobs=[
         job_floors_estimation,
