@@ -208,10 +208,12 @@ def preprocessed_features(context,
     data = pd.DataFrame(res)
     return data
 
+
 @asset(required_resource_keys={"file_store", "db_connection"})
 def inference(context,
               preprocessed_features: pd.DataFrame,
               features_file_index: dict[str, Path]) -> None:
     """Runs the inference on the features."""
+    context.log.info(context.resources)
     pipeline = load(context.resources.model_path)
     context.log.info("Running the inference.")
