@@ -200,6 +200,7 @@ def preprocessed_features(context,
                           all_features: Output[PostgresTableIdentifier])\
                             -> pd.DataFrame:
     """Runs the inference on the features."""
+    context.log.info("Querying the features.")
     res = context.resources.db_connection.get_query(
         SQL(f"""
         SELECT identificatie
