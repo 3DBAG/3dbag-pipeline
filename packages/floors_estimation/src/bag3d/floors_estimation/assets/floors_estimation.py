@@ -234,9 +234,10 @@ def preprocessed_features(context,
         AND h_roof_max < 300
         AND h_roof_min > 0;
         """
-    data = pd.read_sql_query(query,
-                             context.resources.db_connection,
-                             params={"all_features": all_features})
+    with connect(context.resources.db_connection.dsn) as connection:
+        data = pd.read_sql_query(query,
+                                 connection,
+                                 params={"all_features": all_features})
     context.log.debug(f"Dataframe columns: {data.columns}")
     context.log.debug(f"Processed features for {len(data)} buildings.")
     return data
