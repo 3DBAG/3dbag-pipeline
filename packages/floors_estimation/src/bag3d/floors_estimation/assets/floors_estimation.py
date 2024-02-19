@@ -304,10 +304,10 @@ def save_cjfiles(context,
                     {identificatie},
                     {floors}
                 );
-                """).format(**query_params)
+                """)
             context.log.debug(query)
-            context.log.debug(context.resources.db_connection.print_query(query))
-            context.resources.db_connection.send_query(query)
+            context.resources.db_connection.send_query(query, query_params=query_params)
+
         else:
             attributes["b3_bouwlagen"] = None
 
