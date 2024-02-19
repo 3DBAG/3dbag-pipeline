@@ -291,7 +291,8 @@ def save_cjfiles(context,
         context.log.debug(f"Processing {index}")
 
         if index in inferenced_floors.index:
-            context.log.debug(f"Index {index} found.")
+            identificatie = Literal(index)
+            context.log.debug(f"Index {identificatie} found.")
             context.log.debug(f"Setting floors to {inferenced_floors.loc[index,'floors_int']}")
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
@@ -303,8 +304,8 @@ def save_cjfiles(context,
                     {floors}
                 );
                 """
-
-            query = query.format(**dict(identificatie=Literal(index),
+            context.log.debug(query)
+            query = query.format(**dict(identificatie=identificatie,
                                         floors=inferenced_floors.loc[index, "floors_int"]))
             context.log.debug(query)
             context.resources.db_connection.send_query(query)
