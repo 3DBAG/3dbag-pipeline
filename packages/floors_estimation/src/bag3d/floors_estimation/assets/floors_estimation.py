@@ -7,6 +7,7 @@ from joblib import load
 import pandas as pd
 import numpy as np
 
+
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (create_schema, load_sql,
                                          postgrestable_from_query)
@@ -15,6 +16,7 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 
 from dagster import Output, asset
 from psycopg import connect
+from psycopg.sql import SQL
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
@@ -256,12 +258,13 @@ def inferenced_floors(context,
     context.log.info("Running the inference.")
     labels = pipeline.predict(preprocessed_features)
     preprocessed_features["floors"] = labels
-    preprocessed_features["floors_int"] = preprocessed_features["floors"].apply(np.int64)
+    preprocessed_features[
+        "floors_int"] = preprocessed_features["floors"].apply(np.int64)
     context.log.debug(preprocessed_features.head(5))
     return preprocessed_features
 
 
-@asset(required_resource_keys={"file_store_fastssd"})
+@asset(required_resource_keys={"file_store_fastssd", "db_connection"})
 def save_cjfiles(context,
                  inferenced_floors: pd.DataFrame,
                  features_file_index: dict[str, Path]) -> None:
@@ -285,11 +288,25 @@ def save_cjfiles(context,
         if index in inferenced_floors.index:
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
+            query_params = {
+                "identificatie": index,
+                "floors": inferenced_floors.loc[index, "floors_int"]}
+            query = SQL("""
+                INSERT INTO floors_estimation.predictions 
+                VALUES (
+                    {identificatie}, 
+                    {floors}
+                );    
+                """).format(**query_params)
+            context.resources.db_connection.send_query(query)
         else:
             attributes["b3_bouwlagen"] = None
 
         output_path = reconstructed_with_party_walls_dir.joinpath(
-            path.parents[2].name, path.parents[1].name, path.parents[0].name, path.name
+            path.parents[2].name,
+            path.parents[1].name,
+            path.parents[0].name,
+            path.name
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
