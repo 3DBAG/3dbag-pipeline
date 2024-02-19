@@ -254,12 +254,11 @@ def inferenced_floors(context,
     context.log.info("Loading the model.")
     pipeline = load(context.resources.model_store)
     context.log.info("Running the inference.")
-    test = preprocessed_features.head(5).copy()
     labels = pipeline.predict(preprocessed_features)
-    test["floors"] = labels
-    test["floors_int"] = test["floors"].apply(np.int64)
-    context.log.info(test)
-    return test
+    preprocessed_features["floors"] = labels
+    preprocessed_features["floors_int"] = preprocessed_features["floors"].apply(np.int64)
+    context.log.debug(preprocessed_features.head(5))
+    return preprocessed_features
 
 
 @asset(required_resource_keys={"file_store_fastssd"})
@@ -274,5 +273,24 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "floors_estimation_features"
         )
-    context.log.info(inferenced_floors)
+    context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
+    context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
+
+    for index, path in features_file_index.items():  
+        with path.open(encoding="utf-8", mode="r") as fo:
+            feature_json = json.load(fo)
+        attributes = feature_json["CityObjects"][index]["attributes"]
+        if index in inferenced_floors.index:
+            attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
+                                                               "floors_int"]
+        else:
+            attributes["b3_bouwlagen"] = None
+        output_path = reconstructed_with_party_walls_dir.joinpath(
+            path.name
+        )
+        with output_path.open("w") as fo:
+            json.dump(feature_json, fo, separators=(',', ':'))
+
+    context.log.info(f"""Saved {len(features_file_index)} files
+                     to {reconstructed_with_party_walls_dir}""")
