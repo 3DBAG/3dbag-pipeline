@@ -17,10 +17,11 @@ def model_store(context):
 
 
 floors_model = model_store.configured({"model_dir": "/data2/floors-estimation/models/pipeline_model1_gbr_untuned.joblib"})
-resource_defs.update({"model_path": floors_model})
+new_resource_defs = resource_defs.update({"model_path": floors_model})
+
 
 defs = Definitions(
-    resources=resource_defs,
+    resources=new_resource_defs,
     assets=all_assets,
     jobs=[
         job_floors_estimation,
