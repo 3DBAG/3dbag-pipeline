@@ -204,10 +204,10 @@ def preprocessed_features(context,
     query = SQL("""
         SELECT *
         FROM {all_features}
-        WHERE  bfa.construction_year > 1005
-        AND bfa.construction_year < 2025
-        AND bfa.h_roof_max < 300
-        AND bfa.h_roof_min > 0;
+        WHERE  construction_year > 1005
+        AND construction_year < 2025
+        AND h_roof_max < 300
+        AND h_roof_min > 0;
         """)
 
     query_params = {
