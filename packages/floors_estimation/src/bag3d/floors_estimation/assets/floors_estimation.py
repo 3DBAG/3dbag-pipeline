@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 from joblib import load
 import pandas as pd
-from psycopg.sql import SQL
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (create_schema, load_sql,
@@ -244,11 +243,11 @@ def preprocessed_features(context,
     return data
 
 
-@asset(required_resource_keys={"file_store","model_store", "db_connection"})
+@asset(required_resource_keys={"file_store", "model_store", "db_connection"})
 def inference(context,
               preprocessed_features: pd.DataFrame,
               features_file_index: dict[str, Path]) -> None:
     """Runs the inference on the features."""
     context.log.info(context.resources)
-    pipeline = load(context.resources.model_store.model_dir)
+    pipeline = load(context.resources.model_store)
     context.log.info("Running the inference.")
