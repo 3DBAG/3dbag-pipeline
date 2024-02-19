@@ -276,12 +276,12 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "floors_estimation_features"
         )
-    
+
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
 
-    for index, path in features_file_index.items():  
+    for index, path in features_file_index.items():
         with path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)
         attributes = feature_json["CityObjects"][index]["attributes"]
@@ -292,11 +292,11 @@ def save_cjfiles(context,
                 "identificatie": index,
                 "floors": inferenced_floors.loc[index, "floors_int"]}
             query = SQL("""
-                INSERT INTO floors_estimation.predictions 
+                INSERT INTO floors_estimation.predictions
                 VALUES (
-                    {identificatie}, 
+                    {identificatie},
                     {floors}
-                );    
+                );
                 """).format(**query_params)
             context.resources.db_connection.send_query(query)
         else:
