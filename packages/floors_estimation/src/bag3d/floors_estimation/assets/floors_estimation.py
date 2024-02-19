@@ -15,55 +15,8 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 from dagster import Output, asset
 from psycopg import connect
 
-from sklearn.impute import SimpleImputer, IterativeImputer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn_pandas import DataFrameMapper
-
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
-
-
-def preprocess_mapper(X_train):
-    """
-    Obtain a DataFrameMapper which can perform all
-    pre-processing steps on the training data.
-    The pre-processing steps used are defined separately
-    for numerical and categorical features.
-
-    Parameters: \n
-    X_train -- dataframe of features from train set \n
-
-    Returns: DataFrameMapper which can be applied to data to perform
-    all pre-processing steps
-
-    """
-
-    X_train["building_function"] = X_train[
-        "building_function"].astype("category")
-    X_train["roof_type"] = X_train["roof_type"].astype("category")
-    X_train["buildingtype"] = X_train["buildingtype"].astype("category")
-
-    num_features = list(X_train.select_dtypes(exclude=["object"]))
-    cat_features = list(X_train.select_dtypes(include=["object"]))
-
-    cat = [
-        (
-            [c],
-            [
-                SimpleImputer(strategy="most_frequent"),
-                SimpleImputer(strategy="most_frequent", missing_values=None),
-                OneHotEncoder(drop="if_binary"),
-            ],
-        )
-        for c in cat_features
-    ]
-    num = [
-        ([n], [IterativeImputer(random_state=0), StandardScaler()])
-        for n in num_features
-    ]
-    mapper = DataFrameMapper(num + cat, df_out=True)
-
-    return mapper
 
 
 def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
