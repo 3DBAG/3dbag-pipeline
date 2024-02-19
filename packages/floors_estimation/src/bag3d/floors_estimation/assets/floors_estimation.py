@@ -237,7 +237,8 @@ def preprocessed_features(context,
     with connect(context.resources.db_connection.dsn) as connection:
         data = pd.read_sql_query(query,
                                  connection,
-                                 params={"all_features": all_features})
+                                 params={
+                                     "all_features": str(all_features.table)})
     context.log.debug(f"Dataframe columns: {data.columns}")
     context.log.debug(f"Processed features for {len(data)} buildings.")
     return data
