@@ -228,13 +228,14 @@ def preprocessed_features(context,
     context.log.info("Querying the features.")
     query = """
         SELECT *
-        FROM {table}
+        FROM {schema}.{table}
         WHERE  construction_year > 1005
         AND construction_year < 2025
         AND h_roof_max < 300
         AND h_roof_min > 0;
         """
-    query = query.format(**dict(table=str(all_features.table)))
+    query = query.format(**dict(schema=str(all_features.schema),
+                                table=str(all_features.table)))
     with connect(context.resources.db_connection.dsn) as connection:
         data = pd.read_sql(query,
                            connection)
