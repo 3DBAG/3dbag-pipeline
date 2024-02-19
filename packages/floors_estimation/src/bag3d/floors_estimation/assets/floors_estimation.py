@@ -292,8 +292,7 @@ def save_cjfiles(context,
 
         if index in inferenced_floors.index:
             context.log.debug(f"Index {index} found.")
-            context.log.debug(f"Setting floors to {inferenced_floors.loc[index, 
-                                                                         'floors_int']}")
+            context.log.debug(f"Setting floors to {inferenced_floors.loc[index,'floors_int']}")
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
             query_params = {
