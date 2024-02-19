@@ -273,6 +273,7 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "floors_estimation_features"
         )
+    
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
@@ -286,9 +287,12 @@ def save_cjfiles(context,
                                                                "floors_int"]
         else:
             attributes["b3_bouwlagen"] = None
+
         output_path = reconstructed_with_party_walls_dir.joinpath(
-            path.name
+            path.parents[2].name, path.parents[1].name, path.parents[0].name, path.name
         )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
         with output_path.open("w") as fo:
             json.dump(feature_json, fo, separators=(',', ':'))
 
