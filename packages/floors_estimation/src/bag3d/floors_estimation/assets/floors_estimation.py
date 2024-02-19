@@ -201,11 +201,17 @@ def preprocessed_features(context,
                             -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
-    res = context.resources.db_connection.get_query(
-        SQL(f"""
+    query = SQL("""
         SELECT identificatie
-        FROM {all_features.id};
-        """))
+        FROM {all_features};
+        """)
+
+    query_params = {
+        "all_features": all_features,
+    }
+    res = context.resources.db_connection.get_query(query,
+                                                    query_params=query_params)
+
     data = pd.DataFrame(res)
     return data
 
