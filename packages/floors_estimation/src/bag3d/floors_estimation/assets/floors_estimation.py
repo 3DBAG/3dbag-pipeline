@@ -238,7 +238,7 @@ def preprocessed_features(context,
     with connect(context.resources.db_connection.dsn) as connection:
         data = pd.read_sql(query,
                            connection)
-        
+
     data.set_index('identificatie', inplace=True, drop=True)
     data.dropna(subset=["h_roof_70p"], inplace=True)
     context.log.debug(f"Dataframe columns: {data.columns}")
@@ -246,24 +246,26 @@ def preprocessed_features(context,
     return data
 
 
-@asset(required_resource_keys={"model_store", "db_connection"})
+@asset(required_resource_keys={"model_store"})
 def inferenced_floors(context,
-                      preprocessed_features: pd.DataFrame,
-                      features_file_index: dict[str, Path]) -> pd.DataFrame:
+                      preprocessed_features: pd.DataFrame) -> pd.DataFrame:
     """Runs the inference on the features."""
-    context.log.info(context.resources)
+    context.log.info("Loading the model.")
     pipeline = load(context.resources.model_store)
-    labels = pipeline.predict(preprocessed_features.head(5))
-    print(labels)
     context.log.info("Running the inference.")
+    test = preprocessed_features.head(5).copy()
+    labels = pipeline.predict(test)
+    test["floors"] = labels
+    context.log.info(test)
 
-    return pd.DataFrame()
+    return test
 
 
 @asset(required_resource_keys={"file_store_fastssd"})
 def save_cjfiles(context,
-                 inferenced_floors: pd.DataFrame) -> None:
-    """Runs the inference on the features."""
+                 inferenced_floors: pd.DataFrame,
+                 features_file_index: dict[str, Path]) -> None:
+    """Saves the new cj files."""
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir
     )
