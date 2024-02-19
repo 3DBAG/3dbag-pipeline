@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 from joblib import load
 import pandas as pd
+import numpy as np
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (create_schema, load_sql,
@@ -254,10 +255,10 @@ def inferenced_floors(context,
     pipeline = load(context.resources.model_store)
     context.log.info("Running the inference.")
     test = preprocessed_features.head(5).copy()
-    labels = pipeline.predict(test)
+    labels = pipeline.predict(preprocessed_features)
     test["floors"] = labels
+    test["floors_int"] = test["floors"].apply(np.int64)
     context.log.info(test)
-
     return test
 
 
@@ -273,5 +274,5 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "floors_estimation_features"
         )
-
+    context.log.info(inferenced_floors)
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
