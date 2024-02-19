@@ -226,14 +226,14 @@ def preprocessed_features(context,
                             -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
-    query = SQL("""
+    query = """
         SELECT *
         FROM %(all_features)s
         WHERE  construction_year > 1005
         AND construction_year < 2025
         AND h_roof_max < 300
         AND h_roof_min > 0;
-        """)
+        """
     data = pd.read_sql_query(query,
                              context.resources.db_connection,
                              params={"all_features": all_features})
