@@ -295,18 +295,19 @@ def save_cjfiles(context,
             context.log.debug(f"Setting floors to {inferenced_floors.loc[index,'floors_int']}")
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
-            query_params = {
-                "identificatie": Literal(index),
-                "floors": Literal(inferenced_floors.loc[index, "floors_int"])}
-            query = SQL("""
+
+            query = """
                 INSERT INTO floors_estimation.predictions
                 VALUES (
                     {identificatie},
                     {floors}
                 );
-                """)
+                """
+
+            query = query.format(**dict(identificatie=index,
+                                        floors=inferenced_floors.loc[index, "floors_int"]))
             context.log.debug(query)
-            context.resources.db_connection.send_query(query, query_params=query_params)
+            context.resources.db_connection.send_query(query)
 
         else:
             attributes["b3_bouwlagen"] = None
