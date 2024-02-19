@@ -202,8 +202,12 @@ def preprocessed_features(context,
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
     query = SQL("""
-        SELECT identificatie
-        FROM {all_features};
+        SELECT *
+        FROM {all_features}
+        WHERE  bfa.construction_year > 1005
+        AND bfa.construction_year < 2025
+        AND bfa.h_roof_max < 300
+        AND bfa.h_roof_min > 0;
         """)
 
     query_params = {
@@ -213,6 +217,7 @@ def preprocessed_features(context,
                                                     query_params=query_params)
 
     data = pd.DataFrame(res)
+    context.log.debug(data.head(5))
     return data
 
 
