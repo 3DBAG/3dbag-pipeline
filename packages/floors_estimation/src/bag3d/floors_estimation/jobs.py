@@ -8,6 +8,8 @@ job_floors_estimation = define_asset_job(
     | AssetSelection.keys(["floors_estimation", "external_features"])
     | AssetSelection.keys(["floors_estimation", "bag3d_features"])
     | AssetSelection.keys(["floors_estimation", "all_features"])
-    | AssetSelection.keys(["floors_estimation", "inference"])
-    | AssetSelection.keys(["floors_estimation", "preprocessed_features"]),
+    | AssetSelection.keys(["floors_estimation", "preprocessed_features"])
+    | AssetSelection.keys(["floors_estimation", "inferenced_floors"])
+    | AssetSelection.keys(["floors_estimation", "save_cjfiles"])
+    ,
 )
