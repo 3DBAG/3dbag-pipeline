@@ -195,6 +195,31 @@ def all_features(context,
     return Output(all_features, metadata=metadata)
 
 
+# @asset(required_resource_keys={"db_connection"})
+# def preprocessed_features(context,
+#                           all_features: Output[PostgresTableIdentifier])\
+#                             -> pd.DataFrame:
+#     """Runs the inference on the features."""
+#     context.log.info("Querying the features.")
+#     query = SQL("""
+#         SELECT *
+#         FROM {all_features}
+#         WHERE  construction_year > 1005
+#         AND construction_year < 2025
+#         AND h_roof_max < 300
+#         AND h_roof_min > 0;
+#         """)
+
+#     query_params = {
+#         "all_features": all_features,
+#     }
+#     res = context.resources.db_connection.get_query(query,
+#                                                     query_params=query_params)
+#     # unfortunatelty get_query does not return column names or the cursor
+#     data = pd.DataFrame(res)
+#     context.log.debug(f"Porcessed features for {len(data)} buildings.")
+#     return data
+
 @asset(required_resource_keys={"db_connection"})
 def preprocessed_features(context,
                           all_features: Output[PostgresTableIdentifier])\
@@ -203,21 +228,17 @@ def preprocessed_features(context,
     context.log.info("Querying the features.")
     query = SQL("""
         SELECT *
-        FROM {all_features}
+        FROM %(all_features)s
         WHERE  construction_year > 1005
         AND construction_year < 2025
         AND h_roof_max < 300
         AND h_roof_min > 0;
         """)
-
-    query_params = {
-        "all_features": all_features,
-    }
-    res = context.resources.db_connection.get_query(query,
-                                                    query_params=query_params)
-
-    data = pd.DataFrame(res)
-    context.log.debug(data.head(5))
+    data = pd.read_sql_query(query,
+                             context.resources.db_connection,
+                             params={"all_features": all_features})
+    context.log.debug(f"Dataframe columns: {data.columns}")
+    context.log.debug(f"Processed features for {len(data)} buildings.")
     return data
 
 
