@@ -304,7 +304,7 @@ def save_cjfiles(context,
                 );
                 """
 
-            query = query.format(**dict(identificatie=index,
+            query = query.format(**dict(identificatie=Literal(index),
                                         floors=inferenced_floors.loc[index, "floors_int"]))
             context.log.debug(query)
             context.resources.db_connection.send_query(query)
