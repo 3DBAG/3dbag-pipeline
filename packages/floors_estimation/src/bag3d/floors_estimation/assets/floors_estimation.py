@@ -15,8 +15,55 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 from dagster import Output, asset
 from psycopg import connect
 
+from sklearn.impute import SimpleImputer, IterativeImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn_pandas import DataFrameMapper
+
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
+
+
+def preprocess_mapper(X_train):
+    """
+    Obtain a DataFrameMapper which can perform all
+    pre-processing steps on the training data.
+    The pre-processing steps used are defined separately
+    for numerical and categorical features.
+
+    Parameters: \n
+    X_train -- dataframe of features from train set \n
+
+    Returns: DataFrameMapper which can be applied to data to perform
+    all pre-processing steps
+
+    """
+
+    X_train["building_function"] = X_train[
+        "building_function"].astype("category")
+    X_train["roof_type"] = X_train["roof_type"].astype("category")
+    X_train["buildingtype"] = X_train["buildingtype"].astype("category")
+
+    num_features = list(X_train.select_dtypes(exclude=["object"]))
+    cat_features = list(X_train.select_dtypes(include=["object"]))
+
+    cat = [
+        (
+            [c],
+            [
+                SimpleImputer(strategy="most_frequent"),
+                SimpleImputer(strategy="most_frequent", missing_values=None),
+                OneHotEncoder(drop="if_binary"),
+            ],
+        )
+        for c in cat_features
+    ]
+    num = [
+        ([n], [IterativeImputer(random_state=0), StandardScaler()])
+        for n in num_features
+    ]
+    mapper = DataFrameMapper(num + cat, df_out=True)
+
+    return mapper
 
 
 def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
@@ -238,16 +285,38 @@ def preprocessed_features(context,
     with connect(context.resources.db_connection.dsn) as connection:
         data = pd.read_sql(query,
                            connection)
+        
+    data.set_index('identificatie', inplace=True, drop=True)
+    data.dropna(subset=["h_roof_70p"], inplace=True)
     context.log.debug(f"Dataframe columns: {data.columns}")
     context.log.debug(f"Processed features for {len(data)} buildings.")
     return data
 
 
-@asset(required_resource_keys={"file_store", "model_store", "db_connection"})
-def inference(context,
-              preprocessed_features: pd.DataFrame,
-              features_file_index: dict[str, Path]) -> None:
+@asset(required_resource_keys={"model_store", "db_connection"})
+def inferenced_floors(context,
+                      preprocessed_features: pd.DataFrame,
+                      features_file_index: dict[str, Path]) -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info(context.resources)
     pipeline = load(context.resources.model_store)
+    labels = pipeline.predict(preprocessed_features.head(5))
+    print(labels)
     context.log.info("Running the inference.")
+
+    return pd.DataFrame()
+
+
+@asset(required_resource_keys={"file_store_fastssd"})
+def save_cjfiles(context,
+                 inferenced_floors: pd.DataFrame) -> None:
+    """Runs the inference on the features."""
+    reconstructed_root_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.data_dir
+    )
+    reconstructed_with_party_walls_dir = \
+        reconstructed_root_dir.parent.joinpath(
+            "floors_estimation_features"
+        )
+
+    context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
