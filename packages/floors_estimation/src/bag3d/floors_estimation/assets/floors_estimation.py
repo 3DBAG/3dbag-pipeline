@@ -16,7 +16,7 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 
 from dagster import Output, asset
 from psycopg import connect
-from psycopg.sql import SQL, Literal
+
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
@@ -291,8 +291,7 @@ def save_cjfiles(context,
         context.log.debug(f"Processing {index}")
 
         if index in inferenced_floors.index:
-            identificatie = Literal(index)
-            context.log.debug(f"Index {identificatie} found.")
+            context.log.debug(f"Index {index} found.")
             context.log.debug(f"Setting floors to {inferenced_floors.loc[index,'floors_int']}")
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
@@ -300,12 +299,12 @@ def save_cjfiles(context,
             query = """
                 INSERT INTO floors_estimation.predictions
                 VALUES (
-                    {identificatie},
+                    '{identificatie}',
                     {floors}
                 );
                 """
             context.log.debug(query)
-            query = query.format(**dict(identificatie=identificatie,
+            query = query.format(**dict(identificatie=index,
                                         floors=inferenced_floors.loc[index, "floors_int"]))
             context.log.debug(query)
             context.resources.db_connection.send_query(query)
