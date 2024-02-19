@@ -279,13 +279,19 @@ def save_cjfiles(context,
 
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
     context.log.debug(inferenced_floors.head(5))
+    inferenced_floors.set_index('identificatie', inplace=True, drop=True)
+    context.log.debug("After setting index:")
+    context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
-
+    
     for index, path in features_file_index.items():
         with path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)
         attributes = feature_json["CityObjects"][index]["attributes"]
+        context.log.debug(f"Processing {index}")
+
         if index in inferenced_floors.index:
+            context.log.debug(f"Index {index} found.")
             attributes["b3_bouwlagen"] = inferenced_floors.loc[index,
                                                                "floors_int"]
             query_params = {
