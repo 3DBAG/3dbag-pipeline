@@ -3,22 +3,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import islice
 from pathlib import Path
 from typing import Dict, Iterable, List
-from joblib import load
-import pandas as pd
+
 import numpy as np
-
-
+import pandas as pd
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (create_schema, load_sql,
                                          postgrestable_from_query)
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.floors_estimation.assets.Attributes import Attributes
-
 from dagster import Output, asset
+from joblib import load
+from pgutils import inject_parameters
 from psycopg import connect
 from psycopg.sql import SQL
-from pgutils import inject_parameters
-
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
@@ -227,32 +224,6 @@ def preprocessed_features(context,
     context.log.debug(f"Dataframe columns: {data.columns}")
     context.log.debug(f"Porcessed features for {len(data)} buildings.")
     return data
-
-# @asset(required_resource_keys={"db_connection"})
-# def preprocessed_features(context,
-#                           all_features: Output[PostgresTableIdentifier])\
-#                             -> pd.DataFrame:
-#     """Runs the inference on the features."""
-#     context.log.info("Querying the features.")
-#     query = """
-#         SELECT *
-#         FROM {schema}.{table}
-#         WHERE  construction_year > 1005
-#         AND construction_year < 2025
-#         AND h_roof_max < 300
-#         AND h_roof_min > 0;
-#         """
-#     query = query.format(**dict(schema=str(all_features.schema),
-#                                 table=str(all_features.table)))
-#     with connect(context.resources.db_connection.dsn) as connection:
-#         data = pd.read_sql(query,
-#                            connection)
-
-#     data.set_index('identificatie', inplace=True, drop=True)
-#     data.dropna(subset=["h_roof_70p"], inplace=True)
-#     context.log.debug(f"Dataframe columns: {data.columns}")
-#     context.log.debug(f"Processed features for {len(data)} buildings.")
-#     return data
 
 
 @asset(required_resource_keys={"model_store"})
