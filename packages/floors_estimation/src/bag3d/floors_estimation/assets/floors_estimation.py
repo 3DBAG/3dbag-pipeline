@@ -16,6 +16,7 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 
 from dagster import Output, asset
 from psycopg import connect
+from psycopg.sql import SQL
 
 
 SCHEMA = "floors_estimation"
