@@ -197,56 +197,60 @@ def all_features(context,
     return Output(all_features, metadata=metadata)
 
 
-# @asset(required_resource_keys={"db_connection"})
-# def preprocessed_features(context,
-#                           all_features: Output[PostgresTableIdentifier])\
-#                             -> pd.DataFrame:
-#     """Runs the inference on the features."""
-#     context.log.info("Querying the features.")
-#     query = SQL("""
-#         SELECT *
-#         FROM {all_features}
-#         WHERE  construction_year > 1005
-#         AND construction_year < 2025
-#         AND h_roof_max < 300
-#         AND h_roof_min > 0;
-#         """)
-
-#     query_params = {
-#         "all_features": all_features,
-#     }
-#     res = context.resources.db_connection.get_query(query,
-#                                                     query_params=query_params)
-#     # unfortunatelty get_query does not return column names or the cursor
-#     data = pd.DataFrame(res)
-#     context.log.debug(f"Porcessed features for {len(data)} buildings.")
-#     return data
-
 @asset(required_resource_keys={"db_connection"})
 def preprocessed_features(context,
                           all_features: Output[PostgresTableIdentifier])\
                             -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
-    query = """
+    query = SQL("""
         SELECT *
-        FROM {schema}.{table}
+        FROM {all_features}
         WHERE  construction_year > 1005
         AND construction_year < 2025
         AND h_roof_max < 300
         AND h_roof_min > 0;
-        """
-    query = query.format(**dict(schema=str(all_features.schema),
-                                table=str(all_features.table)))
-    with connect(context.resources.db_connection.dsn) as connection:
-        data = pd.read_sql(query,
-                           connection)
+        """)
 
+    query_params = {
+        "all_features": all_features,
+    }
+
+    res = context.resources.db_connection.get_dict(query,
+                                                   query_params=query_params)
+    data = pd.DataFrame.from_records(res)
     data.set_index('identificatie', inplace=True, drop=True)
+    # rejecting all buildings with missing 70th percentile roof height
     data.dropna(subset=["h_roof_70p"], inplace=True)
     context.log.debug(f"Dataframe columns: {data.columns}")
-    context.log.debug(f"Processed features for {len(data)} buildings.")
+    context.log.debug(f"Porcessed features for {len(data)} buildings.")
     return data
+
+# @asset(required_resource_keys={"db_connection"})
+# def preprocessed_features(context,
+#                           all_features: Output[PostgresTableIdentifier])\
+#                             -> pd.DataFrame:
+#     """Runs the inference on the features."""
+#     context.log.info("Querying the features.")
+#     query = """
+#         SELECT *
+#         FROM {schema}.{table}
+#         WHERE  construction_year > 1005
+#         AND construction_year < 2025
+#         AND h_roof_max < 300
+#         AND h_roof_min > 0;
+#         """
+#     query = query.format(**dict(schema=str(all_features.schema),
+#                                 table=str(all_features.table)))
+#     with connect(context.resources.db_connection.dsn) as connection:
+#         data = pd.read_sql(query,
+#                            connection)
+
+#     data.set_index('identificatie', inplace=True, drop=True)
+#     data.dropna(subset=["h_roof_70p"], inplace=True)
+#     context.log.debug(f"Dataframe columns: {data.columns}")
+#     context.log.debug(f"Processed features for {len(data)} buildings.")
+#     return data
 
 
 @asset(required_resource_keys={"model_store"})
