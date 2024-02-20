@@ -259,7 +259,7 @@ def inferenced_floors(context,
     labels = pipeline.predict(preprocessed_features)
     preprocessed_features["floors"] = labels
     preprocessed_features[
-        "floors_int"] = preprocessed_features["floors"].apply(np.int64)
+        "floors_int"] = preprocessed_features["floors"].apply(np.rint)
     context.log.debug(preprocessed_features.head(5))
     return preprocessed_features
 
