@@ -17,6 +17,7 @@ from bag3d.floors_estimation.assets.Attributes import Attributes
 from dagster import Output, asset
 from psycopg import connect
 from psycopg.sql import SQL
+from pgutils import inject_parameters
 
 
 SCHEMA = "floors_estimation"
@@ -217,8 +218,8 @@ def preprocessed_features(context,
         "all_features": all_features,
     }
 
-    res = context.resources.db_connection.get_dict(query,
-                                                   query_params=query_params)
+    query = inject_parameters(query, query_params)
+    res = context.resources.db_connection.get_dict(query)
     data = pd.DataFrame.from_records(res)
     data.set_index('identificatie', inplace=True, drop=True)
     # rejecting all buildings with missing 70th percentile roof height
