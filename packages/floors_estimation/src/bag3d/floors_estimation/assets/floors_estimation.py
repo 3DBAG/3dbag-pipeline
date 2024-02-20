@@ -222,7 +222,7 @@ def preprocessed_features(context,
     # rejecting all buildings with missing 70th percentile roof height
     data.dropna(subset=["h_roof_70p"], inplace=True)
     context.log.debug(f"Dataframe columns: {data.columns}")
-    context.log.debug(f"Porcessed features for {len(data)} buildings.")
+    context.log.info(f"Processed features for {len(data)} buildings.")
     return data
 
 
@@ -255,17 +255,15 @@ def save_cjfiles(context,
         )
 
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
-    context.log.debug(inferenced_floors.head(5))
     inferenced_floors.set_index('identificatie', inplace=True, drop=True)
-    context.log.debug("After setting index:")
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
-    
+
     for index, path in features_file_index.items():
         with path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)
         attributes = feature_json["CityObjects"][index]["attributes"]
-        context.log.debug(f"Processing {index}")
+        context.log.info(f"Processing {index}")
 
         if index in inferenced_floors.index:
             context.log.debug(f"Index {index} found.")
@@ -282,7 +280,6 @@ def save_cjfiles(context,
                     {floors}
                 );
                 """
-            context.log.debug(query)
             query = query.format(
                 **dict(identificatie=index,
                        floors=inferenced_floors.loc[index,
