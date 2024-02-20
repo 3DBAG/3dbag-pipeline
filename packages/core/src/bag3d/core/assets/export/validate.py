@@ -321,9 +321,13 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 def check_formats(input) -> dict:
     dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
-    cj_results = cityjson(dirpath, file_id, planarity_n_tol=20.0,
-                          planarity_d2p_tol=0.001, url_root=url_root, version=version)
-    obj_results = obj(dirpath, file_id, planarity_n_tol=20.0, planarity_d2p_tol=0.001,
+    planarity_n_tol = 20.0
+    planarity_d2p_tol = 0.001
+    cj_results = cityjson(dirpath, file_id, planarity_n_tol=planarity_n_tol,
+                          planarity_d2p_tol=planarity_d2p_tol, url_root=url_root,
+                          version=version)
+    obj_results = obj(dirpath, file_id, planarity_n_tol=planarity_n_tol,
+                      planarity_d2p_tol=planarity_d2p_tol,
                       url_root=url_root, version=version)
     gpkg_results = gpkg(dirpath, file_id, url_root=url_root, version=version)
     return {"tile_id": tile_id, **cj_results, **obj_results, **gpkg_results}
