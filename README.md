@@ -149,14 +149,14 @@ This query to get the asset materializations metadata and asset dependencies (li
 {
   assetNodes(
     group: {
-      groupName: "source"
-      repositoryName: "bag3d"
-      repositoryLocationName: "dev_3dbag_pipeline_py38_venv"
+      groupName: "top10nl"
+      repositoryName: "__repository__"
+      repositoryLocationName: "core_py_311_virtual_env"
     }
     pipeline: {
-      pipelineName: "source_and_input_sample"
-      repositoryName: "bag3d"
-      repositoryLocationName: "dev_3dbag_pipeline_py38_venv"
+      pipelineName: "source_input"
+      repositoryName: "__repository__"
+      repositoryLocationName: "core_py_311_virtual_env"
     }
     # assetKeys: { path: ["top10nl", "stage_top10nl_gebouw"] }
     loadMaterializations: true
