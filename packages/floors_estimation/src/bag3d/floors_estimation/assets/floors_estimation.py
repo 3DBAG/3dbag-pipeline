@@ -313,7 +313,7 @@ def save_cjfiles(context,
         )
 
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
-    inferenced_floors.set_index('identificatie', inplace=True, drop=True)
+    assert inferenced_floors.index.name == 'identificatie'
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
 
