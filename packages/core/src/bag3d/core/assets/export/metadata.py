@@ -189,6 +189,7 @@ def metadata(context: AssetExecutionContext):
                 "source": [
                     {
                         "source": {
+                            "name": "BAG 2.0 Extract",
                             "description": "Basisregistratie Adressen en Gebouwen (BAG) 2.0 Extract.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
@@ -199,6 +200,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "source": {
+                            "name": "TOP10NL",
                             "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
@@ -209,6 +211,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "source": {
+                            "name": "AHN3",
                             "description": "Actueel Hoogtebestaand Nederland (AHN) 3 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
                             "author": "Het Waterschapshuis",
                             "website": "https://www.ahn.nl",
@@ -219,6 +222,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "source": {
+                            "name": "AHN4",
                             "description": "Actueel Hoogtebestaand Nederland (AHN) 4 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
                             "author": "Het Waterschapshuis",
                             "website": "https://www.ahn.nl",
