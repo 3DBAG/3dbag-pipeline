@@ -10,8 +10,9 @@ from psycopg.sql import SQL
 
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date, get_upstream_data_version
-from bag3d.common.resources.temp_until_configurableresource import geoflow_version, \
-    roofer_version, tyler_version, tyler_db_version
+from bag3d.common.resources.temp_until_configurableresource import (geoflow_version,
+    roofer_version, tyler_version, tyler_db_version, gdal_version, pdal_version,
+    lastools_version)
 from bag3d.common.utils.files import check_export_results
 
 
@@ -251,6 +252,24 @@ def metadata(context: AssetExecutionContext):
                         "version": tyler_db_version(),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling"
+                    },
+                    {
+                        "name": "GDAL",
+                        "version": gdal_version(),
+                        "repository": "https://gdal.org/",
+                        "description": "Data loading with ogr2ogr"
+                    },
+                    {
+                        "name": "PDAL",
+                        "version": pdal_version(),
+                        "repository": "https://pdal.io",
+                        "description": "Computing point cloud metadata"
+                    },
+                    {
+                        "name": "LASTools",
+                        "version": lastools_version(),
+                        "repository": "https://lastools.github.io/",
+                        "description": "Point cloud tiling and indexing"
                     },
                 ]
             },
