@@ -10,6 +10,9 @@ EXE_PATH_TYLER_DB = "/opt/bin/tyler-db"
 EXE_PATH_ROOFER_CROP = "/opt/bin/crop"
 EXE_PATH_GEOF = "/opt/bin/geof"
 FLOWCHART_PATH_RECONSTRUCT = "/opt/geoflow-flowcharts/gfc-brecon/stream/reconstruct_bag.json"
+EXE_PATH_GDAL = "/opt/bin/ogr2ogr"
+EXE_PATH_PDAL = "/opt/bin/pdal"
+EXE_PATH_LASTOOLS = "/opt/bin/las2las64"
 
 
 def format_version_stdout(version: str) -> str:
@@ -42,4 +45,22 @@ def geoflow_version():
     pv = version_plugins[plugin_versions:].strip().replace("\n   ", ", ").replace("\n",
                                                                                   ",")
     version = f"{gv}. Plugins: {pv}"
+    return format_version_stdout(version)
+
+
+def gdal_version():
+    version, returncode = execute_shell_command_silent(
+        f"{EXE_PATH_GDAL} --version")
+    return format_version_stdout(version)
+
+
+def pdal_version():
+    version, returncode = execute_shell_command_silent(
+        f"{EXE_PATH_PDAL} --version")
+    return version.replace("-", "").replace("\n", "")
+
+
+def lastools_version():
+    version, returncode = execute_shell_command_silent(
+        f"{EXE_PATH_LASTOOLS} -version")
     return format_version_stdout(version)
