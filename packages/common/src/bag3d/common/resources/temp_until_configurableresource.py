@@ -2,6 +2,11 @@
 Need to migrate the whole resources and repository definitions to the new
 ConfigurableResource and Definitions API,
 https://docs.dagster.io/concepts/resources#resources.
+
+!!! IMPORTANT !!!
+There is an ongoing discussion on automatic code versioning.
+Read the issue for the disadvantages of the approach.
+https://github.com/dagster-io/dagster/issues/15242
 """
 from bag3d.common.resources.executables import execute_shell_command_silent
 
