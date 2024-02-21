@@ -255,12 +255,11 @@ def predictions_table(context,
     query = load_sql(query_params={"predictions_table": predictions_table})
     metadata = postgrestable_from_query(context, query, predictions_table)
 
-    data = [(attr.identificatie, attr.floors_int)
-            for attr in inferenced_floors]
+    data = [tuple(v) for v in inferenced_floors[['identificatie',
+                                                 'floors']].to_numpy()]
 
-    query = f"""
-        INSERT INTO {predictions_table}
-        VALUES (%s, %s);"""
+    query = f"""INSERT INTO {predictions_table}
+                VALUES (%s, %s);"""
 
     with connect(context.resources.db_connection.dsn) as connection:
         with connection.cursor() as cur:
