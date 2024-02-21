@@ -241,6 +241,35 @@ def inferenced_floors(context,
     return preprocessed_features
 
 
+@asset(required_resource_keys={"db_connection"})
+def predictions_table(context,
+                      inferenced_floors: pd.DataFrame)\
+                        -> Output[PostgresTableIdentifier]:
+    """Saves the floor predictions to the
+    'floors_estimation.predictions' table."""
+
+    context.log.info("Saving to the 'floors_estimation.predictions'.")
+    table_name = "predictions"
+    predictions_table = PostgresTableIdentifier(SCHEMA, table_name)
+    context.log.info(f"Creating the {table_name} table.")
+    query = load_sql(query_params={"predictions_table": predictions_table})
+    metadata = postgrestable_from_query(context, query, predictions_table)
+
+    data = [(attr.identificatie, attr.floors_int)
+            for attr in inferenced_floors]
+
+    query = f"""
+        INSERT INTO {predictions_table}
+        VALUES (%s, %s);"""
+
+    with connect(context.resources.db_connection.dsn) as connection:
+        with connection.cursor() as cur:
+            cur.executemany(query, data, returning=True)
+            connection.commit()
+
+    return Output(predictions_table, metadata=metadata)
+
+
 @asset(required_resource_keys={"file_store_fastssd", "db_connection"})
 def save_cjfiles(context,
                  inferenced_floors: pd.DataFrame,
