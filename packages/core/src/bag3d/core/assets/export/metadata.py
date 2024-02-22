@@ -1,11 +1,13 @@
 import csv
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict
 from uuid import uuid1
+from collections import namedtuple
 
-from dagster import AssetKey, Output, asset, AssetExecutionContext
+from dagster import (AssetKey, Output, asset, AssetExecutionContext, DagsterEventType,
+                     EventRecordsFilter)
 from psycopg.sql import SQL
 
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
@@ -121,11 +123,15 @@ def export_index(context):
     return path_export_index
 
 
+ASSET_DEPENDENCIES_FOR_METADATA = [
+    AssetKey(("bag", "extract_bag")),
+    AssetKey(("bag", "bag_pandactueelbestaand")),
+    AssetKey(("top10nl", "extract_top10nl")),
+    AssetKey(("top10nl", "top10nl_gebouw")),
+    AssetKey(("input", "reconstruction_input")),
+]
 @asset(
-    deps=[
-        AssetKey(("bag", "extract_bag")),
-        AssetKey(("top10nl", "extract_top10nl")),
-    ],
+    deps=ASSET_DEPENDENCIES_FOR_METADATA,
     required_resource_keys={"file_store"}
 )
 def metadata(context: AssetExecutionContext):
@@ -140,10 +146,34 @@ def metadata(context: AssetExecutionContext):
     version_3dbag = f"v{format_date(date.today(), version=True)}"
     uuid_3dbag = str(uuid1())
 
-    data_version_extract_bag = get_upstream_data_version(context, AssetKey(
-        ("bag", "extract_bag")))
-    data_version_top10nl = get_upstream_data_version(context, AssetKey(
-        ("top10nl", "extract_top10nl")))
+    asset_keys = ASSET_DEPENDENCIES_FOR_METADATA
+    instance = context.instance
+
+    # Get only the last asset materialization, because if an asset is materialized then
+    # is has succeeded.
+    process_step_list = []
+    for asset_key in asset_keys:
+        event_record = instance.get_event_records(
+            event_records_filter=EventRecordsFilter(
+                event_type=DagsterEventType.ASSET_MATERIALIZATION,
+                asset_key=asset_key,
+            ),
+            limit=1
+        )[0]
+        # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
+        # member instead of 'Rows'
+        rows = event_record.asset_materialization.metadata.get("Rows")
+        process_step_list.append(
+            {
+                "name": ".".join(asset_key.path),
+                "runId": event_record.run_id,
+                "featureCount": rows.value if rows is not None else None,
+                "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
+                "dataVersion": event_record.asset_materialization.tags["dagster/data_version"]
+            }
+        )
+
+    [ps["dataVersion"] for ps in process_step_list if ps["name"] == "top10nl.extract_top10nl"]
 
     metadata = {
         "identificationInfo": {
@@ -186,6 +216,7 @@ def metadata(context: AssetExecutionContext):
         ],
         "dataQualityInfo": {
             "lineage": {
+                "processStep": process_step_list,
                 "source": [
                     {
                         "source": {
@@ -193,8 +224,9 @@ def metadata(context: AssetExecutionContext):
                             "description": "Basisregistratie Adressen en Gebouwen (BAG) 2.0 Extract.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
-                            "date": data_version_extract_bag,
                             "dateType": "creation",
+                            "date": [ps["dataVersion"] for ps in process_step_list if
+                                     ps["name"] == "bag.extract_bag"][0],
                             "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
                         },
                     },
@@ -204,8 +236,9 @@ def metadata(context: AssetExecutionContext):
                             "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
-                            "date": data_version_top10nl,
                             "dateType": "access",
+                            "date": [ps["dataVersion"] for ps in process_step_list if
+                                     ps["name"] == "top10nl.extract_top10nl"][0],
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
                         },
                     },
