@@ -1,11 +1,12 @@
 import csv
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict
 from uuid import uuid1
 
-from dagster import AssetKey, Output, asset, AssetExecutionContext
+from dagster import (AssetKey, Output, asset, AssetExecutionContext, DagsterEventType,
+                     EventRecordsFilter)
 from psycopg.sql import SQL
 
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
@@ -140,10 +141,35 @@ def metadata(context: AssetExecutionContext):
     version_3dbag = f"v{format_date(date.today(), version=True)}"
     uuid_3dbag = str(uuid1())
 
-    data_version_extract_bag = get_upstream_data_version(context, AssetKey(
-        ("bag", "extract_bag")))
-    data_version_top10nl = get_upstream_data_version(context, AssetKey(
-        ("top10nl", "extract_top10nl")))
+    asset_key_extract_bag = AssetKey(("bag", "extract_bag"))
+    asset_key_extract_top10nl = AssetKey(("top10nl", "extract_top10nl"))
+    instance = context.instance
+
+    # Get only the last asset materialization, because if an asset is materialized then
+    # is has succeeded.
+
+    # extract_bag
+    event_record = instance.get_event_records(
+        event_records_filter=EventRecordsFilter(
+            event_type=DagsterEventType.ASSET_MATERIALIZATION,
+            asset_key=asset_key_extract_bag,
+        ),
+        limit=1
+    )[0]
+    data_version_extract_bag = event_record.asset_materialization.tags["dagster/data_version"]
+
+    # extract_top10nl
+    event_record = instance.get_event_records(
+        event_records_filter=EventRecordsFilter(
+            event_type=DagsterEventType.ASSET_MATERIALIZATION,
+            asset_key=asset_key_extract_top10nl,
+        ),
+        limit=1
+    )[0]
+    data_version_extract_top10nl= event_record.asset_materialization.tags["dagster/data_version"]
+    feature_count_extract_top10nl = event_record.asset_materialization.metadata["Feature Count [gebouw]"].value
+    run_id_extract_top10nl = event_record.run_id
+    date_extract_top10nl = datetime.fromtimestamp(event_record.timestamp).date().isoformat()
 
     metadata = {
         "identificationInfo": {
@@ -186,6 +212,14 @@ def metadata(context: AssetExecutionContext):
         ],
         "dataQualityInfo": {
             "lineage": {
+                "processStep": [
+                    {
+                        "description": "extract_top10nl",
+                        "runId": run_id_extract_top10nl,
+                        "featureCount": feature_count_extract_top10nl,
+                        "dateTime": date_extract_top10nl
+                    }
+                ],
                 "source": [
                     {
                         "source": {
@@ -204,7 +238,7 @@ def metadata(context: AssetExecutionContext):
                             "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
-                            "date": data_version_top10nl,
+                            "date": data_version_extract_top10nl,
                             "dateType": "access",
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
                         },
