@@ -125,7 +125,10 @@ def export_index(context):
 @asset(
     deps=[
         AssetKey(("bag", "extract_bag")),
+        AssetKey(("bag", "bag_pandactueelbestaand")),
         AssetKey(("top10nl", "extract_top10nl")),
+        AssetKey(("top10nl", "top10nl_gebouw")),
+        AssetKey(("input", "reconstruction_input")),
     ],
     required_resource_keys={"file_store"}
 )
@@ -141,35 +144,34 @@ def metadata(context: AssetExecutionContext):
     version_3dbag = f"v{format_date(date.today(), version=True)}"
     uuid_3dbag = str(uuid1())
 
-    asset_key_extract_bag = AssetKey(("bag", "extract_bag"))
-    asset_key_extract_top10nl = AssetKey(("top10nl", "extract_top10nl"))
+    asset_keys = [
+        AssetKey(("bag", "extract_bag")),
+        AssetKey(("bag", "bag_pandactueelbestaand")),
+        AssetKey(("top10nl", "extract_top10nl")),
+        AssetKey(("top10nl", "top10nl_gebouw")),
+        AssetKey(("input", "reconstruction_input")),
+    ]
     instance = context.instance
 
     # Get only the last asset materialization, because if an asset is materialized then
     # is has succeeded.
-
-    # extract_bag
-    event_record = instance.get_event_records(
-        event_records_filter=EventRecordsFilter(
-            event_type=DagsterEventType.ASSET_MATERIALIZATION,
-            asset_key=asset_key_extract_bag,
-        ),
-        limit=1
-    )[0]
-    data_version_extract_bag = event_record.asset_materialization.tags["dagster/data_version"]
-
-    # extract_top10nl
-    event_record = instance.get_event_records(
-        event_records_filter=EventRecordsFilter(
-            event_type=DagsterEventType.ASSET_MATERIALIZATION,
-            asset_key=asset_key_extract_top10nl,
-        ),
-        limit=1
-    )[0]
-    data_version_extract_top10nl= event_record.asset_materialization.tags["dagster/data_version"]
-    feature_count_extract_top10nl = event_record.asset_materialization.metadata["Feature Count [gebouw]"].value
-    run_id_extract_top10nl = event_record.run_id
-    date_extract_top10nl = datetime.fromtimestamp(event_record.timestamp).date().isoformat()
+    process_step_list = []
+    for asset_key in asset_keys:
+        event_record = instance.get_event_records(
+            event_records_filter=EventRecordsFilter(
+                event_type=DagsterEventType.ASSET_MATERIALIZATION,
+                asset_key=asset_key,
+            ),
+            limit=1
+        )[0]
+        process_step_list.append(
+            {
+                "runId": event_record.run_id,
+                "featureCount": event_record.asset_materialization.metadata["Rows"].value,
+                "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
+                "dataVersion": event_record.asset_materialization.tags["dagster/data_version"]
+            }
+        )
 
     metadata = {
         "identificationInfo": {
@@ -212,14 +214,7 @@ def metadata(context: AssetExecutionContext):
         ],
         "dataQualityInfo": {
             "lineage": {
-                "processStep": [
-                    {
-                        "description": "extract_top10nl",
-                        "runId": run_id_extract_top10nl,
-                        "featureCount": feature_count_extract_top10nl,
-                        "dateTime": date_extract_top10nl
-                    }
-                ],
+                "processStep": process_step_list,
                 "source": [
                     {
                         "source": {
@@ -227,7 +222,6 @@ def metadata(context: AssetExecutionContext):
                             "description": "Basisregistratie Adressen en Gebouwen (BAG) 2.0 Extract.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
-                            "date": data_version_extract_bag,
                             "dateType": "creation",
                             "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
                         },
@@ -238,7 +232,6 @@ def metadata(context: AssetExecutionContext):
                             "description": "Basisregistratie Topografie (BRT) TOP10NL gebouwen laag, gedownload van de PDOK download API, gebruikt voor informatie over kassen en warenhuizen.",
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
-                            "date": data_version_extract_top10nl,
                             "dateType": "access",
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
                         },
