@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Dict
 from uuid import uuid1
+from collections import namedtuple
 
 from dagster import (AssetKey, Output, asset, AssetExecutionContext, DagsterEventType,
                      EventRecordsFilter)
@@ -122,14 +123,15 @@ def export_index(context):
     return path_export_index
 
 
+ASSET_DEPENDENCIES_FOR_METADATA = [
+    AssetKey(("bag", "extract_bag")),
+    AssetKey(("bag", "bag_pandactueelbestaand")),
+    AssetKey(("top10nl", "extract_top10nl")),
+    AssetKey(("top10nl", "top10nl_gebouw")),
+    AssetKey(("input", "reconstruction_input")),
+]
 @asset(
-    deps=[
-        AssetKey(("bag", "extract_bag")),
-        AssetKey(("bag", "bag_pandactueelbestaand")),
-        AssetKey(("top10nl", "extract_top10nl")),
-        AssetKey(("top10nl", "top10nl_gebouw")),
-        AssetKey(("input", "reconstruction_input")),
-    ],
+    deps=ASSET_DEPENDENCIES_FOR_METADATA,
     required_resource_keys={"file_store"}
 )
 def metadata(context: AssetExecutionContext):
@@ -144,13 +146,7 @@ def metadata(context: AssetExecutionContext):
     version_3dbag = f"v{format_date(date.today(), version=True)}"
     uuid_3dbag = str(uuid1())
 
-    asset_keys = [
-        AssetKey(("bag", "extract_bag")),
-        AssetKey(("bag", "bag_pandactueelbestaand")),
-        AssetKey(("top10nl", "extract_top10nl")),
-        AssetKey(("top10nl", "top10nl_gebouw")),
-        AssetKey(("input", "reconstruction_input")),
-    ]
+    asset_keys = ASSET_DEPENDENCIES_FOR_METADATA
     instance = context.instance
 
     # Get only the last asset materialization, because if an asset is materialized then
@@ -164,10 +160,13 @@ def metadata(context: AssetExecutionContext):
             ),
             limit=1
         )[0]
+        # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
+        # member instead of 'Rows'
+        rows = event_record.asset_materialization.metadata.get("Rows")
         process_step_list.append(
             {
                 "runId": event_record.run_id,
-                "featureCount": event_record.asset_materialization.metadata["Rows"].value,
+                "featureCount": rows.value if rows is not None else None,
                 "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
                 "dataVersion": event_record.asset_materialization.tags["dagster/data_version"]
             }
