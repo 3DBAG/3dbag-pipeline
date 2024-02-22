@@ -80,7 +80,7 @@ def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
 def features_file_index_generator(path_features: Path) \
                         -> Iterable[tuple[str, Path]]:
     dir_z = [d for d in path_features.iterdir()]
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         for g in executor.map(visit_directory, dir_z):
             for identificatie, path in g:
                 yield identificatie, path
@@ -241,7 +241,65 @@ def inferenced_floors(context,
     return preprocessed_features
 
 
-@asset(required_resource_keys={"file_store_fastssd", "db_connection"})
+@asset(required_resource_keys={"db_connection"})
+def predictions_table(context,
+                      inferenced_floors: pd.DataFrame)\
+                        -> Output[PostgresTableIdentifier]:
+    """Saves the floor predictions to the
+    'floors_estimation.predictions' table."""
+
+    context.log.info("Saving to the 'floors_estimation.predictions'.")
+    table_name = "predictions"
+    predictions_table = PostgresTableIdentifier(SCHEMA, table_name)
+    context.log.info(f"Creating the {table_name} table.")
+    query = load_sql(query_params={"predictions_table": predictions_table})
+    metadata = postgrestable_from_query(context, query, predictions_table)
+
+    inferenced_floors.reset_index(inplace=True)
+    data = [tuple(v) for v in inferenced_floors[['identificatie',
+                                                 'floors']].to_numpy()]
+
+    query = f"""INSERT INTO {predictions_table}
+                VALUES (%s, %s);"""
+
+    with connect(context.resources.db_connection.dsn) as connection:
+        with connection.cursor() as cur:
+            cur.executemany(query, data, returning=True)
+            connection.commit()
+
+    return Output(predictions_table, metadata=metadata)
+
+
+def save_cjfile(context, path:
+                Path,
+                pand_id: str,
+                inferenced_floors: pd.DataFrame,
+                output_dir: Path):
+    with path.open(encoding="utf-8", mode="r") as fo:
+        feature_json = json.load(fo)
+    attributes = feature_json["CityObjects"][pand_id]["attributes"]
+    context.log.info(f"Processing {pand_id}")
+
+    if pand_id in inferenced_floors.index:
+        attributes["b3_bouwlagen"] = int(
+            inferenced_floors.loc[pand_id,
+                                  "floors_int"])
+    else:
+        attributes["b3_bouwlagen"] = None
+
+    output_path = output_dir.joinpath(
+        path.parents[2].name,
+        path.parents[1].name,
+        path.parents[0].name,
+        path.name
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w") as fo:
+        json.dump(feature_json, fo, separators=(',', ':'))
+
+
+@asset(required_resource_keys={"file_store_fastssd"})
 def save_cjfiles(context,
                  inferenced_floors: pd.DataFrame,
                  features_file_index: dict[str, Path]) -> None:
@@ -255,51 +313,30 @@ def save_cjfiles(context,
         )
 
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
-    inferenced_floors.set_index('identificatie', inplace=True, drop=True)
+    assert inferenced_floors.index.name == 'identificatie'
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
 
-    for index, path in features_file_index.items():
-        with path.open(encoding="utf-8", mode="r") as fo:
-            feature_json = json.load(fo)
-        attributes = feature_json["CityObjects"][index]["attributes"]
-        context.log.info(f"Processing {index}")
-
-        if index in inferenced_floors.index:
-            context.log.debug(f"Index {index} found.")
-            context.log.debug(f"""Setting floors to {
-                inferenced_floors.loc[index, 'floors_int']}""")
-            attributes["b3_bouwlagen"] = int(
-                inferenced_floors.loc[index,
-                                      "floors_int"])
-
-            query = """
-                INSERT INTO floors_estimation.predictions
-                VALUES (
-                    '{identificatie}',
-                    {floors}
-                );
-                """
-            query = query.format(
-                **dict(identificatie=index,
-                       floors=inferenced_floors.loc[index,
-                                                    "floors_int"]))
-            context.log.debug(query)
-            context.resources.db_connection.send_query(query)
-
-        else:
-            attributes["b3_bouwlagen"] = None
-
-        output_path = reconstructed_with_party_walls_dir.joinpath(
-            path.parents[2].name,
-            path.parents[1].name,
-            path.parents[0].name,
-            path.name
-        )
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with output_path.open("w") as fo:
-            json.dump(feature_json, fo, separators=(',', ':'))
+    pool = ThreadPoolExecutor(max_workers=8)
+    with ThreadPoolExecutor(8) as pool:
+        processing = {
+            pool.submit(
+                save_cjfile,
+                context,
+                path,
+                pand_id,
+                inferenced_floors,
+                reconstructed_with_party_walls_dir
+            ): pand_id
+            for pand_id, path in features_file_index.items()
+        }
+        for i, future in enumerate(as_completed(processing)):
+            try:
+                _ = future.result()
+            except Exception as e:
+                context.log.error(
+                    f"Error in chunk {i} raised an exception: {e}"
+                    )
 
     context.log.info(f"""Saved {len(features_file_index)} files
                      to {reconstructed_with_party_walls_dir}""")
