@@ -73,6 +73,37 @@ def cropped_input_and_config_nl(context, regular_grid_200m, tiles, index,
     return cropped_input_and_config_func(context, index, reconstruction_input,
                                          regular_grid_200m, tiles)
 
+@asset(
+    required_resource_keys={"db_connection"},
+    ins={
+        "reconstruction_input": AssetIn(key_prefix="input"),
+    },
+)
+def excluded_greenhouses(context,
+                         cropped_input_and_config_nl,
+                         reconstruction_input):
+    """Use the cropped input .las files to identify greenhouses.
+    """
+    objects_dir = cropped_input_and_config_nl.joinpath("objects")
+    if not objects_dir.exists():
+        raise Failure(
+            f"input features don't exists for {cropped_input_and_config_nl}")
+    
+    query = SQL("""SELECT identificatie from {reconstruction_input} 
+                   WHERE st_area(geometry) > 100""")   
+
+    res = context.resources.db_connection.get_query(query,
+                                                    query_params={"reconstruction_input": reconstruction_input})
+    for feature in objects_dir.iterdir():
+        if feature.is_dir():
+            if feature.name in res:
+                context.log.info(f"Feature {feature.name} has > 100m2 area and will be checked")
+                break
+
+    # new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "excluded_greenhouses")
+    
+    # return Output(new_table, metadata=metadata)
+
 
 @asset(
     partitions_def=PartitionDefinition3DBagReconstruction(
