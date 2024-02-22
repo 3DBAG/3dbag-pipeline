@@ -165,6 +165,7 @@ def metadata(context: AssetExecutionContext):
         rows = event_record.asset_materialization.metadata.get("Rows")
         process_step_list.append(
             {
+                "name": ".".join(asset_key.path),
                 "runId": event_record.run_id,
                 "featureCount": rows.value if rows is not None else None,
                 "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
