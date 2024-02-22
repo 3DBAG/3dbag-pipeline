@@ -173,6 +173,8 @@ def metadata(context: AssetExecutionContext):
             }
         )
 
+    [ps["dataVersion"] for ps in process_step_list if ps["name"] == "top10nl.extract_top10nl"]
+
     metadata = {
         "identificationInfo": {
             "citation": {
@@ -223,6 +225,8 @@ def metadata(context: AssetExecutionContext):
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
                             "dateType": "creation",
+                            "date": [ps["dataVersion"] for ps in process_step_list if
+                                     ps["name"] == "bag.extract_bag"][0],
                             "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
                         },
                     },
@@ -233,6 +237,8 @@ def metadata(context: AssetExecutionContext):
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
                             "dateType": "access",
+                            "date": [ps["dataVersion"] for ps in process_step_list if
+                                     ps["name"] == "top10nl.extract_top10nl"][0],
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
                         },
                     },
