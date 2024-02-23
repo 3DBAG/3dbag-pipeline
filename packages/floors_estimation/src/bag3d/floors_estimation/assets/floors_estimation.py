@@ -269,16 +269,13 @@ def predictions_table(context,
     return Output(predictions_table, metadata=metadata)
 
 
-def save_cjfile(context, 
-                path: Path,
+def save_cjfile(path: Path,
                 pand_id: str,
                 inferenced_floors: pd.DataFrame,
-                output_dir: Path,
-                index: int):
+                output_dir: Path):
     with path.open(encoding="utf-8", mode="r") as fo:
         feature_json = json.load(fo)
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
-    context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)})")
 
     if pand_id in inferenced_floors.index:
         num_floors = int(inferenced_floors.loc[pand_id, "floors_int"])
@@ -295,8 +292,6 @@ def save_cjfile(context,
         path.parents[0].name,
         path.name
     )
-    #output_path.parent.mkdir(parents=True, exist_ok=True)
-    context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)} path: {output_path})")
 
     with output_path.open("w") as fo:
         json.dump(feature_json, fo, separators=(',', ':'))
@@ -329,14 +324,12 @@ def save_cjfiles(context,
         processing = {
             pool.submit(
                 save_cjfile,
-                context,
                 path,
                 pand_id,
                 inferenced_floors,
-                reconstructed_with_floors_estimation_dir,
-                index
+                reconstructed_with_floors_estimation_dir
             ): pand_id
-            for index, (pand_id, path) in enumerate(features_file_index.items())
+            for pand_id, path in features_file_index.items()
         }
         for i, future in enumerate(as_completed(processing)):
             try:
