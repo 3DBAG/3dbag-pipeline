@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, Iterable
 from uuid import uuid1
+from copy import deepcopy
 
 from dagster import (AssetKey, Output, asset, AssetExecutionContext, DagsterEventType,
                      EventRecordsFilter)
@@ -97,7 +98,7 @@ def feature_evaluation(context):
         reconstructed_buildings.add(path.stem[:-5])
         with open(path, "r") as f:
             cityjson = json.load(f)
-            codata = get_info_per_cityobject(cityjson, cityobject_info,
+            codata = get_info_per_cityobject(cityjson, deepcopy(cityobject_info),
                                              attributes_to_include)
         cityobjects.update(codata)
     context.log.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
