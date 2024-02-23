@@ -278,7 +278,7 @@ def save_cjfile(context,
     with path.open(encoding="utf-8", mode="r") as fo:
         feature_json = json.load(fo)
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
-    context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)})")
+    #context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)})")
 
     if pand_id in inferenced_floors.index:
         num_floors = int(inferenced_floors.loc[pand_id, "floors_int"])
