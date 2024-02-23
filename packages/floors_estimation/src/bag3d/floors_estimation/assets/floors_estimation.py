@@ -137,8 +137,7 @@ def bag3d_features(context, features_file_index: dict[str, Path])\
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
     context.log.info(f"Processing {len(chunks)} chunks.")
 
-    pool = ThreadPoolExecutor(max_workers=8)
-    with ThreadPoolExecutor(8) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         processing = {
             pool.submit(
                 process_chunk,
@@ -274,11 +273,12 @@ def save_cjfile(context, path:
                 Path,
                 pand_id: str,
                 inferenced_floors: pd.DataFrame,
-                output_dir: Path):
+                output_dir: Path,
+                index: int):
     with path.open(encoding="utf-8", mode="r") as fo:
         feature_json = json.load(fo)
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
-    context.log.info(f"Processing {pand_id}")
+    context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)})")
 
     if pand_id in inferenced_floors.index:
         attributes["b3_bouwlagen"] = int(
@@ -313,12 +313,10 @@ def save_cjfiles(context,
         )
 
     context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
-    assert inferenced_floors.index.name == 'identificatie'
     context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
 
-    pool = ThreadPoolExecutor(max_workers=8)
-    with ThreadPoolExecutor(8) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         processing = {
             pool.submit(
                 save_cjfile,
@@ -326,16 +324,17 @@ def save_cjfiles(context,
                 path,
                 pand_id,
                 inferenced_floors,
-                reconstructed_with_party_walls_dir
+                reconstructed_with_party_walls_dir,
+                index
             ): pand_id
-            for pand_id, path in features_file_index.items()
+            for index, (pand_id, path) in enumerate(features_file_index.items())
         }
         for i, future in enumerate(as_completed(processing)):
             try:
                 _ = future.result()
             except Exception as e:
                 context.log.error(
-                    f"Error in chunk {i} raised an exception: {e}"
+                    f"Error in file {i} raised an exception: {e}"
                     )
 
     context.log.info(f"""Saved {len(features_file_index)} files
