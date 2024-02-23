@@ -2,60 +2,67 @@ import csv
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Iterable
 from uuid import uuid1
-from collections import namedtuple
 
 from dagster import (AssetKey, Output, asset, AssetExecutionContext, DagsterEventType,
                      EventRecordsFilter)
 from psycopg.sql import SQL
 
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
-from bag3d.common.utils.dagster import format_date, get_upstream_data_version
+from bag3d.common.utils.dagster import format_date
 from bag3d.common.resources.temp_until_configurableresource import (geoflow_version,
     roofer_version, tyler_version, tyler_db_version, gdal_version, pdal_version,
     lastools_version)
 from bag3d.common.utils.files import check_export_results
 
 
-def get_lods_per_cityobject(path: Path) -> Dict[str, Dict]:
-    """ Given the path to a jsonl file, it returns the information about
-        the available LoD level per city object. The output is a dictionary
-        with the cityobject ids as keys. The value is a dictionary with 
-        the available lod-levels, as follows:
-        {'NL.IMBAG.Pand.0614100000003764':{'1.2': 0, '1.3': 0, '2.2': 0}}
+def get_info_per_cityobject(cityjson: dict, cityobject_info: dict,
+                            attribute_names: Iterable) -> Dict[str, Dict]:
+    """ Given a CityJSON object as a dict, it returns information about
+        the available LoD level per city object and the requested attributes.
+        The output is a dictionary
+        with the cityobject ids as keys. The value is a dictionary with
+        the available lod-levels, and attributes as follows:
+        {'NL.IMBAG.Pand.0614100000003764':{'1.2': 0, '1.3': 0, '2.2': 0, 'has_geometry': False, '...': ...}}
     """
     all_objects = {}
-    with open(path) as f:
-        cityjson = json.load(f)
-        for object in cityjson['CityObjects']:
-            if 'parents' in cityjson['CityObjects'][object].keys():
-                lods = {'1.2': 0, '1.3': 0, '2.2': 0}
-                for geometry in cityjson['CityObjects'][object]['geometry']:
-                    lods[geometry['lod']] = 1
-                all_objects[object] = lods
+    for coid, co in cityjson['CityObjects'].items():
+        geometry = co.get("geometry")
+        if geometry and len(geometry) > 0:
+            cityobject_info["has_geometry"] = True
+            for g in geometry:
+                cityobject_info[g['lod']] = 1
+        co_attributes = co.get("attributes")
+        if co_attributes:
+            for aname in attribute_names:
+                cityobject_info[aname] = co_attributes.get(aname)
+        all_objects[coid] = cityobject_info
     return all_objects
 
 
 def features_to_csv(output_csv: Path,
-                    features: Dict[str, Dict[str, int]]) -> None:
-    """ Creates a csv with the city object id and three bool columns
-        indicating the presence of lod 1.2, 1.3 and 2.2
+                    features: Dict[str, Dict[str, int]],
+                    cityobject_info: dict, lods: list) -> None:
+    """ Creates a csv with the city object id and the city object information
     """
+    fieldnames = ['id',
+                  'identificatie',
+                  'lod_12',
+                  'lod_13',
+                  'lod_22']
+    fieldnames += [k for k in cityobject_info.keys() if k not in lods]
     with open(output_csv, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile,
-                                fieldnames=['id',
-                                            'identificatie',
-                                            'lod_12',
-                                            'lod_13',
-                                            'lod_22'])
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for feature, lods in features.items():
-            writer.writerow({'id': feature,
-                             'identificatie': feature[:30],
-                             'lod_12': lods['1.2'],
-                             'lod_13': lods['1.3'],
-                             'lod_22': lods['2.2']})
+        for feature, coinfo in features.items():
+            row = {'id': feature,
+                   'identificatie': feature[:30],
+                   'lod_12': coinfo['1.2'],
+                   'lod_13': coinfo['1.3'],
+                   'lod_22': coinfo['2.2']}
+            row.update({k:v for k,v in coinfo.items() if k not in lods})
+            writer.writerow(row)
 
 
 @asset(
@@ -66,18 +73,33 @@ def features_to_csv(output_csv: Path,
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
-    Check if all LoD-s are generated for the feature."""
+    Check if all LoD-s are generated for the feature and include some attributes from
+    the CityObjects"""
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir)
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection
 
+    lods = ("1.2", "1.3", "2.2")
+    attributes_to_include = ("b3_pw_selectie_reden", "b3_pw_bron",
+                             "b3_puntdichtheid_ahn3", "b3_puntdichtheid_ahn4",
+                             "b3_mutatie_ahn3_ahn4", "b3_nodata_fractie_ahn3",
+                             "b3_nodata_fractie_ahn4", "b3_nodata_radius_ahn3",
+                             "b3_nodata_radius_ahn4")
+    cityobject_info = {l: 0 for l in lods}
+    cityobject_info["has_geometry"] = False
+    cityobject_info.update(dict((a, None) for a in attributes_to_include))
+
     reconstructed_buildings = set()
     cityobjects = {}
     for path in Path(reconstructed_root_dir).rglob('*.city.jsonl'):
         reconstructed_buildings.add(path.stem[:-5])
-        cityobjects.update(get_lods_per_cityobject(path))
+        with open(path, "r") as f:
+            cityjson = json.load(f)
+            codata = get_info_per_cityobject(cityjson, cityobject_info,
+                                             attributes_to_include)
+        cityobjects.update(codata)
     context.log.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
     context.log.debug(f"len(cityobjects)={len(cityobjects)}")
 
@@ -93,9 +115,9 @@ def feature_evaluation(context):
     context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
     for feature in not_reconstructed:
-        cityobjects[feature] = {'1.2': 0, '1.3': 0, '2.2': 0}
+        cityobjects[feature] = cityobject_info
 
-    features_to_csv(output_csv, cityobjects)
+    features_to_csv(output_csv, cityobjects, cityobject_info, lods)
 
     return output_csv
 
@@ -107,7 +129,12 @@ def feature_evaluation(context):
     required_resource_keys={"file_store"}
 )
 def export_index(context):
-    """Index of the distribution tiles."""
+    """Index of the distribution tiles.
+
+    Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
+    a tile. If a tile does not have any featues in the quadtree, it is not included.
+    Output it written to export_index.csv.
+    """
     path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
