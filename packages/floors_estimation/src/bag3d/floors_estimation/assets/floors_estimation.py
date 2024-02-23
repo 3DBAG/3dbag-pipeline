@@ -269,8 +269,8 @@ def predictions_table(context,
     return Output(predictions_table, metadata=metadata)
 
 
-def save_cjfile(context, path:
-                Path,
+def save_cjfile(context, 
+                path: Path,
                 pand_id: str,
                 inferenced_floors: pd.DataFrame,
                 output_dir: Path,
@@ -281,9 +281,11 @@ def save_cjfile(context, path:
     context.log.info(f"Processing {pand_id} ({index}/{len(inferenced_floors)})")
 
     if pand_id in inferenced_floors.index:
-        attributes["b3_bouwlagen"] = int(
-            inferenced_floors.loc[pand_id,
-                                  "floors_int"])
+        num_floors = int(inferenced_floors.loc[pand_id, "floors_int"])
+        if num_floors <= 5:
+            attributes["b3_bouwlagen"] = num_floors
+        else:
+            attributes["b3_bouwlagen"] = None
     else:
         attributes["b3_bouwlagen"] = None
 
@@ -293,7 +295,7 @@ def save_cjfile(context, path:
         path.parents[0].name,
         path.name
     )
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    #output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with output_path.open("w") as fo:
         json.dump(feature_json, fo, separators=(',', ':'))
@@ -311,9 +313,15 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "floors_estimation_features"
         )
+    context.log.info(f"Creating directories for the new files.")
+    tile_paths = set([f.parent for f in list(features_file_index.values())])
+    for tile_path in tile_paths:
+        new_tile = reconstructed_with_party_walls_dir.joinpath(
+                    tile_path.parents[1].name,
+                    tile_path.parents[0].name,
+                    tile_path.name)
+        new_tile.parent.mkdir(parents=True, exist_ok=True)
 
-    context.log.debug(f"len(inferenced_floors) =  {len(inferenced_floors)}")
-    context.log.debug(inferenced_floors.head(5))
     context.log.info(f"Saving to {reconstructed_with_party_walls_dir}")
 
     with ThreadPoolExecutor(max_workers=8) as pool:
