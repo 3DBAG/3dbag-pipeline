@@ -13,7 +13,7 @@ def create_sequence_header_file(template_file, output_file, version_3dbag):
         header['metadata']['3dbagFullMetadataUrl'] = metadata_url
 
     with open(output_file, "w") as f:
-        json.dump(f, header)
+        json.dump(header, f)
         
 
 def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
