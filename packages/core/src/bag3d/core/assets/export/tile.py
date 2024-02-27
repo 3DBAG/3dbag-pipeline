@@ -8,9 +8,9 @@ from bag3d.common.resources.temp_until_configurableresource import tyler_version
 def create_sequence_header_file(template_file, output_file, version_3dbag):
     with open(template_file, 'r') as f:
         header = json.load(f)
-        header['metadata']['3dbagVersion'] = version_3dbag; # example version string: "v2023.10.08"
+        header['metadata']['version'] = version_3dbag; # example version string: "v2023.10.08"
         metadata_url = "https://data.3dbag.nl/metadata/{}/metadata.json".format(version_3dbag.replace(".",""))
-        header['metadata']['3dbagFullMetadataUrl'] = metadata_url
+        header['metadata']['fullMetadataUrl'] = metadata_url
 
     with open(output_file, "w") as f:
         json.dump(header, f)
