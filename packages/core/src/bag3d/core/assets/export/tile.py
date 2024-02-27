@@ -2,7 +2,7 @@ import json
 
 from dagster import AssetKey, asset
 
-from bag3d.common.utils.files import geoflow_crop_dir, bag3d_export_dir
+from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 from bag3d.common.resources.temp_until_configurableresource import tyler_version
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
@@ -27,7 +27,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     context.log.debug(f"{reconstructed_root_dir=}")
     version_3dbag = kwargs["version_3dbag"]
     # on gilfoyle
-    sequence_header_file = context.resources.file_store_fastssd.data_dir / "metadata.json"
+    sequence_header_file = bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
     create_sequence_header_file(
         "/home/bdukai/software/tyler/resources/geof/metadata.json",
         sequence_header_file,
