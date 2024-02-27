@@ -49,6 +49,7 @@ def features_to_csv(output_csv: Path,
     """
     fieldnames = ['id',
                   'identificatie',
+                  'lod_0',
                   'lod_12',
                   'lod_13',
                   'lod_22']
@@ -59,10 +60,11 @@ def features_to_csv(output_csv: Path,
         for feature, coinfo in features.items():
             row = {'id': feature,
                    'identificatie': feature[:30],
+                   'lod_0': coinfo['0'],
                    'lod_12': coinfo['1.2'],
                    'lod_13': coinfo['1.3'],
                    'lod_22': coinfo['2.2']}
-            row.update({k:v for k,v in coinfo.items() if k not in lods})
+            row.update({k: v for k, v in coinfo.items() if k not in lods})
             writer.writerow(row)
 
 
@@ -82,7 +84,7 @@ def feature_evaluation(context):
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection
 
-    lods = ("1.2", "1.3", "2.2")
+    lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = ("b3_pw_selectie_reden", "b3_pw_bron",
                              "b3_puntdichtheid_ahn3", "b3_puntdichtheid_ahn4",
                              "b3_mutatie_ahn3_ahn4", "b3_nodata_fractie_ahn3",
