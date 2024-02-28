@@ -81,7 +81,7 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
         # delete symlink here, because the uncompressed tar archive is also 'export',
         # so we have a bit of downtime here, but that's ok
         c.run(f"rm {deploy_dir}/export")
-        c.run(f"tar -C {deploy_dir} -xzvf {deploy_dir}/export.tar.gz")
+        c.run(f"tar --strip-components=1 -C {deploy_dir} -xzvf {deploy_dir}/export.tar.gz")
         c.run(f"mv {deploy_dir}/export {deploy_dir}/export_{version}")
         # symlink to latest version so the fileserver picks up the data
         c.run(f"ln -s {deploy_dir}/export_{version} {deploy_dir}/export")
