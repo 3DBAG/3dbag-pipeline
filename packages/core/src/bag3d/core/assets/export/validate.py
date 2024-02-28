@@ -304,15 +304,16 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
 
 def create_download_link(url_root: str, format: str, file_id: str, version: str) -> str:
     tile_id = file_id.replace("-", "/")
+    version_stripped = version.replace(".", "")
     if format == "cityjson":
         filename = f"{file_id}.city.json"
-        l = f"{url_root}/{format}/{version}/tiles/{tile_id}/{filename}"
+        l = f"{url_root}/{format}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "gpkg":
         filename = f"{file_id}.gpkg"
-        l = f"{url_root}/{format}/{version}/tiles/{tile_id}/{filename}"
+        l = f"{url_root}/{format}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "obj":
         filename = f"{file_id}-obj.zip"
-        l = f"{url_root}/{format}/{version}/tiles/{tile_id}/{filename}"
+        l = f"{url_root}/{format}/{version_stripped}/tiles/{tile_id}/{filename}"
     else:
         raise ValueError(f"only cityjson, obj, gpkg format is allowed, got {format}")
     return l
