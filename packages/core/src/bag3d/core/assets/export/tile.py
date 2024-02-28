@@ -2,9 +2,19 @@ import json
 
 from dagster import AssetKey, asset
 
-from bag3d.common.utils.files import geoflow_crop_dir, bag3d_export_dir
+from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 from bag3d.common.resources.temp_until_configurableresource import tyler_version
 
+def create_sequence_header_file(template_file, output_file, version_3dbag):
+    with open(template_file, 'r') as f:
+        header = json.load(f)
+        header['metadata']['version'] = version_3dbag; # example version string: "v2023.10.08"
+        metadata_url = "https://data.3dbag.nl/metadata/{}/metadata.json".format(version_3dbag.replace(".",""))
+        header['metadata']['fullMetadataUrl'] = metadata_url
+
+    with open(output_file, "w") as f:
+        json.dump(header, f)
+        
 
 def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     """Run tyler on the reconstruction output directory.
@@ -17,7 +27,12 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     context.log.debug(f"{reconstructed_root_dir=}")
     version_3dbag = kwargs["version_3dbag"]
     # on gilfoyle
-    metadata_file = "/home/bdukai/software/tyler/resources/geof/metadata.json"
+    sequence_header_file = bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
+    create_sequence_header_file(
+        "/home/bdukai/software/tyler/resources/geof/metadata.json",
+        sequence_header_file,
+        version_3dbag
+    )
     # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
     # num_threads = context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
     num_threads = 4
@@ -26,7 +41,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         "RUST_LOG=info",
         "TYLER_RESOURCES_DIR=/home/bdukai/software/tyler/resources",
         "{exe}",
-        "--metadata", str(metadata_file),
+        "--metadata", str(sequence_header_file),
         "--features", str(reconstructed_root_dir),
         "--output", str(output_dir),
         "--format", format.lower(),

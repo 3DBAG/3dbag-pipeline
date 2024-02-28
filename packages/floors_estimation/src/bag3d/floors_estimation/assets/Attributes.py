@@ -53,4 +53,3 @@ class Attributes:
     b3_opp_dak_schuin: float
     b3_opp_scheidingsmuur: float
     b3_opp_buitenmuur: float
-    b3_bag_bag_overlap: float

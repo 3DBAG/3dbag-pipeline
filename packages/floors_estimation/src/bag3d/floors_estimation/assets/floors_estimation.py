@@ -101,18 +101,11 @@ def features_file_index(context) -> dict[str, Path]:
         context.resources.file_store_fastssd.data_dir
     )
 
-    # TODO
     reconstructed_with_party_walls_dir = \
         reconstructed_root_dir.parent.joinpath(
             "party_walls_features"
         )
 
-    # TODO: remove this when the party_walls is run
-    if not reconstructed_with_party_walls_dir.exists():
-        context.log.warning("Files retrieved from old directory.")
-        reconstructed_with_party_walls_dir = Path(
-            "/data/work/rypeters/bag_v20231008/crop_reconstruct"
-        )
     res = dict(features_file_index_generator(
         reconstructed_with_party_walls_dir))
     context.log.info(f"Retrieved {len(res)} features.")
@@ -307,8 +300,9 @@ def save_cjfiles(context,
     )
     reconstructed_with_floors_estimation_dir = \
         reconstructed_root_dir.parent.joinpath(
-            "floors_estimation_features"
+            "bouwlagen_features"
         )
+    context.log.info(f"{features_file_index['NL.IMBAG.Pand.0246100000013782']}")
     context.log.info(f"Creating directories for the new files.")
     tile_paths = set([f.parent for f in list(features_file_index.values())])
     for tile_path in tile_paths:
