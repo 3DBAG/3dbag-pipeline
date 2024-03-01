@@ -199,8 +199,7 @@ def preprocessed_features(context,
         FROM {all_features}
         WHERE  construction_year > 1005
         AND construction_year < 2025
-        AND h_roof_max < 300
-        AND h_roof_min > 0;
+        AND h_roof_max < 300;
         """)
 
     query_params = {
