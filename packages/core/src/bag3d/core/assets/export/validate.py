@@ -4,6 +4,7 @@ import re
 import csv
 from concurrent.futures import ProcessPoolExecutor
 import ast
+from dataclasses import dataclass, field
 
 from dagster import asset, AssetIn, AssetKey
 
@@ -11,19 +12,82 @@ from bag3d.common.resources.executables import execute_shell_command_silent
 from bag3d.common.utils.files import bag3d_export_dir
 
 
+@dataclass
+class CityJSONFileResults:
+    zip_ok: bool = None
+    nr_building: int = None
+    nr_buildingpart: int = None
+    nr_invalid_building: int = None
+    nr_invalid_buildingpart_lod12: int = None
+    nr_invalid_buildingpart_lod13: int = None
+    nr_invalid_buildingpart_lod22: int = None
+    errors_lod12: list[int] = None
+    errors_lod13: list[int] = None
+    errors_lod22: list[int] = None
+    nr_mismatch_errors_lod12: int = None
+    nr_mismatch_errors_lod13: int = None
+    nr_mismatch_errors_lod22: int = None
+    lod: list[str] = None
+    schema_valid: bool = None
+    schema_warnings: bool = None
+    download: str = None
+    sha256: str = None
+
+    def asdict(self) -> dict:
+        return {f"cj_{k}": v for k, v in self.__dict__.items()}
+
+
+@dataclass
+class OBJFileResults:
+    zip_ok: bool = None
+    nr_building: int = None
+    nr_buildingpart: int = None
+    nr_invalid_building: int = None
+    nr_invalid_buildingpart_lod12: int = None
+    nr_invalid_buildingpart_lod13: int = None
+    nr_invalid_buildingpart_lod22: int = None
+    errors_lod12: list[int] = None
+    errors_lod13: list[int] = None
+    errors_lod22: list[int] = None
+    download: str = None
+    sha256: str = None
+
+    def asdict(self) -> dict:
+        return {f"obj_{k}": v for k, v in self.__dict__.items()}
+
+
+@dataclass
+class GPKGFileResults:
+    zip_ok: bool = None
+    file_ok: bool = None
+    nr_building: int = None
+    nr_buildingpart: int = None
+    download: str = None
+    sha256: str = None
+
+    def asdict(self) -> dict:
+        return {f"gpkg_{k}": v for k, v in self.__dict__.items()}
+
+
+@dataclass
+class TileResults:
+    tile_id: str = None
+    cityjson: CityJSONFileResults = field(default_factory=CityJSONFileResults)
+    obj: OBJFileResults = field(default_factory=OBJFileResults)
+    gpkg: GPKGFileResults = field(default_factory=GPKGFileResults)
+
+    def fieldnames(self) -> list[str]:
+        return ["tile_id", *self.cityjson.asdict().keys(), *self.obj.asdict().keys(),
+                *self.gpkg.asdict().keys()]
+
+    def asdict(self) -> dict:
+        return {"tile_id": self.tile_id, **self.cityjson.asdict(), **self.obj.asdict(),
+                **self.gpkg.asdict()}
+
+
 def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
-             planarity_d2p_tol: float, url_root: str, version: str) -> dict:
-    results = {
-        "cj_zip_ok": None,
-        "cj_nr_features": None,
-        "cj_nr_invalid": None,
-        "cj_all_errors": None,
-        "cj_lod": None,
-        "cj_schema_valid": None,
-        "cj_schema_warnings": None,
-        "cj_download": None,
-        "cj_sha256": None
-    }
+             planarity_d2p_tol: float, url_root: str, version: str) -> CityJSONFileResults:
+    results = CityJSONFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
     inputfile.unlink(missing_ok=True)  # in case a prev run failed
@@ -35,7 +99,7 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
-        results["cj_zip_ok"] = True if len(output) == 0 else False
+        results.zip_ok = True if len(output) == 0 else False
     except Exception:
         inputfile.unlink(missing_ok=True)
         return results
@@ -59,8 +123,8 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
         sha256 = output.split(" ")[0]
-        results["cj_sha256"] = sha256
-        results["cj_download"] = create_download_link(
+        results.sha256 = sha256
+        results.download = create_download_link(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
         )
     except Exception:
@@ -75,18 +139,27 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
         try:
-            cj_nr_features = int(re.search(r"(?<=BuildingPart \()\d+", output).group(0))
+            results.nr_building = int(re.search(r"(?<=Building \()\d+", output).group(0))
         except Exception:
-            cj_nr_features = -1
+            results.nr_building = -1
         try:
-            cj_lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
+            results.nr_buildingpart = int(re.search(r"(?<=BuildingPart \()\d+", output).group(0))
         except Exception:
-            cj_lod = ""
-        results["cj_nr_features"] = cj_nr_features
-        results["cj_lod"] = cj_lod
+            results.nr_buildingpart = -1
+        try:
+            results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
+        except Exception:
+            results.lod = ""
     except Exception:
         inputfile.unlink(missing_ok=True)
         return results
+
+    # Read the whole CityJSON again, so that we can match the val3dity errors to the
+    # errors in the b3_val3dity attributes. It would be better to combine this with the
+    # object and lod count above.
+    with inputfile.open("r") as fo:
+        cm = json.load(fo)
+        cityobjects = cm["CityObjects"]
 
     # val3dity
     reportfile = dirpath / "report.json"
@@ -99,10 +172,52 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
         with reportfile.open("r") as fo:
             report = json.load(fo)
-        cj_nr_invalid = report["features_overview"][0]["total"] - \
-                        report["features_overview"][0]["valid"]
-        results["cj_nr_invalid"] = cj_nr_invalid
-        results["cj_all_errors"] = report["all_errors"]
+            nr_invalid_building = 0
+            nr_invalid_lod12 = 0
+            nr_invalid_lod13 = 0
+            nr_invalid_lod22 = 0
+            errors_lod12 = set()
+            errors_lod13 = set()
+            errors_lod22 = set()
+            nr_mismatch_errors_lod12 = 0
+            nr_mismatch_errors_lod13 = 0
+            nr_mismatch_errors_lod22 = 0
+            lod12_idx = 1
+            lod13_idx = 2
+            lod22_idx = 3
+            for feature in report["features"]:
+                if feature["validity"] is False:
+                    nr_invalid_building += 1
+                nr_invalid_lod12 += 0 if feature["primitives"][lod12_idx][
+                    "validity"] else 1
+                nr_invalid_lod13 += 0 if feature["primitives"][lod13_idx][
+                    "validity"] else 1
+                nr_invalid_lod22 += 0 if feature["primitives"][lod22_idx][
+                    "validity"] else 1
+                e12 = set(e["code"] for e in feature["primitives"][lod12_idx]["errors"])
+                e13 = set(e["code"] for e in feature["primitives"][lod13_idx]["errors"])
+                e22 = set(e["code"] for e in feature["primitives"][lod22_idx]["errors"])
+                errors_lod12.update(e12)
+                errors_lod13.update(e13)
+                errors_lod22.update(e22)
+                cj_co = cityobjects.get(feature["id"])
+                if cj_co:
+                    if e12 != set(eval(cj_co["attributes"]["b3_val3dity_lod12"])):
+                        nr_mismatch_errors_lod12 += 1
+                    if e13 != set(eval(cj_co["attributes"]["b3_val3dity_lod13"])):
+                        nr_mismatch_errors_lod13 += 1
+                    if e22 != set(eval(cj_co["attributes"]["b3_val3dity_lod22"])):
+                        nr_mismatch_errors_lod22 += 1
+            results.nr_invalid_building = nr_invalid_building
+            results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
+            results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
+            results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
+            results.errors_lod12 = list(errors_lod12)
+            results.errors_lod13 = list(errors_lod13)
+            results.errors_lod22 = list(errors_lod22)
+            results.nr_mismatch_errors_lod12 = nr_mismatch_errors_lod12
+            results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
+            results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
         reportfile.unlink()
         logfile.unlink()
     except Exception:
@@ -118,8 +233,8 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
                                                           cwd=str(dirpath))
         pos = output.find("SUMMARY")
         summary = output[pos:]
-        results["cj_schema_valid"] = True if summary.find("valid") > 0 else False
-        results["cj_schema_warnings"] = True if summary.find("warnings") > 0 else False
+        results.schema_valid = True if summary.find("valid") > 0 else False
+        results.schema_warnings = True if summary.find("warnings") > 0 else False
     except Exception:
         inputfile.unlink(missing_ok=True)
         return results
@@ -130,15 +245,8 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
 
 
 def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: float,
-        url_root: str, version: str) -> dict:
-    results = {
-        "obj_zip_ok": None,
-        "obj_nr_features": -1,
-        "obj_nr_invalid": None,
-        "obj_all_errors": None,
-        "obj_download": None,
-        "obj_sha256": None
-    }
+        url_root: str, version: str) -> OBJFileResults:
+    results = OBJFileResults()
     inputzipfile = dirpath.joinpath(f"{file_id}-obj.zip")
     inputfiles = [
         dirpath / f"{file_id}-LoD12-3D.obj", dirpath / f"{file_id}-LoD12-3D.obj.mtl",
@@ -155,7 +263,7 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
-        results["obj_zip_ok"] = True if output.count("OK") == 6 else False
+        results.zip_ok = True if output.count("OK") == 6 else False
     except Exception:
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
@@ -169,8 +277,8 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
         sha256 = output.split(" ")[0]
-        results["obj_sha256"] = sha256
-        results["obj_download"] = create_download_link(
+        results.sha256 = sha256
+        results.download = create_download_link(
             url_root=url_root, format="obj", file_id=file_id, version=version
         )
     except Exception:
@@ -192,11 +300,33 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
     # val3dity
     reportfile = dirpath / "report.json"
     logfile = dirpath / "val3dity.log"
-    nf = []
-    ninvalid = []
-    ae = []
+    nr_building_all = []
+    nr_buildingpart_all = []
     for inputfile in inputfiles:
         if inputfile.suffix == ".obj":
+            try:
+                building_ids = set()
+                buildingpart_ids_temp_until_obj_fix = []
+                buildingpart_ids = set()
+                with inputfile.open("r") as obj_file:
+                    for line in obj_file:
+                        bid_match = re.search(r"(?<=o )NL\.IMBAG\.Pand\.\d{16}", line)
+                        # For now, the OBJ object IDs do not contain the building part suffix, which
+                        # should be fixed. Once they contain the suffix, the same set-setup needs to be
+                        # used like with building_ids.
+                        bpid_match = re.search(r"(?<=o )NL\.IMBAG\.Pand\.\d{16}-\d+",
+                                               line)
+                        if bid_match:
+                            building_ids.add(bid_match.group(0))
+                            buildingpart_ids_temp_until_obj_fix.append(
+                                bid_match)  # this can be removed after the OBJ fix
+                        elif bpid_match:
+                            buildingpart_ids.add(bpid_match.group(0))
+                nr_building_all.append(len(building_ids))
+                nr_buildingpart_all.append(len(buildingpart_ids_temp_until_obj_fix))
+            except Exception:
+                inputfile.unlink(missing_ok=True)
+                return results
             try:
                 cmd = " ".join(
                     ["/opt/bin/val3dity", "--planarity_n_tol", str(planarity_n_tol),
@@ -205,10 +335,39 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
                 execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
-                nf.append(report["primitives_overview"][0]["total"])
-                ninvalid.append(report["primitives_overview"][0]["total"] - \
-                                report["primitives_overview"][0]["valid"])
-                ae.extend(report["all_errors"])
+
+                current_lod = re.search(r"(?<=LoD)\d{2}", inputfile.name).group(0)
+                invalid_building_ids = set()
+                nr_invalid_lod12 = 0
+                nr_invalid_lod13 = 0
+                nr_invalid_lod22 = 0
+                errors_lod12 = set()
+                errors_lod13 = set()
+                errors_lod22 = set()
+                for feature in report["features"]:
+                    for primitive in feature["primitives"]:
+                        if primitive["validity"] is False:
+                            building_id = primitive["id"][:31]
+                            invalid_building_ids.add(building_id)
+                            if current_lod == "12":
+                                nr_invalid_lod12 += 1
+                                for e in primitive["errors"]:
+                                    errors_lod12.add(e["code"])
+                            elif current_lod == "13":
+                                nr_invalid_lod13 += 1
+                                for e in primitive["errors"]:
+                                    errors_lod13.add(e["code"])
+                            elif current_lod == "22":
+                                nr_invalid_lod22 += 1
+                                for e in primitive["errors"]:
+                                    errors_lod22.add(e["code"])
+                results.nr_invalid_building = len(invalid_building_ids)
+                results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
+                results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
+                results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
+                results.errors_lod12 = list(errors_lod12)
+                results.errors_lod13 = list(errors_lod13)
+                results.errors_lod22 = list(errors_lod22)
                 reportfile.unlink()
                 logfile.unlink()
             except Exception:
@@ -216,16 +375,13 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
                 logfile.unlink(missing_ok=True)
                 inputfile.unlink(missing_ok=True)
                 return results
-    results["obj_nr_features"] = nf[0] if len(set(nf)) == 1 else -1
-    results["obj_nr_invalid"] = ninvalid
-    results["obj_all_errors"] = list(set(ae))
 
     for inputfile in inputfiles:
         inputfile.unlink()
     return results
 
 
-def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
+def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileResults:
     results = {
         "gpkg_zip_ok": None,
         "gpkg_ok": None,
@@ -233,6 +389,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         "gpkg_sha256": None,
         "gpkg_download": None
     }
+    results = GPKGFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
     inputfile = dirpath.joinpath(file_id).with_suffix(".gpkg")
     propertiesfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz.properties")
@@ -244,7 +401,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
-        results["gpkg_zip_ok"] = True if len(output) == 0 else False
+        results.zip_ok = True if len(output) == 0 else False
     except Exception:
         return results
 
@@ -267,8 +424,8 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
         sha256 = output.split(" ")[0]
-        results["gpkg_sha256"] = sha256
-        results["gpkg_download"] = create_download_link(
+        results.sha256 = sha256
+        results.download = create_download_link(
             url_root=url_root, format="gpkg", file_id=file_id, version=version
         )
     except Exception:
@@ -277,28 +434,48 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> dict:
         inputfile.unlink(missing_ok=True)
 
     # ogrinfo
-    nf = []
+    nr_building_all = []
+    nr_buildingpart_all = []
     for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
         try:
+            sql_buildingpart_count = f"-sql 'select count(identificatie) from {layer}'"
+            sql_building_count = f"-sql 'select count(distinct identificatie) from {layer}'"
+
             cmd = " ".join([
                 "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                 "/opt/bin/ogrinfo",
-                f"/vsigzip/{inputzipfile}", layer
+                sql_buildingpart_count,
+                f"/vsigzip/{inputzipfile}"
             ])
             output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                               cwd=str(dirpath))
-            results[
-                "gpkg_ok"] = False if returncode != 0 or "error" in output.lower() else True
+            results.file_ok = False if returncode != 0 or "error" in output.lower() else True
+            re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
             try:
-                n = int(re.search(r"(?<=Feature Count: )\d+", output).group(0))
+                n = int(re.search(re_buildingpart_count, output).group(0))
             except Exception:
                 n = None
-            nf.append(n)
+            nr_buildingpart_all.append(n)
+
+            cmd = " ".join([
+                "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
+                "/opt/bin/ogrinfo",
+                sql_building_count,
+                f"/vsigzip/{inputzipfile}"
+            ])
+            output, returncode = execute_shell_command_silent(shell_command=cmd,
+                                                              cwd=str(dirpath))
+            re_building_count = r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
+            try:
+                n = int(re.search(re_building_count, output).group(0))
+            except Exception:
+                n = None
+            nr_building_all.append(n)
         except Exception:
             return results
-    results["gpkg_nr_features"] = nf[0] if len(set(nf)) == 1 else -1
+    results.nr_building = min(nr_building_all)
+    results.nr_buildingpart = min(nr_buildingpart_all)
     propertiesfile.unlink(missing_ok=True)
-
     return results
 
 
@@ -319,7 +496,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     return l
 
 
-def check_formats(input) -> dict:
+def check_formats(input) -> TileResults:
     dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
@@ -331,7 +508,7 @@ def check_formats(input) -> dict:
                       planarity_d2p_tol=planarity_d2p_tol,
                       url_root=url_root, version=version)
     gpkg_results = gpkg(dirpath, file_id, url_root=url_root, version=version)
-    return {"tile_id": tile_id, **cj_results, **obj_results, **gpkg_results}
+    return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
 
 @asset(
@@ -375,19 +552,13 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
     fo = output_path.open("w")
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC,
-        fieldnames=["tile_id", "cj_zip_ok", "cj_nr_features", "cj_nr_invalid",
-                    "cj_all_errors", "cj_schema_valid", "cj_schema_warnings", "cj_lod",
-                    "cj_download", "cj_sha256",
-                    "obj_zip_ok", "obj_nr_features", "obj_nr_invalid", "obj_all_errors",
-                    "obj_download", "obj_sha256",
-                    "gpkg_zip_ok", "gpkg_ok", "gpkg_nr_features",
-                    "gpkg_download", "gpkg_sha256", ])
+        fieldnames=TileResults().fieldnames())
     csvwriter.writeheader()
 
     try:
         with ProcessPoolExecutor() as executor:
             for result in executor.map(check_formats, tileids):
-                csvwriter.writerow(result)
+                csvwriter.writerow(result.asdict())
     finally:
         fo.close()
 
