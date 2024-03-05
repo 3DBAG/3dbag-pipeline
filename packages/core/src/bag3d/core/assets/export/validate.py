@@ -483,10 +483,10 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     tile_id = file_id.replace("-", "/")
     version_stripped = version.replace(".", "")
     if format == "cityjson":
-        filename = f"{file_id}.city.json"
+        filename = f"{file_id}.city.json.gz"
         l = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "gpkg":
-        filename = f"{file_id}.gpkg"
+        filename = f"{file_id}.gpkg.gz"
         l = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "obj":
         filename = f"{file_id}-obj.zip"
