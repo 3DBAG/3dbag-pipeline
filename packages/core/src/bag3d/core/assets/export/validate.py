@@ -531,9 +531,11 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
     - check if the archive is valid
     - compute the SHA-256 of the archive
     - add the download links per format
-    - number of features per format
+    - number of buildings and building parts per format
     - run val3dity on the CityJSON and OBJ formats and record the number of invalids
-        and the error codes
+        and the error codes per LoD
+    - compare the CityJSON validity attribute error codes to those computed from the
+        file directly
     - CityJSON schema validation
     - CityJSON LoD-s present in the file
     """
