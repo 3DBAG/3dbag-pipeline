@@ -453,9 +453,9 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
             try:
                 n = int(re.search(re_buildingpart_count, output).group(0))
+                nr_buildingpart_all.append(n)
             except Exception:
                 n = None
-            nr_buildingpart_all.append(n)
 
             cmd = " ".join([
                 "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
@@ -468,9 +468,9 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             re_building_count = r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             try:
                 n = int(re.search(re_building_count, output).group(0))
+                nr_building_all.append(n)
             except Exception:
                 n = None
-            nr_building_all.append(n)
         except Exception:
             return results
     results.nr_building = min(nr_building_all)
