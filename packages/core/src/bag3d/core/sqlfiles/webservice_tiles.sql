@@ -6,89 +6,190 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                              , CASE
                                                    WHEN cj_zip_ok ISNULL OR length(cj_zip_ok) = 0
                                                        THEN NULL::boolean
-                                                   ELSE cj_zip_ok::boolean END                                   AS cj_zip_ok
-                                             , cj_nr_features::int
-                                             , cj_nr_invalid::int
+                                                   ELSE cj_zip_ok::boolean END                     AS cj_zip_ok
                                              , CASE
-                                                   WHEN cj_all_errors ISNULL OR length(cj_all_errors) = 0
+                                                   WHEN cj_nr_building ISNULL OR length(cj_nr_building) = 0
+                                                       THEN NULL::int
+                                                   ELSE cj_nr_building::int END                    AS cj_nr_building
+                                             , CASE
+                                                   WHEN cj_nr_buildingpart ISNULL OR
+                                                        length(cj_nr_buildingpart) = 0
+                                                       THEN NULL::int
+                                                   ELSE cj_nr_buildingpart::int END                AS cj_nr_buildingpart
+                                             , CASE
+                                                   WHEN cj_nr_invalid_building ISNULL OR
+                                                        length(cj_nr_invalid_building) =
+                                                        0 THEN NULL::int
+                                                   ELSE cj_nr_invalid_building::int END            AS cj_nr_invalid_building
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_invalid_buildingpart_lod12 ISNULL OR
+                                                       length(cj_nr_invalid_buildingpart_lod12) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_invalid_buildingpart_lod12::int END  AS cj_nr_invalid_buildingpart_lod12
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_invalid_buildingpart_lod13 ISNULL OR
+                                                       length(cj_nr_invalid_buildingpart_lod13) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_invalid_buildingpart_lod13::int END  AS cj_nr_invalid_buildingpart_lod13
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_invalid_buildingpart_lod22 ISNULL OR
+                                                       length(cj_nr_invalid_buildingpart_lod22) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_invalid_buildingpart_lod22::int END  AS cj_nr_invalid_buildingpart_lod22
+                                             , CASE
+                                                   WHEN cj_errors_lod12 ISNULL OR
+                                                        length(cj_errors_lod12) = 0
                                                        THEN NULL::int[]
                                                    ELSE string_to_array(replace(
-                                                           replace(cj_all_errors, '[', ''),
-                                                           ']',
-                                                           ''), ',')::int[] END                                       AS cj_all_errors
+                                                                                replace(cj_errors_lod12, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS cj_errors_lod12
+                                             , CASE
+                                                   WHEN cj_errors_lod13 ISNULL OR
+                                                        length(cj_errors_lod13) = 0
+                                                       THEN NULL::int[]
+                                                   ELSE string_to_array(replace(
+                                                                                replace(cj_errors_lod13, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS cj_errors_lod13
+                                             , CASE
+                                                   WHEN cj_errors_lod22 ISNULL OR
+                                                        length(cj_errors_lod22) = 0
+                                                       THEN NULL::int[]
+                                                   ELSE string_to_array(replace(
+                                                                                replace(cj_errors_lod22, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS cj_errors_lod22
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_mismatch_errors_lod12 ISNULL OR
+                                                       length(cj_nr_mismatch_errors_lod12) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_mismatch_errors_lod12::int END       AS cj_nr_mismatch_errors_lod12
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_mismatch_errors_lod13 ISNULL OR
+                                                       length(cj_nr_mismatch_errors_lod13) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_mismatch_errors_lod13::int END       AS cj_nr_mismatch_errors_lod13
+                                             , CASE
+                                                   WHEN
+                                                       cj_nr_mismatch_errors_lod22 ISNULL OR
+                                                       length(cj_nr_mismatch_errors_lod22) =
+                                                       0 THEN NULL::int
+                                                   ELSE cj_nr_mismatch_errors_lod22::int END       AS cj_nr_mismatch_errors_lod22
                                              , CASE
                                                    WHEN cj_schema_valid ISNULL OR
                                                         length(cj_schema_valid) = 0
                                                        THEN NULL::boolean
-                                                   ELSE cj_schema_valid::boolean END                             AS cj_schema_valid
+                                                   ELSE cj_schema_valid::boolean END               AS cj_schema_valid
                                              , CASE
                                                    WHEN cj_schema_warnings ISNULL OR
                                                         length(cj_schema_warnings) = 0
                                                        THEN NULL::boolean
-                                                   ELSE cj_schema_warnings::boolean END                          AS cj_schema_warnings
+                                                   ELSE cj_schema_warnings::boolean END            AS cj_schema_warnings
                                              , CASE
                                                    WHEN cj_lod ISNULL OR length(cj_lod) = 0
                                                        THEN NULL::text[]
-                                                   ELSE string_to_array(replace(
-                                                           replace(cj_lod, '[', ''),
-                                                           ']',
-                                                           ''), ',')::text[] END AS cj_lod
+                                                   ELSE string_to_array(
+                                                           replace(replace(cj_lod, '[', ''), ']', ''),
+                                                           ',')::text[] END                        AS cj_lod
                                              , cj_download::text
                                              , cj_sha256::text
                                              , CASE
                                                    WHEN obj_zip_ok ISNULL OR length(obj_zip_ok) = 0
                                                        THEN NULL::boolean
-                                                   ELSE obj_zip_ok::boolean END                                  AS obj_zip_ok
-                                             , obj_nr_features::int
+                                                   ELSE obj_zip_ok::boolean END                    AS obj_zip_ok
                                              , CASE
-                                                   WHEN obj_nr_invalid ISNULL OR length(obj_nr_invalid) = 0
+                                                   WHEN obj_nr_building ISNULL OR
+                                                        length(obj_nr_building) = 0
+                                                       THEN NULL::int
+                                                   ELSE obj_nr_building::int END                   AS obj_nr_building
+                                             , CASE
+                                                   WHEN obj_nr_buildingpart ISNULL OR
+                                                        length(obj_nr_buildingpart) = 0
+                                                       THEN NULL::int
+                                                   ELSE obj_nr_buildingpart::int END               AS obj_nr_buildingpart
+                                             , CASE
+                                                   WHEN
+                                                       obj_nr_invalid_building ISNULL OR
+                                                       length(obj_nr_invalid_building) =
+                                                       0 THEN NULL::int
+                                                   ELSE obj_nr_invalid_building::int END           AS obj_nr_invalid_building
+                                             , CASE
+                                                   WHEN
+                                                       obj_nr_invalid_buildingpart_lod12 ISNULL OR
+                                                       length(obj_nr_invalid_buildingpart_lod12) =
+                                                       0 THEN NULL::int
+                                                   ELSE obj_nr_invalid_buildingpart_lod12::int END AS obj_nr_invalid_buildingpart_lod12
+                                             , CASE
+                                                   WHEN
+                                                       obj_nr_invalid_buildingpart_lod13 ISNULL OR
+                                                       length(obj_nr_invalid_buildingpart_lod13) =
+                                                       0 THEN NULL::int
+                                                   ELSE obj_nr_invalid_buildingpart_lod13::int END AS obj_nr_invalid_buildingpart_lod13
+                                             , CASE
+                                                   WHEN
+                                                       obj_nr_invalid_buildingpart_lod22 ISNULL OR
+                                                       length(obj_nr_invalid_buildingpart_lod22) =
+                                                       0 THEN NULL::int
+                                                   ELSE obj_nr_invalid_buildingpart_lod22::int END AS obj_nr_invalid_buildingpart_lod22
+                                             , CASE
+                                                   WHEN obj_errors_lod12 ISNULL OR
+                                                        length(obj_errors_lod12) = 0
                                                        THEN NULL::int[]
                                                    ELSE string_to_array(replace(
-                                                           replace(obj_nr_invalid, '[', ''),
-                                                           ']',
-                                                           ''), ',')::int[] END                                       AS obj_nr_invalid
+                                                                                replace(obj_errors_lod12, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS obj_errors_lod12
                                              , CASE
-                                                   WHEN obj_all_errors ISNULL OR length(obj_all_errors) = 0
+                                                   WHEN obj_errors_lod13 ISNULL OR
+                                                        length(obj_errors_lod13) = 0
                                                        THEN NULL::int[]
                                                    ELSE string_to_array(replace(
-                                                           replace(obj_all_errors, '[', ''),
-                                                           ']',
-                                                           ''), ',')::int[] END                                       AS obj_all_errors
+                                                                                replace(obj_errors_lod13, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS obj_errors_lod13
+                                             , CASE
+                                                   WHEN obj_errors_lod22 ISNULL OR
+                                                        length(obj_errors_lod22) = 0
+                                                       THEN NULL::int[]
+                                                   ELSE string_to_array(replace(
+                                                                                replace(obj_errors_lod22, '[', ''),
+                                                                                ']',
+                                                                                ''),
+                                                                        ',')::int[] END            AS obj_errors_lod22
                                              , obj_download::text
                                              , obj_sha256::text
                                              , CASE
                                                    WHEN gpkg_zip_ok ISNULL OR length(gpkg_zip_ok) = 0
                                                        THEN NULL::boolean
-                                                   ELSE gpkg_zip_ok::boolean END                                 AS gpkg_zip_ok
+                                                   ELSE gpkg_zip_ok::boolean END                   AS gpkg_zip_ok
                                              , CASE
-                                                   WHEN gpkg_ok ISNULL OR length(gpkg_ok) = 0
+                                                   WHEN gpkg_file_ok ISNULL OR length(gpkg_file_ok) = 0
                                                        THEN NULL::boolean
-                                                   ELSE gpkg_ok::boolean END                                     AS gpkg_ok
-                                             , gpkg_nr_features::int
+                                                   ELSE gpkg_file_ok::boolean END                  AS gpkg_file_ok
+                                             , CASE
+                                                   WHEN gpkg_nr_building ISNULL OR
+                                                        length(gpkg_nr_building) = 0
+                                                       THEN NULL::int
+                                                   ELSE gpkg_nr_building::int END                  AS gpkg_nr_building
+                                             , CASE
+                                                   WHEN gpkg_nr_buildingpart ISNULL OR
+                                                        length(gpkg_nr_buildingpart) = 0
+                                                       THEN NULL::int
+                                                   ELSE gpkg_nr_buildingpart::int END              AS gpkg_nr_buildingpart
                                              , gpkg_download::text
                                              , gpkg_sha256::text
                                         FROM ${validate_compressed_files})
-SELECT ti.tile_id
-     , af.cj_zip_ok
-     , af.cj_nr_features
-     , af.cj_nr_invalid
-     , af.cj_all_errors
-     , af.cj_schema_valid
-     , af.cj_schema_warnings
-     , af.cj_lod
-     , af.cj_download
-     , af.cj_sha256
-     , af.obj_zip_ok
-     , af.obj_nr_features
-     , af.obj_nr_invalid
-     , af.obj_all_errors
-     , af.obj_download
-     , af.obj_sha256
-     , af.gpkg_zip_ok
-     , af.gpkg_ok
-     , af.gpkg_nr_features
-     , af.gpkg_download
-     , af.gpkg_sha256
-     , ti.wkt     AS geometry
+SELECT af.*, ti.wkt AS geometry
 FROM ${export_index} ti
          JOIN validate_compressed_files_cast af USING (tile_id);
