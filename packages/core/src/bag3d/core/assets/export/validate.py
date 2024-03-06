@@ -118,7 +118,7 @@ def cityjson(dirpath: Path, file_id: str, planarity_n_tol: float,
     # download link and sha256
     try:
         cmd = " ".join([
-            "sha256sum", str(inputfile)
+            "sha256sum", str(inputzipfile)
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
@@ -419,7 +419,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
     # download link and sha256
     try:
         cmd = " ".join([
-            "sha256sum", str(inputfile)
+            "sha256sum", str(inputzipfile)
         ])
         output, returncode = execute_shell_command_silent(shell_command=cmd,
                                                           cwd=str(dirpath))
@@ -544,6 +544,7 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
+        context.log.debug(f"{version=}")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         h = next(csvreader)
