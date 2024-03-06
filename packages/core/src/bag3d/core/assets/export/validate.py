@@ -14,6 +14,35 @@ from bag3d.common.utils.files import bag3d_export_dir
 
 @dataclass
 class CityJSONFileResults:
+    """Results of the compressed CityJSON file validation for a single tile.
+
+    Attributes:
+        zip_ok (bool): Whether the file is successfully compressed.
+        nr_building (int): Number of building features.
+        nr_buildingpart (int): Number of building part features.
+        nr_invalid_building (int): Number of invalid building features. If any of the
+            building part geometries is invalid, the building feature is invalid.
+        nr_invalid_buildingpart_lod12 (int): Number of invalid LoD1.2 geometries.
+        nr_invalid_buildingpart_lod13 (int): Number of invalid LoD1.3 geometries.
+        nr_invalid_buildingpart_lod22 (int): Number of invalid LoD2.2 geometries.
+        errors_lod12 (list[int]): List of val3dity error codes of the LoD1.2 geometries.
+        errors_lod13 (list[int]): List of val3dity error codes of the LoD1.3 geometries.
+        errors_lod22 (list[int]): List of val3dity error codes of the LoD2.2 geometries.
+        nr_mismatch_errors_lod12 (int): Number of LoD1.2 building parts that have a
+            different set of val3dtiy error codes compared to the `b3_val3dity_lod12`
+            attribute.
+        nr_mismatch_errors_lod13 (int): Number of LoD1.3 building parts that have a
+            different set of val3dtiy error codes compared to the `b3_val3dity_lod13`
+            attribute.
+        nr_mismatch_errors_lod22 (int): Number of LoD2.2 building parts that have a
+            different set of val3dtiy error codes compared to the `b3_val3dity_lod22`
+            attribute.
+        lod (list[str]): List of LoDs in the CityJSON file.
+        schema_valid (bool): Whether or not the schema of the CityJSON is valid.
+        schema_warnings (bool): Whether or not the schema of the CityJSON has warnings.
+        download (str): The URL of the file download.
+        sha256 (str): The SHA256 of the zipfile.
+    """
     zip_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
@@ -39,6 +68,23 @@ class CityJSONFileResults:
 
 @dataclass
 class OBJFileResults:
+    """Results of the compressed OBJ files validation for a single tile.
+
+    Attributes:
+        zip_ok (bool): Whether the file is successfully compressed.
+        nr_building (int): Number of building features.
+        nr_buildingpart (int): Number of building part features.
+        nr_invalid_building (int): Number of invalid building features. If any of the
+            building part geometries is invalid, the building feature is invalid.
+        nr_invalid_buildingpart_lod12 (int): Number of invalid LoD1.2 geometries.
+        nr_invalid_buildingpart_lod13 (int): Number of invalid LoD1.3 geometries.
+        nr_invalid_buildingpart_lod22 (int): Number of invalid LoD2.2 geometries.
+        errors_lod12 (list[int]): List of val3dity error codes of the LoD1.2 geometries.
+        errors_lod13 (list[int]): List of val3dity error codes of the LoD1.3 geometries.
+        errors_lod22 (list[int]): List of val3dity error codes of the LoD2.2 geometries.
+        download (str): The URL of the file download.
+        sha256 (str): The SHA256 of the zipfile.
+    """
     zip_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
@@ -58,6 +104,16 @@ class OBJFileResults:
 
 @dataclass
 class GPKGFileResults:
+    """Results of the compressed GPKG file validation for a single tile.
+
+    Attributes:
+        zip_ok (bool): Whether the file is successfully compressed.
+        file_ok (bool): Whether the GeoPackage file itself is valid.
+        nr_building (int): Number of building features.
+        nr_buildingpart (int): Number of building part features.
+        download (str): The URL of the file download.
+        sha256 (str): The SHA256 of the zipfile.
+    """
     zip_ok: bool = None
     file_ok: bool = None
     nr_building: int = None
@@ -71,6 +127,14 @@ class GPKGFileResults:
 
 @dataclass
 class TileResults:
+    """Results of the validation of each compressed file for the given tile.
+
+    Attributes:
+        tile_id (str): The tile ID.
+        cityjson (CityJSONFileResults): CityJSON file validation results.
+        obj (OBJFileResults): OBJ file validation results.
+        gpkg (GPKGFileResults): GPKG file validation results.
+    """
     tile_id: str = None
     cityjson: CityJSONFileResults = field(default_factory=CityJSONFileResults)
     obj: OBJFileResults = field(default_factory=OBJFileResults)
@@ -302,6 +366,7 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
     logfile = dirpath / "val3dity.log"
     nr_building_all = []
     nr_buildingpart_all = []
+    nr_invalid_building_all = []
     for inputfile in inputfiles:
         if inputfile.suffix == ".obj":
             try:
@@ -319,7 +384,7 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
                         if bid_match:
                             building_ids.add(bid_match.group(0))
                             buildingpart_ids_temp_until_obj_fix.append(
-                                bid_match)  # this can be removed after the OBJ fix
+                                bid_match.group(0))  # this can be removed after the OBJ fix
                         elif bpid_match:
                             buildingpart_ids.add(bpid_match.group(0))
                 nr_building_all.append(len(building_ids))
@@ -361,13 +426,16 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
                                 nr_invalid_lod22 += 1
                                 for e in primitive["errors"]:
                                     errors_lod22.add(e["code"])
-                results.nr_invalid_building = len(invalid_building_ids)
-                results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
-                results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
-                results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
-                results.errors_lod12 = list(errors_lod12)
-                results.errors_lod13 = list(errors_lod13)
-                results.errors_lod22 = list(errors_lod22)
+                nr_invalid_building_all.append(len(invalid_building_ids))
+                if current_lod == "12":
+                    results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
+                    results.errors_lod12 = list(errors_lod12)
+                elif current_lod == "13":
+                    results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
+                    results.errors_lod13 = list(errors_lod13)
+                elif current_lod == "22":
+                    results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
+                    results.errors_lod22 = list(errors_lod22)
                 reportfile.unlink()
                 logfile.unlink()
             except Exception:
@@ -375,6 +443,9 @@ def obj(dirpath: Path, file_id: str, planarity_n_tol: float, planarity_d2p_tol: 
                 logfile.unlink(missing_ok=True)
                 inputfile.unlink(missing_ok=True)
                 return results
+    results.nr_building = min(nr_building_all)
+    results.nr_buildingpart = min(nr_buildingpart_all)
+    results.nr_invalid_building = max(nr_invalid_building_all)
 
     for inputfile in inputfiles:
         inputfile.unlink()
