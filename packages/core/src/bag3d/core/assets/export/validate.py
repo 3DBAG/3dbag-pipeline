@@ -593,7 +593,7 @@ def check_formats(input) -> TileResults:
     required_resource_keys={"file_store"}
 )
 def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
-    """Validates the compressed distribution tiles, for each format.
+    f"""Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
     Validation is done concurrently per tile.
 
@@ -609,6 +609,8 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
         file directly
     - CityJSON schema validation
     - CityJSON LoD-s present in the file
+    
+    Computed attributes: {TileResults().fieldnames()}
     """
     path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     url_root = "https://data.3dbag.nl"
