@@ -8,14 +8,13 @@ version = "2024.1002"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "Propietary" }
 authors = [
-    { name = "3DGI", email = "info@3dgi.nl" },
+    { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: GIS",
-    "License :: Other/Proprietary License"
+    "License :: OSI Approved :: Apache Software License"
 ]
 urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
 dependencies = [
