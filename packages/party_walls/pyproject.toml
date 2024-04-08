@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2023.1001"
+version = "2024.1002"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -30,7 +30,7 @@ dependencies = [
 optional-dependencies = { dev = ["pytest", "bumpver", "tox"] }
 
 [tool.bumpver]
-current_version = "2023.1001"
+current_version = "2024.1002"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true

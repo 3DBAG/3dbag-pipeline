@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-common"
-version = "2024.1002"
+version = "2024.1003"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -43,7 +43,7 @@ docs = [
 ]
 
 [tool.bumpver]
-current_version = "2024.1002"
+current_version = "2024.1003"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
