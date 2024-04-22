@@ -83,7 +83,7 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
         c.run(f"mkdir {deploy_dir}/{version}")
         c.run(f"tar --strip-components=1 -C {deploy_dir}/{version} -xzvf {deploy_dir}/export.tar.gz")
         # symlink to latest version so the fileserver picks up the data
-        version_nopoints = version.replace(",", "")
+        version_nopoints = version.replace(".", "")
         c.run(f"ln -s {deploy_dir}/{version} {deploy_dir}/public/{version_nopoints}")
         # add version to the tar so that we can archive the data
         c.run(f"mv {deploy_dir}/export.tar.gz {deploy_dir}/export_{version}.tar.gz")
