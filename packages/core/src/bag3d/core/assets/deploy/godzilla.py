@@ -96,7 +96,6 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
     schema = "webservice_dev"
-    #old_schema = "webservice_latest"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
     with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
         context.log.debug(sql)
@@ -120,7 +119,9 @@ def webservice_godzilla(context, downloadable_godzilla):
         ])
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             context.log.debug(cmd)
-            c.run(cmd)
+            r = c.run(cmd)
+            context.log.debug(r.stdout)
+
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
     lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")
