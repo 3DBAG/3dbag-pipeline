@@ -111,7 +111,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         cmd = " ".join([
             "PG_USE_COPY=YES",
             "OGR_TRUNCATE=YES",
-            "ogr2ogr",
+            "/opt/bin/ogr2ogr",
             "-gt", "65536",
             "-lco", "SPATIAL_INDEX=NONE",
             "-f", "PostgreSQL",
