@@ -72,7 +72,7 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
-    deploy_dir = "/data/3DBAGv3"
+    deploy_dir = "/data/3DBAG"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
@@ -80,11 +80,12 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
         c.put(compressed_export_nl, remote=deploy_dir)
         # delete symlink here, because the uncompressed tar archive is also 'export',
         # so we have a bit of downtime here, but that's ok
-        c.run(f"rm {deploy_dir}/export")
+        # c.run(f"rm {deploy_dir}/export")
         c.run(f"tar --strip-components=1 -C {deploy_dir} -xzvf {deploy_dir}/export.tar.gz")
-        c.run(f"mv {deploy_dir}/export {deploy_dir}/export_{version}")
+        c.run(f"mv {deploy_dir}/export {deploy_dir}/{version}")
         # symlink to latest version so the fileserver picks up the data
-        c.run(f"ln -s {deploy_dir}/export_{version} {deploy_dir}/export")
+        version_nopoints = version.replace(",", "")
+        c.run(f"ln -s {deploy_dir}/{version} {deploy_dir}/public/{version_nopoints}")
         # add version to the tar so that we can archive the data
         c.run(f"mv {deploy_dir}/export.tar.gz {deploy_dir}/export_{version}.tar.gz")
     return deploy_dir
