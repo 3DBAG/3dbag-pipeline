@@ -1,6 +1,4 @@
--- WARNING: geoserver does not understand postgres arrays
-
--- The 'tiles' layer for the webservices
+/* WARNING: geoserver does not understand postgres arrays */
 CREATE TABLE ${new_table} AS
 WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                              , CASE

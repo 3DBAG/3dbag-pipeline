@@ -67,7 +67,7 @@ def compressed_export_zuid_holland(
 )
 def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     """Downloadable files hosted on godzilla.
-    - Transfer the export.tar.gz archive to `godzilla:/data/3DBAGv3`
+    - Transfer the export.tar.gz archive to `godzilla:/data/3DBAG`
     - Uncompress the archive and add the current version to the directory name
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
@@ -98,9 +98,11 @@ def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
 )
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
+    host_godzilla = "godzilla.bk.tudelft.nl"
+    user_godzilla = "dagster"
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host="godzilla.bk.tudelft.nl", user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
@@ -120,7 +122,7 @@ def webservice_godzilla(context, downloadable_godzilla):
             layer,
             "-nln", layer + "_tmp"
         ])
-        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        with Connection(host=host_godzilla, user=user_godzilla) as c:
             context.log.debug(cmd)
             r = c.run(cmd)
             context.log.debug(r.stdout)
@@ -145,12 +147,12 @@ def webservice_godzilla(context, downloadable_godzilla):
                        'lod13_2d': lod13_2d,
                        'lod22_2d': lod22_2d})
     sql = context.resources.db_connection.print_query(sql)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
-    # # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
+    # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
     export_index = PostgresTableIdentifier(schema, "export_index")
     validate_compressed_files = PostgresTableIdentifier(schema, "validate_compressed_files")
     sql = load_sql(filename="webservice_tiles_intermediary.sql",
@@ -159,12 +161,13 @@ def webservice_godzilla(context, downloadable_godzilla):
                        "validate_compressed_files": validate_compressed_files
                    })
     sql = context.resources.db_connection.print_query(sql)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
+
     # Load the CSV files into the intermediary tables
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host=host_godzilla, user=user_godzilla) as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = "\copy " + str(export_index) + " FROM '" + filepath + "' DELIMITER ',' CSV HEADER "
         context.log.debug(f"{copy_cmd}")
@@ -175,6 +178,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         context.log.debug(f"{copy_cmd}")
         c.run(
             fr'psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" ')
+
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
     sql = load_sql(filename="webservice_tiles.sql",
@@ -184,7 +188,7 @@ def webservice_godzilla(context, downloadable_godzilla):
                        "validate_compressed_files": validate_compressed_files
                    })
     sql = context.resources.db_connection.print_query(sql)
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
@@ -195,7 +199,7 @@ def webservice_godzilla(context, downloadable_godzilla):
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+    with Connection(host=host_godzilla, user=user_godzilla) as c:
         # context.log.debug(alter_to_archive)
         # c.run(
         #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
@@ -209,4 +213,4 @@ def webservice_godzilla(context, downloadable_godzilla):
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'")
 
-    return f"{schema}.lod12_2d", f"{schema}.lod13_2d", f"{schema}.lod22_2d", f"{schema}.tile_index"
+    return f"{schema}.lod12_2d", f"{schema}.lod13_2d", f"{schema}.lod22_2d", f"{schema}.tiles"
