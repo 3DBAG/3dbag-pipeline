@@ -82,7 +82,8 @@ def test_docker_db_connection_init():
             "port": 5562,
             "user": user,
             "password": pw,
-            "dbname": db
+            "dbname": db,
+            "sslmode": "require"
         },
         resources={"container": resources.container.configured({})}
     )
