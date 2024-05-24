@@ -14,6 +14,7 @@ Additionally, this oranisation makes it easier to install and test the workflow 
 - `common`: The common package used by the workflow packages.
 - `core`: Workflow for producing the core of the 3D BAG data set.
 - `party_walls`: Workflow for calculating the party walls.
+- `floors-estimation`: Workflow for estimating the number of floors.
 
 ## Documentation
 
@@ -23,13 +24,11 @@ The documentation of the components of the workflow packages can be viewed in th
 ## Development and testing
 
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
-The virtual environment names follow the pattern of `venv_<package>`, e.g. `/venvs/venv_core`, `/venvs/venv_party_walls`.
+The virtual environment names follow the pattern of `venv_<package>`. You need to set up:  `/venvs/venv_core`, `/venvs/venv_party_walls` and `/venvs/venv_floors_estimation`
 
-The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages.
-This mimicks our deployment setup.
-Create another one for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
+The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
 
-The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI.
+The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
 In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance.
 If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
 
@@ -64,6 +63,14 @@ You need to init the data directories and download all test files:
 just download
 ```
 
+** Note: ** On a mac, you might be getting an error `ln: illegal option -- r`. You need to install :
+
+```bash
+brew search coreutils 
+export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+```
+to be able to use te `-r` flag.
+
 The downloaded files are placed into `3dbag-pipeline/tests/data` and symlinked to each package so that *pytest* can find them easily.
 
 Finally, you can clean up with `just clean`.
@@ -96,7 +103,7 @@ See the `tests/conftest.py` on how this is set up.
 
 #### Terminate all in the queue
 
-Need to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
+Needs to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
 This is currently `/opt/dagster/venv` on gilfoyle.
 On gilfoyle, need to source all the environment variables first (`/opt/dagster/dagster_home/.env`).
 
@@ -139,8 +146,8 @@ Once your Dagster Daemon is running, you can start turning on schedules and sens
 
 #### GraphQL API
 
-Dagster has a GraphQL API and it is served alongside the Dagit web server at `/graphql` (eg `http://localhost:3000/graphql`).
-One can do basically everything that is doable in the Dagit UI.
+Dagster has a GraphQL API and it is served alongside the dagster-webserver at `/graphql` (eg `http://localhost:3000/graphql`).
+One can do basically everything that is doable in the Dagster UI.
 Retrieve data on assets, runs etc., but also launch runs.
 
 This query to get the asset materializations metadata and asset dependencies (lineage):
