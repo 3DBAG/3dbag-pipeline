@@ -203,17 +203,28 @@ This query to get the asset materializations metadata and asset dependencies (li
 
 ## Source datasets
 
+They are downloaded with the `source_input` job.
+
+
 ### BAG
 
-**Definitions**
+#### Definitions
 
-BAG – Basisregistratie Adressen en Gebouwen. Deze bevat alle BAG gegevens zoals ingewonnen door de BAG bronhouders, conform de [Official BAG specifications (BAG Catalogus 2018)](https://www.geobasisregistraties.nl/documenten/publicatie/2018/03/12/catalogus-2018).
+[**BAG (Basisregistratie Adressen en Gebouwen):**](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bag/over-bag) It contains data on all addresses and buildings in the Netherlands, such as year of construction, surface area, usage and location. The BAG is part of the government system of basic registrations. Municipalities are source holders of the BAG -  they are responsible for collecting it and recording its quality. The BAG dataset is created in accordance with the [Official BAG specifications (BAG Catalogus 2018).](https://www.geobasisregistraties.nl/documenten/publicatie/2018/03/12/catalogus-2018). 
 
-LVBAG – De Landelijke Voorziening BAG, die de gegevens van de BAG overneemt naar en landelijk beschikbaar stelt.
+**LVBAG(De Landelijke Voorziening BAG):** Municipalities are responcible for collecting BAG data and them making them centrally available through LVBAG. The Kadaster then manages the LV BAG and makes the data available to various customers. 
 
-**Links**
+[**BAG Extract 2.0**](https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract): It is a periodic extract from the LVBAG, created by the Kadaster. It is distributed in various manners; We are using the [free, downloadable version](https://www.kadaster.nl/-/kosteloze-download-bag-2-0-extract), which gets updated every month (on the 8th). Alternatively, there are daily and monthly extracts with mutations, per municipality or for the whole country, which are accessible through a subscription.
 
-[The BAG Extract 2.0 documentation and links](https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract)
+#### Notes
+
+Technically, we could keep our BAG database up-to-date by processing monthly mutations, but the mutations are only available through a subscription. Therefore, we need to drop and recreate our BAG tables from the national extract each time we update the data. In fact, this is one of the recommended methods in the [Functioneele beschrijving mutatiebestaanded](https://www.kadaster.nl/-/functionele-beschrijving-mutatiebestanden) documentation: *"Het actualiseren van de lokaal ingerichte database kan door middel van het maandelijks inladen van een volledig BAG 2.0 Extract of door het verwerken van mutatiebestanden."*
+
+We can reconstruct the BAG input at any give time (Ts) by selecting on `begingeldigheid <= Ts <= eindgeldigheid`.
+
+The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
+
+#### Some links:
 
 [BAG object history documentation](https://www.kadaster.nl/-/specificatie-bag-historiemodel)
 
@@ -225,29 +236,19 @@ LVBAG – De Landelijke Voorziening BAG, die de gegevens van de BAG overneemt na
 
 [BAG quality dashboard](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bag/bag-voor-afnemers/bag-kwaliteitsdashboard-voor-afnemers)
 
-*What is the difference between the LVBAG and the BAG?*
 
-As far as I understand, the LVBAG is a central database of the BAG that is maintained by Kadaster and where the municipalities send their BAG data.
-That is because each municipality is responsible for their own BAG data, but they have to contribute to the LVBAG. [link](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bag)
+### TOP10NL
 
-The *BAG Extract* is a periodic extract from the LVBAG, created by the Kadaster.
+TBD
 
-The BAG is distributed in two manners, through the extracts (Extractlevering or Standard Levering) and the mutations (Mutatielevering).
-There are daily and monthly extracts and mutations, per municipality and for the whole country.
-To access any of these requires a subscription, except the monthly national extract.
-The monthly national extract is available for free, without a subscription.
-The monthly extracts and mutations are release on the 8th of each month.
 
-Technically, we could keep our BAG database up-to-date by processing the monthly mutations (Maandmutaties heel Nederland).
-But the mutations are only available through a subscription.
+### AHN
 
-Therefore, we need to drop and recreate our BAG tables from the national extract each time we update the data.
-In fact, this is one of the recommended methods in the [Functioneele beschrijving mutatiebestaanded](https://www.kadaster.nl/-/functionele-beschrijving-mutatiebestanden) documentation: *"Het actualiseren van de lokaal ingerichte database kan door middel van het maandelijks inladen van een volledig BAG 2.0 Extract of door het verwerken van mutatiebestanden."*
+TBD
 
-We can reconstruct the BAG input at any give time (Ts) by selecting on `begingeldigheid <= Ts <= eindgeldigheid`.
+### BGT
 
-The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
-
+TBD
 ## Deployment
 
 The deployment configurations are managed with the `DAGSTER_DEPLOYMENT` environment variable.
