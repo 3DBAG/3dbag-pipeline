@@ -17,9 +17,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS",
     "License :: Other/Proprietary License"
 ]
-urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+ssh://git@github.com/3DGI/3dbag-pipeline.git#egg=bag3d-common&subdirectory=packages/common",
+    "bag3d-common @ git+ssh://git@github.com/3DBAG/3dbag-pipeline.git#egg=bag3d-common&subdirectory=packages/common",
     "sklearn-pandas",
     "scikit-learn",
     "pandas",
