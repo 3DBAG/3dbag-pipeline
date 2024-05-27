@@ -21,7 +21,7 @@ dependencies = [
     "dagster",
     "dagster-shell",
     "docker",
-    "pgutils @ git+ssh://git@github.com/balazsdukai/pgutils.git@2022.1011#egg=pgutils",
+    "pgutils @ git+ssh://git@github.com/balazsdukai/pgutils.git@2024.1012#egg=pgutils",
     "psycopg[binary]",
     "requests",
 ]

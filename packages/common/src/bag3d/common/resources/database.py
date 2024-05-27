@@ -61,7 +61,8 @@ DatabaseConnection = PostgresConnection
 class DockerDatabaseConnection(DatabaseConnection, ABC):
     def __init__(self, image_id: str, container_id: str,
                  user: str, password: str, host: str,
-                 port_host: int, dbname: str, environment: dict = None,
+                 port_host: int, dbname: str, connection_params: dict = None,
+                 environment: dict = None,
                  volumes=None):
         logger = get_dagster_logger("docker_db_connection")
 
@@ -88,7 +89,7 @@ class DockerDatabaseConnection(DatabaseConnection, ABC):
         # need to wait for the database to start up in the container
         sleep(7)
         super().__init__(user=user, password=password, host=host,
-                         port=port_host, dbname=dbname)
+                         port=port_host, dbname=dbname, **connection_params)
         sleep(2)
 
 
@@ -122,7 +123,10 @@ class DockerDatabaseConnection(DatabaseConnection, ABC):
         "password": Field(
             str, description="Database password."),
         "dbname": Field(
-            str, description="Database to connect to. It must exist.")
+            str, description="Database to connect to. It must exist."),
+        "other_params": Permissive(
+            description="Other connection parameters to be passed on to the database."
+        )
     },
     description="Database connection. If `docker` is set, a container will be started "
                 "from 'docker.image_id' that serves the database. The container name "
@@ -141,7 +145,8 @@ def db_connection(context):
             host="localhost",
             user=context.resource_config["user"],
             password=context.resource_config["password"],
-            dbname=context.resource_config["dbname"]
+            dbname=context.resource_config["dbname"],
+            connection_params=context.resource_config["other_params"]
         )
     else:
         conn = DatabaseConnection(
@@ -149,7 +154,8 @@ def db_connection(context):
             password=context.resource_config["password"],
             host=context.resource_config["host"],
             port=context.resource_config["port"],
-            dbname=context.resource_config["dbname"]
+            dbname=context.resource_config["dbname"],
+            **context.resource_config["other_params"]
         )
     # Create the utility Postgres functions
     PostgresFunctions(conn)
