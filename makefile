@@ -1,6 +1,7 @@
 IMAGE_NAME = ginas_image_postgis
 CONTAINER_NAME = ginas_container_postgis
 REPO=/Users/localadmin/Repos/3dbag-pipeline
+PATH_TO_VENVS = $(REPO)/venvs
 PATH_TO_DATA = $(REPO)/gina/data
 PATH_TO_DOCKERFILE = $(REPO)/gina/docker/postgres
 DAGSTER_HOME = $(REPO)/tests/dagster_home
@@ -21,11 +22,11 @@ stop:
 	docker container stop $(CONTAINER_NAME)
 
 venvs:
-	cd $(REPO)/venvs ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster
-	source $(REPO)/venvs/venv_floors_estimation/bin/activate ; cd $(REPO)/packages/floors_estimation ; pip install .
-	source $(REPO)/venvs/venv_party_walls/bin/activate ; cd $(REPO)/packages/party_walls ; pip install .
-	source $(REPO)/venvs/venv_core/bin/activate ; cd $(REPO)/packages/core ; pip install .
-	source $(REPO)/venvs/venv_dagster/bin/activate ; pip install dagster dagster-webserver dagster-postgres
+	cd $(PATH_TO_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster
+	source $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; cd $(REPO)/packages/floors_estimation ; pip install .
+	source $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; cd $(REPO)/packages/party_walls ; pip install .
+	source $(PATH_TO_VENVS)/venv_core/bin/activate ; cd $(REPO)/packages/core ; pip install .
+	source $(PATH_TO_VENVS)/venv_dagster/bin/activate ; pip install dagster dagster-webserver dagster-postgres
 	
 start:
-	cd $(DAGSTER_HOME) ; dagster dev
+	cd $(DAGSTER_HOME) ; source $(PATH_TO_VENVS)/venv_dagster/bin/activate ;  dagster dev
