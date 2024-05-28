@@ -1,7 +1,7 @@
 from dagster import build_op_context
 
 from bag3d.core.assets.input import intermediary
-from bag3d.common.custom_types import PostgresTableIdentifier
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core import sqlfiles
 
 
