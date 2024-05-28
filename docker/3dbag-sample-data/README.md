@@ -52,7 +52,7 @@ $ docker start db3dbag
 Access the database.
 
 ```sh
-$ psql -p <any local port> -U db3dbag_user -d db3dbag -h localhost
+$ psql -p <any local port> -U db3dbag_user -d baseregisters -h localhost
 ```
 
 Don't forget to remove the container when you are done.
@@ -76,6 +76,6 @@ It is advised to use a temporary directory as the `'any local dir'`.
 The image is meant to be used for ephemeral containers that are used for testing and 
 then discarded. It is not meant to be updated manually.
 
-The image update happens through a jobs in the 3dbag-pipeline. 
+The image update happens through some jobs in the 3dbag-pipeline. 
 These jobs generate the sample area, update the image with the new sample data and push the image to DockerHub.
 Therefore, in order to update the image, the corresponding jobs need to be updated and run.
