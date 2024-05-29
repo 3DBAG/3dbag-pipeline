@@ -30,7 +30,8 @@ dependencies = [
 dev = [
     "bumpver",
     "tox",
-    "pytest"
+    "pytest",
+    "pytest-postgresql"
 ]
 docs = [
     "mkdocs",
