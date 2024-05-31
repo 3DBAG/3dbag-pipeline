@@ -13,7 +13,7 @@ from pathlib import Path
 from pytest_postgresql import factories
 
 
-from bag3d.common.resources.database import DatabaseConnection, db_connection, container
+from bag3d.common.resources.database import DatabaseConnection
 
 RES_CONTAINER_ID = "pytest-3dbag-pipeline-db_connection"
 
@@ -53,25 +53,8 @@ def test_data_dir():
     yield Path(LOCAL_DIR)
 
 
-@pytest.fixture(scope="session")
-def resource_container():
-    return container.configured({"id": RES_CONTAINER_ID})
 
 
-@pytest.fixture(scope="function")
-def resource_db_connection_docker(resource_container):
-    yield db_connection.configured({
-        "docker": {
-            "image_id": "balazsdukai/3dbag-sample-data:latest",
-        },
-        "port": 5564,
-        "user": "db3dbag_user",
-        "password": "db3dbag_1234",
-        "dbname": "baseregisters"
-    })
-    client = docker.from_env()
-    cont = client.containers.get(RES_CONTAINER_ID)
-    cont.remove(force=True, v=True)
 
 
 @pytest.fixture(scope="session")
@@ -88,7 +71,7 @@ def wkt_testarea():
 @pytest.fixture(scope="session")
 def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
-    return "osgeo/gdal:alpine-small-latest"
+    return "ghcr.io/osgeo/gdal:alpine-small-latest"
 
 
 @pytest.fixture(scope="function")

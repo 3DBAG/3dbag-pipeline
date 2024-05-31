@@ -106,4 +106,4 @@ def wkt_testarea():
 @pytest.fixture(scope="session")
 def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
-    return "osgeo/gdal:alpine-small-latest"
+    return "ghcr.io/osgeo/gdal:alpine-small-latest"
