@@ -1,19 +1,15 @@
-from time import sleep
-from pathlib import Path
+import os
 import string
+from pathlib import Path
 from random import choice
 from shutil import rmtree
-import os
 
 import pytest
-import docker
-
-from pathlib import Path
-
+from bag3d.common.resources.database import DatabaseConnection
+from psycopg.sql import SQL, Identifier
 from pytest_postgresql import factories
 
-
-from bag3d.common.resources.database import DatabaseConnection
+import docker
 
 RES_CONTAINER_ID = "pytest-3dbag-pipeline-db_connection"
 
@@ -30,8 +26,7 @@ postgresql_noproc = factories.postgresql_noproc(
     user=USER,
     password=PASSWORD,
 )
-# Create the postgresql fixture with a new db - if you want ot use existing remove dbname parameter
-#postgresql = factories.postgresql('postgresql_noproc', dbname=DB_NAME)
+# Create the postgresql fixture with a new db - if you want to use existing remove dbname parameter
 postgresql = factories.postgresql('postgresql_noproc')
 
 
@@ -41,6 +36,10 @@ def database(postgresql):
                              host=HOST, port=PORT, dbname=DB_NAME)
 
     yield db
+    query = SQL("""
+            DROP SCHEMA IF EXISTS {schema} CASCADE;
+        """).format(schema = Identifier("test"))
+    db.send_query(query)
 
 
 @pytest.fixture(scope="session", autouse=True)
