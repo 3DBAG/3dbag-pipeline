@@ -110,3 +110,16 @@ def create_schema(context, conn, new_schema):
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     context.log.info(conn.print_query(q))
     conn.send_query(q)
+
+def table_exists(context, table) -> bool:
+    """CHECKS IF TABLE EXISTS"""
+    query = SQL("""SELECT EXISTS (
+                   SELECT FROM 
+                        pg_tables
+                   WHERE 
+                        schemaname = '{schema}' AND 
+                        tablename  = '{table}'
+                    );""").format(schema=table.schema.id,
+                                  table=table.table.id)
+    res = context.resources.db_connection.get_dict(query)
+    return res[0]["exists"]
