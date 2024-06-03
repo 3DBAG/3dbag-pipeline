@@ -119,7 +119,7 @@ def table_exists(context, table) -> bool:
                    WHERE 
                         schemaname = '{schema}' AND 
                         tablename  = '{table}'
-                    );""").format(schema=Identifier(table.schema.str),
-                                  table=Identifier(table.table.str))
+                    );""").format(schema=table.schema.id,
+                                  table=table.table.id)
     res = context.resources.db_connection.get_dict(query)
     return res[0]["exists"]
