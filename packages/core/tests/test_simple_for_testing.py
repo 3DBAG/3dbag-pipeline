@@ -31,7 +31,7 @@ def test_table_creation(database):
                     WHERE 
                         schemaname = '{schema}' AND 
                         tablename  = '{table}'
-                    );""").format(schema=Identifier(tbl.schema.str),
-                                  table=Identifier(tbl.table.str))
+                    );""").format(schema=tbl.schema.id,
+                                  table=tbl.table.id)
     res = context.resources.db_connection.get_dict(query)
     assert res[0]["exists"] == False
