@@ -117,9 +117,9 @@ def table_exists(context, table) -> bool:
                    SELECT FROM 
                         pg_tables
                    WHERE 
-                        schemaname = '{schema}' AND 
-                        tablename  = '{table}'
-                    );""").format(schema=table.schema.id,
-                                  table=table.table.id)
+                        schemaname = {schema} AND 
+                        tablename  = {table}
+                    );""").format(schema=table.schema.str,
+                                  table=table.table.str)
     res = context.resources.db_connection.get_dict(query)
     return res[0]["exists"]
