@@ -11,9 +11,7 @@ from pytest_postgresql import factories
 
 import docker
 
-RES_CONTAINER_ID = "pytest-3dbag-pipeline-db_connection"
-
-LOCAL_DIR = "/Users/localadmin/Repos/3dbag-pipeline/docker/data/test_data"
+LOCAL_DIR = os.getenv('PATH_TO_TEST_DATA')
 
 HOST = "localhost"
 PORT = 5432
@@ -50,10 +48,6 @@ def setenv():
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
-
-
-
-
 
 
 @pytest.fixture(scope="session")
