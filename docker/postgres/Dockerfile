@@ -6,10 +6,6 @@ ARG pg_user
 ARG pg_pswd
 ARG pg_db
 
-ARG dagster_pg_user
-ARG dagster_pg_pswd
-ARG dagster_pg_db
-
 # Set up environment variables
 ENV PGDATA=/data
 
@@ -19,9 +15,6 @@ ENV POSTGRES_DB=$pg_db
 ENV POSTGRES_HOST=localhost
 ENV POSTGRES_HOST_AUTH_METHOD=trust
 
-ENV DAGSTER_PG_USER=$dagster_pg_user
-ENV DAGSTER_PG_PASSWORD=$dagster_pg_pswd
-ENV DAGSTER_PG_DB=$dagster_pg_db
 
 # Create a directory to store PostgreSQL data and logs
 RUN mkdir -p ${PGDATA} /tmp /var/log/postgresql 
