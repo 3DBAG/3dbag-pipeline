@@ -2,6 +2,30 @@
 
 Repository of the 3D BAG production pipeline.
 
+## Quickstart for local development:
+
+For running locally you will need a docker installation.
+
+As a first step you need to set up the variables for the REPO and SERVER_NAME in the sample .env file 
+
+Then you run the tests from the root directory of the repo with:
+
+```
+make source
+make venvs
+make download
+make build 
+make run
+make test
+```
+Where:
+make source = initiates env variables
+make venvs = creates the vitrual environments
+make download = downloads test_data from the server
+make build = building the postgres image
+make run = starts the postgres container
+make test =  runs the tests for core package. 
+
 ## Packages
 
 The packages are organized into a `common` package and a number of workflow packages.
@@ -38,6 +62,12 @@ dagster dev
 ```
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
+
+To set up all this in one step you can run :
+
+```bash
+make venvs
+```
 
 ### Data
 
