@@ -2,13 +2,16 @@ include .env
 
 .PHONY: download build run stop venvs start_dagster test
 
+source:
+	set -a ; source .env ;set +a 
+
 download:
 # TODO: Change this to download the baseregisters.tar file from a link
-	rsync -azhP --ignore-existing gstavropoulou@gilfoyle:baseregisters.tar $(PATH_TO_DATA)
+	mkdir -p $(PATH_TO_TEST_DATA)
+	rsync -azhP --ignore-existing $(SERVER_NAME):/data/3DBAG_Pipeline_test_data/ $(PATH_TO_TEST_DATA)
 
 build:
-	docker build -t $(IMAGE_NAME) $(PATH_TO_DOCKERFILE) --build-arg pg_user=$(POSTGRES_USER) --build-arg pg_pswd=$(POSTGRES_PASSWORD) --build-arg pg_db=$(POSTGRES_DB)  --build-arg dagster_pg_user=$(DAGSTER_PG_USER) --build-arg dagster_pg_pswd=$(DAGSTER_PG_PASSWORD) --build-arg dagster_pg_db=$(DAGSTER_PG_DB)
-
+	docker build -t $(IMAGE_NAME) $(PATH_TO_DOCKERFILE) --build-arg pg_user=$(POSTGRES_USER) --build-arg pg_pswd=$(POSTGRES_PASSWORD) --build-arg pg_db=$(POSTGRES_DB) 
 run:
 	docker-compose --env-file .env  -f docker/compose.yaml up 
 
