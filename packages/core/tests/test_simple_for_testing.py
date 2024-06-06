@@ -1,5 +1,7 @@
 from bag3d.common.utils.database import (create_schema, drop_table,
-                                         postgrestable_from_query)
+                                         postgrestable_from_query,
+                                         table_exists
+                                         )
 from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
@@ -23,15 +25,10 @@ def test_table_creation(database):
     metadata = postgrestable_from_query(context, query, tbl)
     assert metadata["Rows"] == 2
 
+    bag_pandactueelbestaand = PostgresTableIdentifier('lvbag','pandactueelbestaand')
+
+    assert table_exists(context, bag_pandactueelbestaand) is True
+
     drop_table(context, context.resources.db_connection, tbl)
 
-    query = SQL("""SELECT EXISTS (
-                    SELECT FROM 
-                        pg_tables
-                    WHERE 
-                        schemaname = '{schema}' AND 
-                        tablename  = '{table}'
-                    );""").format(schema=tbl.schema.id,
-                                  table=tbl.table.id)
-    res = context.resources.db_connection.get_dict(query)
-    assert res[0]["exists"] == False
+    assert table_exists(context, tbl) is False

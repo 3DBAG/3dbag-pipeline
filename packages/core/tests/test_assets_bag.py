@@ -1,8 +1,8 @@
 from dagster import build_op_context
-from bag3d.core.assets.bag.download import bagextract_metadata, load_bag_layer, extract_bag
+from bag3d.core.assets.bag.download import bagextract_metadata, load_bag_layer
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import gdal, file_store
-from bag3d.common.utils.database import  drop_table
+from bag3d.common.resources import gdal
+from bag3d.common.utils.database import  drop_table, table_exists
 
 def test_get_extract_metadata(test_data_dir):
     init_context = build_op_context({})
@@ -35,4 +35,6 @@ def test_load_bag_layer(database, test_data_dir, wkt_testarea, docker_gdal_image
                    new_table=test_bag_table)
     assert res is True
     assert res is not None
+    assert table_exists(context, test_bag_table) is True
     drop_table(context, context.resources.db_connection, test_bag_table)
+    assert table_exists(context, test_bag_table) is False
