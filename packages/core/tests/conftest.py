@@ -14,7 +14,7 @@ import docker
 LOCAL_DIR = os.getenv('PATH_TO_TEST_DATA')
 
 HOST = "localhost"
-PORT = 5432
+PORT = 5560
 USER = os.getenv('POSTGRES_USER')
 PASSWORD = os.getenv('POSTGRES_PASSWORD')
 DB_NAME = os.getenv('POSTGRES_DB')

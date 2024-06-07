@@ -4,7 +4,7 @@ services:
     platform: linux/amd64
     container_name: $CONTAINER_NAME
     ports:
-      - "5432:5432"
+      - "5560:5432"
     volumes:
       - $PATH_TO_TEST_DATA:/var/lib/postgresql/data
     environment:
