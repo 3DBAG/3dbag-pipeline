@@ -8,14 +8,13 @@ version = "2024.1001"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Propietary" }
 authors = [
-    { name = "3DGI", email = "info@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: GIS",
-    "License :: Other/Proprietary License"
+    "License :: OSI Approved :: Apache Software License"
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
