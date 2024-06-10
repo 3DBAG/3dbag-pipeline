@@ -11,7 +11,7 @@ NEW_SCHEMA = "lvbag"
 def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
     query = load_sql(query_params={"wpl_tbl": stage_bag_woonplaats,
                                    "new_table": new_table})
@@ -23,7 +23,7 @@ def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
 def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     table_name = "verblijfsobjectactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     query = load_sql(query_params={"vbo_tbl": stage_bag_verblijfsobject,
@@ -42,7 +42,7 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
 def bag_pandactueelbestaand(context, stage_bag_pand):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     table_name = "pandactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     query = load_sql(query_params={"pand_tbl": stage_bag_pand,
@@ -64,7 +64,7 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
 def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
     query = load_sql(query_params={"opr_tbl": stage_bag_openbareruimte,
                                    "new_table": new_table})
@@ -76,7 +76,7 @@ def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
 def bag_nummeraanduidingactueelbestaand(context, stage_bag_nummeraanduiding):
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
     query = load_sql(query_params={"num_tbl": stage_bag_nummeraanduiding,
                                    "new_table": new_table})
