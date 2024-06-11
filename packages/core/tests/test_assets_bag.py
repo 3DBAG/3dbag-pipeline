@@ -44,7 +44,7 @@ def test_load_bag_layer(database, test_data_dir, wkt_testarea, docker_gdal_image
     assert table_exists(context, test_bag_table) is False
 
 
-@pytest.mark.skip(reason="Takes too long")
+@pytest.mark.slow
 def test_extract_bag(docker_gdal_image, wkt_testarea, temp_file_store ):
     context = build_op_context(
         op_config={

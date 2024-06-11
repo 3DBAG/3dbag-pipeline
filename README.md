@@ -135,6 +135,16 @@ A container is created from this image and bind-mounted on a new temporary direc
 The tests then either use the data from this temporary directory or from the database in the container.
 See the `tests/conftest.py` on how this is set up.
 
+#### Long running tests
+
+Some test take a long time to execute. 
+If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
+In order to include the slow tests in the test execution, use the `--runslow` command line option.
+
+```shell
+pytest --runslow
+```
+
 ### Dagster
 
 #### Terminate all in the queue
