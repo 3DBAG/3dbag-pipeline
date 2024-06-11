@@ -4,6 +4,11 @@ Repository of the 3D BAG production pipeline.
 
 ## Quickstart for local development:
 
+Requires:
+
+- Python 3.11
+- SSH connection to gilfoyle
+
 For running locally you will need a docker installation.
 
 As a first step you need to set up the variables for the REPO and SERVER_NAME in the sample .env file 
