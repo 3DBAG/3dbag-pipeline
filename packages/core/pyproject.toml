@@ -30,7 +30,7 @@ dependencies = [
     "lxml>=4.6",
     "fabric"
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-postgresql", "pytest-dotenv"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-postgresql"] }
 
 [tool.bumpver]
 current_version = "2024.1004"
@@ -44,12 +44,3 @@ push = false
 "pyproject.toml" = [
     'version = "{version}"',
 ]
-
-[tool.pytest.ini_options]
-env = [
-    "POSTGRES_USER=baseregisters_test_user",
-    "POSTGRES_PASSWORD=baseregisters_test_pswd",
-    "POSTGRES_DB=baseregisters_test",
-    "POSTGRES_PORT=5560"
-]
-
