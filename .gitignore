@@ -38,3 +38,8 @@
 /packages/core/.tox/
 /packages/party_walls/src/bag3d_party_walls.egg-info/
 /packages/party_walls/tests/.pytest_cache/
+/packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
+/packages/floors_estimation/tests/.pytest_cache/
+
+*.DS_Store
+/test_data/
