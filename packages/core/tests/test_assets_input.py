@@ -19,4 +19,4 @@ def test_bag_kas_warenhuis(database):
                                          top10nl_gebouw)
     assert isinstance(res.value, PostgresTableIdentifier)
     assert  str(res.value) == f'{new_table.schema}.{new_table.table}'
-    drop_table(context, context.resources.db_connection, new_table)
+    drop_table(context, new_table)

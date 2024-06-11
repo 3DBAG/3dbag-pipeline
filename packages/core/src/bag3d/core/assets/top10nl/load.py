@@ -10,11 +10,11 @@ from bag3d.common.types import PostgresTableIdentifier
 def stage_top10nl_gebouw(context, extract_top10nl) -> Output[PostgresTableIdentifier]:
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
-    create_schema(context, context.resources.db_connection, new_schema)
+    create_schema(context, new_schema)
     xsd = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     new_table = PostgresTableIdentifier(new_schema, "gebouw")
     # Need to explicitly drop the table just in case (...couz GDAL...)
-    drop_table(context, context.resources.db_connection, new_table)
+    drop_table(context, new_table)
     metadata = ogr2postgres(context=context, dataset="top10nl", xsd=xsd,
                             extract_path=extract_top10nl, feature_type="gebouw",
                             new_table=new_table)
@@ -26,7 +26,7 @@ def top10nl_gebouw(context, stage_top10nl_gebouw) -> Output[PostgresTableIdentif
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
     new_schema = "top10nl"
-    create_schema(context, context.resources.db_connection, new_schema)
+    create_schema(context, new_schema)
     table_name = "gebouw"
     new_table = PostgresTableIdentifier("top10nl", table_name)
     query = load_sql(query_params={"gebouw_tbl": stage_top10nl_gebouw,

@@ -40,7 +40,7 @@ def test_load_bag_layer(database, test_data_dir, wkt_testarea, docker_gdal_image
     assert res is True
     assert res is not None
     assert table_exists(context, test_bag_table) is True
-    drop_table(context, context.resources.db_connection, test_bag_table)
+    drop_table(context, test_bag_table)
     assert table_exists(context, test_bag_table) is False
 
 

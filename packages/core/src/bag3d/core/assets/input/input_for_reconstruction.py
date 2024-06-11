@@ -20,7 +20,7 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, ba
     """The input for the building reconstruction, where:
     - duplicates are removed
     """
-    create_schema(context, context.resources.db_connection, RECONSTRUCTION_INPUT_SCHEMA)
+    create_schema(context, RECONSTRUCTION_INPUT_SCHEMA)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA,
                                         "reconstruction_input")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
@@ -49,7 +49,7 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, ba
 #         2) completely underground, or
 #         3) floating above other buildings.
 #     """
-#     create_schema(context, context.resources.db_connection, RECONSTRUCTION_INPUT_SCHEMA)
+#     create_schema(context, RECONSTRUCTION_INPUT_SCHEMA)
 #     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_excluded")
 #     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
 #                                    "bag_kas_warenhuis": bag_kas_warenhuis,

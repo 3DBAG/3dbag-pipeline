@@ -11,7 +11,7 @@ def test_table_creation(database):
     context = build_op_context(
         resources={"db_connection": database}
     )
-    create_schema(context, context.resources.db_connection, "test")
+    create_schema(context, "test")
     tbl = PostgresTableIdentifier("test", "table1")
     query_params = {
         "table1": tbl,
@@ -29,6 +29,6 @@ def test_table_creation(database):
 
     assert table_exists(context, bag_pandactueelbestaand) is True
 
-    drop_table(context, context.resources.db_connection, tbl)
+    drop_table(context, tbl)
 
     assert table_exists(context, tbl) is False
