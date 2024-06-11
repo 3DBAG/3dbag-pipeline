@@ -171,9 +171,9 @@ def stage_bag_nummeraanduiding(context, extract_bag) -> Output[PostgresTableIden
 
 def stage_bag_layer(context: OpExecutionContext, layer: str, new_schema: str,
                     metadata: dict, shortdate: str, extract_dir: Path):
-    create_schema(context, context.resources.db_connection, new_schema)
+    create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, layer)
-    drop_table(context, context.resources.db_connection, new_table)
+    drop_table(context, new_table)
     success = load_bag_layer(context=context, extract_dir=extract_dir,
                              layer=layer, new_table=new_table,
                              shortdate=shortdate)

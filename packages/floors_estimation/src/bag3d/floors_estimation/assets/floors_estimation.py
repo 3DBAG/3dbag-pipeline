@@ -159,7 +159,7 @@ def external_features(context
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
-    create_schema(context, context.resources.db_connection, SCHEMA)
+    create_schema(context, SCHEMA)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features":
@@ -178,7 +178,7 @@ def all_features(context,
                  bag3d_features:  PostgresTableIdentifier)\
                         -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
-    create_schema(context, context.resources.db_connection, SCHEMA)
+    create_schema(context, SCHEMA)
     table_name = "building_features_all"
     all_features = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"all_features": all_features,

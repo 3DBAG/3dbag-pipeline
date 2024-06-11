@@ -20,7 +20,7 @@ NEW_SCHEMA = "reconstruction_input"
 def bag_kas_warenhuis(context, bag_pandactueelbestaand, top10nl_gebouw):
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_kas_warenhuis")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
                                    "top10nl_gebouw": top10nl_gebouw,
@@ -42,7 +42,7 @@ def bag_kas_warenhuis(context, bag_pandactueelbestaand, top10nl_gebouw):
 def bag_bag_overlap(context, bag_pandactueelbestaand):
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
-    create_schema(context, context.resources.db_connection, NEW_SCHEMA)
+    create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bag_overlap")
     query = load_sql(query_params={"bag_cleaned": bag_pandactueelbestaand,
                                    "new_table": new_table})
