@@ -10,7 +10,7 @@ As a first step you need to set up the variables for the REPO and SERVER_NAME in
 
 Then you run the tests from the root directory of the repo with:
 
-```
+```shell
 make source
 make venvs
 make download
@@ -18,6 +18,7 @@ make build
 make run
 make test
 ```
+
 Where:
 make source = initiates env variables
 make venvs = creates the vitrual environments

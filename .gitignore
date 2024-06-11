@@ -38,4 +38,3 @@
 /packages/core/.tox/
 /packages/party_walls/src/bag3d_party_walls.egg-info/
 /packages/party_walls/tests/.pytest_cache/
-/.env
