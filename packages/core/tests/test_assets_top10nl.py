@@ -1,9 +1,10 @@
+import pytest
+from bag3d.common.resources import file_store, gdal
+from bag3d.core.assets.top10nl import download
 from dagster import build_op_context
 
-from bag3d.core.assets.top10nl import download
-from bag3d.common.resources import gdal, file_store
 
-
+@pytest.mark.slow
 def test_extract_top10nl(docker_gdal_image, wkt_testarea):
     """Does the complete asset work?"""
     context = build_op_context(
