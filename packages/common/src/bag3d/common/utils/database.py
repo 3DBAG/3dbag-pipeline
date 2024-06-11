@@ -98,15 +98,17 @@ def postgrestable_metadata(context: OpExecutionContext,
     }
 
 
-def drop_table(context, conn, new_table):
+def drop_table(context, new_table):
     """DROP TABLE IF EXISTS new_table CASCADE"""
+    conn = context.resources.db_connection
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
     context.log.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def create_schema(context, conn, new_schema):
+def create_schema(context, new_schema):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
+    conn = context.resources.db_connection
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     context.log.info(conn.print_query(q))
     conn.send_query(q)

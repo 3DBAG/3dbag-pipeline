@@ -138,7 +138,7 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
 def metadata_table_ahn(context, ahn_version: int) -> PostgresTableIdentifier:
     conn = context.resources.db_connection
     new_schema = "ahn"
-    create_schema(context, conn, new_schema)
+    create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
     query = load_sql(query_params={"new_table": new_table})
     context.log.info(conn.print_query(query))
