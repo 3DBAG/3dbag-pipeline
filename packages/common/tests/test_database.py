@@ -6,6 +6,10 @@ from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
+TEST_SCHEMA_NAME = "test"
+TEST_TABLE_NAME = "table1"
+EXISTING_TABLE = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
+
 # def test_load_sql():
 #     query_params = {
 #         'tbl': PostgresTableIdentifier('myschema', 'mytable'),
@@ -17,22 +21,17 @@ from psycopg.sql import SQL, Identifier
 
 def test_table_exists(database):
     context = build_op_context(resources={"db_connection": database})
-    existing_table = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
 
-    assert table_exists(context, existing_table) is True
+    assert table_exists(context, EXISTING_TABLE) is True
 
-    non_existing_table = PostgresTableIdentifier("lvbag", "table")
-
+    non_existing_table = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
     assert table_exists(context, non_existing_table) is False
 
 
 def test_drop_table(database):
     context = build_op_context(resources={"db_connection": database})
-    tbl = PostgresTableIdentifier("public", "table1")
-    query_params = {
-        "table1": tbl,
-    }
-
+    create_schema(context, TEST_SCHEMA_NAME)
+    tbl = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
                    INSERT INTO {table} VALUES (1, 'bla');
@@ -51,23 +50,20 @@ def test_drop_table(database):
 
 def test_create_schema(database):
     context = build_op_context(resources={"db_connection": database})
-    schema_name = "test"
-    create_schema(context, schema_name)
+    create_schema(context, TEST_SCHEMA_NAME)
 
     query = SQL(
         """SELECT count(schema_name)
                 FROM information_schema.schemata 
                 WHERE schema_name = {schema};"""
-    ).format(schema=schema_name)
+    ).format(schema=TEST_SCHEMA_NAME)
     res = context.resources.db_connection.get_dict(query)
     assert res[0]["count"] == 1
 
 
 def test_summary_md(database):
-    existing_table = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
-
-    null_count = database.count_nulls(existing_table)
-    fields = database.get_fields(existing_table)
+    null_count = database.count_nulls(EXISTING_TABLE)
+    fields = database.get_fields(EXISTING_TABLE)
 
     res = summary_md(fields, null_count)
     assert type(res) == str
@@ -90,10 +86,8 @@ def test_postgrestable_metadata(database):
 
 def test_postgrestable_from_query(database):
     context = build_op_context(resources={"db_connection": database})
-    tbl = PostgresTableIdentifier("public", "table1")
-    query_params = {
-        "table1": tbl,
-    }
+    create_schema(context, TEST_SCHEMA_NAME)
+    tbl = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
 
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
@@ -106,5 +100,4 @@ def test_postgrestable_from_query(database):
     assert table_exists(context, tbl) is True
 
     drop_table(context, tbl)
-
     assert table_exists(context, tbl) is False
