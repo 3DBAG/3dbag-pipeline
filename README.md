@@ -2,6 +2,34 @@
 
 Repository of the 3D BAG production pipeline.
 
+## Quickstart for local development:
+
+Requires:
+
+- Python 3.11
+- SSH connection to gilfoyle
+
+For running locally you will need a docker installation.
+
+As a first step you need to set up the variables for the REPO and SERVER_NAME in the sample .env file 
+
+Then you run the tests from the root directory of the repo with:
+
+```shell
+make venvs
+make download
+make build 
+make run
+make test
+```
+
+Where:
+make venvs = creates the vitrual environments
+make download = downloads test_data from the server
+make build = building the postgres image
+make run = starts the postgres container
+make test =  runs the tests for core package. 
+
 ## Packages
 
 The packages are organized into a `common` package and a number of workflow packages.
@@ -14,6 +42,7 @@ Additionally, this oranisation makes it easier to install and test the workflow 
 - `common`: The common package used by the workflow packages.
 - `core`: Workflow for producing the core of the 3D BAG data set.
 - `party_walls`: Workflow for calculating the party walls.
+- `floors-estimation`: Workflow for estimating the number of floors.
 
 ## Documentation
 
@@ -23,13 +52,11 @@ The documentation of the components of the workflow packages can be viewed in th
 ## Development and testing
 
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
-The virtual environment names follow the pattern of `venv_<package>`, e.g. `/venvs/venv_core`, `/venvs/venv_party_walls`.
+The virtual environment names follow the pattern of `venv_<package>`. You need to set up:  `/venvs/venv_core`, `/venvs/venv_party_walls` and `/venvs/venv_floors_estimation`
 
-The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages.
-This mimicks our deployment setup.
-Create another one for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
+The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
 
-The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI.
+The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
 In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance.
 If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
 
@@ -39,6 +66,12 @@ dagster dev
 ```
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
+
+To set up all this in one step you can run :
+
+```bash
+make venvs
+```
 
 ### Data
 
@@ -63,6 +96,14 @@ You need to init the data directories and download all test files:
 ```shell
 just download
 ```
+
+** Note: ** On a mac, you might be getting an error `ln: illegal option -- r`. You need to install :
+
+```bash
+brew search coreutils 
+export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+```
+to be able to use te `-r` flag.
 
 The downloaded files are placed into `3dbag-pipeline/tests/data` and symlinked to each package so that *pytest* can find them easily.
 
@@ -92,11 +133,21 @@ A container is created from this image and bind-mounted on a new temporary direc
 The tests then either use the data from this temporary directory or from the database in the container.
 See the `tests/conftest.py` on how this is set up.
 
+#### Long running tests
+
+Some test take a long time to execute. 
+If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
+In order to include the slow tests in the test execution, use the `--runslow` command line option.
+
+```shell
+pytest --runslow
+```
+
 ### Dagster
 
 #### Terminate all in the queue
 
-Need to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
+Needs to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
 This is currently `/opt/dagster/venv` on gilfoyle.
 On gilfoyle, need to source all the environment variables first (`/opt/dagster/dagster_home/.env`).
 
@@ -139,8 +190,8 @@ Once your Dagster Daemon is running, you can start turning on schedules and sens
 
 #### GraphQL API
 
-Dagster has a GraphQL API and it is served alongside the Dagit web server at `/graphql` (eg `http://localhost:3000/graphql`).
-One can do basically everything that is doable in the Dagit UI.
+Dagster has a GraphQL API and it is served alongside the dagster-webserver at `/graphql` (eg `http://localhost:3000/graphql`).
+One can do basically everything that is doable in the Dagster UI.
 Retrieve data on assets, runs etc., but also launch runs.
 
 This query to get the asset materializations metadata and asset dependencies (lineage):
@@ -196,50 +247,15 @@ This query to get the asset materializations metadata and asset dependencies (li
 
 ## Source datasets
 
-### BAG
+They are downloaded with the `source_input` job and they are:
 
-**Definitions**
+- [BAG](docs/SOURCE_DATASETS.md#bag)
+- [AHN](docs/SOURCE_DATASETS.md#ahn)
+- [BGT](docs/SOURCE_DATASETS.md#bgt)
+- [TOP10NL](docs/SOURCE_DATASETS.md#top10nl)
 
-BAG – Basisregistratie Adressen en Gebouwen. Deze bevat alle BAG gegevens zoals ingewonnen door de BAG bronhouders, conform de [Official BAG specifications (BAG Catalogus 2018)](https://www.geobasisregistraties.nl/documenten/publicatie/2018/03/12/catalogus-2018).
+Read more about [the source datasets here](docs/SOURCE_DATASETS.md).
 
-LVBAG – De Landelijke Voorziening BAG, die de gegevens van de BAG overneemt naar en landelijk beschikbaar stelt.
-
-**Links**
-
-[The BAG Extract 2.0 documentation and links](https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract)
-
-[BAG object history documentation](https://www.kadaster.nl/-/specificatie-bag-historiemodel)
-
-[Official BAG specifications (BAG Catalogus 2018)](https://www.geobasisregistraties.nl/documenten/publicatie/2018/03/12/catalogus-2018)
-
-[BAG-API GitHub repo](https://github.com/lvbag/BAG-API)
-
-[Official BAG viewer](https://bagviewer.kadaster.nl/lvbag/bag-viewer/)
-
-[BAG quality dashboard](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bag/bag-voor-afnemers/bag-kwaliteitsdashboard-voor-afnemers)
-
-*What is the difference between the LVBAG and the BAG?*
-
-As far as I understand, the LVBAG is a central database of the BAG that is maintained by Kadaster and where the municipalities send their BAG data.
-That is because each municipality is responsible for their own BAG data, but they have to contribute to the LVBAG. [link](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bag)
-
-The *BAG Extract* is a periodic extract from the LVBAG, created by the Kadaster.
-
-The BAG is distributed in two manners, through the extracts (Extractlevering or Standard Levering) and the mutations (Mutatielevering).
-There are daily and monthly extracts and mutations, per municipality and for the whole country.
-To access any of these requires a subscription, except the monthly national extract.
-The monthly national extract is available for free, without a subscription.
-The monthly extracts and mutations are release on the 8th of each month.
-
-Technically, we could keep our BAG database up-to-date by processing the monthly mutations (Maandmutaties heel Nederland).
-But the mutations are only available through a subscription.
-
-Therefore, we need to drop and recreate our BAG tables from the national extract each time we update the data.
-In fact, this is one of the recommended methods in the [Functioneele beschrijving mutatiebestaanded](https://www.kadaster.nl/-/functionele-beschrijving-mutatiebestanden) documentation: *"Het actualiseren van de lokaal ingerichte database kan door middel van het maandelijks inladen van een volledig BAG 2.0 Extract of door het verwerken van mutatiebestanden."*
-
-We can reconstruct the BAG input at any give time (Ts) by selecting on `begingeldigheid <= Ts <= eindgeldigheid`.
-
-The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
 
 ## Deployment
 

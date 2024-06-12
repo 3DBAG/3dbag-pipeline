@@ -16,7 +16,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS",
     "License :: OSI Approved :: Apache Software License"
 ]
-urls = { github = "https://github.com/3DGI/3dbag-pipeline" }
+urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "dagster",
     "dagster-shell",
@@ -30,7 +30,8 @@ dependencies = [
 dev = [
     "bumpver",
     "tox",
-    "pytest"
+    "pytest",
+    "pytest-postgresql"
 ]
 docs = [
     "mkdocs",

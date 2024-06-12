@@ -1,17 +1,22 @@
 from dagster import build_op_context
 
 from bag3d.core.assets.input import intermediary
-from bag3d.common.custom_types import PostgresTableIdentifier
-from bag3d.core import sqlfiles
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.utils.database import drop_table
 
 
-def test_bag_kas_warenhuis(resource_db_connection_docker, resource_container):
+def test_bag_kas_warenhuis(database):
     """Does the complete asset work?"""
     context = build_op_context(
-        resources={"container": resource_container,
-                   "db_connection": resource_db_connection_docker}
+        resources={"db_connection": database}
     )
     bag_pandactueelbestaand = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
     top10nl_gebouw = PostgresTableIdentifier("top10nl", "gebouw")
+
+    new_table = PostgresTableIdentifier('reconstruction_input', "bag_kas_warenhuis")
+
     res = intermediary.bag_kas_warenhuis(context, bag_pandactueelbestaand,
                                          top10nl_gebouw)
+    assert isinstance(res.value, PostgresTableIdentifier)
+    assert  str(res.value) == f'{new_table.schema}.{new_table.table}'
+    drop_table(context, new_table)

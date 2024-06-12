@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: $IMAGE_NAME
+    platform: linux/amd64
+    container_name: $CONTAINER_NAME
+    ports:
+      - "5560:5432"
+    volumes:
+      - $PATH_TO_TEST_DATA:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    restart: always
