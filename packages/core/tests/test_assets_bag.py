@@ -45,7 +45,7 @@ def test_load_bag_layer(database, test_data_dir, wkt_testarea, docker_gdal_image
 
 
 @pytest.mark.slow
-def test_extract_bag(docker_gdal_image, wkt_testarea, temp_file_store ):
+def test_extract_bag(docker_gdal_image, wkt_testarea, tmp_path):
     context = build_op_context(
         op_config={
             "geofilter": wkt_testarea,
@@ -54,11 +54,10 @@ def test_extract_bag(docker_gdal_image, wkt_testarea, temp_file_store ):
         resources={
             "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
             "file_store": file_store.configured(
-                {"data_dir": str(temp_file_store), })
+                {"data_dir": str(tmp_path), })
         }
     )
 
     res = extract_bag(context)
-    print(str(temp_file_store))
     print(res.metadata)
     assert res.value is not None

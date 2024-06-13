@@ -89,12 +89,3 @@ def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
     return "ghcr.io/osgeo/gdal:alpine-small-latest"
 
-
-@pytest.fixture(scope="function")
-def temp_file_store():
-    r = ''.join(choice(string.ascii_letters) for _ in range(8))
-    tmp = Path(f"/tmp/tmp_3dbag_test_{r}")
-    tmp.mkdir()
-    tmp.chmod(mode=0o777)
-    yield tmp
-    rmtree(str(tmp))
