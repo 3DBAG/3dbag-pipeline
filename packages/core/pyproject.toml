@@ -25,7 +25,7 @@ dependencies = [
     "dagster-postgres",
     "dagster-shell",
     "docker",
-    "pgutils @ git+ssh://git@github.com/balazsdukai/pgutils.git@2024.1012#egg=pgutils",
+    "pgutils @ git+ssh://git@github.com/balazsdukai/pgutils.git@2024.1013#egg=pgutils",
     "psycopg[binary]",
     "lxml>=4.6",
     "fabric"
