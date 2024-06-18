@@ -1,15 +1,12 @@
 import os
-import string
 from pathlib import Path
-from random import choice
-from shutil import rmtree
 
 import pytest
 from bag3d.common.resources.database import DatabaseConnection
+from dagster import build_op_context
+from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 from pytest_postgresql import factories
-from dagster import build_op_context
-from pgutils.connection import  PostgresFunctions
 
 import docker
 
@@ -25,27 +22,27 @@ postgresql_noproc = factories.postgresql_noproc(
     user=USER,
     password=PASSWORD
 )
-# Create the postgresql fixture with a new db - if you want to use existing remove dbname parameter
-postgresql = factories.postgresql('postgresql_noproc', dbname="test", load=[Path("./test.sql")])
+postgresql = factories.postgresql('postgresql_noproc', dbname="test")
 
 
 @pytest.fixture
 def database(postgresql):
-    print(postgresql)
     db = DatabaseConnection(conn = postgresql) 
-
     PostgresFunctions(db)
+    tbl = PostgresTableIdentifier('public', "existing_table")
+    query = SQL(
+        """CREATE TABLE {table} (id INTEGER, value TEXT);
+                   INSERT INTO {table} VALUES (1, 'bla');
+                   INSERT INTO {table} VALUES (2, 'foo');"""
+    ).format(table=Identifier(tbl.schema.str, tbl.table.str))
+
+    db.send_query(query)
     yield db
     db.conn.rollback()
-    # query = SQL("""
-    #         DROP SCHEMA {schema} CASCADE;
-    #     """).format(schema = Identifier("test"))
-    # db.send_query(query)
 
 @pytest.fixture
 def context(database):
     yield build_op_context(resources={"db_connection": database})
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setenv():
