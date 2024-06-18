@@ -7,8 +7,8 @@ from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
 TEST_SCHEMA_NAME = "test"
-TEST_TABLE_NAME = "table1"
-EXISTING_TABLE = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
+EXISTING_TABLE = PostgresTableIdentifier("public", "existing_table")
+NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
 
 # def test_load_sql():
 #     query_params = {
@@ -19,37 +19,18 @@ EXISTING_TABLE = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
 #     assert str(query) == expect
 
 
-def test_table_exists(database):
-    context = build_op_context(resources={"db_connection": database})
-
+def test_table_exists(context):
     assert table_exists(context, EXISTING_TABLE) is True
-
-    non_existing_table = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
-    assert table_exists(context, non_existing_table) is False
+    assert table_exists(context, NON_EXISTING_TABLE) is False
 
 
-def test_drop_table(database):
-    context = build_op_context(resources={"db_connection": database})
-    create_schema(context, TEST_SCHEMA_NAME)
-    tbl = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
-    query = SQL(
-        """CREATE TABLE {table} (id INTEGER, value TEXT);
-                   INSERT INTO {table} VALUES (1, 'bla');
-                   INSERT INTO {table} VALUES (2, 'foo');"""
-    ).format(table=Identifier(tbl.schema.str, tbl.table.str))
-
-    metadata = postgrestable_from_query(context, query, tbl)
-    assert metadata["Rows"] == 2
-
-    assert table_exists(context, tbl) is True
-
-    drop_table(context, tbl)
-
-    assert table_exists(context, tbl) is False
+def test_drop_table(context):
+    assert table_exists(context, EXISTING_TABLE) is True
+    drop_table(context, EXISTING_TABLE)
+    assert table_exists(context, EXISTING_TABLE) is False
 
 
-def test_create_schema(database):
-    context = build_op_context(resources={"db_connection": database})
+def test_create_schema(context):
     create_schema(context, TEST_SCHEMA_NAME)
 
     query = SQL(
@@ -71,23 +52,19 @@ def test_summary_md(database):
     assert lines[0] == "| column | type | NULLs |"
 
 
-def test_postgrestable_metadata(database):
-    context = build_op_context(resources={"db_connection": database})
-    table = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
+def test_postgrestable_metadata(context):
+    res = postgrestable_metadata(context, EXISTING_TABLE)
 
-    res = postgrestable_metadata(context, table)
-
-    print(res)
     assert (
-        res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+        res["Database.Schema.Table"] == "test.public.existing_table"
     )
-    assert res["Rows"] == 0
+    assert res["Rows"] == 2
 
 
-def test_postgrestable_from_query(database):
-    context = build_op_context(resources={"db_connection": database})
+def test_postgrestable_from_query(context):
     create_schema(context, TEST_SCHEMA_NAME)
-    tbl = PostgresTableIdentifier(TEST_SCHEMA_NAME, TEST_TABLE_NAME)
+    tbl = PostgresTableIdentifier('public', "test_table")
+    assert table_exists(context, tbl) is False
 
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
@@ -99,5 +76,5 @@ def test_postgrestable_from_query(database):
     assert metadata["Rows"] == 2
     assert table_exists(context, tbl) is True
 
-    drop_table(context, tbl)
-    assert table_exists(context, tbl) is False
+
+
