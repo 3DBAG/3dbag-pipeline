@@ -1,22 +1,19 @@
-from bag3d.common.utils.database import (create_schema, drop_table, load_sql,
-                                         postgrestable_from_query,
-                                         postgrestable_metadata, summary_md,
-                                         table_exists)
-from dagster import build_op_context
+import pytest
+from bag3d.common.utils.database import (
+    create_schema,
+    drop_table,
+    load_sql,
+    postgrestable_from_query,
+    postgrestable_metadata,
+    summary_md,
+    table_exists,
+)
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
 TEST_SCHEMA_NAME = "test"
 EXISTING_TABLE = PostgresTableIdentifier("public", "existing_table")
 NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
-
-# def test_load_sql():
-#     query_params = {
-#         'tbl': PostgresTableIdentifier('myschema', 'mytable'),
-#     }
-#     query = load_sql(filename="test_table2.sql", query_params=query_params)
-#     expect = "Composed([SQL('create table table2 as select * from '), Identifier('myschema', 'mytable'), SQL(';')])"
-#     assert str(query) == expect
 
 
 def test_table_exists(context):
@@ -55,15 +52,13 @@ def test_summary_md(database):
 def test_postgrestable_metadata(context):
     res = postgrestable_metadata(context, EXISTING_TABLE)
 
-    assert (
-        res["Database.Schema.Table"] == "test.public.existing_table"
-    )
+    assert res["Database.Schema.Table"] == "test.public.existing_table"
     assert res["Rows"] == 2
 
 
 def test_postgrestable_from_query(context):
     create_schema(context, TEST_SCHEMA_NAME)
-    tbl = PostgresTableIdentifier('public', "test_table")
+    tbl = PostgresTableIdentifier("public", "test_table")
     assert table_exists(context, tbl) is False
 
     query = SQL(
@@ -77,4 +72,11 @@ def test_postgrestable_from_query(context):
     assert table_exists(context, tbl) is True
 
 
-
+@pytest.mark.skip(reason="Cannot find module.")
+def test_load_sql():
+    query_params = {
+        "tbl": PostgresTableIdentifier("myschema", "mytable"),
+    }
+    query = load_sql(filename="test_table2.sql", query_params=query_params)
+    expect = "Composed([SQL('create table table2 as select * from '), Identifier('myschema', 'mytable'), SQL(';')])"
+    assert str(query) == expect

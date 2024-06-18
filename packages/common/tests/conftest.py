@@ -10,26 +10,23 @@ from pytest_postgresql import factories
 
 import docker
 
-LOCAL_DIR = os.getenv('PATH_TO_TEST_DATA')
+LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
 HOST = "localhost"
-PORT = os.getenv('POSTGRES_PORT')
-USER = os.getenv('POSTGRES_USER')
-PASSWORD = os.getenv('POSTGRES_PASSWORD')
-DB_NAME = os.getenv('POSTGRES_DB')
+PORT = os.getenv("POSTGRES_PORT")
+USER = os.getenv("POSTGRES_USER")
+PASSWORD = os.getenv("POSTGRES_PASSWORD")
+DB_NAME = os.getenv("POSTGRES_DB")
 postgresql_noproc = factories.postgresql_noproc(
-    host=HOST,
-    port=PORT,
-    user=USER,
-    password=PASSWORD
+    host=HOST, port=PORT, user=USER, password=PASSWORD
 )
-postgresql = factories.postgresql('postgresql_noproc', dbname="test")
+postgresql = factories.postgresql("postgresql_noproc", dbname="test")
 
 
 @pytest.fixture
 def database(postgresql):
-    db = DatabaseConnection(conn = postgresql) 
+    db = DatabaseConnection(conn=postgresql)
     PostgresFunctions(db)
-    tbl = PostgresTableIdentifier('public', "existing_table")
+    tbl = PostgresTableIdentifier("public", "existing_table")
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
                    INSERT INTO {table} VALUES (1, 'bla');
@@ -40,9 +37,11 @@ def database(postgresql):
     yield db
     db.conn.rollback()
 
+
 @pytest.fixture
 def context(database):
     yield build_op_context(resources={"db_connection": database})
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setenv():
@@ -69,4 +68,3 @@ def wkt_testarea():
 def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
     return "ghcr.io/osgeo/gdal:alpine-small-latest"
-
