@@ -1,7 +1,6 @@
 from bag3d.common.utils.database import (create_schema, drop_table,
                                          postgrestable_from_query,
-                                         table_exists
-                                         )
+                                         table_exists)
 from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier

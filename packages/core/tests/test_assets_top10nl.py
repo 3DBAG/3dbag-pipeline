@@ -1,7 +1,6 @@
 import pytest
 from bag3d.common.resources import file_store, gdal
 from bag3d.core.assets.top10nl import download
-from dagster import build_op_context
 
 
 @pytest.mark.slow

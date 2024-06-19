@@ -1,8 +1,5 @@
 import os
-import string
 from pathlib import Path
-from random import choice
-from shutil import rmtree
 
 import pytest
 from bag3d.common.resources.database import DatabaseConnection
