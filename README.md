@@ -39,7 +39,7 @@ The workflow packages contain the assets, jobs, sensors etc. that define a data 
 The reason for this package organisation is that workflow packages have widely different dependencies, and installing them into the same environment bound to lead to dependency conflicts.
 Additionally, this oranisation makes it easier to install and test the workflow packages in isolation.
 
-- `common`: The common package used by the workflow packages.
+- [`common`](/packages/common/README.md): The common package used by the workflow packages.
 - `core`: Workflow for producing the core of the 3D BAG data set.
 - `party_walls`: Workflow for calculating the party walls.
 - `floors-estimation`: Workflow for estimating the number of floors.
