@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from bag3d.common.resources import gdal
+from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import DatabaseConnection
 from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
@@ -29,6 +30,12 @@ def docker_gdal_image():
     return "ghcr.io/osgeo/gdal:alpine-small-latest"
 
 
+@pytest.fixture(scope="function")
+def wkt_testarea():
+    """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
+    yield "Polygon ((136251.531 456118.126, 136620.128 456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 456118.126))"
+
+
 @pytest.fixture
 def database(postgresql):
     db = DatabaseConnection(conn=postgresql)
@@ -46,11 +53,17 @@ def database(postgresql):
 
 
 @pytest.fixture
-def context(database, docker_gdal_image):
+def context(database, docker_gdal_image, wkt_testarea, tmp_path):
     yield build_op_context(
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": ["gebouw", ]
+        },
         resources={
             "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
             "db_connection": database,
+            "file_store": file_store.configured(
+                {"data_dir": str(tmp_path), }),
         }
     )
 
@@ -65,11 +78,17 @@ def baseregisters_database():
 
 
 @pytest.fixture
-def baseregisters_context(baseregisters_database, docker_gdal_image):
+def baseregisters_context(baseregisters_database, docker_gdal_image, wkt_testarea, tmp_path):
     yield build_op_context(
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": ["gebouw", ]
+        },
         resources={
             "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
             "db_connection": baseregisters_database,
+            "file_store": file_store.configured(
+            {"data_dir": str(tmp_path), }),
         }
     )
 
@@ -109,9 +128,3 @@ def test_data_dir():
 @pytest.fixture(scope="session")
 def docker_client():
     return docker.from_env()
-
-
-@pytest.fixture(scope="function")
-def wkt_testarea():
-    """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
-    yield "Polygon ((136251.531 456118.126, 136620.128 456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 456118.126))"
