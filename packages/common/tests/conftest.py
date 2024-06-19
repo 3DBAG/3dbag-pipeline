@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
 
-import pytest
 from bag3d.common.resources import gdal
 from bag3d.common.resources.database import DatabaseConnection
 from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
+from pytest import mark
 from pytest_postgresql import factories
 
 import docker
@@ -90,7 +90,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    skip_slow = mark.skip(reason="need --runslow option to run")
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
