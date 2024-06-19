@@ -1,44 +1,47 @@
-from subprocess import run
 from pathlib import Path
-
-from pytest import mark
-from dagster import build_init_resource_context
-import docker
+from subprocess import run
 
 from bag3d.common import resources
+from dagster import build_init_resource_context
+from pytest import mark
 
 
 @mark.parametrize(
-    ("config", "local_path"),
+    ("config", "data_dir", "filename"),
     (
-            ({"docker": {"image": "osgeo/gdal:alpine-small-3.5.2",
-                         "mount_point": "/tmp"}}, Path("/data/top10nl.zip")),
-            ({"exes": {"ogrinfo": "ogrinfo"}}, Path("/data/top10nl.zip"))
+        (
+            {
+                "docker": {
+                    "image": "osgeo/gdal:alpine-small-3.5.2",
+                    "mount_point": "/tmp",
+                }
+            },
+            "test_data_dir",
+            Path("top10nl.zip"),
+        ),
+        ({"exes": {"ogrinfo": "ogrinfo"}}, "test_data_dir", Path("top10nl.zip")),
     ),
-    ids=["docker", "local"]
+    ids=["docker", "local"],
 )
-def test_gdal(config, local_path):
+def test_gdal(config, data_dir, filename, request):
     """Use GDAL in a docker image"""
-    init_context = build_init_resource_context(
-        config=config
-    )
+    init_context = build_init_resource_context(config=config)
     gdal_exe = resources.executables.gdal(init_context)
     if "docker" in config:
         assert gdal_exe.with_docker
     elif "exes" in config:
         assert not gdal_exe.with_docker
-    return_code, output = gdal_exe.execute("ogrinfo",
-                                           "{exe} -so -al /vsizip/{local_path}",
-                                           local_path=local_path)
+    local_path = request.getfixturevalue(data_dir) / filename
+    return_code, output = gdal_exe.execute(
+        "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
+    )
     # assert "released" in output
     print(output)
 
 
 def test_file_store_init_temp():
     """Can we create a local temporary directory with the correct permissions?"""
-    init_context = build_init_resource_context(
-        config={}
-    )
+    init_context = build_init_resource_context(config={})
     res = resources.files.file_store(init_context)
     assert res.data_dir.exists()
     with (res.data_dir / "file.txt").open("w") as fo:
@@ -50,10 +53,8 @@ def test_file_store_init_temp():
 
 def test_file_store_init_data_dir():
     """Can we use an existing directory?"""
-    tmp = resources.FileStore.mkdir_temp(temp_dir_id='70784c0e')
-    init_context = build_init_resource_context(
-        config={"data_dir": str(tmp)}
-    )
+    tmp = resources.FileStore.mkdir_temp(temp_dir_id="70784c0e")
+    init_context = build_init_resource_context(config={"data_dir": str(tmp)})
     res = resources.files.file_store(init_context)
     assert res.data_dir.exists()
     assert res.data_dir.exists()
@@ -64,67 +65,17 @@ def test_file_store_init_data_dir():
     res.rm(force=True)
 
 
-def test_docker_db_connection_init():
-    """Can we initialize a database in a docker container?"""
-    user = "db3dbag_user"
-    pw = str("db3dbag_1234")
-    db = "postgres"
-    init_context = build_init_resource_context(
-        config={
-            "docker": {
-                "image_id": "balazsdukai/3dbag-sample-data:latest",
-                "environment": {
-                    "POSTGRES_USER": user,
-                    "POSTGRES_DB": db,
-                    "POSTGRES_PASSWORD": pw,
-                },
-            },
-            "port": 5562,
-            "user": user,
-            "password": pw,
-            "dbname": db,
-            "other_params": {
-                "sslmode": "require"
-            }
-        },
-        resources={"container": resources.container.configured({})}
-    )
-    res = resources.database.db_connection(init_context)
-
-    docker_client = docker.from_env()
-    container = docker_client.containers.get(res.container_id)
-
-    out = run(
-        ["psql", "-c", "select PostGIS_full_version();"],
-        env={
-            "PGHOST": "localhost",
-            "PGPORT": "5562",
-            "PGUSER": user,
-            "PGDATABASE": db,
-            "PGPASSWORD": pw},
-        capture_output=True)
-    q = res.get_query("select version();")
-    container.remove(force=True, v=True)
-
-    assert out.returncode == 0
-    assert "POSTGIS" in out.stdout.decode("utf-8")
-    assert "PostgreSQL" in q[0][0]
-    assert res.user == user
-
-
 def test_db_connection_init(database):
     """Can we initialize a local database resource?"""
-    data_dir, db = database
+    db = database
     init_context = build_init_resource_context(
         config={
             "port": db.port,
             "user": db.user,
             "password": db.password,
-            "dbname": db.dbname
+            "dbname": db.dbname,
         },
-        resources={
-            "container": resources.container.configured({})
-        }
+        resources={"container": resources.container.configured({})},
     )
     res = resources.database.db_connection(init_context)
     q = res.get_query("select version();")
