@@ -1,10 +1,10 @@
+import pytest
 from bag3d.common.utils.database import (create_schema, drop_table, load_sql,
                                          postgrestable_from_query,
                                          postgrestable_metadata, summary_md,
                                          table_exists)
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
-from pytest import mark
 
 TEST_SCHEMA_NAME = "test"
 EXISTING_TABLE = PostgresTableIdentifier("public", "existing_table")
@@ -67,7 +67,7 @@ def test_postgrestable_from_query(context):
     assert table_exists(context, tbl) is True
 
 
-@mark.skip(reason="Cannot find module.")
+@pytest.mark.skip(reason="Cannot find module.")
 def test_load_sql():
     query_params = {
         "tbl": PostgresTableIdentifier("myschema", "mytable"),

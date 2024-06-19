@@ -1,5 +1,5 @@
+import pytest
 from bag3d.common.utils.requests import get_extract_download_link, get_metadata
-from pytest import mark
 
 
 def test_get_metadata():
@@ -7,8 +7,8 @@ def test_get_metadata():
     assert res
 
 
-@mark.slow
-@mark.parametrize("geofilter", ("testarea", None), ids=["testarea", "NL"])
+@pytest.mark.slow
+@pytest.mark.parametrize("geofilter", ("testarea", None), ids=["testarea", "NL"])
 def test_download_link(wkt_testarea, geofilter):
     """Can we get a valid download link with a WKT geofilter and also with a None,
     which should download the whole NL?"""

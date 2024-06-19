@@ -1,15 +1,15 @@
 from pathlib import Path
 from pprint import pprint
 
+import pytest
 from bag3d.common.resources import gdal
 from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
                                         ogr2postgres, ogrinfo, parse_ogrinfo)
 from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
-from pytest import mark
 
 
-@mark.parametrize(
+@pytest.mark.parametrize(
     "config",
     ({"exes": {"ogrinfo": "ogrinfo"}}, {"docker": {"image": ""}}),
     ids=["exes", "docker"],
@@ -34,8 +34,8 @@ def test_info_exes(config, docker_gdal_image, test_data_dir):
     assert "gebouw" in res
 
 
-@mark.skip(reason="Fails for BGT")
-@mark.parametrize(
+@pytest.mark.skip(reason="Fails for BGT")
+@pytest.mark.parametrize(
     "data",
     (
         (
@@ -168,7 +168,7 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     assert layerinfo["Feature Count [pand]"] == 20581
 
 
-@mark.parametrize(
+@pytest.mark.parametrize(
     "data",
     (
         (

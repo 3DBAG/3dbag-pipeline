@@ -1,12 +1,12 @@
 from pathlib import Path
 from subprocess import run
 
+import pytest
 from bag3d.common import resources
 from dagster import build_init_resource_context
-from pytest import mark
 
 
-@mark.parametrize(
+@pytest.mark.parametrize(
     ("config", "data_dir", "filename"),
     (
         (
