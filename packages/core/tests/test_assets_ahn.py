@@ -1,24 +1,23 @@
-from pytest import mark
-
-from bag3d.core.assets.ahn.download import get_md5_pdok, URL_LAZ_SHA
+import pytest
 from bag3d.core.assets.ahn.core import download_ahn_index_esri, generate_grid
+from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_md5_pdok
 
 
-@mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
+@pytest.mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
 def test_download_ahn_index_esri(ahn_version):
     tile_ids = download_ahn_index_esri(ahn_version)
     assert len(tile_ids) > 0
     assert tile_ids[list(tile_ids.keys())[0]] is None
 
 
-@mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
+@pytest.mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
 def test_download_ahn_index_esri_geometry(ahn_version):
     features = download_ahn_index_esri(ahn_version, with_geom=True)
     assert len(features) > 0
     assert features[list(features.keys())[0]] is not None
 
 
-@mark.parametrize("url", (
+@pytest.mark.parametrize("url", (
         URL_LAZ_SHA["ahn3"],
         URL_LAZ_SHA["ahn4"]
 ), ids=("ahn3", "ahn4"))

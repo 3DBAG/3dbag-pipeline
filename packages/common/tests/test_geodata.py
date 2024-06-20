@@ -1,61 +1,80 @@
 from pathlib import Path
 from pprint import pprint
 
-from pytest import mark
+import pytest
+from bag3d.common.resources import gdal
+from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
+                                        ogr2postgres, ogrinfo, parse_ogrinfo)
 from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 
-from bag3d.common.resources import gdal
-from bag3d.common.utils.geodata import (ogrinfo, add_info, parse_ogrinfo, ogr2postgres,
-                                        geojson_poly_to_wkt)
 
-
-@mark.parametrize("config", ({"exes": {"ogrinfo": "ogrinfo"}},
-                             {"docker": {"image": ""}}),
-                  ids=["exes", "docker"]
-                  )
-def test_info_exes(config, docker_gdal_image, database):
+@pytest.mark.parametrize(
+    "config",
+    ({"exes": {"ogrinfo": "ogrinfo"}}, {"docker": {"image": ""}}),
+    ids=["exes", "docker"],
+)
+def test_info_exes(config, docker_gdal_image, test_data_dir):
     """Run ogrinfo with local exe and with docker"""
-    data_dir, db = database
     if "docker" in config:
         config["docker"]["image"] = docker_gdal_image
-    context = build_op_context(
-        resources={"gdal": gdal.configured(config)}
+    context = build_op_context(resources={"gdal": gdal.configured(config)})
+    p = Path(f"{test_data_dir}/top10nl.zip")
+    res = dict(
+        ogrinfo(
+            context=context,
+            dataset="top10nl",
+            extract_path=p,
+            feature_types=[
+                "gebouw",
+            ],
+            xsd="https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
+        )
     )
-    p = Path(f"{data_dir}/top10nl.zip")
-    res = dict(ogrinfo(context=context, dataset="top10nl", extract_path=p,
-                       feature_types=["gebouw", ],
-                       xsd="https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"))
     assert "gebouw" in res
 
 
-@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ],
-                            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
-                           ("bgt.zip", "bgt", ["pand", "wegdeel"],
-                            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
-                  ids=lambda val: val[1]
-                  )
-def test_info_data(data, docker_gdal_image, database):
+@pytest.mark.skip(reason="Fails for BGT")
+@pytest.mark.parametrize(
+    "data",
+    (
+        (
+            "top10nl.zip",
+            "top10nl",
+            [
+                "gebouw",
+            ],
+            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
+        ),
+        (
+            "bgt.zip",
+            "bgt",
+            ["pand", "wegdeel"],
+            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
+        ),
+    ),
+    ids=lambda val: val[1],
+)
+def test_info_data(data, context, test_data_dir):
     """Can we run ogrinfo on all datasets?"""
-    data_dir, db = database
     path, dataset, feature_types, xsd = data
-    context = build_op_context(
-        resources={"gdal": gdal.configured({
-            "docker": {"image": docker_gdal_image}
-        })}
-    )
     metadata = {
         "Extract Path": "path",
         "Download URL": "url",
         "Size [Mb]": 2.0,
         "timeliness": {"2022-10-08": feature_types},
     }
-    res = ogrinfo(context=context, dataset=dataset,
-                  extract_path=Path(f"{data_dir}/{path}"),
-                  feature_types=feature_types,
-                  xsd=xsd)
+    res = ogrinfo(
+        context=context,
+        dataset=dataset,
+        extract_path=Path(f"{test_data_dir}/{path}"),
+        feature_types=feature_types,
+        xsd=xsd,
+    )
+    assert res["gebouw"]["Feature Count [gebouw]"] == 1071
     add_info(metadata, res)
-    pprint(metadata)
+    assert metadata["Size [Mb]"] == 2.0
+    assert metadata["Timeliness [gebouw]"] == "2022-10-08"
 
 
 def test_parse_ogrinfo():
@@ -145,33 +164,60 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     """
     layername, layerinfo = parse_ogrinfo(ogrinfo_stdout, "pand")
 
+    assert layername == "pand"
+    assert layerinfo["Feature Count [pand]"] == 20581
 
-@mark.parametrize("data", (("top10nl.zip", "top10nl", ["gebouw", ],
-                            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"),
-                           ("bgt.zip", "bgt", ["pand", "wegdeel"],
-                            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd")),
-                  ids=lambda val: val[1]
-                  )
-def test_ogr2postgres(data, docker_gdal_image, database, resource_container):
-    data_dir, db_connection = database
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        (
+            "top10nl.zip",
+            "top10nl",
+            [
+                "gebouw",
+            ],
+            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
+        ),
+        (
+            "bgt.zip",
+            "bgt",
+            ["pand", "wegdeel"],
+            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
+        ),
+    ),
+    ids=lambda val: val[1],
+)
+def test_ogr2postgres(data, baseregisters_context, test_data_dir):
     path, dataset, feature_types, xsd = data
-    context = build_op_context(
-        resources={
-            "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
-            "db_connection": db_connection,
-            "container": resource_container
-        }
+    res = ogr2postgres(
+        context=baseregisters_context,
+        dataset=dataset,
+        extract_path=Path(f"{test_data_dir}/{path}"),
+        feature_type=feature_types[0],
+        xsd=xsd,
+        new_table=PostgresTableIdentifier("public", feature_types[0]),
     )
-    res = ogr2postgres(context=context, dataset=dataset,
-                       extract_path=Path(f"{data_dir}/{path}"),
-                       feature_type=feature_types[0], xsd=xsd,
-                       new_table=PostgresTableIdentifier("public", feature_types[0]))
-    print(res)
+    assert (
+        res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
+    )
 
 
 def test_geojson_poly_to_wkt():
-    geometry = {'coordinates': [
-        [[45000, 387500], [45000, 393750], [50000, 393750], [50000, 387500],
-         [45000, 387500]]], 'type': 'Polygon'}
+    geometry = {
+        "coordinates": [
+            [
+                [45000, 387500],
+                [45000, 393750],
+                [50000, 393750],
+                [50000, 387500],
+                [45000, 387500],
+            ]
+        ],
+        "type": "Polygon",
+    }
     wkt = geojson_poly_to_wkt(geometry)
-    print(wkt)
+    assert (
+        wkt
+        == "POLYGON((45000 387500,45000 393750,50000 393750,50000 387500,45000 387500))"
+    )
