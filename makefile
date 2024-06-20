@@ -33,5 +33,5 @@ start_dagster: source
 
 test: source
 	. $(PATH_TO_VENVS)/venv_core/bin/activate ; pytest $(REPO)/packages/core/tests/ -v ; pytest $(REPO)/packages/common/tests/ -v
-# source $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; pytest $(REPO)/packages/party_walls/tests -v
+	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; pytest $(REPO)/packages/party_walls/tests -v
 # source $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; pytest $(REPO)/packages/floors_estimation/tests -v
