@@ -9,7 +9,9 @@ download: source
 # TODO: Change this to download the baseregisters.tar file from a link
 	mkdir -p $(PATH_TO_TEST_DATA)
 	rsync -azhP --ignore-existing $(SERVER_NAME):/data/3DBAG_Pipeline_test_data/ $(PATH_TO_TEST_DATA)
-
+	ln -sfr $(PATH_TO_TEST_DATA)/reconstruction_data/input/export/3DBAG/export/quadtree.tsv $(PATH_TO_TEST_DATA)/reconstruction_data/input/export_uncompressed/3DBAG/export/quadtree.tsv
+# ln -fsnr $(PATH_TO_TEST_DATA)/reconstruction_data/input/ $(REPO)/packages/party_walls/tests/data
+ 
 build: source
 	docker build -t $(IMAGE_NAME) $(PATH_TO_DOCKERFILE) --build-arg pg_user=$(POSTGRES_USER) --build-arg pg_pswd=$(POSTGRES_PASSWORD) --build-arg pg_db=$(POSTGRES_DB) 
 run:
