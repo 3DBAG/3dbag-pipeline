@@ -1,16 +1,10 @@
+import os
 from pathlib import Path
 
 import pytest
-
-from bag3d.common.resources.database import container
-import os
-
-import pytest
+from bag3d.common.resources.database import DatabaseConnection, container
 from bag3d.common.resources.files import file_store
-from bag3d.common.resources.database import DatabaseConnection
 from dagster import build_op_context
-
-
 
 LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
 HOST = "localhost"
@@ -69,10 +63,17 @@ def context(database, export_dir_uncompressed, input_data_dir):
         resources={
             "db_connection": database,
             "file_store": file_store.configured(
-                 {"data_dir": str(export_dir_uncompressed), }),
+                {
+                    "data_dir": str(export_dir_uncompressed),
+                }
+            ),
             "file_store_fastssd": file_store.configured(
-                {"data_dir": str(input_data_dir), })}        
-            )
+                {
+                    "data_dir": str(input_data_dir),
+                }
+            ),
+        }
+    )
 
 
 @pytest.fixture(scope="session")
