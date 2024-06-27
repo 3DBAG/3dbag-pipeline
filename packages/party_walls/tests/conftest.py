@@ -60,6 +60,7 @@ def database():
 @pytest.fixture
 def context(database, export_dir_uncompressed, input_data_dir):
     yield build_op_context(
+        partition_key='10/564/624',
         resources={
             "db_connection": database,
             "file_store": file_store.configured(

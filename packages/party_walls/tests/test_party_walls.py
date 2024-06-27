@@ -2,41 +2,52 @@ import os
 
 import pandas as pd
 import pytest
-from bag3d.common.resources.files import file_store
 from bag3d.party_walls.assets.party_walls import (
-    cityjsonfeatures_with_party_walls_nl, distribution_tiles_files_index,
-    features_file_index, features_file_index_generator, party_walls_nl)
-from dagster import (materialize_to_memory)
+    TilesFilesIndex, cityjsonfeatures_with_party_walls_nl,
+    distribution_tiles_files_index, features_file_index,
+    features_file_index_generator, party_walls_nl)
+
+TILE_IDS = ('10/564/624', '10/564/626', '10/566/624', '10/566/626', '9/560/624')
+
+import pickle
+from pathlib import Path
+
+from dagster import asset
+
+
+@asset(name="party_walls_nl")
+def mock_party_walls_nl(output_data_dir)  -> pd.DataFrame:
+    return pd.read_csv(output_data_dir / "party_walls_nl.csv")
+
+
+@asset(name="distribution_tiles_files_index")
+def mock_distribution_tiles_files_index(output_data_dir)  -> TilesFilesIndex:
+    return pickle.load(open(output_data_dir / "distribution_tiles_files_index.pkl", "rb"))
+
+
+@asset(name="features_file_index")
+def mock_features_file_index(output_data_dir)  -> dict[str, Path]:
+    return pickle.load(open(output_data_dir / "features_file_index.pkl", "rb"))
 
 
 def test_distribution_tiles_files_index(context):
     """Can we parse the CityJSON tiles and return valid data? """
-    tile_ids = ('10/564/624', '10/564/626', '10/566/624', '10/566/626', '9/560/624')
-
+    
     result = distribution_tiles_files_index(
         context
     )
-    assert len(result.tree.geometries) == len(tile_ids)
-    assert len(result.paths_array) == len(tile_ids)
+    assert len(result.tree.geometries) == len(TILE_IDS)
+    assert len(result.paths_array) == len(TILE_IDS)
     result_tile_ids = tuple(sorted(result.export_results.keys()))
-    assert result_tile_ids == tile_ids
+    assert result_tile_ids == TILE_IDS
+
 
 @pytest.mark.slow
-def test_party_walls(database, resource_container,
-                     output_data_dir, export_dir_uncompressed):
+def test_party_walls(context, output_data_dir):
     """Can we compute the party walls and other statistics?"""
-    result = materialize_to_memory(
-        [party_walls_nl, distribution_tiles_files_index],
-        partition_key='10/564/624',
-        resources={"db_connection": database,
-                   "container": resource_container,
-                   "file_store": file_store.configured(
-                 {"data_dir": str(export_dir_uncompressed), }),}
-    )
-    df = result.asset_value("party_walls_nl")
-    df.to_csv(str(output_data_dir / "party_walls_nl.csv"))
-    assert not df.empty
-    assert result.success
+
+    result = party_walls_nl(context, mock_distribution_tiles_files_index(output_data_dir))
+    assert not result.empty
 
 
 def test_features_file_index_generator(crop_reconstruct_data_dir):
@@ -45,27 +56,27 @@ def test_features_file_index_generator(crop_reconstruct_data_dir):
     assert len(result) == 5825
 
 
-def test_features_file_index(context):
+def test_features_file_index(context, output_data_dir):
     """Can we find and map all the 5800 citjsonfeature files of the test data?"""
     result = features_file_index(
          context=context
     )
     assert len(result) == 5825
+    pickle.dump(result, open(output_data_dir / "features_file_index.pkl", "wb"))
 
 
+
+@pytest.mark.slow
 def test_cityjsonfeatures_with_party_walls_nl(context,
-                                              crop_reconstruct_data_dir,
                                               output_data_dir):
-    """Can we create cityjsonfeatures with the party wall data?
-    Currently, this test uses the csv that is created by `test_party_walls`.
-    """
-    features_file_index_dict = dict(
-        features_file_index_generator(crop_reconstruct_data_dir))
-    party_walls_nl_df = pd.read_csv(output_data_dir / "party_walls_nl.csv")
+    """Can we create cityjsonfeatures with the party wall data?"""
     result = cityjsonfeatures_with_party_walls_nl(
         context=context,
-        party_walls_nl=party_walls_nl_df,
-        features_file_index=features_file_index_dict
+        party_walls_nl=mock_party_walls_nl(output_data_dir),
+        features_file_index=mock_features_file_index(output_data_dir)
     )
     assert result[0].stem == 'NL.IMBAG.Pand.0307100000308298.city'
     assert result[0].suffix == '.jsonl'
+
+
+
