@@ -27,7 +27,9 @@ dependencies = [
     "dagster",
     "dagster-postgres", # always need dagster-postgres, because we are using Postgres as the dagster run storage
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-postgresql"] }
+
+[project.optional-dependencies] 
+dev = ["pytest", "bumpver", "tox", "pytest-dotenv"] 
 
 [tool.bumpver]
 current_version = "2024.1002"
