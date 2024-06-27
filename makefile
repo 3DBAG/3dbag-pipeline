@@ -26,10 +26,10 @@ venvs: source
 	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; cd $(REPO)/packages/floors_estimation ; pip install -e .[dev]
 	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; cd $(REPO)/packages/party_walls ; pip install -e .[dev]
 	. $(PATH_TO_VENVS)/venv_core/bin/activate ; cd $(REPO)/packages/core ; pip install -e .[dev]
-	. $(PATH_TO_VENVS)/venv_dagster/bin/activate ; pip install dagster dagster-webserver dagster-postgres
+	. $(PATH_TO_VENVS)/venv_dagster/bin/activate ; pip install dagster dagster-webserver dagster-postgres pytest-dotenv
 	
 start_dagster: source
-	cd $(DAGSTER_HOME) ; source $(PATH_TO_VENVS)/venv_dagster/bin/activate ;  dagster dev
+	set -a ; . ./.env ; set +a; . $(PATH_TO_VENVS)/venv_dagster/bin/activate ; cd $(DAGSTER_HOME) ;   dagster dev
 
 test: source
 	. $(PATH_TO_VENVS)/venv_core/bin/activate ; pytest $(REPO)/packages/core/tests/ -v ; pytest $(REPO)/packages/common/tests/ -v
