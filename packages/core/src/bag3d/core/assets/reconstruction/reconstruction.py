@@ -241,7 +241,7 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
     CITYJSON_SCALE_Y=0.001
     CITYJSON_SCALE_Z=0.001
     """
-    tile_id = context.asset_partition_key_for_output()
+    tile_id = context.partition_key
     query_laz_tiles = SQL("""    
     SELECT DISTINCT g.id
     FROM {tile_index} AS i

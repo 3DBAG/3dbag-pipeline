@@ -75,7 +75,7 @@ def party_walls_nl(context,
     The statistics calculation is done with the [CityStats.city_stats](https://github.com/balazsdukai/urban-morphology-3d/blob/f145a784225b668b936abda1505c322c5e33b5ca/src/urban_morphology_3d/cityStats.py#L583C1-L714C1)
     function.
     """
-    tile_id = context.asset_partition_key_for_output()
+    tile_id = context.partition_key
     export_result = distribution_tiles_files_index.export_results[tile_id]
 
     tile_shapley_poly = from_wkt(export_result.wkt)
