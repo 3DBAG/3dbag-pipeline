@@ -1,21 +1,20 @@
 # Local env
-/.env_balazs_local
+/.env_*
+/.env
 
 # IDE config
 /.run/
 .idea
 
 # Python build artefacts and chache
-/tests/.pytest_cache/
+.pytest_cache/
 /src/bag3d_pipeline.egg-info/
 /.tox/
 *__pycache__*
 
 # Test data
 /tmp/*
-/xsd/lvbag-extract-v20200601/
-/xsd/top10nl/
-/tests/data/
+/test_data/
 /packages/party_walls/tests/data/
 /packages/core/tests/data/
 
@@ -28,6 +27,7 @@
 /tests/dagster_home/logs/
 /tests/dagster_home/.nux
 /tests/dagster_home/tmp*
+/tests/dagster_home/.env
 
 /packages/common/src/bag3d_common.egg-info/
 /packages/common/.tox/
@@ -36,10 +36,11 @@
 /packages/core/src/bag3d_core.egg-info/
 /packages/core/tests/.pytest_cache/
 /packages/core/.tox/
+/packages/core/build/
 /packages/party_walls/src/bag3d_party_walls.egg-info/
 /packages/party_walls/tests/.pytest_cache/
+/packages/party_walls/build/
 /packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
 /packages/floors_estimation/tests/.pytest_cache/
+/packages/floors_estimation/build/
 
-*.DS_Store
-/test_data/
