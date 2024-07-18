@@ -230,17 +230,9 @@ def sensor_sample_data(context):
 
     if context.dagster_run.job_name != job_sample_data_image.name:
         run_config = {
-            "ops": {
-                "sample_data_image": {
-                    "config": {"image_repository": base_image,
-                               "image_tag": image_tag,
-                               "image_data_dir": "/data_container",
-                               "image_push": do_push}}
-            },
             "resources": {
                 "file_store": {"config": {"data_dir": temp_path}},
-                "container": {"config": {"id": container_id}},
-                "docker_hub": {}
+                "container": {"config": {"id": container_id}}
             }
         }
         return RunRequest(run_key=None, run_config=run_config)

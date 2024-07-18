@@ -9,28 +9,6 @@ from pgutils import PostgresConnection, PostgresFunctions
 from bag3d.common.utils.dagster import get_run_id
 
 
-class DockerHub:
-    def __init__(self, username: str, password: str):
-        self.username = username
-        self.password = password
-
-
-@resource(
-    config_schema={
-        "username": Field(
-            Noneable(str), description="DockerHub username."
-        ),
-        "password": Field(
-            Noneable(str), description="DockerHub password."
-        )
-    }
-)
-def docker_hub(context):
-    """DockerHub credentials."""
-    return DockerHub(username=context.resource_config["username"],
-                     password=context.resource_config["password"])
-
-
 def make_container_id(run_id):
     return f"3dbag-{run_id}"
 

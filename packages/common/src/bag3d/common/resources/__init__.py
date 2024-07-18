@@ -2,18 +2,13 @@ import os
 
 from bag3d.common.resources.executables import gdal, partialzip, pdal, lastools, tyler, geoflow, roofer
 from bag3d.common.resources.files import FileStore, file_store
-from bag3d.common.resources.database import db_connection, container, docker_hub
+from bag3d.common.resources.database import db_connection, container
 # from bag3d.common.simple_for_testing import conf_simpl_dock
 
 from bag3d.common.resources.temp_until_configurableresource import (
 EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
 FLOWCHART_PATH_RECONSTRUCT
 )
-
-docker_hub_conf = docker_hub.configured({
-    "username": os.environ.get("DOCKERHUB_USERNAME"),
-    "password": os.environ.get("DOCKERHUB_PASSWORD")
-})
 
 # Local config ---
 
@@ -47,7 +42,6 @@ RESOURCES_LOCAL = {
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
     "container": container,
-    "docker_hub": docker_hub_conf,
     "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
@@ -63,7 +57,6 @@ RESOURCES_PYTEST = {
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
     "container": container,
-    "docker_hub": docker_hub_conf,
     "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
@@ -134,8 +127,6 @@ RESOURCES_PROD = {
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection_from_env,
     "container": container,
-    "docker_hub": docker_hub_conf,
-    # "simple_docker": conf_simpl_dock,
     "pdal": pdal_prod,
     "lastools": lastools_prod,
     "tyler": tyler_prod,
