@@ -39,11 +39,6 @@ def simple_docker(context):
         container_id=context.resources.container.id
     )
 
-
-conf_simpl_dock = simple_docker.configured(
-    {"image_id": "balazsdukai/3dbag-sample-data:latest"})
-
-
 @asset(
     key_prefix="test",
     group_name="test",

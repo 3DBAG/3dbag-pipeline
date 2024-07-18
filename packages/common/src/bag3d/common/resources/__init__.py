@@ -20,22 +20,15 @@ gdal_local = gdal.configured({
     }
 })
 
-pguser = "db3dbag_user"
-pgpassword = str("db3dbag_1234")
-pgdatabase = "baseregisters"
 
 db_connection_docker = db_connection.configured({
-    "docker": {
-        "image_id": "balazsdukai/3dbag-sample-data:base",
-    },
-    "port": 5561,
-    "user": pguser,
-    "password": pgpassword,
-    "dbname": pgdatabase
+    "port": os.getenv("POSTGRES_PORT"),
+    "user": os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
+    "dbname": 'baseregisters',
 })
 
 
-# The local resources are set up to run with the 3dbag-sample-data docker image
 RESOURCES_LOCAL = {
     "gdal": gdal,
     "file_store": file_store,
