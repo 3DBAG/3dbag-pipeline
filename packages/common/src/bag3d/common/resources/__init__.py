@@ -25,7 +25,7 @@ db_connection_docker = db_connection.configured({
     "port": int(os.getenv("POSTGRES_PORT")),
     "user": os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
-    "dbname": 'baseregisters',
+    "dbname": 'baseregisters_empty',
 })
 
 
@@ -116,7 +116,7 @@ RESOURCES_PROD = {
     "gdal": gdal_prod,
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
-    "db_connection": db_connection_from_env,
+    "db_connection": db_connection_docker,
     "pdal": pdal_prod,
     "lastools": lastools_prod,
     "tyler": tyler_prod,
