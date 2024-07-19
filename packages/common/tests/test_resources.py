@@ -12,7 +12,7 @@ from dagster import build_init_resource_context
         (
             {
                 "docker": {
-                    "image": "osgeo/gdal:alpine-small-3.5.2",
+                    "image": resources.executables.DOCKER_GDAL_IMAGE,
                     "mount_point": "/tmp",
                 }
             },

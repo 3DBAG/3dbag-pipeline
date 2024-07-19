@@ -1,6 +1,6 @@
 import os
 
-from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geoflow, roofer
+from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geoflow, roofer, DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 # from bag3d.common.simple_for_testing import conf_simpl_dock
@@ -15,7 +15,7 @@ FLOWCHART_PATH_RECONSTRUCT
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 gdal_local = gdal.configured({
     "docker": {
-        "image": "osgeo/gdal:alpine-small-3.5.2",
+        "image": DOCKER_GDAL_IMAGE,
         "mount_point": "/tmp"
     }
 })
