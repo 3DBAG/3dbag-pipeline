@@ -1,6 +1,7 @@
 services:
   postgres:
     image: $IMAGE_NAME
+    command: -c 'shared_buffers=1GB'
     platform: linux/amd64
     container_name: $CONTAINER_NAME
     ports:
