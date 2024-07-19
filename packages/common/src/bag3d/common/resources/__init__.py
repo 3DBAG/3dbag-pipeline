@@ -1,8 +1,8 @@
 import os
 
-from bag3d.common.resources.executables import gdal, partialzip, pdal, lastools, tyler, geoflow, roofer
-from bag3d.common.resources.files import FileStore, file_store
-from bag3d.common.resources.database import db_connection, DockerContainer
+from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geoflow, roofer
+from bag3d.common.resources.files import file_store
+from bag3d.common.resources.database import db_connection
 # from bag3d.common.simple_for_testing import conf_simpl_dock
 
 from bag3d.common.resources.temp_until_configurableresource import (
