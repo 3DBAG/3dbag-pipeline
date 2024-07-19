@@ -215,10 +215,8 @@ def sensor_sample_data(context):
     # Run Id of the monitored job. In order to find the container the dir path, we
     # need the Run Id of the monitored job.
     deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
-    if deployment_name == "pytest":
-        base_image = "busybox:latest"
-    else:
-        base_image = "balazsdukai/3dbag-sample-data"
+    base_image = "busybox:latest"
+
     do_push = True if deployment_name == "prod" else False
 
     run_id = get_run_id(context, short=True)

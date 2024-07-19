@@ -2,7 +2,7 @@ import os
 
 from bag3d.common.resources.executables import gdal, partialzip, pdal, lastools, tyler, geoflow, roofer
 from bag3d.common.resources.files import FileStore, file_store
-from bag3d.common.resources.database import db_connection, container
+from bag3d.common.resources.database import db_connection, DockerContainer
 # from bag3d.common.simple_for_testing import conf_simpl_dock
 
 from bag3d.common.resources.temp_until_configurableresource import (
@@ -22,7 +22,7 @@ gdal_local = gdal.configured({
 
 
 db_connection_docker = db_connection.configured({
-    "port": os.getenv("POSTGRES_PORT"),
+    "port": int(os.getenv("POSTGRES_PORT")),
     "user": os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
     "dbname": 'baseregisters',
@@ -34,7 +34,6 @@ RESOURCES_LOCAL = {
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "container": container,
     "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
@@ -49,7 +48,6 @@ RESOURCES_PYTEST = {
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "container": container,
     "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
@@ -119,7 +117,6 @@ RESOURCES_PROD = {
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection_from_env,
-    "container": container,
     "pdal": pdal_prod,
     "lastools": lastools_prod,
     "tyler": tyler_prod,
