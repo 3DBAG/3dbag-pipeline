@@ -25,6 +25,7 @@ CONTAINER_NAME=bag3d_container_postgis
 POSTGRES_USER=baseregisters_test_user
 POSTGRES_PASSWORD=baseregisters_test_pswd
 POSTGRES_DB=baseregisters_test
+POSTGRES_DB_PRD=baseregisters_empty
 POSTGRES_PORT=5560
 
 SERVER_NAME=<net_id>@gilfoyle

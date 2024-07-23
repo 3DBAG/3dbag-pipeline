@@ -75,7 +75,7 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
             port=int(os.environ.get("POSTGRES_PORT", 5432)),
             user=os.environ.get("POSTGRES_USER"),
             password=os.environ.get("POSTGRES_PASSWORD"),
-            dbname="baseregisters_empty",
+            dbname= os.environ.get("POSTGRES_DB_PRD"),
             host=os.environ.get("POSTGRES_HOST"),
         )
         tile_ids = [row[0] for row in conn.get_query(query)]
