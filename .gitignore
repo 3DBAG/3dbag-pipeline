@@ -43,6 +43,3 @@
 /packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
 /packages/floors_estimation/tests/.pytest_cache/
 /packages/floors_estimation/build/
-
-justfile
-to_ignore/
