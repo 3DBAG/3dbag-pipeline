@@ -50,20 +50,12 @@ def test_party_walls(context, output_data_dir):
     assert not result.empty
 
 
-def test_features_file_index_generator(crop_reconstruct_data_dir):
-    """Can we find and map all the 5800 citjsonfeature files of the test data?"""
-    result = dict(features_file_index_generator(crop_reconstruct_data_dir))
-    assert len(result) == 5825
-
-
-def test_features_file_index(context, output_data_dir):
-    """Can we find and map all the 5800 citjsonfeature files of the test data?"""
+def test_features_file_index(context):
+    """Can we find and map all the 5800 cityjson feature files of the test data?"""
     result = features_file_index(
          context=context
     )
     assert len(result) == 5825
-    pickle.dump(result, open(output_data_dir / "features_file_index.pkl", "wb"))
-
 
 
 @pytest.mark.slow

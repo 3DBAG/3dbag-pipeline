@@ -10,7 +10,7 @@ Requires:
 - SSH connection to gilfoyle
 - Docker
 
-First you need to set up the following environment variables. You can set up a .env file for that in the root of this repo. This .env is also needed for running the makefile:
+First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
 
 ```bash
 PATH_TO_VENVS=${PWD}/venvs
@@ -80,7 +80,11 @@ The documentation of the components of the workflow packages can be viewed in th
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
 The virtual environment names follow the pattern of `venv_<package>`. You need to set up:  `/venvs/venv_core`, `/venvs/venv_party_walls` and `/venvs/venv_floors_estimation`
 
-The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
+The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the required packages from `requirements_dagster_webserver.txt`.
+
+```shell
+pip install -r requirements_dagster_webserver.txt
+```
 
 To set up all this in one step you can run (make sure you've set the .env variables):
 
