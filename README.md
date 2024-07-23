@@ -8,10 +8,32 @@ Requires:
 
 - Python 3.11
 - SSH connection to gilfoyle
+- Docker
 
-For running locally you will need a docker installation.
+First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
 
-As a first step you need to set up the variables for the REPO and SERVER_NAME in the sample .env file 
+```shell
+# contents of .env 
+REPO=<Path to repo>
+PATH_TO_VENVS=${REPO}/venvs
+PATH_TO_TEST_DATA=${REPO}/test_data
+PATH_TO_DOCKERFILE=${REPO}/docker/postgres
+DAGSTER_HOME=${REPO}/tests/dagster_home
+
+IMAGE_NAME=bag3d_image_postgis
+CONTAINER_NAME=bag3d_container_postgis
+
+POSTGRES_USER=baseregisters_test_user
+POSTGRES_PASSWORD=baseregisters_test_pswd
+POSTGRES_DB=baseregisters_test
+POSTGRES_PORT=5560
+
+SERVER_NAME=<net_id>@gilfoyle
+SERVER_RECONSTRUCTION_DIR=/fastssd/data/3DBAG/crop_reconstruct_og
+SERVER_3DBAG_DIR=/data/3DBAG/
+
+BAG3D_EXPORT_DIR=${PATH_TO_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
+```
 
 Then you run the tests from the root directory of the repo with:
 
@@ -40,9 +62,9 @@ The reason for this package organisation is that workflow packages have widely d
 Additionally, this oranisation makes it easier to install and test the workflow packages in isolation.
 
 - [`common`](/packages/common/README.md): The common package used by the workflow packages.
-- `core`: Workflow for producing the core of the 3D BAG data set.
-- `party_walls`: Workflow for calculating the party walls.
-- `floors-estimation`: Workflow for estimating the number of floors.
+- [`core`](/packages/core/README.md): Workflow for producing the core of the 3D BAG data set.
+- [`party_walls`](/packages/party_walls/README.md): Workflow for calculating the party walls.
+- [`floors-estimation`](/packages/floors_estimation/README.md): Workflow for estimating the number of floors.
 
 ## Documentation
 
@@ -54,7 +76,11 @@ The documentation of the components of the workflow packages can be viewed in th
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
 The virtual environment names follow the pattern of `venv_<package>`. You need to set up:  `/venvs/venv_core`, `/venvs/venv_party_walls` and `/venvs/venv_floors_estimation`
 
-The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
+The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the required packages from `requirements_dagster_webserver.txt`.
+
+```
+pip install -r requirements_dagster_webserver.txt
+```
 
 The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
 In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance.

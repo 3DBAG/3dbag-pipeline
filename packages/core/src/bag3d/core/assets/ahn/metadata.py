@@ -90,7 +90,7 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
     Returns:
 
     """
-    tile_id = context.asset_partition_key_for_output()
+    tile_id = context.partition_key
     conn = context.resources.db_connection
     if not laz_files_ahn.new:
         if not context.op_config["force"]:

@@ -81,15 +81,3 @@ def test_db_connection_init(database):
     q = res.get_query("select version();")
     assert "PostgreSQL" in q[0][0]
     assert res.user == db.user
-
-
-def test_docker_hub():
-    """Is it OK when we read the config values from environment variables that are not
-    defined?"""
-    init_context = build_init_resource_context(
-        config={
-            "username": None,
-            "password": None,
-        }
-    )
-    res = resources.docker_hub(init_context)

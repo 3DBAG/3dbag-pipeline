@@ -104,4 +104,7 @@ def get_export_tile_ids() -> Sequence[str]:
         if path_quadtree_tsv.exists():
             tileids = [er.tile_id for er in
                        check_export_results(path_quadtree_tsv, path_tiles_dir)]
+    else:
+        raise FileNotFoundError(f"""Export directory {export_dir} does not exist.
+                                You need to set the BAG3D_EXPORT_DIR variable.""")
     return tileids
