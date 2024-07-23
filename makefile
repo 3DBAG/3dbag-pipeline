@@ -13,7 +13,7 @@ download: source
  
 build: source
 	docker build -t $(IMAGE_NAME) $(PATH_TO_DOCKERFILE) --build-arg pg_user=$(POSTGRES_USER) --build-arg pg_pswd=$(POSTGRES_PASSWORD) --build-arg pg_db=$(POSTGRES_DB) 
-run:
+run: source
 	docker compose --env-file ./.env -f docker/compose.yaml up -d
 
 stop: source

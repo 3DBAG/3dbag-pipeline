@@ -44,3 +44,5 @@
 /packages/floors_estimation/tests/.pytest_cache/
 /packages/floors_estimation/build/
 
+justfile
+to_ignore/
