@@ -10,15 +10,15 @@ Requires:
 - SSH connection to gilfoyle
 - Docker
 
-First you need to set up the following environment variables. You can set up a .env file for that in the root of this repo. This .env is also needed for running the makefile:
+First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
 
 ```shell
+# contents of .env 
 REPO=<Path to repo>
 PATH_TO_VENVS=${REPO}/venvs
 PATH_TO_TEST_DATA=${REPO}/test_data
 PATH_TO_DOCKERFILE=${REPO}/docker/postgres
 DAGSTER_HOME=${REPO}/tests/dagster_home
-
 
 IMAGE_NAME=bag3d_image_postgis
 CONTAINER_NAME=bag3d_container_postgis
