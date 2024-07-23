@@ -12,12 +12,11 @@ Requires:
 
 First you need to set up the following environment variables. You can set up a .env file for that in the root of this repo. This .env is also needed for running the makefile:
 
-```shell
-REPO=<Path to repo>
-PATH_TO_VENVS=${REPO}/venvs
-PATH_TO_TEST_DATA=${REPO}/test_data
-PATH_TO_DOCKERFILE=${REPO}/docker/postgres
-DAGSTER_HOME=${REPO}/tests/dagster_home
+```bash
+PATH_TO_VENVS=${PWD}/venvs
+PATH_TO_TEST_DATA=${PWD}/test_data
+PATH_TO_DOCKERFILE=${PWD}/docker/postgres
+DAGSTER_HOME=${PWD}/tests/dagster_home
 
 
 IMAGE_NAME=bag3d_image_postgis
@@ -52,14 +51,19 @@ make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
 
+
+## Requirements
+
+TODO
+
 ## Packages
 
 The packages are organized into a `common` package and a number of workflow packages.
 The `common` package contains the resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows.
 The workflow packages contain the assets, jobs, sensors etc. that define a data processing workflow for a part of the complete 3D BAG.
 
-The reason for this package organisation is that workflow packages have widely different dependencies, and installing them into the same environment bound to lead to dependency conflicts.
-Additionally, this oranisation makes it easier to install and test the workflow packages in isolation.
+The reason for this package organization is that workflow packages have widely different dependencies, and installing them into the same environment bound to lead to dependency conflicts.
+Additionally, this organization makes it easier to install and test the workflow packages in isolation.
 
 - [`common`](/packages/common/README.md): The common package used by the workflow packages.
 - [`core`](/packages/core/README.md): Workflow for producing the core of the 3D BAG data set.
@@ -78,58 +82,61 @@ The virtual environment names follow the pattern of `venv_<package>`. You need t
 
 The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the package with `pip install dagster-webserver`.
 
-The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
-In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance.
-If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
-
-```shell
-cd 3dbag-pipeline/tests/dagster_home
-dagster dev
-```
-
-The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
-
-To set up all this in one step you can run :
+To set up all this in one step you can run (make sure you've set the .env variables):
 
 ```bash
 make venvs
 ```
 
+The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
+In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance with:
+```shell
+cd tests/dagster_home
+dagster dev
+```
+
+If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
+
+You can also start it up directly with:
+
+```shell
+make start_dagster
+```
+
+The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
+
+
+
 ### Data
 
-Dependencies:
-- [just](https://just.systems/)
-- docker
+Download test data with:
 
-*Just* reads some variables from a dotenv (`.env`) file from the root `3dbag-pipeline` directory.
-These variables define the download server and the location of the data.
-Thus, you need to create a `.env` file and set these variables:
+```
+export PATH_TO_TEST_DATA=<path/to/where/the/data/should/be/stored>
+make download
+```
+
+### Unit testing
+
+Tests are run separately for each package and they are located in the `tests` directory of the package.
+Tests use `pytest`.
+
+The tests use the sample data that are downloaded as shown above.
+You can run the sample tests with:
 
 ```shell
-# contents of .env
-SERVER_NAME="server URL that will be used by rsync"
-SERVER_3DBAG_DIR="path to the 3D BAG data directory on the server"
-SERVER_RECONSTRUCTION_DIR="path to the crop_reconstruct dir"
+make test
 ```
 
-The test data setup across all packages is managed with just from the root directory.
-You need to init the data directories and download all test files:
+#### Long running tests
+
+Some test take a long time to execute. 
+If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
+In order to include the slow tests in the test execution, use the `--runslow` command line option.
 
 ```shell
-just download
+pytest --runslow
 ```
-
-** Note: ** On a mac, you might be getting an error `ln: illegal option -- r`. You need to install :
-
-```bash
-brew search coreutils 
-export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
-```
-to be able to use te `-r` flag.
-
-The downloaded files are placed into `3dbag-pipeline/tests/data` and symlinked to each package so that *pytest* can find them easily.
-
-Finally, you can clean up with `just clean`.
 
 ### Conventions
 
@@ -144,26 +151,6 @@ A workaround for this is to include the `Returns:` heading in the return value d
 For example `Returns a collection type, storing the...`
 
 Assets are usually some results of computations, therefore their names are nouns, not verbs.
-
-### Unit testing
-
-Tests are run separately for each package and they are located in the `tests` directory of the package.
-Tests use `pytest` and `tox`.
-
-The tests use the sample data from the `3dbag-sample-data` docker image.
-A container is created from this image and bind-mounted on a new temporary directory, which is populated with the sample data from the image.
-The tests then either use the data from this temporary directory or from the database in the container.
-See the `tests/conftest.py` on how this is set up.
-
-#### Long running tests
-
-Some test take a long time to execute. 
-If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
-In order to include the slow tests in the test execution, use the `--runslow` command line option.
-
-```shell
-pytest --runslow
-```
 
 ### Dagster
 
