@@ -25,4 +25,4 @@ dependencies = [
     "dagster",
     "dagster-postgres",
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-postgresql", "coverage"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage"] }
