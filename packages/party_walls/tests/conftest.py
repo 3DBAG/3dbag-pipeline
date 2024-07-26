@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-from bag3d.common.resources.database import DatabaseConnection, container
+from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
 
@@ -75,12 +75,6 @@ def context(database, export_dir_uncompressed, input_data_dir):
             ),
         }
     )
-
-
-@pytest.fixture(scope="session")
-def resource_container():
-    return container.configured({"id": "testid"})
-
 
 # Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
 def pytest_addoption(parser):
