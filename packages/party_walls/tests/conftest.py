@@ -32,12 +32,6 @@ def input_data_dir(root_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
-def crop_reconstruct_data_dir(input_data_dir) -> Path:
-    """Directory for the reconstruction data"""
-    return input_data_dir / "3DBAG" / "crop_reconstruct"
-
-
-@pytest.fixture(scope="session")
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"
@@ -91,7 +85,8 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+    else: # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+        for item in items:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)

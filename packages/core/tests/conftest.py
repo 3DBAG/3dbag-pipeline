@@ -74,7 +74,6 @@ def baseregisters_database():
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
     )
     yield db
-    # db.conn.rollback()
 
 
 @pytest.fixture
@@ -109,10 +108,11 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+    else: # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+        for item in items:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
 
 
 @pytest.fixture(scope="session", autouse=True)

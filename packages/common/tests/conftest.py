@@ -109,10 +109,11 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+    else: # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+        for item in items:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -124,7 +125,3 @@ def setenv():
 def test_data_dir():
     yield Path(LOCAL_DIR)
 
-
-@pytest.fixture(scope="session")
-def docker_client():
-    return docker.from_env()
