@@ -4,20 +4,21 @@ Repository of the 3D BAG production pipeline.
 
 ## Quickstart for local development:
 
-Requires:
+### Requires:
 
 - Python 3.11
-- SSH connection to gilfoyle
 - Docker
 
+### Env variables
 First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
 
 ```bash
 PATH_TO_VENVS=${PWD}/venvs
-PATH_TO_TEST_DATA=${PWD}/test_data
+PATH_TO_TEST_DATA=${PWD}/tests_test_data
+PATH_TO_DB_LOGS=${PWD}/tests/logs
 PATH_TO_DOCKERFILE=${PWD}/docker/postgres
-DAGSTER_HOME=${PWD}/tests/dagster_home
 
+DAGSTER_HOME=${PWD}/tests/dagster_home
 
 IMAGE_NAME=bag3d_image_postgis
 CONTAINER_NAME=bag3d_container_postgis
@@ -25,12 +26,16 @@ CONTAINER_NAME=bag3d_container_postgis
 POSTGRES_USER=baseregisters_test_user
 POSTGRES_PASSWORD=baseregisters_test_pswd
 POSTGRES_DB=baseregisters_test
-POSTGRES_DB_PRD=baseregisters_empty
 POSTGRES_PORT=5560
 
-SERVER_NAME=<net_id>@gilfoyle
-SERVER_RECONSTRUCTION_DIR=/fastssd/data/3DBAG/crop_reconstruct_og
-SERVER_3DBAG_DIR=/data/3DBAG/
+DAGSTER_DB_CONNECTION_USER=baseregisters_test_user
+DAGSTER_DB_CONNECTION_PASSWORD=baseregisters_test_pswd
+DAGSTER_DB_CONNECTION_DBNAME=baseregisters_empty
+DAGSTER_DB_CONNECTION_PORT=5560
+DAGSTER_DB_CONNECTION_HOST=localhost
+
+TYLER_RESOURCES_DIR=/path/to/tyler/resource
+TYLER_METADATA_JSON=/path/to/tyler/metadata/json
 
 BAG3D_EXPORT_DIR=${PATH_TO_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
 ```
@@ -53,9 +58,17 @@ make run = starts the postgres container
 make test =  runs the tests for core package. 
 
 
-## Requirements
+## Resources
 
-TODO
+The 3DBAG pipeline is a heavy process that requires you to have a well configured database. 
+
+Some instructions for configuring your database can be found here in the following links:
+
+[Resource Consumption](https://www.postgresql.org/docs/10/runtime-config-resource.html)
+[Write Ahead Log](https://www.postgresql.org/docs/12/runtime-config-wal.html)
+[WAL Configuration](https://www.postgresql.org/docs/12/wal-configuration.html)
+
+
 
 ## Packages
 

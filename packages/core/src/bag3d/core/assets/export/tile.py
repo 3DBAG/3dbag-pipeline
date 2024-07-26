@@ -1,4 +1,5 @@
 import json
+import os
 
 from dagster import AssetKey, asset
 
@@ -29,7 +30,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     # on gilfoyle
     sequence_header_file = bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
     create_sequence_header_file(
-        "/home/bdukai/software/tyler/resources/geof/metadata.json",
+        os.getenv('TYLER_METADATA_JSON'),    
         sequence_header_file,
         version_3dbag
     )
@@ -39,7 +40,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
-        "TYLER_RESOURCES_DIR=/home/bdukai/software/tyler/resources",
+        f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata", str(sequence_header_file),
         "--features", str(reconstructed_root_dir),

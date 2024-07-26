@@ -6,9 +6,8 @@ source:
 	set -a ; . ./.env ; set +a
 
 download: source
-# TODO: Change this to download the baseregisters.tar file from a link
 	mkdir -p $(PATH_TO_TEST_DATA)
-	rsync -azhP --ignore-existing $(SERVER_NAME):/data/3DBAG_Pipeline_test_data/ $(PATH_TO_TEST_DATA)
+	cd $(PATH_TO_TEST_DATA) ; wget https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip
 	ln -sfr $(PATH_TO_TEST_DATA)/reconstruction_data/input/export/3DBAG/export/quadtree.tsv $(PATH_TO_TEST_DATA)/reconstruction_data/input/export_uncompressed/3DBAG/export/quadtree.tsv
  
 build: source
