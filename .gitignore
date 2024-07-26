@@ -14,7 +14,7 @@
 
 # Test data
 /tmp/*
-/test_data/
+/tests/test_data/
 /packages/party_walls/tests/data/
 /packages/core/tests/data/
 
