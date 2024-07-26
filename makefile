@@ -7,7 +7,7 @@ source:
 
 download: source
 	mkdir -p $(PATH_TO_TEST_DATA)
-	cd $(PATH_TO_TEST_DATA) ; wget https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip
+	cd $(PATH_TO_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip
 	ln -sfr $(PATH_TO_TEST_DATA)/reconstruction_data/input/export/3DBAG/export/quadtree.tsv $(PATH_TO_TEST_DATA)/reconstruction_data/input/export_uncompressed/3DBAG/export/quadtree.tsv
  
 build: source
@@ -30,11 +30,11 @@ start_dagster: source
 	set -a ; . ./.env ; set +a; . $(PATH_TO_VENVS)/venv_dagster/bin/activate ; cd $(DAGSTER_HOME) ; dagster dev
 
 test: source
-	. $(PATH_TO_VENVS)/venv_core/bin/activate ; coverage run -m pytest $(PWD)/packages/core/tests/ -v --runslow; coverage run -m pytest $(PWD)/packages/common/tests/ -v --runslow
-	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; coverage run -m pytest $(PWD)/packages/party_walls/tests -v --runslow
+	. $(PATH_TO_VENVS)/venv_core/bin/activate ; pytest $(PWD)/packages/core/tests/ -v; pytest $(PWD)/packages/common/tests/ -v
+	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; pytest $(PWD)/packages/party_walls/tests -v
 	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v
 
 coverage: source
-	. $(PATH_TO_VENVS)/venv_core/bin/activate ; coverage report
-	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; coverage report
-	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; coverage report
+	. $(PATH_TO_VENVS)/venv_core/bin/activate ; coverage run -m pytest $(PWD)/packages/core/tests/ -v --runslow; coverage report; coverage run -m pytest $(PWD)/packages/common/tests/ -v --runslow ; coverage report
+	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; coverage run -m pytest $(PWD)/packages/party_walls/tests -v --runslow ; coverage report
+	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v ; coverage report
