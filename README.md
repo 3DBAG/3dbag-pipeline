@@ -14,7 +14,7 @@ First you need to set up the following environment variables in a `.env` file in
 
 ```bash
 PATH_TO_VENVS=${PWD}/venvs
-PATH_TO_TEST_DATA=${PWD}/tests_test_data
+PATH_TO_TEST_DATA=${PWD}/tests/test_data
 PATH_TO_DB_LOGS=${PWD}/tests/logs
 PATH_TO_DOCKERFILE=${PWD}/docker/postgres
 
