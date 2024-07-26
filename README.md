@@ -20,16 +20,22 @@ PATH_TO_DOCKERFILE=${PWD}/docker/postgres
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 
-
 IMAGE_NAME=bag3d_image_postgis
 CONTAINER_NAME=bag3d_container_postgis
 
 POSTGRES_USER=baseregisters_test_user
 POSTGRES_PASSWORD=baseregisters_test_pswd
 POSTGRES_DB=baseregisters_test
-POSTGRES_DB_PRD=baseregisters_empty
 POSTGRES_PORT=5560
 
+DAGSTER_DB_CONNECTION_USER=baseregisters_test_user
+DAGSTER_DB_CONNECTION_PASSWORD=baseregisters_test_pswd
+DAGSTER_DB_CONNECTION_DBNAME=baseregisters_empty
+DAGSTER_DB_CONNECTION_PORT=5560
+DAGSTER_DB_CONNECTION_HOST=localhost
+
+TYLER_RESOURCES_DIR=/path/to/tyler/resource
+TYLER_METADATA_JSON=/path/to/tyler/metadata/json
 
 BAG3D_EXPORT_DIR=${PATH_TO_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
 ```
@@ -61,7 +67,6 @@ Some instructions for configuring your database can be found here in the followi
 [Resource Consumption](https://www.postgresql.org/docs/10/runtime-config-resource.html)
 [Write Ahead Log](https://www.postgresql.org/docs/12/runtime-config-wal.html)
 [WAL Configuration](https://www.postgresql.org/docs/12/wal-configuration.html)
-
 
 
 
