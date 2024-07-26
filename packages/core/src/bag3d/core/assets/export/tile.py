@@ -70,7 +70,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"}
@@ -86,7 +86,7 @@ def reconstruction_output_multitiles_nl(context, metadata):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"}
@@ -97,7 +97,7 @@ def reconstruction_output_3dtiles_nl(context):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
@@ -110,7 +110,7 @@ def reconstruction_output_multitiles_zuid_holland(context):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))
     },
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},

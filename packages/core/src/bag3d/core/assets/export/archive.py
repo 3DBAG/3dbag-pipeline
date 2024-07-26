@@ -11,7 +11,7 @@ from bag3d.common.utils.files import bag3d_export_dir
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("export", "reconstruction_output_multitiles_nl"))
     },
     required_resource_keys={"file_store", "gdal"}
@@ -118,7 +118,7 @@ def create_path_layer(id_layer, path_tiles_dir):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey("geopackage_nl")
     },
     required_resource_keys={"file_store"}
