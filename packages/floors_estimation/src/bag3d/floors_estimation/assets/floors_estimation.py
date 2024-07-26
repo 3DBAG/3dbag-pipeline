@@ -86,7 +86,7 @@ def features_file_index_generator(path_features: Path) \
                 yield identificatie, path
 
 
-def make_chunks(data, SIZE=1000):
+def make_chunks(data:dict[str, Path], SIZE:int=1000):
     it = iter(data)
     for i in range(0, len(data), SIZE):
         yield {k: data[k] for k in islice(it, SIZE)}
