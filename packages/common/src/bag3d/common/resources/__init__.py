@@ -25,7 +25,7 @@ db_connection_docker = db_connection.configured({
     "port": int(os.getenv("POSTGRES_PORT")),
     "user": os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
-    "dbname": 'baseregisters_empty',
+    "dbname": os.getenv("POSTGRES_DB"),
 })
 
 
