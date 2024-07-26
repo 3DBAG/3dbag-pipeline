@@ -17,53 +17,6 @@ from bag3d.core.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
-# @config_mapping(config_schema={
-#     "geofilter": str,
-# })
-# def config_3dbag_pipeline(val):
-#     """Configure the pipeline to produce the sample data in the docker image
-#     3dbag-sample-data. The docker image only contains the data, does not contain
-#     dagster."""
-#     return {
-#         "ops": {
-#             "extract_top10nl": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#             "stage_bag_woonplaats": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#             "stage_bag_verblijfsobject": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#             "stage_bag_pand": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#             "stage_bag_openbareruimte": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#             "stage_bag_nummeraanduiding": {
-#                 "config": {"geofilter": val["geofilter"]}},
-#         }
-#     }
-
-
-# config_sample = config_3dbag_pipeline.resolve_from_validated_config(
-#     {
-#         "geofilter": ("Polygon ((136251.531 456118.126, 136620.128 456118.126, "
-#                       "136620.128 456522.218, 136251.531 456522.218, "
-#                       "136251.531 456118.126))"),
-#     }
-# )
-
-# sample_job_name = "sample_data_produce"
-
-# job_sample_data = define_asset_job(
-#     name=sample_job_name,
-#     description="Produce the sample data for developing the 3D BAG pipeline. The sample"
-#                 " data is in the area of `Polygon ((136251.531 456118.126, 136620.128 "
-#                 "456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 "
-#                 "456118.126))`. The job assets are produced in a container of the "
-#                 "`3dbag-sample-data` docker image.",
-#     selection=AssetSelection.groups("bag_top10nl") |
-#               AssetSelection.groups("input"),
-#     # config=config_sample,
-# )
-
 assets_sample_data = AssetSelection.groups("sample")
 
 job_sample_data_image = define_asset_job(
@@ -139,17 +92,6 @@ job_nl_deploy = define_asset_job(
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
-# @run_status_sensor(
-#     run_status=DagsterRunStatus.SUCCESS,
-#     name=f"nl_export_deploy_sensor",
-#     description=f"Run the nl_export_deploy job if the nl_reconstruct succeeded.",
-#     monitored_jobs=[job_nl_reconstruct, ],
-#     request_job=job_nl_export_deploy,
-#     minimum_interval_seconds=300
-# )
-# def sensor_nl_export_deploy(context):
-#     return RunRequest(run_key="nl-2")
-
 
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
@@ -200,79 +142,3 @@ job_zuid_holland_export_deploy = define_asset_job(
               AssetSelection.keys(["deploy", "webservice_godzilla"]),
 )
 
-
-# @run_status_sensor(
-#     run_status=DagsterRunStatus.SUCCESS,
-#     name=f"{sample_job_name}_on_success",
-#     description=f"Run when the {sample_job_name} job succeeds and update the "
-#                 f"3dbag-sample-data docker image with the generated sample data."
-#                 f"If DAGSTER_DEPLOYMENT='prod', it also pushes the new image to "
-#                 f"Docker Hub.",
-#     monitored_jobs=[job_sample_data, job_testing, ],
-#     request_job=job_sample_data_image
-# )
-# def sensor_sample_data(context):
-#     # The container and the temp dir in the monitored job were created with the
-#     # Run Id of the monitored job. In order to find the container the dir path, we
-#     # need the Run Id of the monitored job.
-#     deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
-#     base_image = "busybox:latest"
-
-#     do_push = True if deployment_name == "prod" else False
-
-#     run_id = get_run_id(context, short=True)
-#     temp_path = make_temp_path(run_id)
-#     image_tag = f"{datetime.today().date().isoformat()}-{run_id}"
-#     if deployment_name in ["local", "pytest"]:
-#         image_tag += "-dev"
-
-#     if context.dagster_run.job_name != job_sample_data_image.name:
-#         run_config = {
-#             "resources": {
-#                 "file_store": {"config": {"data_dir": temp_path}},
-#             }
-#         }
-#         return RunRequest(run_key=None, run_config=run_config)
-#     else:
-#         return SkipReason("Don't report status of job_sample_data_image")
-
-
-# @job(
-#     name="clean_containers",
-#     description="Remove docker containers and associated volumes.",
-#     resource_defs={"file_store": file_store, "container": container}
-# )
-# def job_clean_containers():
-#     clean_storage()
-
-
-# @run_status_sensor(
-#     run_status=DagsterRunStatus.FAILURE,
-#     name=f"clean_containers_on_failure",
-#     description=f"Remove docker containers on failed jobs.",
-#     monitored_jobs=[job_sample_data, job_testing, ],
-#     request_job=job_clean_containers
-# )
-# def sensor_clean_containers(context):
-#     # The container and the temp dir in the monitored job were created with the
-#     # Run Id of the monitored job. In order to find the container the dir path, we
-#     # need the Run Id of the monitored job.
-#     run_id = get_run_id(context, short=True)
-#     temp_path = make_temp_path(run_id)
-#     # Probably we should not ever remove the file directory. It is too dangerous,
-#     # because we can easily remove the prodouction file dir by accident.
-#     remove_files = False
-
-#     if context.dagster_run.job_name != job_clean_containers.name:
-#         run_config = {
-#             "ops": {
-#                 "clean_storage": {
-#                     "config": {"remove_file_store": remove_files}}
-#             },
-#             "resources": {
-#                 "file_store": {"config": {"data_dir": temp_path}},
-#             }
-#         }
-#         return RunRequest(run_key=None, run_config=run_config)
-#     else:
-#         return SkipReason("Don't report status of job_sample_data_image")
