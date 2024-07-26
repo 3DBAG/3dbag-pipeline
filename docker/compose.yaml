@@ -4,6 +4,7 @@ services:
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
     container_name: $CONTAINER_NAME
+    shm_size: '1gb' 
     ports:
       - "5560:5432"
     volumes:
