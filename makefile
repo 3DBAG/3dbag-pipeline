@@ -20,11 +20,12 @@ stop: source
 	docker container rm $(CONTAINER_NAME)
 
 venvs: source
-	cd $(PATH_TO_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster
+	cd $(PATH_TO_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster ; python3.11 -m venv venv_common
 	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; cd $(PWD)/packages/floors_estimation ; pip install -e .[dev]
 	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; cd $(PWD)/packages/party_walls ; pip install -e .[dev]
 	. $(PATH_TO_VENVS)/venv_core/bin/activate ; cd $(PWD)/packages/core ; pip install -e .[dev]
 	. $(PATH_TO_VENVS)/venv_dagster/bin/activate ; pip install -r $(PWD)/requirements_dagster_webserver.txt
+	. $(PATH_TO_VENVS)/venv_common/bin/activate ; cd $(PWD)/packages/common ; pip install -e .[dev]
 	
 start_dagster: source
 	set -a ; . ./.env ; set +a; . $(PATH_TO_VENVS)/venv_dagster/bin/activate ; cd $(DAGSTER_HOME) ; dagster dev
@@ -35,6 +36,7 @@ test: source
 	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v
 
 coverage: source
-	. $(PATH_TO_VENVS)/venv_core/bin/activate ; coverage run -m pytest $(PWD)/packages/core/tests/ -v --runslow; coverage report; coverage run -m pytest $(PWD)/packages/common/tests/ -v --runslow ; coverage report
-	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; coverage run -m pytest $(PWD)/packages/party_walls/tests -v --runslow ; coverage report
+	. $(PATH_TO_VENVS)/venv_common/bin/activate ; coverage run -m pytest $(PWD)/packages/common/tests/ -v --runslow ; coverage html
+	. $(PATH_TO_VENVS)/venv_core/bin/activate ; coverage run -m pytest $(PWD)/packages/core/tests/ -v --runslow; coverage html
+	. $(PATH_TO_VENVS)/venv_party_walls/bin/activate ; coverage run -m pytest $(PWD)/packages/party_walls/tests -v --runslow ; coverage html
 	. $(PATH_TO_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v ; coverage report
