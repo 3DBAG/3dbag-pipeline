@@ -7,7 +7,7 @@ import pickle
 from bag3d.common.utils.database import drop_table, table_exists
 from bag3d.common.types import PostgresTableIdentifier
 
-def test_features_file_index(context):
+def test_features_file_index(context, output_data_dir):
     """"""
     result = features_file_index(
          context=context
@@ -15,6 +15,7 @@ def test_features_file_index(context):
     assert len(result) == 412
     assert 'NL.IMBAG.Pand.0307100000377456' in result.keys()
     assert 'party_walls_features' in str(result['NL.IMBAG.Pand.0307100000377456'])
+    pickle.dump(result, open(output_data_dir / "features_file_index_floors_estimation.pkl", "wb"))
 
 
 def test_make_chunks():
