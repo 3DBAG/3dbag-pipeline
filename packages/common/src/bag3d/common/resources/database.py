@@ -10,13 +10,10 @@ DatabaseConnection = PostgresConnection
 @resource(
     config_schema={
         "port": Field(
-            int, description="Database port. If running a docker container, this is "
-                             "the port on the docker host to map to port 5432 in the "
-                             "container."),
+            int, description="Database port."),
         "host": Field(
             str, default_value="localhost",
-            description="Database host to connect to. Set to `localhost` if running a "
-                        "docker container."),
+            description="Database host to connect to."),
         "user": Field(
             str, description="Database username."),
         "password": Field(
@@ -27,9 +24,7 @@ DatabaseConnection = PostgresConnection
             description="Other connection parameters to be passed on to the database."
         )
     },
-    description="Database connection. If `docker` is set, a container will be started "
-                "from 'docker.image_id' that serves the database. The container name "
-                "is defined by the 'container' resource."
+    description="Database connection."
 )
 def db_connection(context):
     conn = DatabaseConnection(
