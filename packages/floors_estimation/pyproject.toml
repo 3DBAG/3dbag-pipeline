@@ -20,7 +20,7 @@ urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@docker-hub-removal#egg=bag3d-common&subdirectory=packages/common",
     "sklearn-pandas",
-    "scikit-learn",
+    "scikit-learn==1.4",
     "pandas",
     "dagster",
     "dagster-postgres",
