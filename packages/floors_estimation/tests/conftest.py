@@ -6,8 +6,6 @@ from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
 
-
-
 LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
 HOST = "localhost"
 PORT = os.getenv("POSTGRES_PORT")
@@ -38,6 +36,7 @@ def model_dir(root_data_dir) -> Path:
     """Directory for the floors estimation model"""
     return root_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
 
+
 @pytest.fixture(scope="session")
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
@@ -57,10 +56,11 @@ def database():
     )
     yield db
 
+
 @pytest.fixture
 def context(database, export_dir_uncompressed, input_data_dir, model_dir):
     yield build_op_context(
-        partition_key='10/564/624',
+        partition_key="10/564/624",
         resources={
             "db_connection": database,
             "file_store": file_store.configured(
@@ -73,6 +73,6 @@ def context(database, export_dir_uncompressed, input_data_dir, model_dir):
                     "data_dir": str(input_data_dir),
                 }
             ),
-            "model_store": model_dir
-        }
+            "model_store": model_dir,
+        },
     )
