@@ -34,6 +34,11 @@ def input_data_dir(root_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
+def model_dir(root_data_dir) -> Path:
+    """Directory for the floors estimation model"""
+    return root_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
+
+@pytest.fixture(scope="session")
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"
@@ -53,7 +58,7 @@ def database():
     yield db
 
 @pytest.fixture
-def context(database, export_dir_uncompressed, input_data_dir):
+def context(database, export_dir_uncompressed, input_data_dir, model_dir):
     yield build_op_context(
         partition_key='10/564/624',
         resources={
@@ -68,5 +73,6 @@ def context(database, export_dir_uncompressed, input_data_dir):
                     "data_dir": str(input_data_dir),
                 }
             ),
+            "model_store": model_dir
         }
     )

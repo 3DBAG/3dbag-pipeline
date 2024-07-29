@@ -116,7 +116,7 @@ def features_file_index(context) -> dict[str, Path]:
 def bag3d_features(context, features_file_index: dict[str, Path])\
             -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
-    Extracts 3DBAG features from the cityJSONL files on Gilfoyle,
+    Extracts 3DBAG features from the cityJSONL files,
     which already contain the party walls information."""
     context.log.info("Extracting 3DBAG features.")
     table_name = "building_features_bag3d"
@@ -145,7 +145,7 @@ def bag3d_features(context, features_file_index: dict[str, Path])\
         for i, future in enumerate(as_completed(processing)):
             try:
                 _ = future.result()
-            except Exception as e:
+            except Exception as e: # pragma: no cover
                 context.log.error(
                     f"Error in chunk {i} raised an exception: {e}"
                     )
@@ -209,6 +209,7 @@ def preprocessed_features(context,
     query = inject_parameters(query, query_params)
     res = context.resources.db_connection.get_dict(query)
     data = pd.DataFrame.from_records(res)
+    context.log.info(len(data))
     data.set_index('identificatie', inplace=True, drop=True)
     # rejecting all buildings with missing 70th percentile roof height
     data.dropna(subset=["h_roof_70p"], inplace=True)
@@ -327,7 +328,7 @@ def save_cjfiles(context,
         for i, future in enumerate(as_completed(processing)):
             try:
                 _ = future.result()
-            except Exception as e:
+            except Exception as e: # pragma: no cover
                 context.log.error(
                     f"Error in file {i} raised an exception: {e}"
                     )
