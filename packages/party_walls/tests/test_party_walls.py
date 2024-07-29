@@ -30,7 +30,7 @@ def test_distribution_tiles_files_index(context, output_data_dir):
     result_tile_ids = tuple(sorted(result.export_results.keys()))
     assert result_tile_ids == TILE_IDS
     pickle.dump(result, open(output_data_dir / "distribution_tiles_files_index.pkl", "wb"))
-    print(result)
+
 
 @asset(name="distribution_tiles_files_index")
 def mock_distribution_tiles_files_index(output_data_dir)  -> TilesFilesIndex:

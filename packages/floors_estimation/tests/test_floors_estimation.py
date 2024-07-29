@@ -12,7 +12,9 @@ from bag3d.floors_estimation.assets.floors_estimation import (
     features_file_index,
     inferenced_floors,
     make_chunks,
+    predictions_table,
     preprocessed_features,
+    save_cjfiles,
 )
 from dagster import asset
 from pandas import DataFrame
@@ -117,7 +119,6 @@ def test_preprocessed_features(context, output_data_dir):
     data = preprocessed_features(context, all_features_table)
     assert data is not None
     assert data.shape[0] == 274
-    pickle.dump(data, open(output_data_dir / "preprocessed_features.pkl", "wb"))
 
 
 @asset(name="preprocessed_features")
@@ -126,11 +127,35 @@ def mock_preprocessed_features(output_data_dir) -> DataFrame:
 
 
 def test_inferenced_floors(context, output_data_dir):
-    d = mock_preprocessed_features(output_data_dir)
-    print(d.shape[0])
     res = inferenced_floors(
         context, preprocessed_features=mock_preprocessed_features(output_data_dir)
     )
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
+
+
+@asset(name="inferenced_floors")
+def mock_inferenced_floors(output_data_dir) -> DataFrame:
+    return pickle.load(open(output_data_dir / "inferenced_floors.pkl", "rb"))
+
+
+def test_predictions_table(context, output_data_dir):
+    res = predictions_table(
+        context, inferenced_floors=mock_inferenced_floors(output_data_dir)
+    )
+    assert res.value is not None
+    pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
+    assert table_exists(context, pred_table) is True
+
+
+def test_save_cjfiles(context, output_data_dir, input_data_dir):
+    save_cjfiles(
+        context,
+        mock_inferenced_floors(output_data_dir),
+        mock_features_file_index(output_data_dir),
+    )
+    assert (
+        input_data_dir
+        / "3DBAG/bouwlagen_features/10/564/624/NL.IMBAG.Pand.0307100000308298.city.jsonl"
+    ).exists()
