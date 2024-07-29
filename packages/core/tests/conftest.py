@@ -123,8 +123,3 @@ def setenv():
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def docker_client():
-    return docker.from_env()
