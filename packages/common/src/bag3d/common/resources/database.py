@@ -1,6 +1,3 @@
-from abc import ABC
-from time import sleep
-
 from dagster import resource, Field, Permissive
 
 from pgutils import PostgresConnection, PostgresFunctions

@@ -1,5 +1,4 @@
 from pathlib import Path
-from subprocess import run
 
 import pytest
 from bag3d.common import resources
