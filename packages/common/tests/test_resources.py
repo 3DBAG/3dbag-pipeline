@@ -69,7 +69,7 @@ def test_db_connection_init(database):
     db = database
     init_context = build_init_resource_context(
         config={
-            "port": db.port,
+            "port": int(db.port),
             "user": db.user,
             "password": db.password,
             "dbname": db.dbname,
