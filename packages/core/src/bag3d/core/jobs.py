@@ -1,15 +1,10 @@
 import os
 from datetime import datetime
 
-from dagster import (define_asset_job, AssetSelection, run_status_sensor,
-                     DagsterRunStatus, RunRequest, SkipReason, config_mapping, job,
-                     StaticPartitionsDefinition)
+from dagster import (define_asset_job, AssetSelection)
 
-from bag3d.common.resources.files import make_temp_path, file_store
 from bag3d.common.resources.wkt import ZUID_HOLLAND
-from bag3d.common.utils.docker import clean_storage
-from bag3d.common.utils.dagster import get_run_id
-from bag3d.core.simple_for_testing import job_testing
+
 from bag3d.core.assets.reconstruction.reconstruction import (
     PartitionDefinition3DBagReconstruction
 )
