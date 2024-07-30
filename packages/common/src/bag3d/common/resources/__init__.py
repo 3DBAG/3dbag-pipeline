@@ -3,7 +3,6 @@ import os
 from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geoflow, roofer, DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
-# from bag3d.common.simple_for_testing import conf_simpl_dock
 
 from bag3d.common.resources.temp_until_configurableresource import (
 EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
@@ -25,35 +24,9 @@ db_connection_docker = db_connection.configured({
     "port": int(os.getenv("POSTGRES_PORT")),
     "user": os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
-    "dbname": os.getenv("POSTGRES_DB"),
+    "dbname": 'baseregisters_empty',
 })
 
-
-RESOURCES_LOCAL = {
-    "gdal": gdal,
-    "file_store": file_store,
-    "file_store_fastssd": file_store,
-    "db_connection": db_connection_docker,
-    "pdal": pdal,
-    "lastools": lastools,
-    "tyler": tyler,
-    "geoflow": geoflow,
-    "roofer": roofer
-}
-
-# pytest config ---
-
-RESOURCES_PYTEST = {
-    "gdal": gdal_local,
-    "file_store": file_store,
-    "file_store_fastssd": file_store,
-    "db_connection": db_connection_docker,
-    "pdal": pdal,
-    "lastools": lastools,
-    "tyler": tyler,
-    "geoflow": geoflow,
-    "roofer": roofer
-}
 
 # Production config ---
 
@@ -111,6 +84,31 @@ db_connection_from_env = db_connection.configured({
     "dbname": os.environ.get("DAGSTER_DB_CONNECTION_DBNAME"),
     "host": os.environ.get("DAGSTER_DB_CONNECTION_HOST"),
 })
+RESOURCES_LOCAL = {
+    "gdal": gdal,
+    "file_store": file_store,
+    "file_store_fastssd": file_store,
+    "db_connection": db_connection_docker,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler_prod,
+    "geoflow": geoflow_prod,
+    "roofer": roofer_prod
+}
+
+# pytest config ---
+
+RESOURCES_PYTEST = {
+    "gdal": gdal_local,
+    "file_store": file_store,
+    "file_store_fastssd": file_store,
+    "db_connection": db_connection_docker,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer
+}
 
 RESOURCES_PROD = {
     "gdal": gdal_prod,
