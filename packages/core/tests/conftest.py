@@ -5,11 +5,10 @@ import pytest
 from bag3d.common.resources import gdal
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import DatabaseConnection
+from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
-from pytest_postgresql import factories
-from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 
 
 LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
@@ -18,10 +17,6 @@ PORT = os.getenv("POSTGRES_PORT")
 USER = os.getenv("POSTGRES_USER")
 PASSWORD = os.getenv("POSTGRES_PASSWORD")
 DB_NAME = os.getenv("POSTGRES_DB")
-postgresql_noproc = factories.postgresql_noproc(
-    host=HOST, port=PORT, user=USER, password=PASSWORD
-)
-postgresql = factories.postgresql("postgresql_noproc", dbname="test")
 
 
 @pytest.fixture(scope="function")
@@ -37,19 +32,11 @@ def wkt_testarea():
 
 
 @pytest.fixture
-def database(postgresql):
-    db = DatabaseConnection(conn=postgresql)
-    PostgresFunctions(db)
-    tbl = PostgresTableIdentifier("public", "existing_table")
-    query = SQL(
-        """CREATE TABLE {table} (id INTEGER, value TEXT);
-                   INSERT INTO {table} VALUES (1, 'bla');
-                   INSERT INTO {table} VALUES (2, 'foo');"""
-    ).format(table=Identifier(tbl.schema.str, tbl.table.str))
-
-    db.send_query(query)
+def database():
+    db = DatabaseConnection(
+        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
+    )
     yield db
-    db.conn.rollback()
 
 
 @pytest.fixture
@@ -64,30 +51,6 @@ def context(database, docker_gdal_image, wkt_testarea, tmp_path):
             "db_connection": database,
             "file_store": file_store.configured(
                 {"data_dir": str(tmp_path), }),
-        }
-    )
-
-
-@pytest.fixture
-def baseregisters_database():
-    db = DatabaseConnection(
-        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    )
-    yield db
-
-
-@pytest.fixture
-def baseregisters_context(baseregisters_database, docker_gdal_image, wkt_testarea, tmp_path):
-    yield build_op_context(
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": ["gebouw", ]
-        },
-        resources={
-            "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
-            "db_connection": baseregisters_database,
-            "file_store": file_store.configured(
-            {"data_dir": str(tmp_path), }),
         }
     )
 
@@ -123,3 +86,4 @@ def setenv():
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
+

@@ -19,18 +19,18 @@ def test_get_extract_metadata(test_data_dir):
     assert metadata[1] == "08102022"
 
 
-def test_load_bag_layer(baseregisters_context, test_data_dir):
+def test_load_bag_layer(context, test_data_dir):
     test_bag_table = PostgresTableIdentifier("lvbag", "test_ligplaats")
-    res = load_bag_layer(context = baseregisters_context,
+    res = load_bag_layer(context = context,
                    extract_dir = test_data_dir / "lvbag-extract",
                    layer="ligplaats", 
                    shortdate ="08102022",
                    new_table=test_bag_table)
     assert res is True
     assert res is not None
-    assert table_exists(baseregisters_context, test_bag_table) is True
-    drop_table(baseregisters_context, test_bag_table)
-    assert table_exists(baseregisters_context, test_bag_table) is False
+    assert table_exists(context, test_bag_table) is True
+    drop_table(context, test_bag_table)
+    assert table_exists(context, test_bag_table) is False
 
 
 @pytest.mark.slow
@@ -40,12 +40,12 @@ def test_extract_bag(context):
     assert res.value is not None
 
 
-def test_stage_bag_layer(baseregisters_context, test_data_dir):
-    res = stage_bag_layer(baseregisters_context, "ligplaats", "stage_lvbag", 
+def test_stage_bag_layer(context, test_data_dir):
+    res = stage_bag_layer(context, "ligplaats", "stage_lvbag", 
                     dict(), "08102022", test_data_dir / "lvbag-extract")
     assert res is not None
     test_bag_table = PostgresTableIdentifier("stage_lvbag", "ligplaats")
-    assert table_exists(baseregisters_context, test_bag_table) is True
-    drop_table(baseregisters_context, test_bag_table)
-    assert table_exists(baseregisters_context, test_bag_table) is False
+    assert table_exists(context, test_bag_table) is True
+    drop_table(context, test_bag_table)
+    assert table_exists(context, test_bag_table) is False
     

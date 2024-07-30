@@ -31,7 +31,6 @@ dev = [
     "bumpver",
     "tox",
     "pytest",
-    "pytest-postgresql",
     "pytest-dotenv",
     "coverage"
 ]
