@@ -11,7 +11,7 @@ import docker
 from docker.errors import ImageNotFound
 
 DOCKER_PDAL_IMAGE = "pdal/pdal:sha-cfa827b6"  # PDAL 2.4.3
-DOCKER_GDAL_IMAGE = "osgeo/gdal:alpine-small-3.5.2"
+DOCKER_GDAL_IMAGE = "ghcr.io/osgeo/gdal:ubuntu-small-latest"
 
 
 def execute_shell_command_silent(shell_command: str,

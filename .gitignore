@@ -14,7 +14,7 @@
 
 # Test data
 /tmp/*
-/test_data/
+/tests/test_data/
 /packages/party_walls/tests/data/
 /packages/core/tests/data/
 
@@ -43,4 +43,3 @@
 /packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
 /packages/floors_estimation/tests/.pytest_cache/
 /packages/floors_estimation/build/
-

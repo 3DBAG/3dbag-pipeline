@@ -1,5 +1,4 @@
 from pathlib import Path
-from subprocess import run
 
 import pytest
 from bag3d.common import resources
@@ -12,7 +11,7 @@ from dagster import build_init_resource_context
         (
             {
                 "docker": {
-                    "image": "osgeo/gdal:alpine-small-3.5.2",
+                    "image": resources.executables.DOCKER_GDAL_IMAGE,
                     "mount_point": "/tmp",
                 }
             },
@@ -35,7 +34,6 @@ def test_gdal(config, data_dir, filename, request):
     return_code, output = gdal_exe.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
-    # assert "released" in output
     print(output)
 
 
@@ -53,7 +51,7 @@ def test_file_store_init_temp():
 
 def test_file_store_init_data_dir():
     """Can we use an existing directory?"""
-    tmp = resources.FileStore.mkdir_temp(temp_dir_id="70784c0e")
+    tmp = resources.files.FileStore.mkdir_temp(temp_dir_id="70784c0e")
     init_context = build_init_resource_context(config={"data_dir": str(tmp)})
     res = resources.files.file_store(init_context)
     assert res.data_dir.exists()
@@ -74,8 +72,7 @@ def test_db_connection_init(database):
             "user": db.user,
             "password": db.password,
             "dbname": db.dbname,
-        },
-        resources={"container": resources.container.configured({})},
+        }
     )
     res = resources.database.db_connection(init_context)
     q = res.get_query("select version();")
