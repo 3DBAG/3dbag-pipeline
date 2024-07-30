@@ -9,8 +9,8 @@ from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 from pytest_postgresql import factories
+from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 
-import docker
 
 LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
 HOST = "localhost"
@@ -27,7 +27,7 @@ postgresql = factories.postgresql("postgresql_noproc", dbname="test")
 @pytest.fixture(scope="function")
 def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
-    return "ghcr.io/osgeo/gdal:alpine-small-latest"
+    return DOCKER_GDAL_IMAGE
 
 
 @pytest.fixture(scope="function")

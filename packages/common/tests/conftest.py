@@ -5,6 +5,7 @@ import pytest
 from bag3d.common.resources import gdal
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import DatabaseConnection
+from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
@@ -27,7 +28,7 @@ postgresql = factories.postgresql("postgresql_noproc", dbname="test")
 @pytest.fixture(scope="function")
 def docker_gdal_image():
     """The GDAL docker image to use for the tests"""
-    return "ghcr.io/osgeo/gdal:alpine-small-latest"
+    return DOCKER_GDAL_IMAGE
 
 
 @pytest.fixture(scope="function")
