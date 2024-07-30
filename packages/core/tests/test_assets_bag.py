@@ -3,7 +3,7 @@ from bag3d.common.resources import gdal
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table, table_exists
 from bag3d.core.assets.bag.download import (bagextract_metadata, extract_bag,
-                                            load_bag_layer)
+                                            load_bag_layer, stage_bag_layer)
 from dagster import build_op_context
 
 
@@ -38,3 +38,14 @@ def test_extract_bag(context):
     res = extract_bag(context)
     print(res.metadata)
     assert res.value is not None
+
+
+def test_stage_bag_layer(baseregisters_context, test_data_dir):
+    res = stage_bag_layer(baseregisters_context, "ligplaats", "stage_lvbag", 
+                    dict(), "08102022", test_data_dir / "lvbag-extract")
+    assert res is not None
+    test_bag_table = PostgresTableIdentifier("stage_lvbag", "ligplaats")
+    assert table_exists(baseregisters_context, test_bag_table) is True
+    drop_table(baseregisters_context, test_bag_table)
+    assert table_exists(baseregisters_context, test_bag_table) is False
+    
