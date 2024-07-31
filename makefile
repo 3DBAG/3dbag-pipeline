@@ -7,7 +7,7 @@ source:
 
 download: source
 	mkdir -p $(PATH_TO_TEST_DATA)
-	cd $(PATH_TO_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip
+	cd $(PATH_TO_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip ; rm test_data.zip
 	ln -sfr $(PATH_TO_TEST_DATA)/reconstruction_data/input/export/3DBAG/export/quadtree.tsv $(PATH_TO_TEST_DATA)/reconstruction_data/input/export_uncompressed/3DBAG/export/quadtree.tsv
  
 build: source
