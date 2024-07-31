@@ -13,11 +13,10 @@ download: source
 build: source
 	docker build -t $(IMAGE_NAME) $(PATH_TO_DOCKERFILE) --build-arg pg_user=$(POSTGRES_USER) --build-arg pg_pswd=$(POSTGRES_PASSWORD) --build-arg pg_db=$(POSTGRES_DB) 
 run: source
-	docker compose --env-file ./.env -f docker/compose.yaml up -d
+	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml up -d
 
 stop: source
-	docker container stop $(CONTAINER_NAME)
-	docker container rm $(CONTAINER_NAME)
+	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml down
 
 venvs: source
 	cd $(PATH_TO_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster ; python3.11 -m venv venv_common

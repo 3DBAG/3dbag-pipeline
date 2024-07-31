@@ -3,15 +3,18 @@ services:
     image: $IMAGE_NAME
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
-    container_name: $CONTAINER_NAME
+    container_name: bag3d_postgis
     shm_size: '1gb' 
     ports:
       - "5560:5432"
     volumes:
       - $PATH_TO_TEST_DATA:/var/lib/postgresql/data
-      - $PATH_TO_DB_LOGS:/var/log/postgresql/
+      - postgis_volume:/var/log/postgresql/
     environment:
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
       POSTGRES_DB: $POSTGRES_DB
     restart: always
+
+volumes:
+  postgis_volume:
