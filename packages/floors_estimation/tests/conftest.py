@@ -32,6 +32,12 @@ def input_data_dir(root_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
+def model_dir(root_data_dir) -> Path:
+    """Directory for the floors estimation model"""
+    return root_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
+
+
+@pytest.fixture(scope="session")
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"
@@ -52,9 +58,9 @@ def database():
 
 
 @pytest.fixture
-def context(database, export_dir_uncompressed, input_data_dir):
+def context(database, export_dir_uncompressed, input_data_dir, model_dir):
     yield build_op_context(
-        partition_key='10/564/624',
+        partition_key="10/564/624",
         resources={
             "db_connection": database,
             "file_store": file_store.configured(
@@ -67,26 +73,6 @@ def context(database, export_dir_uncompressed, input_data_dir):
                     "data_dir": str(input_data_dir),
                 }
             ),
-        }
+            "model_store": model_dir,
+        },
     )
-
-# Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
-def pytest_addoption(parser):
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-
-
-def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    else: # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-        for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(skip_slow)

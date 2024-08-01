@@ -31,8 +31,8 @@ dev = [
     "bumpver",
     "tox",
     "pytest",
-    "pytest-postgresql",
-    "pytest-dotenv"
+    "pytest-dotenv",
+    "coverage"
 ]
 docs = [
     "mkdocs",

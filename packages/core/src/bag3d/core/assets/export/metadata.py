@@ -69,7 +69,7 @@ def features_to_csv(output_csv: Path,
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("reconstruction", "reconstructed_building_models_nl"))
     },
     required_resource_keys={"file_store", "file_store_fastssd", "db_connection"}
@@ -126,7 +126,7 @@ def feature_evaluation(context):
 
 
 @asset(
-    non_argument_deps={
+    deps={
         AssetKey(("export", "reconstruction_output_multitiles_nl"))
     },
     required_resource_keys={"file_store"}

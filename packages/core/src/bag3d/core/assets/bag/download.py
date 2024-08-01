@@ -252,14 +252,14 @@ def bagextract_metadata(context: OpExecutionContext,
     nsmap = lvdoc.getroot().nsmap
 
     versie = str(lvdoc.getroot().SchemaInfo.versie)
-    if versie != implemented_schema_version:
+    if versie != implemented_schema_version: # pragma: no cover
         context.log.error(f"The version of the schema of the extract is different than "
                           f"what is implemented. Implemented: "
                           f"{implemented_schema_version}. Extract: {versie}.")
 
     LVC_Extract = lvdoc.getroot().SelectieGegevens.find(
         f"{{{nsmap['selecties-extract']}}}LVC-Extract")
-    if LVC_Extract is None:
+    if LVC_Extract is None: # pragma: no cover
         context.log.critical(f"The LVBAG extract is not of the type 'LVC-Extract' "
                              f"(Levenscyclus en LevenscyclusVanaf).")
         raise Exception
@@ -270,7 +270,7 @@ def bagextract_metadata(context: OpExecutionContext,
         str(LVC_Extract.StandTechnischeDatum), "%Y-%m-%d")
 
     for g in Gebied_Registratif.getchildren():
-        if g.tag == f"{{{nsmap['selecties-extract']}}}Gebied-GEM":
+        if g.tag == f"{{{nsmap['selecties-extract']}}}Gebied-GEM": # pragma: no cover
             metadata['Gebied'] = 'GEM'
             gem_id = str(g.GemeenteCollectie.Gemeente.GemeenteIdentificatie)
             # Need to 0-pad the ID, because lxml converts them to int-s...
@@ -278,7 +278,7 @@ def bagextract_metadata(context: OpExecutionContext,
                 gem_id) == 3 else gem_id
         elif g.tag == f"{{{nsmap['selecties-extract']}}}Gebied-NLD":
             metadata['Gebied'] = 'NLD'
-        else:
+        else: # pragma: no cover
             context.log.error(f"Unrecognized tag: {g.tag}")
 
     shortdate = metadata['StandTechnischeDatum'].strftime("%d%m%Y")

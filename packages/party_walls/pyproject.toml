@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies] 
-dev = ["pytest", "bumpver", "tox", "pytest-dotenv"] 
+dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage"] 
 
 [tool.bumpver]
 current_version = "2024.1002"

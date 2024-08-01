@@ -125,7 +125,7 @@ def regular_grid_200m(context):
                         "las2las."
         )
     },
-    non_argument_deps={AssetKey(["ahn", "metadata_ahn3"])},
+    deps={AssetKey(["ahn", "metadata_ahn3"])},
     required_resource_keys={"file_store", "lastools", "db_connection"}
 )
 def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
@@ -143,7 +143,7 @@ def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
                         "las2las."
         )
     },
-    non_argument_deps={AssetKey(["ahn", "metadata_ahn4"])},
+    deps={AssetKey(["ahn", "metadata_ahn4"])},
     required_resource_keys={"file_store", "lastools", "db_connection"}
 )
 def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):

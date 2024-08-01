@@ -188,10 +188,10 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     ),
     ids=lambda val: val[1],
 )
-def test_ogr2postgres(data, baseregisters_context, test_data_dir):
+def test_ogr2postgres(data, context, test_data_dir):
     path, dataset, feature_types, xsd = data
     res = ogr2postgres(
-        context=baseregisters_context,
+        context=context,
         dataset=dataset,
         extract_path=Path(f"{test_data_dir}/{path}"),
         feature_type=feature_types[0],

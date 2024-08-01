@@ -7,7 +7,7 @@ from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
 TEST_SCHEMA_NAME = "test"
-EXISTING_TABLE = PostgresTableIdentifier("public", "existing_table")
+EXISTING_TABLE = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
 NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
 
 
@@ -17,9 +17,15 @@ def test_table_exists(context):
 
 
 def test_drop_table(context):
-    assert table_exists(context, EXISTING_TABLE) is True
-    drop_table(context, EXISTING_TABLE)
-    assert table_exists(context, EXISTING_TABLE) is False
+    query = SQL(
+                """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
+                   INSERT INTO {table} VALUES (1, 'bla');
+                   INSERT INTO {table} VALUES (2, 'foo');"""
+    ).format(table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str))
+    context.resources.db_connection.send_query(query)
+    assert table_exists(context, NON_EXISTING_TABLE) is True
+    drop_table(context, NON_EXISTING_TABLE)
+    assert table_exists(context, NON_EXISTING_TABLE) is False
 
 
 def test_create_schema(context):
@@ -47,8 +53,8 @@ def test_summary_md(database):
 def test_postgrestable_metadata(context):
     res = postgrestable_metadata(context, EXISTING_TABLE)
 
-    assert res["Database.Schema.Table"] == "test.public.existing_table"
-    assert res["Rows"] == 2
+    assert res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+    assert res["Rows"] == 414
 
 
 def test_postgrestable_from_query(context):
@@ -65,6 +71,8 @@ def test_postgrestable_from_query(context):
     metadata = postgrestable_from_query(context, query, tbl)
     assert metadata["Rows"] == 2
     assert table_exists(context, tbl) is True
+    drop_table(context, tbl)
+    assert table_exists(context, tbl) is False
 
 
 @pytest.mark.skip(reason="Cannot find module.")

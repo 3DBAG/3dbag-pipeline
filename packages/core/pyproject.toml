@@ -30,7 +30,7 @@ dependencies = [
     "lxml>=4.6",
     "fabric"
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-postgresql", "pytest-dotenv"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-dotenv", "coverage"] }
 
 [tool.bumpver]
 current_version = "2024.1004"
