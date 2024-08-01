@@ -40,7 +40,7 @@ class HashChunkwise:
     def method(self, value):
         if value in algorithms_available:
             self._method = value
-        else:
+        else: # pragma: no cover
             raise ValueError(f"The hashing algorithm {value} is not available in "
                              f"hashlib.")
 
@@ -236,12 +236,12 @@ def download_ahn_laz(fpath: Path, sha_reference: Mapping[str, str],
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found"))
         fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
-        if fpath is None:
+        if fpath is None: # pragma: no cover
             # Download failed
             return error
         else:
             is_new = True
-    else:
+    else: # pragma: no cover
         is_new = False
     match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
     if match:
@@ -249,7 +249,7 @@ def download_ahn_laz(fpath: Path, sha_reference: Mapping[str, str],
         return LAZDownload(path=fpath, success=True, hash_name=sha.name,
                            hash_hexdigest=sha.hexdigest(), new=is_new,
                            size=round(fpath.stat().st_size / 1e6, 2))
-    else:
+    else: # pragma: no cover
         # Let's try to re-download the file once
         logger.info(format_laz_log(fpath, "Removing"))
         fpath.unlink()
@@ -280,12 +280,12 @@ def match_sha(fpath: Path, sha_reference: Mapping[str, str],
     Returns:
         Tuple of (success, SHA).
     """
-    if not fpath.is_file():
+    if not fpath.is_file(): # pragma: no cover
         raise FileNotFoundError(fpath)
     sha = sha_func.compute(fpath)
     if sha.hexdigest() == sha_reference[fpath.name]:
         logger.info(format_laz_log(fpath, f"{sha.name} OK"))
         return True, sha
-    else:
+    else: # pragma: no cover
         logger.info(format_laz_log(fpath, f"{sha.name} mismatch"))
         return False, sha

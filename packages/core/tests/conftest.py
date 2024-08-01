@@ -7,8 +7,7 @@ from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from dagster import build_op_context
-from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
-from psycopg.sql import SQL, Identifier
+
 
 
 LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
@@ -17,29 +16,6 @@ PORT = os.getenv("POSTGRES_PORT")
 USER = os.getenv("POSTGRES_USER")
 PASSWORD = os.getenv("POSTGRES_PASSWORD")
 DB_NAME = os.getenv("POSTGRES_DB")
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def root_data_dir(test_data_dir) -> Path:
-    """Root directory path for test data"""
-    return test_data_dir / "reconstruction_data"
-
-
-@pytest.fixture(scope="session")
-def input_data_dir(root_data_dir) -> Path:
-    """Directory for input data"""
-    return root_data_dir / "input"
-
-
-@pytest.fixture(scope="session")
-def export_dir_uncompressed(input_data_dir) -> Path:
-    """3D BAG exported data before compression"""
-    return input_data_dir / "export_uncompressed"
 
 
 @pytest.fixture(scope="function")
