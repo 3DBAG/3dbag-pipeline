@@ -125,7 +125,7 @@ def download_ahn_index_esri(ahn_version: int, with_geom: bool = False) -> Union[
         response = requests.get(url=service_url + "/query", params=params_features)
         if response.status_code == 200:
             r_json = response.json()
-        else:
+        else: # pragma: no cover
             response.raise_for_status()
             return
         returned_features = r_json.get("features")
@@ -142,7 +142,7 @@ def download_ahn_index_esri(ahn_version: int, with_geom: bool = False) -> Union[
     return features
 
 
-def tile_index_origin() -> Tuple[float, float, float, float]:
+def tile_index_origin() -> Tuple[float, float, float, float]: # pragma: no cover
     """Computes the BBOX of the AHN tile index."""
     tindex = download_ahn_index_esri(3, True)
     minx, miny = tindex["01cz1"]["geometry"]["coordinates"][0][0]

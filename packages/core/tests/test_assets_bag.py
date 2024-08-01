@@ -36,7 +36,6 @@ def test_load_bag_layer(context, test_data_dir):
 @pytest.mark.slow
 def test_extract_bag(context):
     res = extract_bag(context)
-    print(res.metadata)
     assert res.value is not None
 
 
