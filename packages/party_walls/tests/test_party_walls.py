@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 import pytest
 from bag3d.party_walls.assets.party_walls import (

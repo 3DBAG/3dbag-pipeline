@@ -1,14 +1,9 @@
-import os
-from datetime import datetime
-
 from dagster import (define_asset_job, AssetSelection)
 
 from bag3d.common.resources.wkt import ZUID_HOLLAND
-
 from bag3d.core.assets.reconstruction.reconstruction import (
     PartitionDefinition3DBagReconstruction
 )
-from bag3d.core.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
