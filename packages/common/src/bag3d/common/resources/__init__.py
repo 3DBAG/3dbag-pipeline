@@ -21,10 +21,11 @@ gdal_local = gdal.configured({
 
 
 db_connection_docker = db_connection.configured({
-    "port": int(os.getenv("POSTGRES_PORT")),
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
-    "dbname": 'baseregisters_empty',
+    "port": int(os.getenv("BAG3D_PG_PORT", 5432)),
+    "user": os.getenv("BAG3D_PG_USER"),
+    "password": os.getenv("BAG3D_PG_PASSWORD"),
+    "dbname": os.getenv("BAG3D_PG_DBNAME"),
+    "host": os.getenv("BAG3D_PG_HOST"),
 })
 
 
@@ -77,13 +78,6 @@ geoflow_prod = geoflow.configured({
     }
 })
 
-db_connection_from_env = db_connection.configured({
-    "port": int(os.environ.get("DAGSTER_DB_CONNECTION_PORT", 5432)),
-    "user": os.environ.get("DAGSTER_DB_CONNECTION_USER"),
-    "password": os.environ.get("DAGSTER_DB_CONNECTION_PASSWORD"),
-    "dbname": os.environ.get("DAGSTER_DB_CONNECTION_DBNAME"),
-    "host": os.environ.get("DAGSTER_DB_CONNECTION_HOST"),
-})
 RESOURCES_LOCAL = {
     "gdal": gdal,
     "file_store": file_store,

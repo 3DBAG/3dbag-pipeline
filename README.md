@@ -13,29 +13,22 @@ Repository of the 3D BAG production pipeline.
 First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
 
 ```bash
-PATH_TO_VENVS=${PWD}/venvs
-PATH_TO_TEST_DATA=${PWD}/tests/test_data
-PATH_TO_DOCKERFILE=${PWD}/docker/postgres
+BAG3D_VENVS=${PWD}/venvs
+BAG3D_TEST_DATA=${PWD}/tests/test_data
+BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 
-IMAGE_NAME=bag3d_image_postgis
+BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres
+BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
+BAG3D_PG_USER=baseregisters_test_user
+BAG3D_PG_PASSWORD=baseregisters_test_pswd
+BAG3D_PG_DATABASE=baseregisters_test
+BAG3D_PG_PORT=5560
+BAG3D_PG_HOST=localhost
 
-POSTGRES_USER=baseregisters_test_user
-POSTGRES_PASSWORD=baseregisters_test_pswd
-POSTGRES_DB=baseregisters_test
-POSTGRES_PORT=5560
-
-DAGSTER_DB_CONNECTION_USER=baseregisters_test_user
-DAGSTER_DB_CONNECTION_PASSWORD=baseregisters_test_pswd
-DAGSTER_DB_CONNECTION_DBNAME=baseregisters_empty
-DAGSTER_DB_CONNECTION_PORT=5560
-DAGSTER_DB_CONNECTION_HOST=localhost
-
-TYLER_RESOURCES_DIR=/path/to/tyler/resource
-TYLER_METADATA_JSON=/path/to/tyler/metadata/json
-
-BAG3D_EXPORT_DIR=${PATH_TO_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
+BAG3D_TYLER_RESOURCES_DIR=/path/to/tyler/resource
+BAG3D_TYLER_METADATA_JSON=/path/to/tyler/metadata/json
 ```
 
 Then you run the tests from the root directory of the repo with:
@@ -128,7 +121,7 @@ The UI is served at `http://localhost:3000`, but check the logs in the terminal 
 Download test data with:
 
 ```
-export PATH_TO_TEST_DATA=<path/to/where/the/data/should/be/stored>
+export BAG3D_TEST_DATA=<path/to/where/the/data/should/be/stored>
 make download
 ```
 

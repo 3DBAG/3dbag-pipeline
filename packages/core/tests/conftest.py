@@ -11,12 +11,12 @@ from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
 
-LOCAL_DIR = os.getenv("PATH_TO_TEST_DATA")
+LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"
-PORT = os.getenv("POSTGRES_PORT")
-USER = os.getenv("POSTGRES_USER")
-PASSWORD = os.getenv("POSTGRES_PASSWORD")
-DB_NAME = os.getenv("POSTGRES_DB")
+PORT = os.getenv("BAG3D_PG_PORT")
+USER = os.getenv("BAG3D_PG_USER")
+PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
+DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="function")

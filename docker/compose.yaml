@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: $IMAGE_NAME
+    image: $BAG3D_PG_DOCKERIMAGE
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
     container_name: bag3d_postgis
@@ -8,12 +8,12 @@ services:
     ports:
       - "5560:5432"
     volumes:
-      - $PATH_TO_TEST_DATA:/var/lib/postgresql/data
+      - $BAG3D_TEST_DATA:/var/lib/postgresql/data
       - postgis_volume:/var/log/postgresql/
     environment:
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_USER: $BAG3D_PG_USER
+      BAG3D_PG_PASSWORD: $BAG3D_PG_PASSWORD
+      POSTGRES_DB: $BAG3D_PG_DATABASE
     restart: always
 
 volumes:

@@ -30,7 +30,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     # on gilfoyle
     sequence_header_file = bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
     create_sequence_header_file(
-        os.getenv('TYLER_METADATA_JSON'),    
+        os.getenv('BAG3D_TYLER_METADATA_JSON'),
         sequence_header_file,
         version_3dbag
     )
@@ -40,7 +40,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
-        f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
+        f"BAG3D_TYLER_RESOURCES_DIR={os.getenv('BAG3D_TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata", str(sequence_header_file),
         "--features", str(reconstructed_root_dir),
