@@ -270,7 +270,6 @@ They are downloaded with the `source_input` job and they are:
 
 - [BAG](docs/SOURCE_DATASETS.md#bag)
 - [AHN](docs/SOURCE_DATASETS.md#ahn)
-- [BGT](docs/SOURCE_DATASETS.md#bgt)
 - [TOP10NL](docs/SOURCE_DATASETS.md#top10nl)
 
 Read more about [the source datasets here](docs/SOURCE_DATASETS.md).

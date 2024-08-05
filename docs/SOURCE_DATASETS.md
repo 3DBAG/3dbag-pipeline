@@ -5,7 +5,6 @@ They are downloaded with the `source_input` job and they are:
 - AHN
 - BAG  
 - TOP10NL ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/top10nl/20190708))
-- BGT     ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/imgeo/))
 
 
 ## BAG
@@ -45,9 +44,5 @@ TBD
 
 
 ## AHN
-
-TBD
-
-## BGT
 
 TBD

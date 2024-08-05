@@ -7,12 +7,6 @@ from bag3d.core.assets.reconstruction.reconstruction import (
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
-job_bgt = define_asset_job(
-    name="bgt",
-    description="Load the latest BGT Pand, Wegdeel layers.",
-
-)
-
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
 job_ahn3 = define_asset_job(
     name="ahn3",
