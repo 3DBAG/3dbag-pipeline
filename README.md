@@ -132,7 +132,7 @@ Tests are run separately for each package and they are located in the `tests` di
 Tests use `pytest`.
 
 The tests use the sample data that are downloaded as shown above.
-You can run the sample tests with:
+You can run the unit tests with:
 
 ```shell
 make test
