@@ -1,6 +1,6 @@
 from dagster import load_assets_from_package_module
 
-from bag3d.core.assets import (ahn, bag, bgt, top10nl, input, sample,
+from bag3d.core.assets import (ahn, bag, bgt, top10nl, input,
                                reconstruction, export, deploy)
 
 BAG = "bag"
@@ -8,7 +8,6 @@ TOP10NL = "top10nl"
 AHN = "ahn"
 BGT = "bgt"
 INPUT = "input"
-SAMPLE = "sample"
 RECONSTRUCTION = "reconstruction"
 EXPORT = "export"
 DEPLOY = "deploy"
@@ -43,12 +42,6 @@ input_assets = load_assets_from_package_module(
     package_module=input,
     key_prefix="input",
     group_name=INPUT
-)
-
-sample_data_assets = load_assets_from_package_module(
-    package_module=sample,
-    key_prefix="sample",
-    group_name=SAMPLE
 )
 
 reconstruction_assets = load_assets_from_package_module(

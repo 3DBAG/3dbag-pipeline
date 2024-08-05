@@ -7,14 +7,6 @@ from bag3d.core.assets.reconstruction.reconstruction import (
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
-assets_sample_data = AssetSelection.groups("sample")
-
-job_sample_data_image = define_asset_job(
-    name="sample_data_update_image",
-    description="Update the 3dbag-sample-data docker image with new sample data.",
-    selection=assets_sample_data
-)
-
 job_bgt = define_asset_job(
     name="bgt",
     description="Load the latest BGT Pand, Wegdeel layers.",
