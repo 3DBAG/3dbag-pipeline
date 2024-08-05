@@ -24,8 +24,9 @@ BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
 BAG3D_PG_USER=baseregisters_test_user
 BAG3D_PG_PASSWORD=baseregisters_test_pswd
 BAG3D_PG_DATABASE=baseregisters_test
-BAG3D_PG_PORT=5560
 BAG3D_PG_HOST=localhost
+BAG3D_PG_PORT=5560
+BAG3D_PG_SSLMODE=allow
 
 BAG3D_TYLER_RESOURCES_DIR=/path/to/tyler/resource
 BAG3D_TYLER_METADATA_JSON=/path/to/tyler/metadata/json

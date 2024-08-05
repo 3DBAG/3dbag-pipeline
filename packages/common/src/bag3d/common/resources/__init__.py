@@ -24,8 +24,9 @@ db_connection_docker = db_connection.configured({
     "port": int(os.getenv("BAG3D_PG_PORT", 5432)),
     "user": os.getenv("BAG3D_PG_USER"),
     "password": os.getenv("BAG3D_PG_PASSWORD"),
-    "dbname": os.getenv("BAG3D_PG_DBNAME"),
+    "dbname": os.getenv("BAG3D_PG_DATABASE"),
     "host": os.getenv("BAG3D_PG_HOST"),
+    "sslmode": os.getenv("BAG3D_PG_SSLMODE", "allow"),
 })
 
 
