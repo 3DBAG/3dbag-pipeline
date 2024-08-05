@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-core"
-version = "2024.1005"
+version = "2024.1006"
 description = "Workflow for producing the 3D BAG core data set"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -20,7 +20,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@2024.1004#egg=bag3d-common&subdirectory=packages/common",
+    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
     "dagster",
     "dagster-postgres",
     "dagster-shell",
@@ -33,7 +33,7 @@ dependencies = [
 optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-dotenv", "coverage"] }
 
 [tool.bumpver]
-current_version = "2024.1005"
+current_version = "2024.1006"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-floors-estimation"
-version = "2024.1002"
+version = "2024.1003"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,7 +18,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@2024.1004#egg=bag3d-common&subdirectory=packages/common",
+    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
     "sklearn-pandas",
     "scikit-learn==1.4",
     "pandas",
@@ -28,7 +28,7 @@ dependencies = [
 optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage"] }
 
 [tool.bumpver]
-current_version = "2024.1002"
+current_version = "2024.1003"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
