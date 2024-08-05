@@ -72,16 +72,16 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
         query = SQL(f"select tile_id from {schema}.{table_tiles}")
     try:
         conn = PostgresConnection(
-            port=int(os.environ.get("DAGSTER_DB_CONNECTION_PORT", 5432)),
-            user=os.environ.get("DAGSTER_DB_CONNECTION_USER"),
-            password=os.environ.get("DAGSTER_DB_CONNECTION_PASSWORD"),
-            dbname=os.environ.get("DAGSTER_DB_CONNECTION_DBNAME"),
-            host=os.environ.get("DAGSTER_DB_CONNECTION_HOST"),
+            port=int(os.environ.get("BAG3D_PG_PORT", 5432)),
+            user=os.environ.get("BAG3D_PG_USER"),
+            password=os.environ.get("BAG3D_PG_PASSWORD"),
+            dbname=os.environ.get("BAG3D_PG_DATABASE"),
+            host=os.environ.get("BAG3D_PG_HOST"),
         )
         tile_ids = [row[0] for row in conn.get_query(query)]
     except OperationalError:
         logger.error(
-            f"cannot establish database connection from the environment variables DAGSTER_DB_*")
+            f"cannot establish database connection from the environment variables BAG3D_PG_*")
         tile_ids = []
     except UndefinedTable:
         logger.error(f"tiles table {schema}.{table_tiles} does not exist")
