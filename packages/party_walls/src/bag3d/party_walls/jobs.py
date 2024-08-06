@@ -10,8 +10,8 @@ job_nl_party_walls = define_asset_job(
     writes CityJSONFeature files. The new features need to be run through *tyler* again, 
     to generate the tiles for export.
     """,
-    selection=AssetSelection.assets(["party_walls", "party_walls_nl"]) |
+    selection=AssetSelection.assets(["party_walls", "party_walls_nl"]).upstream() |
               AssetSelection.assets(
-                  ["party_walls", "cityjsonfeatures_with_party_walls_nl"]),
+                  ["party_walls", "cityjsonfeatures_with_party_walls_nl"]).upstream(),
     partitions_def=PartitionDefinition3DBagDistribution()
 )
