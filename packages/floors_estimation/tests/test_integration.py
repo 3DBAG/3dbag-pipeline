@@ -1,8 +1,10 @@
+import pytest
 from bag3d.common.resources.files import file_store
 from bag3d.floors_estimation.code_location import defs
 from dagster import ExecuteInProcessResult
 
 
+@pytest.mark.slow
 def test_job_floors_estimation(input_data_dir):
     resolved_job = defs.get_job_def("floors_estimation")
 

@@ -1,5 +1,6 @@
 import pickle
 
+import pytest
 from bag3d.common.resources.files import file_store
 from bag3d.party_walls import assets
 from bag3d.party_walls.jobs import job_nl_party_walls
@@ -12,7 +13,7 @@ def mock_features_file_index(features_file_index, output_data_dir):
         def load_input(self, context):
             return pickle.load(open(output_data_dir / "features_file_index.pkl", "rb"))
 
-        def handle_output(self, context, obj):
+        def handle_output(self, context, obj):  # pragma: no cover
             raise NotImplementedError()
 
     return SourceAsset(
@@ -30,7 +31,7 @@ def mock_distribution_tiles_files_index(
                 open(output_data_dir / "distribution_tiles_files_index.pkl", "rb")
             )
 
-        def handle_output(self, context, obj):
+        def handle_output(self, context, obj):  # pragma: no cover
             raise NotImplementedError()
 
     return SourceAsset(
@@ -39,6 +40,7 @@ def mock_distribution_tiles_files_index(
     )
 
 
+@pytest.mark.slow
 def test_job_party_walls(
     database, input_data_dir, export_dir_uncompressed, output_data_dir
 ):
