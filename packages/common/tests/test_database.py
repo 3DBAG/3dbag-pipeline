@@ -76,7 +76,7 @@ def test_postgrestable_from_query(context):
 
 
 @pytest.mark.skip(reason="Cannot find module.")
-def test_load_sql():
+def test_load_sql(): # pragma: no cover
     query_params = {
         "tbl": PostgresTableIdentifier("myschema", "mytable"),
     }
