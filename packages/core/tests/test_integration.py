@@ -12,6 +12,7 @@ from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      SourceAsset, load_assets_from_package_module, Output)
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
+from bag3d.common.resources.temp_until_configurableresource import EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF, FLOWCHART_PATH_RECONSTRUCT
 
 
 def mock_reconstruction_input(reconstruction_input):
@@ -75,8 +76,19 @@ def mock_regular_grid_200m(regular_grid_200m):
 
 def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     resources = {
-        "geoflow": geoflow,
-        "roofer": roofer,
+        "geoflow": geoflow.configured({
+    "exes": {
+        "geof": EXE_PATH_GEOF
+    },
+    "flowcharts": {
+        "reconstruct": FLOWCHART_PATH_RECONSTRUCT
+    }
+}),
+        "roofer": roofer.configured({
+            "exes": {
+                "crop": EXE_PATH_ROOFER_CROP
+            },
+        }),
         "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
         "db_connection": database,
         "file_store": file_store.configured(
