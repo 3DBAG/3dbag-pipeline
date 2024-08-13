@@ -28,8 +28,8 @@ BAG3D_PG_HOST=localhost
 BAG3D_PG_PORT=5560
 BAG3D_PG_SSLMODE=allow
 
-BAG3D_TYLER_RESOURCES_DIR=/path/to/tyler/resource
-BAG3D_TYLER_METADATA_JSON=/path/to/tyler/metadata/json
+TYLER_RESOURCES_DIR=/path/to/tyler/resource
+TYLER_METADATA_JSON=/path/to/tyler/metadata/json
 ```
 
 Then you run the tests from the root directory of the repo with:
