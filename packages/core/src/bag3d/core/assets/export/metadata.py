@@ -183,28 +183,39 @@ def metadata(context: AssetExecutionContext):
     # is has succeeded.
     process_step_list = []
     for asset_key in asset_keys:
-        event_record = instance.get_event_records(
+        event_record_list = instance.get_event_records(
             event_records_filter=EventRecordsFilter(
                 event_type=DagsterEventType.ASSET_MATERIALIZATION,
                 asset_key=asset_key,
             ),
             limit=1
-        )[0]
-        # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
-        # member instead of 'Rows'
-        rows = event_record.asset_materialization.metadata.get("Rows")
-        process_step_list.append(
-            {
-                "name": ".".join(asset_key.path),
-                "runId": event_record.run_id,
-                "featureCount": rows.value if rows is not None else None,
-                "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
-                "dataVersion": event_record.asset_materialization.tags["dagster/data_version"]
-            }
         )
+        if len(event_record_list) > 0:
+            event_record = event_record_list[0]
 
-    [ps["dataVersion"] for ps in process_step_list if ps["name"] == "top10nl.extract_top10nl"]
+            # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
+            # member instead of 'Rows'
+            rows = event_record.asset_materialization.metadata.get("Rows")
+            process_step_list.append(
+                {
+                    "name": ".".join(asset_key.path),
+                    "runId": event_record.run_id,
+                    "featureCount": rows.value if rows is not None else None,
+                    "dateTime": datetime.fromtimestamp(event_record.timestamp).date().isoformat(),
+                    "dataVersion": event_record.asset_materialization.tags["dagster/data_version"]
+                }
+            )
 
+    top10NLdates = [ps["dataVersion"] for ps in process_step_list if ps["name"] == "top10nl.extract_top10nl"]
+    top10NLdate = None
+    if len(top10NLdates) >0 :
+        top10NLdate = top10NLdates[0]
+
+    bagdates = [ps["dataVersion"] for ps in process_step_list if ps["name"] == "bag.extract_bag"]
+    bagdate = None
+    if len(bagdates) >0 :
+        bagdate = bagdates[0]
+        
     metadata = {
         "identificationInfo": {
             "citation": {
@@ -255,8 +266,7 @@ def metadata(context: AssetExecutionContext):
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract",
                             "dateType": "creation",
-                            "date": [ps["dataVersion"] for ps in process_step_list if
-                                     ps["name"] == "bag.extract_bag"][0],
+                            "date": bagdate,
                             "licence": "http://creativecommons.org/publicdomain/mark/1.0/deed.nl"
                         },
                     },
@@ -267,8 +277,7 @@ def metadata(context: AssetExecutionContext):
                             "author": "Het Kadaster",
                             "website": "https://www.kadaster.nl/zakelijk/producten/geo-informatie/topnl",
                             "dateType": "access",
-                            "date": [ps["dataVersion"] for ps in process_step_list if
-                                     ps["name"] == "top10nl.extract_top10nl"][0],
+                            "date": top10NLdate,
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl"
                         },
                     },
@@ -343,7 +352,6 @@ def metadata(context: AssetExecutionContext):
         }
 
     }
-
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
