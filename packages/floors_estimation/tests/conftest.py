@@ -26,6 +26,12 @@ def root_data_dir(test_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
+def intermediate_data_dir(test_data_dir) -> Path:
+    """Root directory path for test data"""
+    return test_data_dir / "intermediate_data"
+
+
+@pytest.fixture(scope="session")
 def input_data_dir(root_data_dir) -> Path:
     """Directory for input data"""
     return root_data_dir / "input"
@@ -41,12 +47,6 @@ def model_dir(root_data_dir) -> Path:
 def export_dir_uncompressed(input_data_dir) -> Path:
     """3D BAG exported data before compression"""
     return input_data_dir / "export_uncompressed"
-
-
-@pytest.fixture(scope="session")
-def output_data_dir(root_data_dir) -> Path:
-    """Directory for data generated during test runs"""
-    return root_data_dir / "output"
 
 
 @pytest.fixture(scope="function")
