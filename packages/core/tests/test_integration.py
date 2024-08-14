@@ -77,7 +77,7 @@ def mock_regular_grid_200m(regular_grid_200m):
     )
 
 
-#@pytest.mark.slow
+@pytest.mark.slow
 def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     resources = {
         "tyler": tyler.configured({

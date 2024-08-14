@@ -46,7 +46,7 @@ def mock_distribution_tiles_files_index(
     )
 
 
-#@pytest.mark.slow
+@pytest.mark.slow
 def test_job_party_walls(
     database, input_data_dir, export_dir_uncompressed, intermediate_data_dir
 ):
