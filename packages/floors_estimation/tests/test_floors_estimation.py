@@ -20,16 +20,13 @@ from dagster import asset
 from pandas import DataFrame
 
 
-def test_features_file_index(context, output_data_dir):
+def test_features_file_index(context):
     """"""
     result = features_file_index(context=context)
     assert len(result) == 412
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
-    pickle.dump(
-        result,
-        open(output_data_dir / "features_file_index_floors_estimation.pkl", "wb"),
-    )
+
 
 
 def test_make_chunks():
@@ -67,15 +64,18 @@ def test_make_chunks():
 
 
 @asset(name="features_file_index")
-def mock_features_file_index(output_data_dir) -> dict[str, Path]:
-    return pickle.load(
-        open(output_data_dir / "features_file_index_floors_estimation.pkl", "rb")
+def mock_features_file_index(intermediate_data_dir, input_data_dir) -> dict[str, Path]:
+    data =  pickle.load(
+        open(intermediate_data_dir / "features_file_index_floors_estimation.pkl", "rb")
     )
+    for k,v in data.items():
+        data[k] = Path(str(v).replace(str(v.parents[5]), str(input_data_dir)))
+    return data
 
 
-def test_bag3d_features(context, output_data_dir):
+def test_bag3d_features(context, intermediate_data_dir, input_data_dir):
     res = bag3d_features(
-        context, features_file_index=mock_features_file_index(output_data_dir)
+        context, features_file_index=mock_features_file_index(intermediate_data_dir, input_data_dir)
     )
 
     assert res.value is not None
@@ -111,7 +111,7 @@ def test_all_features(context):
     assert table_exists(context, all_features_table) is True
 
 
-def test_preprocessed_features(context, output_data_dir):
+def test_preprocessed_features(context):
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
@@ -122,13 +122,13 @@ def test_preprocessed_features(context, output_data_dir):
 
 
 @asset(name="preprocessed_features")
-def mock_preprocessed_features(output_data_dir) -> DataFrame:
-    return pickle.load(open(output_data_dir / "preprocessed_features.pkl", "rb"))
+def mock_preprocessed_features(intermediate_data_dir) -> DataFrame:
+    return pickle.load(open(intermediate_data_dir / "preprocessed_features.pkl", "rb"))
 
 
-def test_inferenced_floors(context, output_data_dir):
+def test_inferenced_floors(context, intermediate_data_dir):
     res = inferenced_floors(
-        context, preprocessed_features=mock_preprocessed_features(output_data_dir)
+        context, preprocessed_features=mock_preprocessed_features(intermediate_data_dir)
     )
     assert res is not None
     assert "floors" in res.columns
@@ -136,24 +136,24 @@ def test_inferenced_floors(context, output_data_dir):
 
 
 @asset(name="inferenced_floors")
-def mock_inferenced_floors(output_data_dir) -> DataFrame:
-    return pickle.load(open(output_data_dir / "inferenced_floors.pkl", "rb"))
+def mock_inferenced_floors(intermediate_data_dir) -> DataFrame:
+    return pickle.load(open(intermediate_data_dir / "inferenced_floors.pkl", "rb"))
 
 
-def test_predictions_table(context, output_data_dir):
+def test_predictions_table(context, intermediate_data_dir):
     res = predictions_table(
-        context, inferenced_floors=mock_inferenced_floors(output_data_dir)
+        context, inferenced_floors=mock_inferenced_floors(intermediate_data_dir)
     )
     assert res.value is not None
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
     assert table_exists(context, pred_table) is True
 
 
-def test_save_cjfiles(context, output_data_dir, input_data_dir):
+def test_save_cjfiles(context, intermediate_data_dir, input_data_dir):
     save_cjfiles(
         context,
-        mock_inferenced_floors(output_data_dir),
-        mock_features_file_index(output_data_dir),
+        mock_inferenced_floors(intermediate_data_dir),
+        mock_features_file_index(intermediate_data_dir, input_data_dir),
     )
     assert (
         input_data_dir
