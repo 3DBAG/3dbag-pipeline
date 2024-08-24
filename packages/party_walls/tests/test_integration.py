@@ -9,11 +9,15 @@ from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      SourceAsset, load_assets_from_package_module)
 
 
-def mock_features_file_index(features_file_index, intermediate_data_dir, input_data_dir):
+def mock_features_file_index(
+    features_file_index, intermediate_data_dir, input_data_dir
+):
     class MockIOManager(IOManager):
         def load_input(self, context):
-            data =  pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
-            for k,v in data.items():
+            data = pickle.load(
+                open(intermediate_data_dir / "features_file_index.pkl", "rb")
+            )
+            for k, v in data.items():
                 data[k] = Path(str(v).replace(str(v.parents[8]), str(input_data_dir)))
             return data
 
@@ -27,14 +31,17 @@ def mock_features_file_index(features_file_index, intermediate_data_dir, input_d
 
 
 def mock_distribution_tiles_files_index(
-    distribution_tiles_files_index, intermediate_data_dir, input_data_dir):
+    distribution_tiles_files_index, intermediate_data_dir, input_data_dir
+):
     class MockIOManager(IOManager):
         def load_input(self, context):
-            data =  pickle.load(
+            data = pickle.load(
                 open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
             )
             for i, d in enumerate(data.paths_array):
-                data.paths_array[i] = Path(str(d).replace(str(d.parents[7]), str(input_data_dir)))
+                data.paths_array[i] = Path(
+                    str(d).replace(str(d.parents[7]), str(input_data_dir))
+                )
             return data
 
         def handle_output(self, context, obj):  # pragma: no cover
@@ -81,8 +88,11 @@ def test_job_party_walls(
         resources=resources,
         assets=[
             mock_distribution_tiles_files_index(
-                "distribution_tiles_files_index", intermediate_data_dir, input_data_dir),
-            mock_features_file_index("features_file_index", intermediate_data_dir, input_data_dir),
+                "distribution_tiles_files_index", intermediate_data_dir, input_data_dir
+            ),
+            mock_features_file_index(
+                "features_file_index", intermediate_data_dir, input_data_dir
+            ),
             party_assets[0],
             party_assets[1],
         ],

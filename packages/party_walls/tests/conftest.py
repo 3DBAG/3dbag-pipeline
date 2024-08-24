@@ -24,6 +24,7 @@ def root_data_dir(test_data_dir) -> Path:
     """Root directory path for test data"""
     return test_data_dir / "reconstruction_data"
 
+
 @pytest.fixture(scope="session")
 def intermediate_data_dir(test_data_dir) -> Path:
     """Root directory path for test data"""
@@ -53,7 +54,7 @@ def database():
 @pytest.fixture
 def context(database, export_dir_uncompressed, input_data_dir):
     yield build_op_context(
-        partition_key='10/564/624',
+        partition_key="10/564/624",
         resources={
             "db_connection": database,
             "file_store": file_store.configured(
@@ -66,8 +67,9 @@ def context(database, export_dir_uncompressed, input_data_dir):
                     "data_dir": str(input_data_dir),
                 }
             ),
-        }
+        },
     )
+
 
 # Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
 def pytest_addoption(parser):
@@ -84,7 +86,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    else: # pragma: no cover
+    else:  # pragma: no cover
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
             if "slow" in item.keywords:
