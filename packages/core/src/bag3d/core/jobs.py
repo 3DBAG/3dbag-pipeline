@@ -42,10 +42,7 @@ job_nl_reconstruct = define_asset_job(
     description="Run the crop and reconstruct steps for the Netherlands.",
     selection=AssetSelection.assets(["reconstruction", "cropped_input_and_config_nl"]) |
               AssetSelection.assets(
-                  ["reconstruction", "reconstructed_building_models_nl"]),
-    partitions_def=PartitionDefinition3DBagReconstruction(
-        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
-    ),
+                  ["reconstruction", "reconstructed_building_models_nl"])
 )
 
 job_nl_export = define_asset_job(
@@ -75,10 +72,7 @@ job_zuid_holland_reconstruct = define_asset_job(
     selection=AssetSelection.assets(
         ["reconstruction", "cropped_input_and_config_zuid_holland"]) |
               AssetSelection.assets(
-                  ["reconstruction", "reconstructed_building_models_zuid_holland"]),
-    partitions_def=PartitionDefinition3DBagReconstruction(
-        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
-    ),
+                  ["reconstruction", "reconstructed_building_models_zuid_holland"])
 )
 
 job_zuid_holland_export = define_asset_job(

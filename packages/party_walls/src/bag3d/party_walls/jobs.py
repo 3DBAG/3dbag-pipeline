@@ -12,6 +12,5 @@ job_nl_party_walls = define_asset_job(
     """,
     selection=AssetSelection.assets(["party_walls", "party_walls_nl"]) |
               AssetSelection.assets(
-                  ["party_walls", "cityjsonfeatures_with_party_walls_nl"]),
-    partitions_def=PartitionDefinition3DBagDistribution()
+                  ["party_walls", "cityjsonfeatures_with_party_walls_nl"])
 )
