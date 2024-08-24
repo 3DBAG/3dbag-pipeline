@@ -3,13 +3,12 @@ from pathlib import Path
 
 import pytest
 from bag3d.common.resources import gdal
-from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
+from bag3d.common.resources.files import file_store
 from dagster import build_op_context
 from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
-
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"
@@ -17,7 +16,6 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
-
 
 
 @pytest.fixture(scope="function")
@@ -45,15 +43,21 @@ def context(database, docker_gdal_image, wkt_testarea, tmp_path):
     yield build_op_context(
         op_config={
             "geofilter": wkt_testarea,
-            "featuretypes": ["gebouw", ]
+            "featuretypes": [
+                "gebouw",
+            ],
         },
         resources={
             "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
             "db_connection": database,
             "file_store": file_store.configured(
-                {"data_dir": str(tmp_path), }),
-        }
+                {
+                    "data_dir": str(tmp_path),
+                }
+            ),
+        },
     )
+
 
 # Setup to add a CLI option to run tests that are marked "slow"
 # Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
@@ -71,7 +75,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    else: # pragma: no cover
+    else:  # pragma: no cover
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
             if "slow" in item.keywords:
@@ -86,4 +90,3 @@ def setenv():
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
-

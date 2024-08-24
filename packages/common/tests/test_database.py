@@ -18,10 +18,12 @@ def test_table_exists(context):
 
 def test_drop_table(context):
     query = SQL(
-                """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
+        """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
                    INSERT INTO {table} VALUES (1, 'bla');
                    INSERT INTO {table} VALUES (2, 'foo');"""
-    ).format(table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str))
+    ).format(
+        table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
+    )
     context.resources.db_connection.send_query(query)
     assert table_exists(context, NON_EXISTING_TABLE) is True
     drop_table(context, NON_EXISTING_TABLE)
@@ -53,7 +55,9 @@ def test_summary_md(database):
 def test_postgrestable_metadata(context):
     res = postgrestable_metadata(context, EXISTING_TABLE)
 
-    assert res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+    assert (
+        res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+    )
     assert res["Rows"] == 414
 
 
@@ -76,7 +80,7 @@ def test_postgrestable_from_query(context):
 
 
 @pytest.mark.skip(reason="Cannot find module.")
-def test_load_sql(): # pragma: no cover
+def test_load_sql():  # pragma: no cover
     query_params = {
         "tbl": PostgresTableIdentifier("myschema", "mytable"),
     }
