@@ -135,7 +135,7 @@ def export_index(context):
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
-    a tile. If a tile does not have any featues in the quadtree, it is not included.
+    a tile. If a tile does not have any features in the quadtree, it is not included.
     Output it written to export_index.csv.
     """
     path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
