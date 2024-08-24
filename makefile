@@ -40,9 +40,16 @@ coverage: source
 	. $(BAG3D_VENVS)/venv_common/bin/activate ; coverage run -m pytest $(PWD)/packages/common/tests/ -v --runslow ; coverage report
 	. $(BAG3D_VENVS)/venv_core/bin/activate ; coverage run -m pytest $(PWD)/packages/core/tests/ -v --runslow ; coverage report
 	. $(BAG3D_VENVS)/venv_party_walls/bin/activate ; coverage run -m pytest $(PWD)/packages/party_walls/tests -v --runslow ; coverage report
-	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v ; coverage report
+	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; coverage run -m pytest $(PWD)/packages/floors_estimation/tests -v --runslow; coverage report
 
 integration: source
 	. $(BAG3D_VENVS)/venv_core/bin/activate ; pytest $(PWD)/packages/core/tests/test_integration.py -v -s --runslow
 	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; pytest $(PWD)/packages/floors_estimation/tests/test_integration.py -v -s --runslow
 	. $(BAG3D_VENVS)/venv_party_walls/bin/activate ; pytest $(PWD)/packages/party_walls/tests/test_integration.py -v -s --runslow
+
+test_full: source
+	. $(BAG3D_VENVS)/venv_common/bin/activate ; pytest $(PWD)/packages/common/tests/ -v --runslow
+	. $(BAG3D_VENVS)/venv_core/bin/activate ; pytest $(PWD)/packages/core/tests/ -v --runslow
+	. $(BAG3D_VENVS)/venv_party_walls/bin/activate ; pytest $(PWD)/packages/party_walls/tests -v --runslow
+	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; pytest $(PWD)/packages/floors_estimation/tests -v --runslow
+
