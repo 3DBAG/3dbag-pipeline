@@ -11,7 +11,7 @@ from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets import deploy, export, reconstruction
 from bag3d.core.assets.export.tile import reconstruction_output_tiles_func
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d.core.jobs import job_nl_deploy, job_nl_export, job_nl_reconstruct
+from bag3d.core.jobs import job_nl_deploy_test, job_nl_export, job_nl_reconstruct
 from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      Output, SourceAsset, load_assets_from_package_module)
 
@@ -136,9 +136,9 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
         export, key_prefix="export", group_name="export"
     )
 
-    # all_deploy_assets = load_assets_from_package_module(
-    #     deploy, key_prefix="deploy", group_name="deploy"
-    # )
+    all_deploy_assets = load_assets_from_package_module(
+        deploy, key_prefix="deploy", group_name="deploy"
+    )
 
     defs = Definitions(
         resources=resources,
@@ -149,12 +149,12 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
             mock_index("index"),
             *reconstruction_assets,
             *all_export_assets,
-            # *all_deploy_assets
+            *all_deploy_assets
         ],
         jobs=[
             job_nl_reconstruct,
             job_nl_export,
-            # job_nl_deploy,
+            job_nl_deploy_test,
         ],
     )
 
@@ -172,7 +172,7 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     assert isinstance(result, ExecuteInProcessResult)
     assert result.success
 
-    # resolved_job = defs.get_job_def("nl_deploy")
-    # result = resolved_job.execute_in_process(
-    #     resources=resources, partition_key="10/564/624"
-    # )
+    resolved_job = defs.get_job_def("nl_deploy_test")
+    result = resolved_job.execute_in_process(
+        resources=resources, partition_key="10/564/624"
+    )
