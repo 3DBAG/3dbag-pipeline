@@ -5,14 +5,15 @@ from bag3d.common.resources import gdal
 from bag3d.common.resources.executables import geoflow, roofer, tyler
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.temp_until_configurableresource import (
-    EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_TYLER_DB, EXE_PATH_TYLER)
+    EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
+    FLOWCHART_PATH_RECONSTRUCT)
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.core.assets import reconstruction, export, deploy
+from bag3d.core.assets import deploy, export, reconstruction
+from bag3d.core.assets.export.tile import reconstruction_output_tiles_func
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d.core.jobs import job_nl_reconstruct, job_nl_export, job_nl_deploy
+from bag3d.core.jobs import job_nl_deploy, job_nl_export, job_nl_reconstruct
 from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      Output, SourceAsset, load_assets_from_package_module)
-from bag3d.core.assets.export.tile import reconstruction_output_tiles_func
 
 
 def mock_reconstruction_input(reconstruction_input):
@@ -80,12 +81,9 @@ def mock_regular_grid_200m(regular_grid_200m):
 @pytest.mark.slow
 def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     resources = {
-        "tyler": tyler.configured({
-    "exes": {
-        "tyler-db": EXE_PATH_TYLER_DB,
-        "tyler": EXE_PATH_TYLER
-    }
-}),
+        "tyler": tyler.configured(
+            {"exes": {"tyler-db": EXE_PATH_TYLER_DB, "tyler": EXE_PATH_TYLER}}
+        ),
         "geoflow": geoflow.configured(
             {
                 "exes": {"geof": EXE_PATH_GEOF},
@@ -97,13 +95,15 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
                 "exes": {"crop": EXE_PATH_ROOFER_CROP},
             }
         ),
-        "gdal": gdal.configured({
-            "exes": {
-                "ogr2ogr": "/opt/bin/ogr2ogr",
-                "ogrinfo": "/opt/bin/ogrinfo",
-                "sozip": "/opt/bin/sozip"
+        "gdal": gdal.configured(
+            {
+                "exes": {
+                    "ogr2ogr": "/opt/bin/ogr2ogr",
+                    "ogrinfo": "/opt/bin/ogrinfo",
+                    "sozip": "/opt/bin/sozip",
+                }
             }
-        }),
+        ),
         "db_connection": database,
         "file_store": file_store.configured(
             {
@@ -149,12 +149,12 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
             mock_index("index"),
             *reconstruction_assets,
             *all_export_assets,
-            #*all_deploy_assets
+            # *all_deploy_assets
         ],
         jobs=[
             job_nl_reconstruct,
             job_nl_export,
-           # job_nl_deploy,
+            # job_nl_deploy,
         ],
     )
 
@@ -167,13 +167,10 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     assert result.success
 
     resolved_job = defs.get_job_def("nl_export")
-    result = resolved_job.execute_in_process(
-        resources=resources
-    )
+    result = resolved_job.execute_in_process(resources=resources)
 
     assert isinstance(result, ExecuteInProcessResult)
     assert result.success
-
 
     # resolved_job = defs.get_job_def("nl_deploy")
     # result = resolved_job.execute_in_process(
