@@ -77,6 +77,7 @@ def context(database, export_dir_uncompressed, input_data_dir, model_dir):
         },
     )
 
+
 # Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
 def pytest_addoption(parser):
     parser.addoption(
@@ -92,7 +93,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    else: # pragma: no cover
+    else:  # pragma: no cover
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
             if "slow" in item.keywords:

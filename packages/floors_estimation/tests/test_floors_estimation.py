@@ -6,16 +6,9 @@ from typing import Dict
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table, table_exists
 from bag3d.floors_estimation.assets.floors_estimation import (
-    all_features,
-    bag3d_features,
-    external_features,
-    features_file_index,
-    inferenced_floors,
-    make_chunks,
-    predictions_table,
-    preprocessed_features,
-    save_cjfiles,
-)
+    all_features, bag3d_features, external_features, features_file_index,
+    inferenced_floors, make_chunks, predictions_table, preprocessed_features,
+    save_cjfiles)
 from dagster import asset
 from pandas import DataFrame
 
@@ -26,7 +19,6 @@ def test_features_file_index(context):
     assert len(result) == 412
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
-
 
 
 def test_make_chunks():
@@ -65,17 +57,20 @@ def test_make_chunks():
 
 @asset(name="features_file_index")
 def mock_features_file_index(intermediate_data_dir, input_data_dir) -> dict[str, Path]:
-    data =  pickle.load(
+    data = pickle.load(
         open(intermediate_data_dir / "features_file_index_floors_estimation.pkl", "rb")
     )
-    for k,v in data.items():
+    for k, v in data.items():
         data[k] = Path(str(v).replace(str(v.parents[5]), str(input_data_dir)))
     return data
 
 
 def test_bag3d_features(context, intermediate_data_dir, input_data_dir):
     res = bag3d_features(
-        context, features_file_index=mock_features_file_index(intermediate_data_dir, input_data_dir)
+        context,
+        features_file_index=mock_features_file_index(
+            intermediate_data_dir, input_data_dir
+        ),
     )
 
     assert res.value is not None
