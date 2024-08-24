@@ -4,12 +4,12 @@ Repository of the 3D BAG production pipeline.
 
 ## Quickstart for local development:
 
-### Requirements for runing the fast tests:
+### Requirements for running the fast tests:
 
 - Python 3.11
 - Docker
 
-### Requirements for running slow and integration tests and for production:
+### Requirements for running the slow and integration tests and for production:
 
 - [Tyler](https://github.com/3DGI/tyler)
 - [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
@@ -19,8 +19,8 @@ Optional:
 - [gdal](https://github.com/OSGeo/gdal)
 - [pdal](https://github.com/PDAL/PDAL)
 
-### Env variables
-First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
+### Environment variables
+First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the commands in the makefile. For just running the fast tests, the following variables are necessary and no modification is needed (the tests will run in a docker-based database):
 
 ```bash
 BAG3D_VENVS=${PWD}/venvs
@@ -39,7 +39,7 @@ BAG3D_PG_PORT=5560
 BAG3D_PG_SSLMODE=allow
 ```
 
-Additionally, for running the integration tests you need to add (requires [full requirements installation](#requirements-for-running-integration-tests-and-for-production)):
+However, for running the integration tests you need the [full requirements installation](#requirements-for-running-integration-tests-and-for-production) and you need to add the paths to your local Tyler installation to the .env file:
 
 ```bash
 TYLER_RESOURCES_DIR=/path/to/tyler/resource
@@ -58,8 +58,8 @@ make integration
 ```
 
 Where:
-make venvs = creates the vitrual environments
-make download = downloads test_data from the server
+make venvs = creates the [vitrual environments](#development-and-testing)
+make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
@@ -68,14 +68,13 @@ make integration = runs the integration tests (requires [full requirements insta
 
 ## Resources
 
-The 3DBAG pipeline is a heavy process that requires you to have a well configured database. 
-
-Some instructions for configuring your database can be found here in the following links:
+The 3DBAG pipeline is a heavy process that requires a well configured database. Some instructions for configuring your database can be found here in the following links:
 
 [Resource Consumption](https://www.postgresql.org/docs/10/runtime-config-resource.html)
 [Write Ahead Log](https://www.postgresql.org/docs/12/runtime-config-wal.html)
 [WAL Configuration](https://www.postgresql.org/docs/12/wal-configuration.html)
 
+TODO
 
 
 ## Packages
@@ -104,7 +103,7 @@ The virtual environment names follow the pattern of `venv_<package>`. You need t
 
 The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the required packages from `requirements_dagster_webserver.txt`.
 
-```shell
+```bash
 pip install -r requirements_dagster_webserver.txt
 ```
 
@@ -116,7 +115,8 @@ make venvs
 
 The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
 In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance with:
-```shell
+
+```bash
 cd tests/dagster_home
 dagster dev
 ```
@@ -125,24 +125,30 @@ If you've set up the virtual environment correctly, this main dagster instance w
 
 You can also start it up directly with:
 
-```shell
+```bash
 make start_dagster
 ```
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
 
 
-
 ### Data
 
 Download test data with:
 
-```
+```bash
 export BAG3D_TEST_DATA=<path/to/where/the/data/should/be/stored>
 make download
 ```
 
-### Unit testing
+### Tests
+
+You can run the full tests, including integration with :
+
+```bash
+make test_full
+```
+####  Unit testing
 
 Tests are run separately for each package and they are located in the `tests` directory of the package.
 Tests use `pytest`.
@@ -150,7 +156,7 @@ Tests use `pytest`.
 The tests use the sample data that are downloaded as shown above.
 You can run the unit tests with:
 
-```shell
+```bash
 make test
 ```
 
@@ -319,7 +325,7 @@ Licensed under either of
 
 at your option.
 
-### Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
