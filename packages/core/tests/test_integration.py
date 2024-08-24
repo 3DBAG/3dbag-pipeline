@@ -8,10 +8,10 @@ from bag3d.common.resources.temp_until_configurableresource import (
     EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
     FLOWCHART_PATH_RECONSTRUCT)
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.core.assets import deploy, export, reconstruction
+from bag3d.core.assets import export, reconstruction
 from bag3d.core.assets.export.tile import reconstruction_output_tiles_func
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from bag3d.core.jobs import job_nl_deploy_test, job_nl_export, job_nl_reconstruct
+from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
 from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      Output, SourceAsset, load_assets_from_package_module)
 
@@ -77,9 +77,34 @@ def mock_regular_grid_200m(regular_grid_200m):
         io_manager_def=MockIOManager(),
     )
 
+def mock_export_index(export_index, test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return test_data_dir / 'reconstruction_data/input/3DBAG/export'
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", export_index]),
+        io_manager_def=MockIOManager(),
+    )
+
+def mock_reconstruction_output_multitiles_nl(reconstruction_output_multitiles_nl, test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return test_data_dir / 'reconstruction_data/input/3DBAG/export'
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", reconstruction_output_multitiles_nl]),
+        io_manager_def=MockIOManager(),
+    )
 
 @pytest.mark.slow
-def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
+def test_integration_reconstruction_and_export(database, docker_gdal_image, test_data_dir):
     resources = {
         "tyler": tyler.configured(
             {"exes": {"tyler-db": EXE_PATH_TYLER_DB, "tyler": EXE_PATH_TYLER}}
@@ -136,9 +161,6 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
         export, key_prefix="export", group_name="export"
     )
 
-    all_deploy_assets = load_assets_from_package_module(
-        deploy, key_prefix="deploy", group_name="deploy"
-    )
 
     defs = Definitions(
         resources=resources,
@@ -149,12 +171,10 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
             mock_index("index"),
             *reconstruction_assets,
             *all_export_assets,
-            *all_deploy_assets
         ],
         jobs=[
             job_nl_reconstruct,
             job_nl_export,
-            job_nl_deploy_test,
         ],
     )
 
@@ -172,7 +192,3 @@ def test_job_nl_reconstruct(database, docker_gdal_image, test_data_dir):
     assert isinstance(result, ExecuteInProcessResult)
     assert result.success
 
-    resolved_job = defs.get_job_def("nl_deploy_test")
-    result = resolved_job.execute_in_process(
-        resources=resources, partition_key="10/564/624"
-    )

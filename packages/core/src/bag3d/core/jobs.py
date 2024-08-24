@@ -66,15 +66,6 @@ job_nl_deploy = define_asset_job(
 )
 
 
-job_nl_deploy_test = define_asset_job(
-    name="nl_deploy_test",
-    description="Deployment for test.",
-    selection=AssetSelection.assets(["export", "compressed_tiles"]) |
-              AssetSelection.assets(["export", "compressed_tiles_validation"]) |
-              AssetSelection.assets(["deploy", "compressed_export_nl"]),
-)
-
-
 job_zuid_holland_reconstruct = define_asset_job(
     name="zuid_holland_reconstruct",
     description="Run the crop and reconstruct steps for the province of Zuid-Holland.",
