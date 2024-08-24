@@ -4,10 +4,20 @@ Repository of the 3D BAG production pipeline.
 
 ## Quickstart for local development:
 
-### Requires:
+### Requirements for runing the fast tests:
 
 - Python 3.11
 - Docker
+
+### Requirements for running slow and integration tests and for production:
+
+- [Tyler](https://github.com/3DGI/tyler)
+- [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
+- [LAStools](https://github.com/LAStools/LAStools)
+
+Optional:
+- [gdal](https://github.com/OSGeo/gdal)
+- [pdal](https://github.com/PDAL/PDAL)
 
 ### Env variables
 First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
@@ -27,7 +37,11 @@ BAG3D_PG_DATABASE=baseregisters_test
 BAG3D_PG_HOST=localhost
 BAG3D_PG_PORT=5560
 BAG3D_PG_SSLMODE=allow
+```
 
+Additionally, for running the integration tests you need to add (requires [full requirements installation](#requirements-for-running-integration-tests-and-for-production)):
+
+```bash
 TYLER_RESOURCES_DIR=/path/to/tyler/resource
 TYLER_METADATA_JSON=/path/to/tyler/metadata/json
 ```
@@ -40,6 +54,7 @@ make download
 make build 
 make run
 make test
+make integration
 ```
 
 Where:
@@ -48,6 +63,7 @@ make download = downloads test_data from the server
 make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
+make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-integration-tests-and-for-production))
 
 
 ## Resources
@@ -144,8 +160,19 @@ Some test take a long time to execute.
 If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
 In order to include the slow tests in the test execution, use the `--runslow` command line option.
 
-```shell
+```bash
 pytest --runslow
+```
+
+These tests require the [full requirements installation](#requirements-for-running-integration-tests-and-for-production)
+
+
+#### Integration tests
+
+THe integrations tests are made in such way so that the main jobs that comprise the pipeline are run for a small region of 
+
+```bash
+make integration
 ```
 
 ### Conventions
