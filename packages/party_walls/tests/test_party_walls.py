@@ -27,18 +27,36 @@ def test_distribution_tiles_files_index(context):
 
 
 @asset(name="distribution_tiles_files_index")
-def mock_distribution_tiles_files_index(intermediate_data_dir) -> TilesFilesIndex:
-    return pickle.load(
-        open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
-    )
+def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir) -> TilesFilesIndex:
+        data = pickle.load(
+            open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
+        )
+        
+        for i, path in enumerate(data.paths_array):
+            data.paths_array[i] = Path(
+                str(path).replace(str(path.parents[7]), str(input_data_dir))
+            )
+        
+        for k, v in data.export_results.items():            
+            cj_path = data.export_results[k].cityjson_path
+            data.export_results[k].cityjson_path = Path(
+                str(cj_path).replace(str(cj_path.parents[7]), str(input_data_dir))
+            )
+            gpkg_path = data.export_results[k].gpkg_path
+            data.export_results[k].gpkg_path = Path(
+                str(gpkg_path).replace(str(gpkg_path.parents[7]), str(input_data_dir))
+            )
+            # TODO: fix data.export_results[k].obj_paths
+
+        return data
 
 
 @pytest.mark.slow
-def test_party_walls(context, intermediate_data_dir):
+def test_party_walls(context, intermediate_data_dir, input_data_dir):
     """Can we compute the party walls and other statistics?"""
 
     result = party_walls_nl(
-        context, mock_distribution_tiles_files_index(intermediate_data_dir)
+        context, mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir)
     )
     assert not result.empty
 
