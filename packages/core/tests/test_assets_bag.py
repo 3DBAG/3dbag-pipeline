@@ -1,5 +1,4 @@
 import pytest
-from bag3d.common.resources import gdal
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table, table_exists
 from bag3d.core.assets.bag.download import (bagextract_metadata, extract_bag,

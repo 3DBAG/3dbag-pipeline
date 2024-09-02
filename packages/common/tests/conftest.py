@@ -7,8 +7,6 @@ from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
-from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
-from psycopg.sql import SQL, Identifier
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"

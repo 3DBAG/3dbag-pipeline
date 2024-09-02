@@ -7,13 +7,10 @@ from bag3d.common.resources.files import file_store
 from bag3d.common.resources.temp_until_configurableresource import (
     EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
     FLOWCHART_PATH_RECONSTRUCT)
-from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets import export, reconstruction
-from bag3d.core.assets.export.tile import reconstruction_output_tiles_func
-from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
-from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
-                     Output, SourceAsset, load_assets_from_package_module)
+from dagster import (AssetKey, Definitions, ExecuteInProcessResult,
+                     load_assets_from_package_module)
 
 
 @pytest.mark.slow
