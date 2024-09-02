@@ -9,63 +9,14 @@ from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      SourceAsset, load_assets_from_package_module)
 
 
-def mock_features_file_index(
-    features_file_index, intermediate_data_dir, input_data_dir
-):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            data = pickle.load(
-                open(intermediate_data_dir / "features_file_index.pkl", "rb")
-            )
-            for k, v in data.items():
-                data[k] = Path(str(v).replace(str(v.parents[8]), str(input_data_dir)))
-            return data
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", features_file_index]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-def mock_distribution_tiles_files_index(
-    distribution_tiles_files_index, intermediate_data_dir, input_data_dir
-):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            data = pickle.load(
-                open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
-            )
-            for i, d in enumerate(data.paths_array):
-                data.paths_array[i] = Path(
-                    str(d).replace(str(d.parents[7]), str(input_data_dir))
-                )
-            for k, v in data.export_results.items():            
-                cj_path = data.export_results[k].cityjson_path
-                data.export_results[k].cityjson_path = Path(
-                    str(cj_path).replace(str(cj_path.parents[7]), str(input_data_dir))
-                )
-                gpkg_path = data.export_results[k].gpkg_path
-                data.export_results[k].gpkg_path = Path(
-                    str(gpkg_path).replace(str(gpkg_path.parents[7]), str(input_data_dir))
-                )
-                # TODO: fix data.export_results[k].obj_paths
-            return data
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", distribution_tiles_files_index]),
-        io_manager_def=MockIOManager(),
-    )
-
-
 @pytest.mark.slow
 def test_job_party_walls(
-    database, input_data_dir, export_dir_uncompressed, intermediate_data_dir
+    database,
+    input_data_dir,
+    export_dir_uncompressed,
+    intermediate_data_dir,
+    mock_distribution_tiles_files_index,
+    mock_features_file_index,
 ):
     resources = {
         "db_connection": database,
@@ -97,12 +48,8 @@ def test_job_party_walls(
     defs = Definitions(
         resources=resources,
         assets=[
-            mock_distribution_tiles_files_index(
-                "distribution_tiles_files_index", intermediate_data_dir, input_data_dir
-            ),
-            mock_features_file_index(
-                "features_file_index", intermediate_data_dir, input_data_dir
-            ),
+            mock_distribution_tiles_files_index,
+            mock_features_file_index,
             party_assets[0],
             party_assets[1],
         ],
