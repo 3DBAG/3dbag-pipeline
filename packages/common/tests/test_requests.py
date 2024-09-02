@@ -50,7 +50,7 @@ def test_download_file_2(tmp_path):
     assert res == tmp_path / "AHN4.md5"
 
 
-def test_download_extra():
+def test_download_extra(context):
     metadata = download_extract(
         dataset="top10nl",
         url_api="https://api.pdok.nl/brt/top10nl/download/v1_0",
