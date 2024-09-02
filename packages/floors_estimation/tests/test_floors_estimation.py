@@ -10,7 +10,6 @@ from bag3d.floors_estimation.assets.floors_estimation import (
     inferenced_floors, make_chunks, predictions_table, preprocessed_features,
     save_cjfiles)
 from dagster import asset
-from pandas import DataFrame
 
 
 def test_features_file_index(context):
@@ -55,22 +54,10 @@ def test_make_chunks():
     assert next(chunks2) == {"id5": Path("path5"), "id6": Path("path6")}
 
 
-@asset(name="features_file_index")
-def mock_features_file_index(intermediate_data_dir, input_data_dir) -> dict[str, Path]:
-    data = pickle.load(
-        open(intermediate_data_dir / "features_file_index_floors_estimation.pkl", "rb")
-    )
-    for k, v in data.items():
-        data[k] = Path(str(v).replace(str(v.parents[5]), str(input_data_dir)))
-    return data
-
-
-def test_bag3d_features(context, intermediate_data_dir, input_data_dir):
+def test_bag3d_features(context, mock_features_file_index):
     res = bag3d_features(
         context,
-        features_file_index=mock_features_file_index(
-            intermediate_data_dir, input_data_dir
-        ),
+        features_file_index=mock_features_file_index,
     )
 
     assert res.value is not None
@@ -116,39 +103,27 @@ def test_preprocessed_features(context):
     assert data.shape[0] == 274
 
 
-@asset(name="preprocessed_features")
-def mock_preprocessed_features(intermediate_data_dir) -> DataFrame:
-    return pickle.load(open(intermediate_data_dir / "preprocessed_features.pkl", "rb"))
-
-
-def test_inferenced_floors(context, intermediate_data_dir):
-    res = inferenced_floors(
-        context, preprocessed_features=mock_preprocessed_features(intermediate_data_dir)
-    )
+def test_inferenced_floors(context, mock_preprocessed_features):
+    res = inferenced_floors(context, preprocessed_features=mock_preprocessed_features)
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
 
 
-@asset(name="inferenced_floors")
-def mock_inferenced_floors(intermediate_data_dir) -> DataFrame:
-    return pickle.load(open(intermediate_data_dir / "inferenced_floors.pkl", "rb"))
-
-
-def test_predictions_table(context, intermediate_data_dir):
-    res = predictions_table(
-        context, inferenced_floors=mock_inferenced_floors(intermediate_data_dir)
-    )
+def test_predictions_table(context, mock_inferenced_floors):
+    res = predictions_table(context, inferenced_floors=mock_inferenced_floors)
     assert res.value is not None
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
     assert table_exists(context, pred_table) is True
 
 
-def test_save_cjfiles(context, intermediate_data_dir, input_data_dir):
+def test_save_cjfiles(
+    context, input_data_dir, mock_inferenced_floors, mock_features_file_index
+):
     save_cjfiles(
         context,
-        mock_inferenced_floors(intermediate_data_dir),
-        mock_features_file_index(intermediate_data_dir, input_data_dir),
+        mock_inferenced_floors,
+        mock_features_file_index,
     )
     assert (
         input_data_dir

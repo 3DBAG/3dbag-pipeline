@@ -5,6 +5,7 @@ import pytest
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
+from pandas import DataFrame
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"
@@ -98,3 +99,60 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="session")
+def mock_preprocessed_features(intermediate_data_dir) -> DataFrame:
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return pickle.load(
+                open(intermediate_data_dir / "preprocessed_features.pkl", "rb")
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["floors_estimation", "preprocessed_features"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_features_file_index(intermediate_data_dir, input_data_dir) -> dict[str, Path]:
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            data = pickle.load(
+                open(
+                    intermediate_data_dir / "features_file_index_floors_estimation.pkl",
+                    "rb",
+                )
+            )
+            for k, v in data.items():
+                data[k] = Path(str(v).replace(str(v.parents[5]), str(input_data_dir)))
+            return data
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["floors_estimation", "features_file_index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_inferenced_floors(intermediate_data_dir) -> DataFrame:
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return pickle.load(
+                open(intermediate_data_dir / "inferenced_floors.pkl", "rb")
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["floors_estimation", "inferenced_floors"]),
+        io_manager_def=MockIOManager(),
+    )
