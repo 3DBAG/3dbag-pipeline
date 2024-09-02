@@ -6,7 +6,9 @@ from bag3d.common.resources import gdal
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
-from dagster import build_op_context
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
+from dagster import AssetKey, IOManager, SourceAsset, build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"
@@ -176,3 +178,69 @@ def tile_index_ahn4_pdok_fix():
             },
         }
     }
+
+
+@pytest.fixture(scope="session")
+def mock_reconstruction_input():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier(
+                RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
+            )
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["input", "reconstruction_input"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_tiles():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["input", "tiles"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_index():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["input", "index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_regular_grid_200m():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier("ahn", "regular_grid_200m")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "regular_grid_200m"]),
+        io_manager_def=MockIOManager(),
+    )

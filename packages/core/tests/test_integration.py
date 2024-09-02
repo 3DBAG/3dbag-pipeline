@@ -16,95 +16,16 @@ from dagster import (AssetKey, Definitions, ExecuteInProcessResult, IOManager,
                      Output, SourceAsset, load_assets_from_package_module)
 
 
-def mock_reconstruction_input(reconstruction_input):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(
-                RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
-            )
-            return new_table
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", reconstruction_input]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-def mock_tiles(tiles):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
-            return new_table
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", tiles]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-def mock_index(index):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
-            return new_table
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", index]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-def mock_regular_grid_200m(regular_grid_200m):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "regular_grid_200m")
-            return new_table
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["ahn", regular_grid_200m]),
-        io_manager_def=MockIOManager(),
-    )
-
-def mock_export_index(export_index, test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return test_data_dir / 'reconstruction_data/input/3DBAG/export'
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", export_index]),
-        io_manager_def=MockIOManager(),
-    )
-
-def mock_reconstruction_output_multitiles_nl(reconstruction_output_multitiles_nl, test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return test_data_dir / 'reconstruction_data/input/3DBAG/export'
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", reconstruction_output_multitiles_nl]),
-        io_manager_def=MockIOManager(),
-    )
-
 @pytest.mark.slow
-def test_integration_reconstruction_and_export(database, docker_gdal_image, test_data_dir):
+def test_integration_reconstruction_and_export(
+    database,
+    docker_gdal_image,
+    test_data_dir,
+    mock_regular_grid_200m,
+    mock_reconstruction_input,
+    mock_tiles,
+    mock_index,
+):
     resources = {
         "tyler": tyler.configured(
             {"exes": {"tyler-db": EXE_PATH_TYLER_DB, "tyler": EXE_PATH_TYLER}}
@@ -161,14 +82,13 @@ def test_integration_reconstruction_and_export(database, docker_gdal_image, test
         export, key_prefix="export", group_name="export"
     )
 
-
     defs = Definitions(
         resources=resources,
         assets=[
-            mock_regular_grid_200m("regular_grid_200m"),
-            mock_reconstruction_input("reconstruction_input"),
-            mock_tiles("tiles"),
-            mock_index("index"),
+            mock_regular_grid_200m,
+            mock_reconstruction_input,
+            mock_tiles,
+            mock_index,
             *reconstruction_assets,
             *all_export_assets,
         ],
@@ -191,4 +111,3 @@ def test_integration_reconstruction_and_export(database, docker_gdal_image, test
 
     assert isinstance(result, ExecuteInProcessResult)
     assert result.success
-
