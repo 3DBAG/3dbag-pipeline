@@ -21,7 +21,7 @@ def stage_top10nl_gebouw(context, extract_top10nl) -> Output[PostgresTableIdenti
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def top10nl_gebouw(context, stage_top10nl_gebouw) -> Output[PostgresTableIdentifier]:
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
