@@ -6,6 +6,10 @@ from bag3d.core.assets.ahn.download import (URL_LAZ_SHA, get_md5_pdok,
                                             md5_pdok_ahn3, md5_pdok_ahn4,
                                             tile_index_ahn3_pdok,
                                             tile_index_ahn4_pdok)
+from bag3d.core.assets.ahn.metadata import metadata_table_ahn3, metadata_table_ahn4
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.utils.database import  table_exists
+
 
 
 @pytest.mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
@@ -65,6 +69,7 @@ def test_laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn3_pdok_fix):
     laz_dir.mkdir(exist_ok=True, parents=True)
     res = laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn3_pdok_fix)
     assert res is not None
+    print(res.value)
 
 
 @pytest.mark.slow
@@ -73,3 +78,20 @@ def test_laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn4_pdok_fix):
     laz_dir.mkdir(exist_ok=True, parents=True)
     res = laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn4_pdok_fix)
     assert res is not None
+
+
+def test_metadata_table_ahn3(context):
+    metadata = metadata_table_ahn3(context)
+    tbl = PostgresTableIdentifier("ahn", "metadata_ahn3")
+    assert table_exists(context, tbl)
+    assert isinstance(metadata, PostgresTableIdentifier)
+    assert str(metadata) == f"{tbl.schema}.{tbl.table}"
+
+
+def test_metadata_table_ahn4(context):
+    metadata = metadata_table_ahn4(context)
+    tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
+    assert table_exists(context, tbl)
+    assert isinstance(metadata, PostgresTableIdentifier)
+    assert str(metadata) == f"{tbl.schema}.{tbl.table}"
+
