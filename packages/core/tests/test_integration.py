@@ -18,10 +18,10 @@ def test_integration_reconstruction_and_export(
     database,
     docker_gdal_image,
     test_data_dir,
-    mock_regular_grid_200m,
-    mock_reconstruction_input,
-    mock_tiles,
-    mock_index,
+    mock_asset_regular_grid_200m,
+    mock_asset_reconstruction_input,
+    mock_asset_tiles,
+    mock_asset_index,
 ):
     resources = {
         "tyler": tyler.configured(
@@ -82,10 +82,10 @@ def test_integration_reconstruction_and_export(
     defs = Definitions(
         resources=resources,
         assets=[
-            mock_regular_grid_200m,
-            mock_reconstruction_input,
-            mock_tiles,
-            mock_index,
+            mock_asset_regular_grid_200m,
+            mock_asset_reconstruction_input,
+            mock_asset_tiles,
+            mock_asset_index,
             *reconstruction_assets,
             *all_export_assets,
         ],

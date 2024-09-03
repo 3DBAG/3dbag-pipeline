@@ -1,7 +1,6 @@
 import pickle
 from pathlib import Path
 
-import pandas as pd
 import pytest
 from bag3d.party_walls.assets.party_walls import (
     TilesFilesIndex, cityjsonfeatures_with_party_walls_nl,

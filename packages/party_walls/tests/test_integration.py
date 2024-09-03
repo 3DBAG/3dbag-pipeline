@@ -14,8 +14,8 @@ def test_job_party_walls(
     database,
     input_data_dir,
     export_dir_uncompressed,
-    mock_distribution_tiles_files_index,
-    mock_features_file_index,
+    mock_asset_distribution_tiles_files_index,
+    mock_asset_features_file_index,
 ):
     resources = {
         "db_connection": database,
@@ -47,8 +47,8 @@ def test_job_party_walls(
     defs = Definitions(
         resources=resources,
         assets=[
-            mock_distribution_tiles_files_index,
-            mock_features_file_index,
+            mock_asset_distribution_tiles_files_index,
+            mock_asset_features_file_index,
             party_assets[0],
             party_assets[1],
         ],

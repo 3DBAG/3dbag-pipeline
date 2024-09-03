@@ -181,7 +181,7 @@ def tile_index_ahn4_pdok_fix():
 
 
 @pytest.fixture(scope="session")
-def mock_reconstruction_input():
+def mock_asset_reconstruction_input():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier(
@@ -199,7 +199,7 @@ def mock_reconstruction_input():
 
 
 @pytest.fixture(scope="session")
-def mock_tiles():
+def mock_asset_tiles():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
@@ -215,7 +215,7 @@ def mock_tiles():
 
 
 @pytest.fixture(scope="session")
-def mock_index():
+def mock_asset_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
@@ -231,7 +231,7 @@ def mock_index():
 
 
 @pytest.fixture(scope="session")
-def mock_regular_grid_200m():
+def mock_asset_regular_grid_200m():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "regular_grid_200m")
