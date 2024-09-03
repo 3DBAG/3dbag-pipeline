@@ -16,7 +16,8 @@ def test_export_result():
     )
     d = dict(export_result)
     assert d["tile_id"] == "z/x/y"
-    assert export_result.has_cityjson
-    assert export_result.has_gpkg
-    assert export_result.has_obj
+    assert export_result.has_cityjson is True
+    assert export_result.has_gpkg is True
+    # has_obj option needs 3 paths to validate True
+    assert export_result.has_obj is False
 
