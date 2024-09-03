@@ -14,7 +14,7 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
         "bag_bag_overlap": AssetIn(key_prefix="intermediary"),
     },
-    op_tags={"kind": "sql"}
+    op_tags={"compute_kind": "sql"}
 )
 def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, bag_bag_overlap):
     """The input for the building reconstruction, where:
@@ -41,7 +41,7 @@ def reconstruction_input(context, bag_pandactueelbestaand, bag_kas_warenhuis, ba
 #         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
 #         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary")
 #     },
-#     op_tags={"kind": "sql"}
+#     op_tags={"compute_kind": "sql"}
 # )
 # def reconstruction_excluded(context, bag_pandactueelbestaand, bag_kas_warenhuis):
 #     """The BAG footprints that were excluded from the reconstruction, because they are

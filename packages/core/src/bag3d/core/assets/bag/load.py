@@ -7,7 +7,7 @@ from bag3d.common.types import PostgresTableIdentifier
 NEW_SCHEMA = "lvbag"
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
@@ -19,7 +19,7 @@ def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings."""
@@ -38,7 +38,7 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag_pandactueelbestaand(context, stage_bag_pand):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings."""
@@ -60,7 +60,7 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects."""
@@ -72,7 +72,7 @@ def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag_nummeraanduidingactueelbestaand(context, stage_bag_nummeraanduiding):
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects."""
