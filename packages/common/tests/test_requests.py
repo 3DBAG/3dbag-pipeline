@@ -2,7 +2,6 @@ import pytest
 from bag3d.common.utils.requests import (get_extract_download_link, get_metadata, download_as_str, download_file, download_extract)
 
 URL_TEST = "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5"
-URL_TEST_ERROR = "not-a-url"
 
 def test_get_metadata():
     res = get_metadata("https://api.pdok.nl/brt/top10nl/download/v1_0/dataset")
