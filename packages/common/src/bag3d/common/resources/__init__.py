@@ -1,18 +1,20 @@
 import os
 
-from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geoflow, roofer, DOCKER_GDAL_IMAGE
+from bag3d.common.resources.executables import GdalResource, DockerConfig, pdal, lastools, tyler, geoflow, roofer, DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 
 # Local config ---
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
-gdal_local = gdal.configured({
-    "docker": {
-        "image": DOCKER_GDAL_IMAGE,
-        "mount_point": "/tmp"
-    }
-})
+
+gdal_local = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp"))
+
+
+gdal_prod = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_GDAL"),
+                        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+                        exe_sozip=os.getenv("EXE_PATH_SOZIP"))
+
 
 
 db_connection_docker = db_connection.configured({
@@ -31,13 +33,7 @@ db_connection_docker = db_connection.configured({
 file_store_gilfoyle = file_store.configured({"data_dir": "/data"})
 file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"})
 
-gdal_prod = gdal.configured({
-    "exes": {
-        "ogr2ogr": "/opt/bin/ogr2ogr",
-        "ogrinfo": "/opt/bin/ogrinfo",
-        "sozip": "/opt/bin/sozip"
-    }
-})
+
 
 pdal_prod = pdal.configured({
     "exes": {
@@ -75,7 +71,7 @@ geoflow_prod = geoflow.configured({
 })
 
 RESOURCES_LOCAL = {
-    "gdal": gdal,
+    "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,

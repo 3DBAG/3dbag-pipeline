@@ -4,8 +4,9 @@ from typing import Tuple
 from copy import deepcopy
 import signal
 from subprocess import PIPE, STDOUT, Popen
+from typing import Dict, Optional
 
-from dagster import (get_dagster_logger, resource, Field, Noneable, Failure)
+from dagster import (get_dagster_logger, resource, Field, Noneable, Failure, ConfigurableResource)
 from dagster_shell import execute_shell_command
 import docker
 from docker.errors import ImageNotFound
@@ -74,10 +75,19 @@ def execute_shell_command_silent(shell_command: str,
             sub_process.terminate()
 
 
+def format_version_stdout(version: str) -> str:
+    return version.replace("\n", ",")
+
+    
+class DockerConfig(ConfigurableResource):
+    image: str  = DOCKER_GDAL_IMAGE
+    mount_point: str = "/tmp"
+
+
 class AppImage:
     """An application, either as paths of executables, or as a docker image."""
 
-    def __init__(self, exes: dict, docker_cfg=None, with_docker: bool = False,
+    def __init__(self, exes: dict, docker_cfg: DockerConfig=None, with_docker: bool = False,
                  kwargs: dict = None):
         self.logger = get_dagster_logger()
         self.exes = exes
@@ -86,10 +96,10 @@ class AppImage:
         if self.with_docker:
             self.docker_client = docker.from_env()
             try:
-                self.docker_image = self.docker_client.images.get(docker_cfg["image"])
+                self.docker_image = self.docker_client.images.get(docker_cfg.image)
             except ImageNotFound:
-                self.docker_image = self.docker_client.images.pull(docker_cfg["image"])
-            self.container_mount_point = Path(docker_cfg["mount_point"])
+                self.docker_image = self.docker_client.images.pull(docker_cfg.image)
+            self.container_mount_point = Path(docker_cfg.mount_point)
         else:
             self.docker_client = None
             self.docker_image = None
@@ -215,51 +225,78 @@ class AppImage:
                                "docker image")
 
 
-@resource(
-    description="GDAL executables, either local or in a docker image. Defaults to ogr* "
-                "that is in the path.",
-    config_schema={
-        "exes": {
-            "ogr2ogr": Field(
-                Noneable(str), default_value=None,
-                description="Path to the ogr2ogr executable"
-            ),
-            "ogrinfo": Field(
-                Noneable(str), default_value=None,
-                description="Path to the ogrinfo executable"
-            ),
-            "sozip": Field(
-                Noneable(str), default_value=None,
-                description="Path to the sozip executable"
-            )
-        },
-        "docker": {
-            "image": Field(
-                str, default_value=DOCKER_GDAL_IMAGE,
-                description="Docker image reference"
-            ),
-            "mount_point": Field(
-                str, default_value="/tmp",
-                description=("The mount point in the container where the data "
-                             "directory from the host is bind mounted.")
-            )
-        }
-    },
-)
-def gdal(context):
-    """GDAL executables in a docker image or locally. Defaults to using a docker
-    image."""
-    gdal_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    if all(v is None for v in gdal_exes.values()):
-        with_docker = True
-        gdal_exes["ogrinfo"] = "ogrinfo"
-        gdal_exes["ogr2ogr"] = "ogr2ogr"
-        gdal_exes["sozip"] = "sozip"
-    else:
-        with_docker = False
-    return AppImage(exes=gdal_exes,
-                    docker_cfg=context.resource_config.get("docker"),
-                    with_docker=with_docker)
+class GdalResource(ConfigurableResource):
+    """
+    Resource to GDAL, can be configured by either the EXE pahts
+    for ogr2ogr, ogrinfo and sozip, or by providing the DockerConfig
+    for the Gdal image.
+
+    For the local exes you can use:
+
+    gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_GDAL"),
+                                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+                                 exe_sozip=os.getenv("EXE_PATH_SOZIP"))
+    
+    For the docker image you can use:
+
+    gdal_local = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE,mount_point="/tmp"))
+
+    If instantiated with GdalResource() then the Docker image is used. 
+
+    After the resource is intantiated, gdal can be acquired with the gdal property:
+
+    gdal_resouces.gdal
+
+    The version be acquired with the version property:
+
+    gdal_resouces.version
+    """
+    exe_ogrinfo:str
+    exe_ogr2ogr:str
+    exe_sozip: str
+    docker_cfg: DockerConfig
+
+    def __init__(
+        self,
+        exe_ogrinfo: Optional[str] = None,
+        exe_ogr2ogr: Optional[str] = None,
+        exe_sozip: Optional[str] = None,
+        docker_cfg: Optional[DockerConfig] = None
+    ):
+
+        super().__init__(
+            exe_ogrinfo=exe_ogrinfo or "ogrinfo",
+            exe_ogr2ogr=exe_ogr2ogr or "ogr2ogr",
+            exe_sozip=exe_sozip or "sozip",
+            docker_cfg=docker_cfg or DockerConfig(image=DOCKER_GDAL_IMAGE,mount_point="/tmp")
+        )
+
+    @property
+    def exes(self) -> Dict[str, str]:
+        return {"ogrinfo": self.exe_ogrinfo,
+                "ogr2ogr":self.exe_ogr2ogr,
+                "sozip":self.exe_sozip}
+
+    @property
+    def with_docker(self) -> bool:
+        if (self.exe_ogrinfo =="ogrinfo" and 
+            self.exe_ogr2ogr == "ogr2ogr" and
+            self.exe_sozip == "sozip"):
+            return True
+        else:
+            return False
+
+    @property
+    def gdal(self) -> AppImage:
+        return AppImage(exes=self.exes,
+                        docker_cfg=self.docker_cfg,
+                        with_docker=self.with_docker)
+
+    @property
+    def version(self):
+        version, returncode = execute_shell_command_silent(
+            f"{self.exe_ogr2ogr} --version")
+        return format_version_stdout(version)
 
 
 @resource(
