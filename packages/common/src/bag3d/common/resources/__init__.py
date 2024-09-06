@@ -4,11 +4,6 @@ from bag3d.common.resources.executables import gdal, pdal, lastools, tyler, geof
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 
-from bag3d.common.resources.temp_until_configurableresource import (
-EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
-FLOWCHART_PATH_RECONSTRUCT
-)
-
 # Local config ---
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
@@ -59,23 +54,23 @@ lastools_prod = lastools.configured({
 
 tyler_prod = tyler.configured({
     "exes": {
-        "tyler-db": EXE_PATH_TYLER_DB,
-        "tyler": EXE_PATH_TYLER
+        "tyler-db": os.getenv("EXE_PATH_TYLER_DB"),
+        "tyler": os.getenv("EXE_PATH_TYLER")
     }
 })
 
 roofer_prod = roofer.configured({
     "exes": {
-        "crop": EXE_PATH_ROOFER_CROP
+        "crop": os.getenv("EXE_PATH_ROOFER_CROP")
     },
 })
 
 geoflow_prod = geoflow.configured({
     "exes": {
-        "geof": EXE_PATH_GEOF
+        "geof": os.getenv("EXE_PATH_GEOF")
     },
     "flowcharts": {
-        "reconstruct": FLOWCHART_PATH_RECONSTRUCT
+        "reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")
     }
 })
 

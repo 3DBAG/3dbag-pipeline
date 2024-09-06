@@ -1,12 +1,10 @@
+import os
 import pickle
 
 import pytest
 from bag3d.common.resources import gdal
 from bag3d.common.resources.executables import geoflow, roofer, tyler
 from bag3d.common.resources.files import file_store
-from bag3d.common.resources.temp_until_configurableresource import (
-    EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
-    FLOWCHART_PATH_RECONSTRUCT)
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
 from dagster import (AssetKey, Definitions, ExecuteInProcessResult,
@@ -25,28 +23,23 @@ def test_integration_reconstruction_and_export(
 ):
     resources = {
         "tyler": tyler.configured(
-            {"exes": {"tyler-db": EXE_PATH_TYLER_DB, "tyler": EXE_PATH_TYLER}}
+            {"exes": {"tyler-db": os.getenv("EXE_PATH_TYLER_DB"), "tyler": os.getenv("EXE_PATH_TYLER")}}
         ),
         "geoflow": geoflow.configured(
             {
-                "exes": {"geof": EXE_PATH_GEOF},
-                "flowcharts": {"reconstruct": FLOWCHART_PATH_RECONSTRUCT},
+                "exes": {"geof": os.getenv("EXE_PATH_GEOF")},
+                "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
             }
         ),
         "roofer": roofer.configured(
             {
-                "exes": {"crop": EXE_PATH_ROOFER_CROP},
+                "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": gdal.configured(
-            {
-                "exes": {
-                    "ogr2ogr": "/opt/bin/ogr2ogr",
-                    "ogrinfo": "/opt/bin/ogrinfo",
-                    "sozip": "/opt/bin/sozip",
-                }
-            }
-        ),
+        "gdal": GdalResource(exe_ogr2ogr =os.getevn("EXE_PATH_GDAL"),
+                            exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO"),
+                            exe_sozip = os.getenv("EXE_PATH_SOZIP")).gdal
+        ,
         "db_connection": database,
         "file_store": file_store.configured(
             {
