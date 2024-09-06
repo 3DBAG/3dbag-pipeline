@@ -5,7 +5,6 @@ from pprint import pprint
 import pytest
 from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
                                         ogr2postgres, ogrinfo, parse_ogrinfo)
-from dagster import build_op_context
 from pgutils import PostgresTableIdentifier
 
 
