@@ -6,7 +6,7 @@ from bag3d.common.resources.executables import geoflow, roofer, tyler
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.temp_until_configurableresource import (
     EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
-    FLOWCHART_PATH_RECONSTRUCT)
+    FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, EXE_PATH_SOZIP)
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
 from dagster import (AssetKey, Definitions, ExecuteInProcessResult,
@@ -41,9 +41,9 @@ def test_integration_reconstruction_and_export(
         "gdal": gdal.configured(
             {
                 "exes": {
-                    "ogr2ogr": "/opt/bin/ogr2ogr",
-                    "ogrinfo": "/opt/bin/ogrinfo",
-                    "sozip": "/opt/bin/sozip",
+                    "ogr2ogr": EXE_PATH_OGR2OGR,
+                    "ogrinfo": EXE_PATH_OGRINFO,
+                    "sozip": EXE_PATH_SOZIP,
                 }
             }
         ),

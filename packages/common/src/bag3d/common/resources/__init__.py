@@ -6,7 +6,8 @@ from bag3d.common.resources.database import db_connection
 
 from bag3d.common.resources.temp_until_configurableresource import (
 EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
-FLOWCHART_PATH_RECONSTRUCT
+FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, EXE_PATH_PDAL, EXE_PATH_LASINDEX,
+    EXE_PATH_LAS2LAS
 )
 
 # Local config ---
@@ -38,22 +39,22 @@ file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"
 
 gdal_prod = gdal.configured({
     "exes": {
-        "ogr2ogr": "/opt/bin/ogr2ogr",
-        "ogrinfo": "/opt/bin/ogrinfo",
-        "sozip": "/opt/bin/sozip"
+        "ogr2ogr": EXE_PATH_OGR2OGR,
+        "ogrinfo": EXE_PATH_OGRINFO,
+        "sozip": EXE_PATH_OGRINFO,
     }
 })
 
 pdal_prod = pdal.configured({
     "exes": {
-        "pdal": "/opt/bin/pdal"
+        "pdal": EXE_PATH_PDAL
     }
 })
 
 lastools_prod = lastools.configured({
     "exes": {
-        "lasindex": "/opt/bin/lasindex64",
-        "las2las": "/opt/bin/las2las64"
+        "lasindex": EXE_PATH_LASINDEX,
+        "las2las": EXE_PATH_LAS2LAS
     }
 })
 
