@@ -5,7 +5,7 @@ from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 
 from bag3d.common.resources.temp_until_configurableresource import (
-EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_GEOF,
+EXE_PATH_TYLER, EXE_PATH_TYLER_DB, EXE_PATH_ROOFER_CROP, EXE_PATH_ROOFER_RECONSTRUCT,
 FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, EXE_PATH_PDAL, EXE_PATH_LASINDEX,
     EXE_PATH_LAS2LAS
 )
@@ -73,7 +73,7 @@ roofer_prod = roofer.configured({
 
 geoflow_prod = geoflow.configured({
     "exes": {
-        "geof": EXE_PATH_GEOF
+        "geof": EXE_PATH_ROOFER_RECONSTRUCT
     },
     "flowcharts": {
         "reconstruct": FLOWCHART_PATH_RECONSTRUCT

@@ -5,7 +5,7 @@ from bag3d.common.resources import gdal
 from bag3d.common.resources.executables import geoflow, roofer, tyler
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.temp_until_configurableresource import (
-    EXE_PATH_GEOF, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
+    EXE_PATH_ROOFER_RECONSTRUCT, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
     FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, EXE_PATH_SOZIP)
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
@@ -29,7 +29,7 @@ def test_integration_reconstruction_and_export(
         ),
         "geoflow": geoflow.configured(
             {
-                "exes": {"geof": EXE_PATH_GEOF},
+                "exes": {"geof": EXE_PATH_ROOFER_RECONSTRUCT},
                 "flowcharts": {"reconstruct": FLOWCHART_PATH_RECONSTRUCT},
             }
         ),
