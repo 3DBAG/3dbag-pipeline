@@ -88,7 +88,7 @@ make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
-make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production))
+make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
 
 
 ## Resources
@@ -203,7 +203,7 @@ In order to include the slow tests in the test execution, use the `--runslow` co
 pytest --runslow
 ```
 
-These tests require the [full requirements installation](#requirements-for-running-integration-tests-and-for-production)
+These tests require the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
 
 
 #### Integration tests
