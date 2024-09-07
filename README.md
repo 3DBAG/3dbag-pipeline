@@ -2,6 +2,8 @@
 
 Repository of the 3D BAG production pipeline.
 
+Supported OS: Linux (tested on Ubuntu 22.04, 24.04)
+
 ## Quickstart for local development:
 
 ### Requirements for running the fast tests:
@@ -9,15 +11,26 @@ Repository of the 3D BAG production pipeline.
 - Python 3.11
 - Docker
 
-### Requirements for running the slow and integration tests and for production:
+### Requirements for running the slow and integration tests and for production
 
 - [Tyler](https://github.com/3DGI/tyler)
 - [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
 - [LAStools](https://github.com/LAStools/LAStools)
-
-Optional:
 - [gdal](https://github.com/OSGeo/gdal)
 - [pdal](https://github.com/PDAL/PDAL)
+
+The `build-tools.sh` can help you to build the required tools. 
+Note that it can take a couple of hours to build everything.
+Requirements for building the tools:
+
+- C and C++ compilers (min. GCC 13 or Clang 18)
+- CMake
+- Rust toolchain
+- Git
+- wget
+- libgeos
+- sqlite3
+- libtiff
 
 ### Environment variables
 First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the commands in the makefile. For just running the fast tests, the following variables are necessary and no modification is needed (the tests will run in a docker-based database):
@@ -28,6 +41,7 @@ BAG3D_TEST_DATA=${PWD}/tests/test_data
 BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
+TOOLS_DIR=${HOME}/.build-3dbag-pipeline
 
 BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres
 BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
@@ -37,14 +51,25 @@ BAG3D_PG_DATABASE=baseregisters_test
 BAG3D_PG_HOST=localhost
 BAG3D_PG_PORT=5560
 BAG3D_PG_SSLMODE=allow
+
+TYLER_RESOURCES_DIR=${TOOLS_DIR}/share/tyler/resources
+TYLER_METADATA_JSON=${TOOLS_DIR}/share/tyler/resources/geof/metadata.json
+
+EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler
+EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db
+EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop
+EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct
+FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json
+EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr
+EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo
+EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip
+EXE_PATH_PDAL=${TOOLS_DIR}/bin/pdal
+EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
+EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
 ```
 
-However, for running the integration tests you need the [full requirements installation](#requirements-for-running-integration-tests-and-for-production) and you need to add the paths to your local Tyler installation to the .env file:
+However, for running the integration tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the .env file.
 
-```bash
-TYLER_RESOURCES_DIR=/path/to/tyler/resource
-TYLER_METADATA_JSON=/path/to/tyler/metadata/json
-```
 
 Then you run the tests from the root directory of the repo with:
 
@@ -63,7 +88,7 @@ make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
-make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-integration-tests-and-for-production))
+make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production))
 
 
 ## Resources
