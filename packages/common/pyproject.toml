@@ -32,7 +32,8 @@ dev = [
     "tox",
     "pytest",
     "pytest-dotenv",
-    "coverage"
+    "coverage",
+    "ruff"
 ]
 docs = [
     "mkdocs",

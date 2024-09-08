@@ -25,7 +25,7 @@ dependencies = [
     "dagster",
     "dagster-postgres",
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage", "ruff"] }
 
 [tool.bumpver]
 current_version = "2024.1003"
