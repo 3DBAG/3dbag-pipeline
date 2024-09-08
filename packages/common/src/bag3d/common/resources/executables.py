@@ -233,7 +233,7 @@ class GdalResource(ConfigurableResource):
 
     For the local exes you can use:
 
-    gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_GDAL"),
+    gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                                  exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                                  exe_sozip=os.getenv("EXE_PATH_SOZIP"))
     
