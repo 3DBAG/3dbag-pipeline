@@ -1,1 +1,1 @@
-inlcude = ["packages/*/pyproject.toml"]
+include = ["packages/*/pyproject.toml"]
