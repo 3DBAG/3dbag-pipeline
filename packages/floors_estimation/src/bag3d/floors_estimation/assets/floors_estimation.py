@@ -112,7 +112,7 @@ def features_file_index(context) -> dict[str, Path]:
     return res
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def bag3d_features(context, features_file_index: dict[str, Path])\
             -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
@@ -153,7 +153,7 @@ def bag3d_features(context, features_file_index: dict[str, Path])\
     return Output(bag3d_features_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def external_features(context
                       ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
@@ -172,7 +172,7 @@ def external_features(context
                   metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
+@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
 def all_features(context,
                  external_features: PostgresTableIdentifier,
                  bag3d_features:  PostgresTableIdentifier)\

@@ -3,6 +3,7 @@ from bag3d.floors_estimation.assets import floors_estimation
 from bag3d.floors_estimation.jobs import job_floors_estimation
 from dagster import Definitions, load_assets_from_modules
 from dagster import resource
+import os
 
 all_assets = load_assets_from_modules(
     modules=(floors_estimation,),
@@ -17,7 +18,7 @@ def model_store(context):
     return context.resource_config['model_dir']
 
 
-floors_model = model_store.configured({"model_dir": "/data2/floors-estimation/models/pipeline_model1_gbr_untuned.joblib"})
+floors_model = model_store.configured({"model_dir": os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL")})
 resource_defs.update({"model_store": floors_model})
 
 

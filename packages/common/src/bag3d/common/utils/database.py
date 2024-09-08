@@ -7,7 +7,7 @@ from pgutils import inject_parameters, PostgresTableIdentifier
 
 
 def load_sql(filename: str = None,
-             query_params: dict = None):
+             query_params: dict = None): # pragma: no cover 
     """Load SQL from a file and inject parameters if provided.
 
     If providing query parametes, they need to be in a dict, where the keys are the

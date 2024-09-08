@@ -9,7 +9,7 @@ from bag3d.common.resources.temp_until_configurableresource import tyler_version
 def create_sequence_header_file(template_file, output_file, version_3dbag):
     with open(template_file, 'r') as f:
         header = json.load(f)
-        header['metadata']['version'] = version_3dbag; # example version string: "v2023.10.08"
+        header['metadata']['version'] = version_3dbag # example version string: "v2023.10.08"
         metadata_url = "https://data.3dbag.nl/metadata/{}/metadata.json".format(version_3dbag.replace(".",""))
         header['metadata']['fullMetadataUrl'] = metadata_url
 
@@ -30,7 +30,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     # on gilfoyle
     sequence_header_file = bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
     create_sequence_header_file(
-        os.getenv('BAG3D_TYLER_METADATA_JSON'),
+        os.getenv('TYLER_METADATA_JSON'),
         sequence_header_file,
         version_3dbag
     )
@@ -40,7 +40,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
-        f"BAG3D_TYLER_RESOURCES_DIR={os.getenv('BAG3D_TYLER_RESOURCES_DIR')}",
+        f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata", str(sequence_header_file),
         "--features", str(reconstructed_root_dir),

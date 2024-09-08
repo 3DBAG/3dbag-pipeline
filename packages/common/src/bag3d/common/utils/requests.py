@@ -18,7 +18,7 @@ def download_as_str(url: str, parameters: Mapping = None) -> str:
     resp = requests.get(url=url, params=parameters)
     if resp.status_code == 200:
         return resp.text
-    else:
+    else: # pragma: no cover
         raise ValueError(
             f"Failed to download JSON. HTTP Status {resp.status_code} "
             f"for {resp.url}"
@@ -56,9 +56,9 @@ def download_file(url: str, target_path: Path, chunk_size: int = 1024,
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     fd.write(chunk)
             return fpath
-        else:
+        else: # pragma: no cover
             r.raise_for_status()
-    except (requests.exceptions.BaseHTTPError, requests.exceptions.HTTPError) as e:
+    except (requests.exceptions.BaseHTTPError, requests.exceptions.HTTPError) as e: # pragma: no cover
         logger.exception(e)
         return None
     finally:
@@ -71,13 +71,13 @@ def get_metadata(url_api: str):
     :returns: {"timeliness": <date>: [featuretype,...]}
     """
     r_meta = requests.get(url_api)
-    if not r_meta.status_code == requests.codes.ok:
+    if not r_meta.status_code == requests.codes.ok: # pragma: no cover
         r_meta.raise_for_status()
     meta = {"timeliness": {}}
     for layer in r_meta.json()["timeliness"]:
         if layer["datetimeTo"][-1] == "Z":
             dt = str(datetime.fromisoformat(layer["datetimeTo"][:-1]).date())
-        else:
+        else: # pragma: no cover
             dt = str(datetime.fromisoformat(layer["datetimeTo"]).date())
         if dt in meta["timeliness"]:
             meta["timeliness"][dt].append(layer["featuretype"])
@@ -96,7 +96,7 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
         request_json["geofilter"] = geofilter
     r_post = requests.post(url, json=request_json)
     logger.info(f"Requesting extract: {r_post.url} with {request_json} ")
-    if not r_post.status_code == requests.codes.accepted:
+    if not r_post.status_code == requests.codes.accepted: # pragma: no cover
         logger.error(r_post.text)
         r_post.raise_for_status()
     else:
@@ -110,16 +110,16 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
                     r_status := requests.get(
                         url_status)).status_code == requests.codes.ok:
                 sleep(15)
-            if not r_status.status_code == requests.codes.created:
+            if not r_status.status_code == requests.codes.created: # pragma: no cover
                 logger.error(r_status.text)
                 r_status.raise_for_status()
             url_download = urljoin(pdok_server,
                                    r_status.json()['_links']['download']['href'])
-        elif requests.get(url_status).status_code == requests.codes.created:
+        elif requests.get(url_status).status_code == requests.codes.created: 
             r_status = requests.get(url_status)
             url_download = urljoin(pdok_server,
                                    r_status.json()['_links']['download']['href'])
-        else:
+        else: # pragma: no cover
             _r = requests.get(url_status)
             logger.error(_r.text)
             _r.raise_for_status()

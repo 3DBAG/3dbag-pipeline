@@ -2,22 +2,47 @@
 
 Repository of the 3D BAG production pipeline.
 
+Supported OS: Linux (tested on Ubuntu 22.04, 24.04)
+
 ## Quickstart for local development:
 
-### Requires:
+### Requirements for running the fast tests:
 
 - Python 3.11
 - Docker
 
-### Env variables
-First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the makefile.
+### Requirements for running the slow and integration tests and for production
+
+- [Tyler](https://github.com/3DGI/tyler)
+- [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
+- [LAStools](https://github.com/LAStools/LAStools)
+- [gdal](https://github.com/OSGeo/gdal)
+- [pdal](https://github.com/PDAL/PDAL)
+
+The `build-tools.sh` can help you to build the required tools. 
+Note that it can take a couple of hours to build everything.
+Requirements for building the tools:
+
+- C and C++ compilers (min. GCC 13 or Clang 18)
+- CMake
+- Rust toolchain
+- Git
+- wget
+- libgeos
+- sqlite3
+- libtiff
+
+### Environment variables
+First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the commands in the makefile. For just running the fast tests, the following variables are necessary and no modification is needed (the tests will run in a docker-based database):
 
 ```bash
 BAG3D_VENVS=${PWD}/venvs
 BAG3D_TEST_DATA=${PWD}/tests/test_data
+BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model
 BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
+TOOLS_DIR=${HOME}/.build-3dbag-pipeline
 
 BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres
 BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
@@ -28,9 +53,24 @@ BAG3D_PG_HOST=localhost
 BAG3D_PG_PORT=5560
 BAG3D_PG_SSLMODE=allow
 
-BAG3D_TYLER_RESOURCES_DIR=/path/to/tyler/resource
-BAG3D_TYLER_METADATA_JSON=/path/to/tyler/metadata/json
+TYLER_RESOURCES_DIR=${TOOLS_DIR}/share/tyler/resources
+TYLER_METADATA_JSON=${TOOLS_DIR}/share/tyler/resources/geof/metadata.json
+
+EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler
+EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db
+EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop
+EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct
+FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json
+EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr
+EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo
+EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip
+EXE_PATH_PDAL=${TOOLS_DIR}/bin/pdal
+EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
+EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
 ```
+
+However, for running the integration tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the .env file.
+
 
 Then you run the tests from the root directory of the repo with:
 
@@ -40,27 +80,36 @@ make download
 make build 
 make run
 make test
+make integration
 ```
 
 Where:
-make venvs = creates the vitrual environments
-make download = downloads test_data from the server
+make venvs = creates the [vitrual environments](#development-and-testing)
+make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
 make test =  runs the tests for core package. 
+make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
 
 
 ## Resources
 
-The 3DBAG pipeline is a heavy process that requires you to have a well configured database. 
-
-Some instructions for configuring your database can be found here in the following links:
+The 3DBAG pipeline is a heavy process that requires a well configured database. Some instructions for configuring your database can be found here in the following links:
 
 [Resource Consumption](https://www.postgresql.org/docs/10/runtime-config-resource.html)
 [Write Ahead Log](https://www.postgresql.org/docs/12/runtime-config-wal.html)
 [WAL Configuration](https://www.postgresql.org/docs/12/wal-configuration.html)
 
+Indicatively, here are some specifications of our database setup:
 
+```
+shared_buffers = 24GB
+max_parallel_workers = 24
+max_connections = 150
+effective_cache_size = 4GB
+effective_io_concurrency = 100
+maintenance_work_mem = 2GB
+```
 
 ## Packages
 
@@ -88,7 +137,7 @@ The virtual environment names follow the pattern of `venv_<package>`. You need t
 
 The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup. Create another virtual environment for the `dagster-webserver` and install the required packages from `requirements_dagster_webserver.txt`.
 
-```shell
+```bash
 pip install -r requirements_dagster_webserver.txt
 ```
 
@@ -100,7 +149,8 @@ make venvs
 
 The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
 In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance with:
-```shell
+
+```bash
 cd tests/dagster_home
 dagster dev
 ```
@@ -109,32 +159,38 @@ If you've set up the virtual environment correctly, this main dagster instance w
 
 You can also start it up directly with:
 
-```shell
+```bash
 make start_dagster
 ```
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
 
 
-
 ### Data
 
 Download test data with:
 
-```
+```bash
 export BAG3D_TEST_DATA=<path/to/where/the/data/should/be/stored>
 make download
 ```
 
-### Unit testing
+### Tests
+
+You can run the full tests, including integration with :
+
+```bash
+make test_full
+```
+####  Unit testing
 
 Tests are run separately for each package and they are located in the `tests` directory of the package.
 Tests use `pytest`.
 
 The tests use the sample data that are downloaded as shown above.
-You can run the sample tests with:
+You can run the unit tests with:
 
-```shell
+```bash
 make test
 ```
 
@@ -144,8 +200,19 @@ Some test take a long time to execute.
 If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
 In order to include the slow tests in the test execution, use the `--runslow` command line option.
 
-```shell
+```bash
 pytest --runslow
+```
+
+These tests require the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
+
+
+#### Integration tests
+
+THe integrations tests are made in such way so that the main jobs that comprise the pipeline are run for a small region of 
+
+```bash
+make integration
 ```
 
 ### Conventions
@@ -270,7 +337,6 @@ They are downloaded with the `source_input` job and they are:
 
 - [BAG](docs/SOURCE_DATASETS.md#bag)
 - [AHN](docs/SOURCE_DATASETS.md#ahn)
-- [BGT](docs/SOURCE_DATASETS.md#bgt)
 - [TOP10NL](docs/SOURCE_DATASETS.md#top10nl)
 
 Read more about [the source datasets here](docs/SOURCE_DATASETS.md).
@@ -293,7 +359,7 @@ Licensed under either of
 
 at your option.
 
-### Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any

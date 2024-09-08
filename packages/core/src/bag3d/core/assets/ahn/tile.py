@@ -73,7 +73,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
 
 @asset(
     description="Regular grid tile boundaries for partitioning LAZ files.",
-    required_resource_keys={"lastools", "db_connection"}
+    required_resource_keys={"db_connection"}
 )
 def regular_grid_200m(context):
     """Regular grid tile boundaries for partitioning LAZ files."""

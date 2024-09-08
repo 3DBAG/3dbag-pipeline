@@ -1,6 +1,6 @@
 FROM postgis/postgis:14-3.4 
 
-MAINTAINER Gina Stavropoulou<g.stavropoulou@tudelft.nl>
+LABEL org.opencontainers.image.authors="Gina Stavropoulou <gstavropoulou@tudelft.nl>, Balázs Dukai <balazs.dukai@3dgi.nl>"
 
 ARG pg_user
 ARG pg_pswd

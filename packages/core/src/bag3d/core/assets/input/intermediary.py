@@ -15,7 +15,7 @@ NEW_SCHEMA = "reconstruction_input"
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
         "top10nl_gebouw": AssetIn(key_prefix="top10nl")
     },
-    op_tags={"kind": "sql"}
+    op_tags={"compute_kind": "sql"}
 )
 def bag_kas_warenhuis(context, bag_pandactueelbestaand, top10nl_gebouw):
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
@@ -37,7 +37,7 @@ def bag_kas_warenhuis(context, bag_pandactueelbestaand, top10nl_gebouw):
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
     },
-    op_tags={"kind": "sql"}
+    op_tags={"compute_kind": "sql"}
 )
 def bag_bag_overlap(context, bag_pandactueelbestaand):
     """The overlap between BAG polygons, in m2. For every object the
