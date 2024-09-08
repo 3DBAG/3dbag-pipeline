@@ -4,6 +4,10 @@ from bag3d.common.resources.executables import GdalResource, DockerConfig, pdal,
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 
+from bag3d.common.resources.temp_until_configurableresource import (
+    EXE_PATH_PDAL, EXE_PATH_LASINDEX, EXE_PATH_LAS2LAS
+)
+
 # Local config ---
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
@@ -11,7 +15,7 @@ from bag3d.common.resources.database import db_connection
 gdal_local = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp"))
 
 
-gdal_prod = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_GDAL"),
+gdal_prod = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                         exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                         exe_sozip=os.getenv("EXE_PATH_SOZIP"))
 
@@ -37,14 +41,14 @@ file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"
 
 pdal_prod = pdal.configured({
     "exes": {
-        "pdal": "/opt/bin/pdal"
+        "pdal": EXE_PATH_PDAL
     }
 })
 
 lastools_prod = lastools.configured({
     "exes": {
-        "lasindex": "/opt/bin/lasindex64",
-        "las2las": "/opt/bin/las2las64"
+        "lasindex": EXE_PATH_LASINDEX,
+        "las2las": EXE_PATH_LAS2LAS
     }
 })
 
@@ -63,7 +67,7 @@ roofer_prod = roofer.configured({
 
 geoflow_prod = geoflow.configured({
     "exes": {
-        "geof": os.getenv("EXE_PATH_GEOF")
+        "geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")
     },
     "flowcharts": {
         "reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")

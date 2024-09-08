@@ -27,7 +27,7 @@ def test_integration_reconstruction_and_export(
         ),
         "geoflow": geoflow.configured(
             {
-                "exes": {"geof": os.getenv("EXE_PATH_GEOF")},
+                "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
                 "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
             }
         ),
@@ -36,7 +36,7 @@ def test_integration_reconstruction_and_export(
                 "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": GdalResource(exe_ogr2ogr =os.getevn("EXE_PATH_GDAL"),
+        "gdal": GdalResource(exe_ogr2ogr =os.getevn("EXE_PATH_OGR2OGR"),
                             exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO"),
                             exe_sozip = os.getenv("EXE_PATH_SOZIP")).gdal
         ,
