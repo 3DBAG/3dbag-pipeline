@@ -3,19 +3,23 @@ from typing import Tuple, Mapping, Union, Any
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
-from dagster import (asset, Output, get_dagster_logger)
+from dagster import asset, Output, get_dagster_logger
 
-from bag3d.common.utils.requests import (download_file, download_as_str)
-from bag3d.core.assets.ahn.core import (PartitionDefinitionAHN, format_laz_log,
-                                        ahn_filename, download_ahn_index_esri,
-                                        ahn_laz_dir)
+from bag3d.common.utils.requests import download_file, download_as_str
+from bag3d.core.assets.ahn.core import (
+    PartitionDefinitionAHN,
+    format_laz_log,
+    ahn_filename,
+    download_ahn_index_esri,
+    ahn_laz_dir,
+)
 
 logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file MD5 sums computed at PDOK
 URL_LAZ_SHA = {
-    'ahn4': 'https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5',
-    'ahn3': 'https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5'
+    "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
+    "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
 }
 
 
@@ -40,9 +44,10 @@ class HashChunkwise:
     def method(self, value):
         if value in algorithms_available:
             self._method = value
-        else: # pragma: no cover
-            raise ValueError(f"The hashing algorithm {value} is not available in "
-                             f"hashlib.")
+        else:  # pragma: no cover
+            raise ValueError(
+                f"The hashing algorithm {value} is not available in " f"hashlib."
+            )
 
     def compute(self, fpath: Path):
         """Compute the hash of a file.
@@ -75,6 +80,7 @@ class LAZDownload:
         new (bool): The file is newly downloaded.
         size (float): File size in Mb.
     """
+
     path: Path
     success: bool
     hash_name: Union[str, None]
@@ -83,10 +89,13 @@ class LAZDownload:
     size: float
 
     def asdict(self) -> dict:
-        return {"Path": str(self.path), "Success": self.success,
-                "Hash": f"{self.hash_name}:{self.hash_hexdigest}",
-                "New": self.new,
-                "Size [Mb]": self.size}
+        return {
+            "Path": str(self.path),
+            "Success": self.success,
+            "Hash": f"{self.hash_name}:{self.hash_hexdigest}",
+            "New": self.new,
+            "Size [Mb]": self.size,
+        }
 
 
 @asset
@@ -128,11 +137,15 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     """
     tile_id = context.partition_key
     fpath = ahn_laz_dir(context.resources.file_store.data_dir, 3) / ahn_filename(
-        tile_id)
+        tile_id
+    )
     url_laz = tile_index_ahn3_pdok[tile_id]["properties"]["AHN3_LAZ"]
-    lazdownload = download_ahn_laz(fpath=fpath, sha_reference=md5_pdok_ahn3,
-                                   sha_func=HashChunkwise("md5"),
-                                   url_laz=url_laz)
+    lazdownload = download_ahn_laz(
+        fpath=fpath,
+        sha_reference=md5_pdok_ahn3,
+        sha_func=HashChunkwise("md5"),
+        url_laz=url_laz,
+    )
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
@@ -149,11 +162,15 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
     """
     tile_id = context.partition_key
     fpath = ahn_laz_dir(context.resources.file_store.data_dir, 4) / ahn_filename(
-        tile_id)
+        tile_id
+    )
     url_laz = tile_index_ahn4_pdok[tile_id]["properties"]["AHN4_LAZ"]
-    lazdownload = download_ahn_laz(fpath=fpath, sha_reference=md5_pdok_ahn4,
-                                   sha_func=HashChunkwise("md5"),
-                                   url_laz=url_laz)
+    lazdownload = download_ahn_laz(
+        fpath=fpath,
+        sha_reference=md5_pdok_ahn4,
+        sha_func=HashChunkwise("md5"),
+        url_laz=url_laz,
+    )
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
@@ -207,9 +224,13 @@ def get_md5_pdok(url: str) -> Mapping[str, str]:
     return md5_pdok
 
 
-def download_ahn_laz(fpath: Path, sha_reference: Mapping[str, str],
-                     sha_func: HashChunkwise, url_base: str = None,
-                     url_laz: str = None) -> LAZDownload:
+def download_ahn_laz(
+    fpath: Path,
+    sha_reference: Mapping[str, str],
+    sha_func: HashChunkwise,
+    url_base: str = None,
+    url_laz: str = None,
+) -> LAZDownload:
     """Download an AHN LAZ file, if needed.
 
     1. Check if the file exists and download if missing.
@@ -230,45 +251,63 @@ def download_ahn_laz(fpath: Path, sha_reference: Mapping[str, str],
             where `success` is a boolean, indicating a successful operation, and the
             `file is new` is a boolean, indicating that the file was newly downloaded.
     """
-    error = LAZDownload(path=Path(), success=False, hash_name=None, hash_hexdigest=None,
-                        new=False, size=0.0)
+    error = LAZDownload(
+        path=Path(),
+        success=False,
+        hash_name=None,
+        hash_hexdigest=None,
+        new=False,
+        size=0.0,
+    )
     url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found"))
         fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
-        if fpath is None: # pragma: no cover
+        if fpath is None:  # pragma: no cover
             # Download failed
             return error
         else:
             is_new = True
-    else: # pragma: no cover
+    else:  # pragma: no cover
         is_new = False
     match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
     if match:
         logger.debug(format_laz_log(fpath, "OK"))
-        return LAZDownload(path=fpath, success=True, hash_name=sha.name,
-                           hash_hexdigest=sha.hexdigest(), new=is_new,
-                           size=round(fpath.stat().st_size / 1e6, 2))
-    else: # pragma: no cover
+        return LAZDownload(
+            path=fpath,
+            success=True,
+            hash_name=sha.name,
+            hash_hexdigest=sha.hexdigest(),
+            new=is_new,
+            size=round(fpath.stat().st_size / 1e6, 2),
+        )
+    else:  # pragma: no cover
         # Let's try to re-download the file once
         logger.info(format_laz_log(fpath, "Removing"))
         fpath.unlink()
         fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
         if fpath is None:
             return error
-        match, sha = match_sha(fpath=fpath, sha_reference=sha_reference,
-                               sha_func=sha_func)
+        match, sha = match_sha(
+            fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
+        )
         if not match:
             logger.error(format_laz_log(fpath, "ERROR"))
             return error
         else:
-            return LAZDownload(path=fpath, success=True, hash_name=sha.name,
-                               hash_hexdigest=sha.hexdigest(), new=True,
-                               size=round(fpath.stat().st_size / 1e6, 2))
+            return LAZDownload(
+                path=fpath,
+                success=True,
+                hash_name=sha.name,
+                hash_hexdigest=sha.hexdigest(),
+                new=True,
+                size=round(fpath.stat().st_size / 1e6, 2),
+            )
 
 
-def match_sha(fpath: Path, sha_reference: Mapping[str, str],
-              sha_func: HashChunkwise) -> Tuple[bool, Any]:
+def match_sha(
+    fpath: Path, sha_reference: Mapping[str, str], sha_func: HashChunkwise
+) -> Tuple[bool, Any]:
     """Verify the SHA of a file against a reference.
 
     Args:
@@ -280,12 +319,12 @@ def match_sha(fpath: Path, sha_reference: Mapping[str, str],
     Returns:
         Tuple of (success, SHA).
     """
-    if not fpath.is_file(): # pragma: no cover
+    if not fpath.is_file():  # pragma: no cover
         raise FileNotFoundError(fpath)
     sha = sha_func.compute(fpath)
     if sha.hexdigest() == sha_reference[fpath.name]:
         logger.info(format_laz_log(fpath, f"{sha.name} OK"))
         return True, sha
-    else: # pragma: no cover
+    else:  # pragma: no cover
         logger.info(format_laz_log(fpath, f"{sha.name} mismatch"))
         return False, sha

@@ -29,9 +29,10 @@ def metadata_table_ahn4(context):
             bool, default_value=True, description="Run `pdal info` with `--all`."
         ),
         "force": Field(
-            bool, default_value=True,
-            description="Force the re-compute of the metadata."
-        )
+            bool,
+            default_value=True,
+            description="Force the re-compute of the metadata.",
+        ),
     },
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=PartitionDefinitionAHN(ahn_version=3),
@@ -40,8 +41,9 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
-    return compute_load_metadata(context, laz_files_ahn3, metadata_table_ahn3,
-                                 tile_index_ahn3_pdok)
+    return compute_load_metadata(
+        context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_pdok
+    )
 
 
 @asset(
@@ -50,9 +52,10 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_
             bool, default_value=True, description="Run `pdal info` with `--all`."
         ),
         "force": Field(
-            bool, default_value=True,
-            description="Force the re-compute of the metadata."
-        )
+            bool,
+            default_value=True,
+            description="Force the re-compute of the metadata.",
+        ),
     },
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=PartitionDefinitionAHN(ahn_version=4),
@@ -61,8 +64,9 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
-    return compute_load_metadata(context, laz_files_ahn4, metadata_table_ahn4,
-                                 tile_index_ahn4_pdok)
+    return compute_load_metadata(
+        context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_pdok
+    )
 
 
 # TODO: add some op or sensor or sth that indexes and clusters the metadata table after
@@ -74,8 +78,10 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_
 #     f"CREATE INDEX {geom_idx_name} ON {metadata_table_ahn} USING gist (boundary)")
 # context.resources.db_connection.send_query(f"CLUSTER {metadata_table_ahn} USING {geom_idx_name}")
 
-def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
-                          tile_index_ahn_pdok):
+
+def compute_load_metadata(
+    context, laz_files_ahn, metadata_table_ahn, tile_index_ahn_pdok
+):
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 
@@ -94,12 +100,15 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
     conn = context.resources.db_connection
     if not laz_files_ahn.new:
         if not context.op_config["force"]:
-            context.log.info(f"Metadata for AHN3 LAZ tile {tile_id} already exists, "
-                             f"skipping computation.")
+            context.log.info(
+                f"Metadata for AHN3 LAZ tile {tile_id} already exists, "
+                f"skipping computation."
+            )
             return Output(None)
     ret_code, out_info = pdal_info(
-        context.resources.pdal, file_path=laz_files_ahn.path,
-        with_all=context.op_config["all"]
+        context.resources.pdal,
+        file_path=laz_files_ahn.path,
+        with_all=context.op_config["all"],
     )
     if ret_code != 0:
         raise
@@ -109,7 +118,7 @@ def compute_load_metadata(context, laz_files_ahn, metadata_table_ahn,
         "hash": Literal(f"{laz_files_ahn.hash_name}:{laz_files_ahn.hash_hexdigest}"),
         "download_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
         "pdal_info": Literal(json.dumps(out_info)),
-        "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"]))
+        "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"])),
     }
     query = SQL("""
         INSERT INTO {metadata_table}(

@@ -6,7 +6,14 @@ import signal
 from subprocess import PIPE, STDOUT, Popen
 from typing import Dict, Optional
 
-from dagster import (get_dagster_logger, resource, Field, Noneable, Failure, ConfigurableResource)
+from dagster import (
+    get_dagster_logger,
+    resource,
+    Field,
+    Noneable,
+    Failure,
+    ConfigurableResource,
+)
 from dagster_shell import execute_shell_command
 import docker
 from docker.errors import ImageNotFound
@@ -15,10 +22,7 @@ DOCKER_PDAL_IMAGE = "pdal/pdal:sha-cfa827b6"  # PDAL 2.4.3
 DOCKER_GDAL_IMAGE = "ghcr.io/osgeo/gdal:ubuntu-small-latest"
 
 
-def execute_shell_command_silent(shell_command: str,
-                                 cwd=None,
-                                 env=None
-                                 ):
+def execute_shell_command_silent(shell_command: str, cwd=None, env=None):
     """Execute a shell command without sending the output to the logger, and without
     writing the command to a script file first.
 
@@ -78,17 +82,22 @@ def execute_shell_command_silent(shell_command: str,
 def format_version_stdout(version: str) -> str:
     return version.replace("\n", ",")
 
-    
+
 class DockerConfig(ConfigurableResource):
-    image: str  = DOCKER_GDAL_IMAGE
+    image: str = DOCKER_GDAL_IMAGE
     mount_point: str = "/tmp"
 
 
 class AppImage:
     """An application, either as paths of executables, or as a docker image."""
 
-    def __init__(self, exes: dict, docker_cfg: DockerConfig=None, with_docker: bool = False,
-                 kwargs: dict = None):
+    def __init__(
+        self,
+        exes: dict,
+        docker_cfg: DockerConfig = None,
+        with_docker: bool = False,
+        kwargs: dict = None,
+    ):
         self.logger = get_dagster_logger()
         self.exes = exes
         self.with_docker = with_docker
@@ -105,9 +114,15 @@ class AppImage:
             self.docker_image = None
             self.container_mount_point = None
 
-    def execute(self, exe_name: str, command: str, kwargs: dict = None,
-                local_path: Path = None, silent=False, cwd: str = None) -> Tuple[
-        int, str]:
+    def execute(
+        self,
+        exe_name: str,
+        command: str,
+        kwargs: dict = None,
+        local_path: Path = None,
+        silent=False,
+        cwd: str = None,
+    ) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
 
@@ -152,17 +167,21 @@ class AppImage:
                 # Pass the name of the exe first, then the command, including the
                 # 'exe' placeholder.
                 self.execute("ogrinfo", "{exe} --version")
-                
+
                 self.execute("ogrinfo", "{exe} -so -al {local_path}",
                              local_path=Path("/tmp/myfile.gml"))
         """
         if kwargs:
             if "exe" in kwargs:
-                raise ValueError("Cannot include 'exe' in the kwargs. Pass the exe in "
-                                 "the 'exe_name' parameter.")
+                raise ValueError(
+                    "Cannot include 'exe' in the kwargs. Pass the exe in "
+                    "the 'exe_name' parameter."
+                )
             if "local_path" in kwargs:
-                raise ValueError("Cannot include 'local_path' in the kwargs. Pass the "
-                                 "path in the 'local path' parameter.")
+                raise ValueError(
+                    "Cannot include 'local_path' in the kwargs. Pass the "
+                    "path in the 'local path' parameter."
+                )
         kwargs_with_exe = deepcopy(kwargs) if kwargs else dict()
         kwargs_with_exe["exe"] = self.exes[exe_name]
         if self.with_docker:
@@ -172,25 +191,27 @@ class AppImage:
                 else:
                     container_path = self.container_mount_point / local_path.name
                 kwargs_with_exe["local_path"] = container_path
-                volumes = [f"{local_path}:{container_path}", ]
+                volumes = [
+                    f"{local_path}:{container_path}",
+                ]
             else:
                 volumes = None
-            output = self._docker_run(command.format(**kwargs_with_exe),
-                                      volumes=volumes)
+            output = self._docker_run(
+                command.format(**kwargs_with_exe), volumes=volumes
+            )
             return_code = 1 if "error" in output.lower() else 0
         else:
             kwargs_with_exe["local_path"] = local_path
             if silent:
                 output, return_code = execute_shell_command_silent(
-                    shell_command=command.format(**kwargs_with_exe),
-                    cwd=cwd
+                    shell_command=command.format(**kwargs_with_exe), cwd=cwd
                 )
             else:
                 output, return_code = execute_shell_command(
                     shell_command=command.format(**kwargs_with_exe),
                     log=self.logger,
                     output_logging="STREAM",
-                    cwd=cwd
+                    cwd=cwd,
                 )
         if return_code != 0:
             raise Failure(f"{kwargs_with_exe['exe']} failed with output:\n{output}")
@@ -215,14 +236,20 @@ class AppImage:
                 logger = get_dagster_logger()
                 logger.info(f"Executing `{command}` in {self.docker_image.tags}")
             stdout = self.docker_client.containers.run(
-                self.docker_image, command=command, volumes=volumes,
-                network_mode="host", remove=True, detach=False, stdout=True,
-                stderr=True
+                self.docker_image,
+                command=command,
+                volumes=volumes,
+                network_mode="host",
+                remove=True,
+                detach=False,
+                stdout=True,
+                stderr=True,
             )
             return stdout.decode("utf-8")
         else:
-            raise RuntimeError("executable resource was not initialized with a "
-                               "docker image")
+            raise RuntimeError(
+                "executable resource was not initialized with a " "docker image"
+            )
 
 
 class GdalResource(ConfigurableResource):
@@ -236,12 +263,12 @@ class GdalResource(ConfigurableResource):
     gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                                  exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                                  exe_sozip=os.getenv("EXE_PATH_SOZIP"))
-    
+
     For the docker image you can use:
 
     gdal_local = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE,mount_point="/tmp"))
 
-    If instantiated with GdalResource() then the Docker image is used. 
+    If instantiated with GdalResource() then the Docker image is used.
 
     After the resource is intantiated, gdal can be acquired with the gdal property:
 
@@ -251,8 +278,9 @@ class GdalResource(ConfigurableResource):
 
     gdal_resouces.version
     """
-    exe_ogrinfo:str
-    exe_ogr2ogr:str
+
+    exe_ogrinfo: str
+    exe_ogr2ogr: str
     exe_sozip: str
     docker_cfg: DockerConfig
 
@@ -261,41 +289,46 @@ class GdalResource(ConfigurableResource):
         exe_ogrinfo: Optional[str] = None,
         exe_ogr2ogr: Optional[str] = None,
         exe_sozip: Optional[str] = None,
-        docker_cfg: Optional[DockerConfig] = None
+        docker_cfg: Optional[DockerConfig] = None,
     ):
-
         super().__init__(
             exe_ogrinfo=exe_ogrinfo or "ogrinfo",
             exe_ogr2ogr=exe_ogr2ogr or "ogr2ogr",
             exe_sozip=exe_sozip or "sozip",
-            docker_cfg=docker_cfg or DockerConfig(image=DOCKER_GDAL_IMAGE,mount_point="/tmp")
+            docker_cfg=docker_cfg
+            or DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp"),
         )
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {"ogrinfo": self.exe_ogrinfo,
-                "ogr2ogr":self.exe_ogr2ogr,
-                "sozip":self.exe_sozip}
+        return {
+            "ogrinfo": self.exe_ogrinfo,
+            "ogr2ogr": self.exe_ogr2ogr,
+            "sozip": self.exe_sozip,
+        }
 
     @property
     def with_docker(self) -> bool:
-        if (self.exe_ogrinfo =="ogrinfo" and 
-            self.exe_ogr2ogr == "ogr2ogr" and
-            self.exe_sozip == "sozip"):
+        if (
+            self.exe_ogrinfo == "ogrinfo"
+            and self.exe_ogr2ogr == "ogr2ogr"
+            and self.exe_sozip == "sozip"
+        ):
             return True
         else:
             return False
 
     @property
     def gdal(self) -> AppImage:
-        return AppImage(exes=self.exes,
-                        docker_cfg=self.docker_cfg,
-                        with_docker=self.with_docker)
+        return AppImage(
+            exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
+        )
 
     @property
     def version(self):
         version, returncode = execute_shell_command_silent(
-            f"{self.exe_ogr2ogr} --version")
+            f"{self.exe_ogr2ogr} --version"
+        )
         return format_version_stdout(version)
 
 
@@ -303,21 +336,22 @@ class GdalResource(ConfigurableResource):
     config_schema={
         "exes": {
             "partialzip": Field(
-                Noneable(str), default_value="partialzip",
-                description="Path to the partialzip executable"
+                Noneable(str),
+                default_value="partialzip",
+                description="Path to the partialzip executable",
             ),
         },
         "docker": {
-            "image": Field(
-                str,
-                description="Docker image reference"
-            ),
+            "image": Field(str, description="Docker image reference"),
             "mount_point": Field(
-                str, default_value="/tmp",
-                description=("The mount point in the container where the data "
-                             "directory from the host is bind mounted.")
-            )
-        }
+                str,
+                default_value="/tmp",
+                description=(
+                    "The mount point in the container where the data "
+                    "directory from the host is bind mounted."
+                ),
+            ),
+        },
     }
 )
 def partialzip(context):
@@ -329,30 +363,37 @@ def partialzip(context):
     else:
         with_docker = True
         partialzip_exe["partialzip"] = "partialzip"
-    return AppImage(exes=partialzip_exe,
-                    docker_cfg=context.resource_config.get("docker"),
-                    with_docker=with_docker)
+    return AppImage(
+        exes=partialzip_exe,
+        docker_cfg=context.resource_config.get("docker"),
+        with_docker=with_docker,
+    )
 
 
 @resource(
     config_schema={
         "exes": {
             "pdal": Field(
-                Noneable(str), default_value=None,
-                description="Path to the pdal executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the pdal executable",
             ),
         },
         "docker": {
             "image": Field(
-                str, default_value=DOCKER_PDAL_IMAGE,
-                description="Docker image reference"
+                str,
+                default_value=DOCKER_PDAL_IMAGE,
+                description="Docker image reference",
             ),
             "mount_point": Field(
-                str, default_value="/tmp",
-                description=("The mount point in the container where the data "
-                             "directory from the host is bind mounted.")
-            )
-        }
+                str,
+                default_value="/tmp",
+                description=(
+                    "The mount point in the container where the data "
+                    "directory from the host is bind mounted."
+                ),
+            ),
+        },
     }
 )
 def pdal(context):
@@ -364,9 +405,11 @@ def pdal(context):
     else:
         with_docker = True
         pdal_exe["pdal"] = "pdal"
-    return AppImage(exes=pdal_exe,
-                    docker_cfg=context.resource_config.get("docker"),
-                    with_docker=with_docker)
+    return AppImage(
+        exes=pdal_exe,
+        docker_cfg=context.resource_config.get("docker"),
+        with_docker=with_docker,
+    )
 
 
 @resource(
@@ -374,21 +417,22 @@ def pdal(context):
     config_schema={
         "exes": {
             "lasindex": Field(
-                Noneable(str), default_value=None,
-                description="Path to the lasindex executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the lasindex executable",
             ),
             "las2las": Field(
-                Noneable(str), default_value=None,
-                description="Path to the las2las executable"
-            )
+                Noneable(str),
+                default_value=None,
+                description="Path to the las2las executable",
+            ),
         },
     },
 )
 def lastools(context):
     """LASTools executables on the local system."""
     lastools_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(exes=lastools_exes,
-                    with_docker=False)
+    return AppImage(exes=lastools_exes, with_docker=False)
 
 
 @resource(
@@ -396,12 +440,14 @@ def lastools(context):
     config_schema={
         "exes": {
             "tyler-db": Field(
-                Noneable(str), default_value=None,
-                description="Path to the tyler-db executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the tyler-db executable",
             ),
             "tyler": Field(
-                Noneable(str), default_value=None,
-                description="Path to the tyler executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the tyler executable",
             ),
         },
     },
@@ -418,8 +464,9 @@ def tyler(context):
     config_schema={
         "exes": {
             "crop": Field(
-                Noneable(str), default_value=None,
-                description="Path to the roofer crop executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the roofer crop executable",
             ),
         },
     },
@@ -427,8 +474,7 @@ def tyler(context):
 def roofer(context):
     """Roofer executables on the local system."""
     roofer_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(exes=roofer_exes,
-                    with_docker=False)
+    return AppImage(exes=roofer_exes, with_docker=False)
 
 
 @resource(
@@ -436,20 +482,25 @@ def roofer(context):
     config_schema={
         "exes": {
             "geof": Field(
-                Noneable(str), default_value=None,
-                description="Path to the geof executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the geof executable",
             ),
         },
         "flowcharts": {
             "reconstruct": Field(
-                Noneable(str), default_value=None,
-                description="Path to the reconstruct flowchart"
+                Noneable(str),
+                default_value=None,
+                description="Path to the reconstruct flowchart",
             )
-        }
+        },
     },
 )
 def geoflow(context):
     """Geoflow executable on the local system."""
     geoflow_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(exes=geoflow_exes, with_docker=False,
-                    kwargs={"flowcharts": context.resource_config.get("flowcharts")})
+    return AppImage(
+        exes=geoflow_exes,
+        with_docker=False,
+        kwargs={"flowcharts": context.resource_config.get("flowcharts")},
+    )

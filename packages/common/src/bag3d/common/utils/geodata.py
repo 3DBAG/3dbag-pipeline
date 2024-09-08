@@ -3,8 +3,13 @@ import re
 from pathlib import Path
 from typing import List, Tuple
 
-from dagster import OpExecutionContext, TableSchemaMetadataValue, TableSchema, \
-    TableColumnConstraints, TableColumn
+from dagster import (
+    OpExecutionContext,
+    TableSchemaMetadataValue,
+    TableSchema,
+    TableColumnConstraints,
+    TableColumn,
+)
 from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.database import postgrestable_metadata
@@ -12,8 +17,10 @@ from bag3d.common.utils.database import postgrestable_metadata
 
 def wkt_from_bbox(bbox):
     minx, miny, maxx, maxy = bbox
-    return f"POLYGON (({minx} {miny}, {maxx} {miny}, {maxx} {maxy}, {minx} {maxy}, " \
-           f"{minx} {miny}))"
+    return (
+        f"POLYGON (({minx} {miny}, {maxx} {miny}, {maxx} {maxy}, {minx} {maxy}, "
+        f"{minx} {miny}))"
+    )
 
 
 def bbox_from_wkt(wkt):
@@ -37,28 +44,32 @@ def bbox_from_wkt(wkt):
         return None
 
 
-def ogrinfo(context: OpExecutionContext, dataset: str, extract_path: Path,
-            feature_types: list, xsd: str):
+def ogrinfo(
+    context: OpExecutionContext,
+    dataset: str,
+    extract_path: Path,
+    feature_types: list,
+    xsd: str,
+):
     """Runs ogrinfo on the zipped extract."""
     gdal = context.resources.gdal
-    cmd = " ".join([
-        "{exe}",
-        "-so",
-        "-al",
-        '-oo XSD="{xsd}"',
-        "-oo WRITE_GFS=NO",
-        "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}"
-    ])
+    cmd = " ".join(
+        [
+            "{exe}",
+            "-so",
+            "-al",
+            '-oo XSD="{xsd}"',
+            "-oo WRITE_GFS=NO",
+            "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
+        ]
+    )
 
     info = {}
     for feature_type in feature_types:
-        kwargs = {
-            "xsd": xsd,
-            "dataset": dataset,
-            "feature_type": feature_type
-        }
-        return_code, output = gdal.execute("ogrinfo", command=cmd, kwargs=kwargs,
-                                           local_path=extract_path)
+        kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
+        return_code, output = gdal.execute(
+            "ogrinfo", command=cmd, kwargs=kwargs, local_path=extract_path
+        )
         if return_code == 0:
             layername, layerinfo = parse_ogrinfo(output, feature_type)
             info[str(layername)] = layerinfo
@@ -71,22 +82,23 @@ def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> (str, dict):
     inf = ogrinfo_stdout.split("Layer name: ")[1]
     layername = inf.split("\n")[0].lower()
     if layername != feature_type:
-        raise ValueError(f"Encountered a {layername} layer, "
-                         f"but expected {feature_type}")
+        raise ValueError(
+            f"Encountered a {layername} layer, " f"but expected {feature_type}"
+        )
 
     re_feature_count = re.compile(r"(?<=Feature Count: )\d+")
     ft = feature_type.lower()
     layerinfo[f"Feature Count [{ft}]"] = int(re_feature_count.search(inf)[0])
     layerinfo[f"Extent [{ft}]"] = dict(
-        (geom, wkt) for geom, wkt in parse_ogrinfo_extent(inf))
-    schema = parse_ogrinfo_attributes(inf[inf.find("gml_id"):])
+        (geom, wkt) for geom, wkt in parse_ogrinfo_extent(inf)
+    )
+    schema = parse_ogrinfo_attributes(inf[inf.find("gml_id") :])
     layerinfo[f"Schema [{ft}]"] = TableSchemaMetadataValue(schema)
     return layername, layerinfo
 
 
 def parse_ogrinfo_attributes(attributes_str: str) -> TableSchema:
-    """Parses the attributes list of the ogrinfo stdout into a :py:class:`TableSchema`
-    """
+    """Parses the attributes list of the ogrinfo stdout into a :py:class:`TableSchema`"""
     alist = attributes_dict(attributes_str)
     schema = attributes_schema(alist)
     return schema
@@ -120,7 +132,10 @@ def attributes_dict(attributes_str: str) -> List[dict]:
             adict["constraints"] = None
         else:
             adict["constraints"] = TableColumnConstraints(
-                other=[contstraints.strip(), ])
+                other=[
+                    contstraints.strip(),
+                ]
+            )
         ret.append(adict)
     return ret
 
@@ -128,8 +143,9 @@ def attributes_dict(attributes_str: str) -> List[dict]:
 def attributes_schema(attributes_list: List[dict]) -> TableSchema:
     cols = []
     for a in attributes_list:
-        cols.append(TableColumn(name=a["name"], type=a["type"],
-                                constraints=a["constraints"]))
+        cols.append(
+            TableColumn(name=a["name"], type=a["type"], constraints=a["constraints"])
+        )
     return TableSchema(columns=cols)
 
 
@@ -139,7 +155,7 @@ def parse_ogrinfo_extent(info):
         extent = re_extent.match(line)
         if extent:
             meta, box = line.split(": ")
-            geom = meta[extent.span()[1]:].strip().replace("(", "").replace(")", "")
+            geom = meta[extent.span()[1] :].strip().replace("(", "").replace(")", "")
             bbox = [coord for m in box.split(" - ") for coord in m[1:-1].split(", ")]
             geom = "None" if geom == "" else geom
             yield geom, wkt_from_bbox(bbox)
@@ -162,9 +178,14 @@ def add_info(metadata: dict, info: dict) -> None:
     del metadata["timeliness"]
 
 
-def ogr2postgres(context: OpExecutionContext, dataset: str, extract_path: Path,
-                 feature_type: str, xsd: str,
-                 new_table: PostgresTableIdentifier) -> dict:
+def ogr2postgres(
+    context: OpExecutionContext,
+    dataset: str,
+    extract_path: Path,
+    feature_type: str,
+    xsd: str,
+    new_table: PostgresTableIdentifier,
+) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
     It was developed for loading the TOP10NL and BGT extracts that are downloaded from
@@ -184,18 +205,20 @@ def ogr2postgres(context: OpExecutionContext, dataset: str, extract_path: Path,
     gdal = context.resources.gdal
     dsn = context.resources.db_connection.dsn
 
-    cmd = " ".join([
-        "{exe}",
-        "--config PG_USE_COPY=YES",
-        "-overwrite",
-        "-nln {new_table}",
-        '-oo XSD="{xsd}"',
-        "-oo WRITE_GFS=NO",
-        "-lco UNLOGGED=ON",
-        "-lco SPATIAL_INDEX=NONE",
-        '-f PostgreSQL PG:"{dsn}"',
-        "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
-    ])
+    cmd = " ".join(
+        [
+            "{exe}",
+            "--config PG_USE_COPY=YES",
+            "-overwrite",
+            "-nln {new_table}",
+            '-oo XSD="{xsd}"',
+            "-oo WRITE_GFS=NO",
+            "-lco UNLOGGED=ON",
+            "-lco SPATIAL_INDEX=NONE",
+            '-f PostgreSQL PG:"{dsn}"',
+            "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
+        ]
+    )
 
     kwargs = {
         "new_table": new_table,
@@ -204,14 +227,14 @@ def ogr2postgres(context: OpExecutionContext, dataset: str, extract_path: Path,
         "xsd": xsd,
         "dataset": dataset,
     }
-    return_code, output = gdal.execute("ogr2ogr", command=cmd, kwargs=kwargs,
-                                       local_path=extract_path)
+    return_code, output = gdal.execute(
+        "ogr2ogr", command=cmd, kwargs=kwargs, local_path=extract_path
+    )
     if return_code == 0:
         return postgrestable_metadata(context, new_table)
 
 
-def pdal_info(pdal, file_path: Path,
-              with_all: bool = False) -> Tuple[int, dict]:
+def pdal_info(pdal, file_path: Path, with_all: bool = False) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:
@@ -222,11 +245,15 @@ def pdal_info(pdal, file_path: Path,
     Returns:
         A tuple of (pdal's return code, parsed pdal info output)
     """
-    cmd_list = ["{exe}", "info", ]
+    cmd_list = [
+        "{exe}",
+        "info",
+    ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
-    return_code, output = pdal.execute("pdal", command=" ".join(cmd_list),
-                                       local_path=file_path)
+    return_code, output = pdal.execute(
+        "pdal", command=" ".join(cmd_list), local_path=file_path
+    )
 
     return return_code, json.loads(output)
 
@@ -243,7 +270,8 @@ def geojson_poly_to_wkt(geometry) -> str:
     inner_strings = []
     for inner_ring in inner_rings:
         inner_strings.append(
-            "(" + ",".join([f"{pt[0]} {pt[1]}" for pt in inner_ring]) + ")")
+            "(" + ",".join([f"{pt[0]} {pt[1]}" for pt in inner_ring]) + ")"
+        )
     inner_str = ",".join(inner_strings)
     if len(inner_strings) > 0:
         return f"POLYGON({outer_str},{inner_str})"

@@ -103,27 +103,22 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session")
 def mock_preprocessed_features(intermediate_data_dir):
-    return pickle.load(
-                open(intermediate_data_dir / "preprocessed_features.pkl", "rb")
-            )
+    return pickle.load(open(intermediate_data_dir / "preprocessed_features.pkl", "rb"))
 
 
 @pytest.fixture(scope="session")
 def mock_features_file_index(intermediate_data_dir, input_data_dir):
     data = pickle.load(
-                open(
-                    intermediate_data_dir / "features_file_index_floors_estimation.pkl",
-                    "rb",
-                )
+        open(
+            intermediate_data_dir / "features_file_index_floors_estimation.pkl",
+            "rb",
+        )
     )
     for k, v in data.items():
         data[k] = Path(str(v).replace(str(v.parents[5]), str(input_data_dir)))
     return data
 
 
-
 @pytest.fixture(scope="session")
 def mock_inferenced_floors(intermediate_data_dir):
-    return pickle.load(
-                open(intermediate_data_dir / "inferenced_floors.pkl", "rb")
-            )
+    return pickle.load(open(intermediate_data_dir / "inferenced_floors.pkl", "rb"))

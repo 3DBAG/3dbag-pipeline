@@ -1,10 +1,13 @@
-
 import pytest
 from bag3d.common.resources.files import file_store
 from bag3d.party_walls import assets
 from bag3d.party_walls.jobs import job_nl_party_walls
-from dagster import (AssetKey, Definitions, ExecuteInProcessResult,
-                     load_assets_from_package_module)
+from dagster import (
+    AssetKey,
+    Definitions,
+    ExecuteInProcessResult,
+    load_assets_from_package_module,
+)
 
 
 @pytest.mark.slow

@@ -1,8 +1,13 @@
 from pathlib import Path
 
 import pytest
-from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
-                                        ogr2postgres, ogrinfo, parse_ogrinfo)
+from bag3d.common.utils.geodata import (
+    add_info,
+    geojson_poly_to_wkt,
+    ogr2postgres,
+    ogrinfo,
+    parse_ogrinfo,
+)
 from pgutils import PostgresTableIdentifier
 
 

@@ -1,8 +1,13 @@
 import pytest
-from bag3d.common.utils.database import (create_schema, drop_table, load_sql,
-                                         postgrestable_from_query,
-                                         postgrestable_metadata, summary_md,
-                                         table_exists)
+from bag3d.common.utils.database import (
+    create_schema,
+    drop_table,
+    load_sql,
+    postgrestable_from_query,
+    postgrestable_metadata,
+    summary_md,
+    table_exists,
+)
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 

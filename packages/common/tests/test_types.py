@@ -20,4 +20,3 @@ def test_export_result(tmp_path):
     assert export_result.has_gpkg is True
     # has_obj option needs 3 paths to validate True
     assert export_result.has_obj is False
-

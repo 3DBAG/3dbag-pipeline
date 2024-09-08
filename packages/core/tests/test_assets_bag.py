@@ -1,8 +1,12 @@
 import pytest
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table, table_exists
-from bag3d.core.assets.bag.download import (bagextract_metadata, extract_bag,
-                                            load_bag_layer, stage_bag_layer)
+from bag3d.core.assets.bag.download import (
+    bagextract_metadata,
+    extract_bag,
+    load_bag_layer,
+    stage_bag_layer,
+)
 from dagster import build_op_context
 
 

@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pytest
 from bag3d.common.resources.database import DatabaseConnection
-from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE, GdalResource, DockerConfig
+from bag3d.common.resources.executables import (
+    DOCKER_GDAL_IMAGE,
+    GdalResource,
+    DockerConfig,
+)
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
 
@@ -17,7 +21,9 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 @pytest.fixture(scope="session")
 def gdal():
-    yield GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")).gdal
+    yield GdalResource(
+        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+    ).gdal
 
 
 @pytest.fixture(scope="function")

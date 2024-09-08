@@ -5,13 +5,13 @@ from bag3d.party_walls.assets import party_walls
 from bag3d.party_walls.jobs import job_nl_party_walls
 
 all_assets = load_assets_from_modules(
-    modules=(party_walls,),
-    key_prefix="party_walls",
-    group_name="party_walls"
+    modules=(party_walls,), key_prefix="party_walls", group_name="party_walls"
 )
 
 defs = Definitions(
     resources=resource_defs,
     assets=all_assets,
-    jobs=[job_nl_party_walls, ]
+    jobs=[
+        job_nl_party_walls,
+    ],
 )
