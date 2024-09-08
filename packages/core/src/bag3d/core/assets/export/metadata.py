@@ -90,7 +90,7 @@ def feature_evaluation(context):
                              "b3_mutatie_ahn3_ahn4", "b3_nodata_fractie_ahn3",
                              "b3_nodata_fractie_ahn4", "b3_nodata_radius_ahn3",
                              "b3_nodata_radius_ahn4")
-    cityobject_info = {l: 0 for l in lods}
+    cityobject_info = {lod: 0 for lod in lods}
     cityobject_info["has_geometry"] = False
     cityobject_info.update(dict((a, None) for a in attributes_to_include))
 

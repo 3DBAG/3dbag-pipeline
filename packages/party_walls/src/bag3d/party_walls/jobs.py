@@ -1,6 +1,5 @@
 from dagster import define_asset_job, AssetSelection
 
-from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
 
 job_nl_party_walls = define_asset_job(
     name="nl_party_walls",

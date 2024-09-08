@@ -258,14 +258,14 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
         }
     )
     out_dir_ahn3 = ahn_dir(context.resources.file_store.data_dir,
-                           ahn_version=3).joinpath(f"tiles_200m")
+                           ahn_version=3).joinpath("tiles_200m")
     laz_files_ahn3 = [
         str(out_dir_ahn3 / f't_{tile_id_ahn[0]}.laz')
         for tile_id_ahn in res
     ]
     # TODO: probably should take the tiles_200m directory from the asset output
     out_dir_ahn4 = ahn_dir(context.resources.file_store.data_dir,
-                           ahn_version=4).joinpath(f"tiles_200m")
+                           ahn_version=4).joinpath("tiles_200m")
     # TODO: same with the laz filename pattern
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f't_{tile_id_ahn[0]}.laz')
@@ -299,7 +299,7 @@ def cropped_input_and_config_func(context, index, reconstruction_input,
         ahn3_files=" ".join(laz_files_ahn3),
         ahn4_files=" ".join(laz_files_ahn4),
         output_path=output_dir)
-    path_toml = output_dir / f"crop.toml"
+    path_toml = output_dir / "crop.toml"
     with path_toml.open("w") as of:
         of.write(output_toml)
     context.resources.roofer.execute("crop", "{exe} -c {local_path}",

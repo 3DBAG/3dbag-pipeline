@@ -138,8 +138,8 @@ def parse_ogrinfo_extent(info):
     for line in info.split("\n"):
         extent = re_extent.match(line)
         if extent:
-            l, box = line.split(": ")
-            geom = l[extent.span()[1]:].strip().replace("(", "").replace(")", "")
+            meta, box = line.split(": ")
+            geom = meta[extent.span()[1]:].strip().replace("(", "").replace(")", "")
             bbox = [coord for m in box.split(" - ") for coord in m[1:-1].split(", ")]
             geom = "None" if geom == "" else geom
             yield geom, wkt_from_bbox(bbox)
@@ -154,11 +154,11 @@ def add_info(metadata: dict, info: dict) -> None:
         info: :py:func:`ogrinfo` output.
     """
     for layername, layerinfo in info.items():
-        l = layername.lower()
+        layer = layername.lower()
         metadata.update(layerinfo)
         for dt, ft in metadata["timeliness"].items():
-            if l in ft:
-                metadata[f"Timeliness [{l}]"] = dt
+            if layer in ft:
+                metadata[f"Timeliness [{layer}]"] = dt
     del metadata["timeliness"]
 
 

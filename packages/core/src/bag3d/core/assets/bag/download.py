@@ -174,7 +174,7 @@ def stage_bag_layer(context: OpExecutionContext, layer: str, new_schema: str,
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, layer)
     drop_table(context, new_table)
-    success = load_bag_layer(context=context, extract_dir=extract_dir,
+    _ = load_bag_layer(context=context, extract_dir=extract_dir,
                              layer=layer, new_table=new_table,
                              shortdate=shortdate)
     _m = postgrestable_metadata(context, new_table)
@@ -260,8 +260,8 @@ def bagextract_metadata(context: OpExecutionContext,
     LVC_Extract = lvdoc.getroot().SelectieGegevens.find(
         f"{{{nsmap['selecties-extract']}}}LVC-Extract")
     if LVC_Extract is None: # pragma: no cover
-        context.log.critical(f"The LVBAG extract is not of the type 'LVC-Extract' "
-                             f"(Levenscyclus en LevenscyclusVanaf).")
+        context.log.critical("The LVBAG extract is not of the type 'LVC-Extract' "
+                             "(Levenscyclus en LevenscyclusVanaf).")
         raise Exception
     Gebied_Registratif = lvdoc.getroot().SelectieGegevens.find(
         f"{{{nsmap['selecties-extract']}}}Gebied-Registratief")

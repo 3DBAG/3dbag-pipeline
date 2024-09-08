@@ -555,16 +555,16 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     version_stripped = version.replace(".", "")
     if format == "cityjson":
         filename = f"{file_id}.city.json.gz"
-        l = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
+        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "gpkg":
         filename = f"{file_id}.gpkg.gz"
-        l = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
+        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "obj":
         filename = f"{file_id}-obj.zip"
-        l = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
+        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     else:
         raise ValueError(f"only cityjson, obj, gpkg format is allowed, got {format}")
-    return l
+    return link
 
 
 def check_formats(input) -> TileResults:
@@ -593,7 +593,7 @@ def check_formats(input) -> TileResults:
     required_resource_keys={"file_store"},
 )
 def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
-    f"""Validates the compressed distribution tiles, for each format.
+    """Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
     Validation is done concurrently per tile.
 
@@ -620,7 +620,7 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
         context.log.debug(f"{version=}")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
-        h = next(csvreader)
+        _ = next(csvreader) # header
         tileids = [(path_export_dir.joinpath("tiles", row[0]), row[0], url_root, version)
                    for row in csvreader]
 

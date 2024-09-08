@@ -1,6 +1,6 @@
 """Working with file inputs and outputs"""
 import os
-from typing import Tuple, Sequence, Iterator
+from typing import Sequence, Iterator
 import csv
 from pathlib import Path
 from zipfile import ZipFile

@@ -1,10 +1,5 @@
 from dagster import (define_asset_job, AssetSelection)
 
-from bag3d.common.resources.wkt import ZUID_HOLLAND
-from bag3d.core.assets.reconstruction.reconstruction import (
-    PartitionDefinition3DBagReconstruction
-)
-from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344

@@ -47,7 +47,7 @@ def test_summary_md(database):
     fields = database.get_fields(EXISTING_TABLE)
 
     res = summary_md(fields, null_count)
-    assert type(res) == str
+    assert isinstance(res, str)
     lines = res.splitlines()
     assert lines[0] == "| column | type | NULLs |"
 

@@ -1,6 +1,5 @@
 """Deploy 3D BAG to godzilla"""
 import tarfile
-from datetime import datetime
 from pathlib import Path
 import json
 
@@ -193,7 +192,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'")
 
-    extension = str(datetime.now().date())
+    # extension = str(datetime.now().date())
     # alter_to_archive = f"ALTER SCHEMA {old_schema} RENAME TO bag3d_{extension};"
     # alter_to_old = f"ALTER SCHEMA {schema} RENAME TO {old_schema};"
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"

@@ -302,7 +302,7 @@ def save_cjfiles(context,
         reconstructed_root_dir.parent.joinpath(
             "bouwlagen_features"
         )
-    context.log.info(f"Creating directories for the new files.")
+    context.log.info("Creating directories for the new files.")
     tile_paths = set([f.parent for f in list(features_file_index.values())])
     for tile_path in tile_paths:
         new_tile = reconstructed_with_floors_estimation_dir.joinpath(

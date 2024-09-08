@@ -1,6 +1,4 @@
-import os
 from pathlib import Path
-from pprint import pprint
 
 import pytest
 from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,

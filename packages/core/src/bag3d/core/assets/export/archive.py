@@ -75,7 +75,7 @@ def geopackage_nl(context):
                                                                  silent=True)
             if return_code != 0:
                 failed.append((lid, output))
-        except Exception as e:
+        except Exception:
             failed.append((lid, output))
 
     layers = ["pand", "lod12_2d", "lod12_3d", "lod13_2d", "lod13_3d",
@@ -103,8 +103,8 @@ def geopackage_nl(context):
     context.resources.gdal.execute("sozip", cmd)
 
     metadata = {}
-    metadata[f"nr_failed"] = len(failed)
-    metadata[f"ids_failed"] = [f[0] for f in failed]
+    metadata["nr_failed"] = len(failed)
+    metadata["ids_failed"] = [f[0] for f in failed]
     metadata["size uncompressed [Gb]"] = path_nl.stat().st_size * 1e-9
     metadata["size compressed [Gb]"] = path_nl_zip.stat().st_size * 1e-9
     path_nl.unlink(missing_ok=True)

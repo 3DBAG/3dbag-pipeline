@@ -6,7 +6,6 @@ import pytest
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
-from pandas import DataFrame
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = "localhost"

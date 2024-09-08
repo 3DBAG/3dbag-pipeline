@@ -81,7 +81,7 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
         tile_ids = [row[0] for row in conn.get_query(query)]
     except OperationalError:
         logger.error(
-            f"cannot establish database connection from the environment variables BAG3D_PG_*")
+            "cannot establish database connection from the environment variables BAG3D_PG_*")
         tile_ids = []
     except UndefinedTable:
         logger.error(f"tiles table {schema}.{table_tiles} does not exist")

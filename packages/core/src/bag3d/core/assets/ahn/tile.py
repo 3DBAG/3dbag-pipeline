@@ -80,7 +80,7 @@ def regular_grid_200m(context):
     conn = context.resources.db_connection
     new_schema = "ahn"
     create_schema(context, new_schema)
-    new_table = PostgresTableIdentifier(new_schema, f"regular_grid_200m")
+    new_table = PostgresTableIdentifier(new_schema, "regular_grid_200m")
     query = load_sql(query_params={"new_table": new_table})
     context.log.info(conn.print_query(query))
     conn.send_query(query)
@@ -194,7 +194,7 @@ def partition_laz_with_grid(context, metadata_table_ahn, regular_grid_200m,
         for i, future in enumerate(as_completed(future_to_tile)):
             tile = future_to_tile[future]
             try:
-                res = future.result()
+                _ = future.result()
             except Exception as e:
                 failed.append(tile)
                 logger.warning(f"Tile {tile} raised an exception: {e}")

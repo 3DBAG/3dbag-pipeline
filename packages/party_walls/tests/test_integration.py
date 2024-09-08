@@ -1,5 +1,3 @@
-import pickle
-from pathlib import Path
 
 import pytest
 from bag3d.common.resources.files import file_store

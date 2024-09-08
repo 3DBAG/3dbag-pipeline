@@ -50,7 +50,7 @@ def test_download_file_2(tmp_path):
 
 
 def test_download_extra(context):
-    metadata = download_extract(
+    _ = download_extract(
         dataset="top10nl",
         url_api="https://api.pdok.nl/brt/top10nl/download/v1_0",
         featuretypes=context.op_config["featuretypes"],

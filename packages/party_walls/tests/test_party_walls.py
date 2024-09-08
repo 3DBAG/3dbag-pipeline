@@ -1,11 +1,8 @@
-import pickle
-from pathlib import Path
 
 import pytest
 from bag3d.party_walls.assets.party_walls import (
-    TilesFilesIndex, cityjsonfeatures_with_party_walls_nl,
+    cityjsonfeatures_with_party_walls_nl,
     distribution_tiles_files_index, features_file_index, party_walls_nl)
-from dagster import asset
 
 TILE_IDS = ("10/564/624", "10/564/626", "10/566/624", "10/566/626", "9/560/624")
 
