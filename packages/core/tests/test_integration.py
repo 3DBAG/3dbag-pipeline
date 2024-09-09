@@ -1,8 +1,7 @@
 import os
 
 import pytest
-from bag3d.common.resources import gdal_local
-from bag3d.common.resources.executables import geoflow, roofer, tyler, gdal
+from bag3d.common.resources.executables import geoflow, roofer, tyler, gdal, DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
@@ -44,7 +43,14 @@ def test_integration_reconstruction_and_export(
                 "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": gdal_local,
+        "gdal": gdal.configured(
+            {
+                "docker": {
+                    "image": DOCKER_GDAL_IMAGE,
+                    "mount_point": "/tmp"
+                }
+            }
+        ),
         "db_connection": database,
         "file_store": file_store.configured(
             {

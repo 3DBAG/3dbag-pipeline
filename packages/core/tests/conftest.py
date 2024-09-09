@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+from bag3d.common.resources import gdal
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 
@@ -39,7 +40,7 @@ def database():
 
 
 @pytest.fixture
-def context(database, wkt_testarea, tmp_path, gdal):
+def context(database, docker_gdal_image, wkt_testarea, tmp_path):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
