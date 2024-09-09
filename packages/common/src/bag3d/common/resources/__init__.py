@@ -1,8 +1,7 @@
 import os
 
 from bag3d.common.resources.executables import (
-    GdalResource,
-    DockerConfig,
+    gdal,
     pdal,
     lastools,
     tyler,
@@ -17,16 +16,21 @@ from bag3d.common.resources.database import db_connection
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 
-gdal_local = GdalResource(
-    docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-)
+gdal_local = gdal.configured({
+    "docker": {
+        "image": DOCKER_GDAL_IMAGE,
+        "mount_point": "/tmp"
+    }
+})
 
 
-gdal_prod = GdalResource(
-    exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-    exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-    exe_sozip=os.getenv("EXE_PATH_SOZIP"),
-)
+gdal_prod = gdal.configured({
+    "exes": {
+        "ogr2ogr": os.getenv("EXE_PATH_OGR2OGR"),
+        "ogrinfo": os.getenv("EXE_PATH_OGRINFO"),
+        "sozip": os.getenv("EXE_PATH_SOZIP"),
+    }
+})
 
 
 db_connection_docker = db_connection.configured(

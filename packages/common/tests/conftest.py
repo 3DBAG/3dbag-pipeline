@@ -2,12 +2,9 @@ import os
 from pathlib import Path
 
 import pytest
+from bag3d.common.resources import gdal
 from bag3d.common.resources.database import DatabaseConnection
-from bag3d.common.resources.executables import (
-    DOCKER_GDAL_IMAGE,
-    GdalResource,
-    DockerConfig,
-)
+from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
 from bag3d.common.resources.files import file_store
 from dagster import build_op_context
 
@@ -19,11 +16,10 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
-@pytest.fixture(scope="session")
-def gdal():
-    yield GdalResource(
-        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-    ).gdal
+@pytest.fixture(scope="function")
+def docker_gdal_image():
+    """The GDAL docker image to use for the tests"""
+    return DOCKER_GDAL_IMAGE
 
 
 @pytest.fixture(scope="function")
@@ -41,7 +37,7 @@ def database():
 
 
 @pytest.fixture
-def context(database, wkt_testarea, tmp_path, gdal):
+def context(database, docker_gdal_image, wkt_testarea, tmp_path):
     yield build_op_context(
         op_config={
             "geofilter": wkt_testarea,
@@ -50,7 +46,7 @@ def context(database, wkt_testarea, tmp_path, gdal):
             ],
         },
         resources={
-            "gdal": gdal,
+            "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
             "db_connection": database,
             "file_store": file_store.configured(
                 {
