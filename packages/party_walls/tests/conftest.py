@@ -102,9 +102,7 @@ def mock_party_walls_nl(intermediate_data_dir) -> pd.DataFrame:
 
 @pytest.fixture(scope="session")
 def mock_features_file_index(intermediate_data_dir, input_data_dir):
-    data = pickle.load(
-        open(intermediate_data_dir / "features_file_index.pkl", "rb")
-    )
+    data = pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
     for k, v in data.items():
         data[k] = Path(str(v).replace(str(v.parents[8]), str(input_data_dir)))
     return data
@@ -126,12 +124,11 @@ def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir):
         )
         gpkg_path = data.export_results[k].gpkg_path
         data.export_results[k].gpkg_path = Path(
-            str(gpkg_path).replace(
-                str(gpkg_path.parents[7]), str(input_data_dir)
-            )
+            str(gpkg_path).replace(str(gpkg_path.parents[7]), str(input_data_dir))
         )
         # TODO: fix data.export_results[k].obj_paths
     return data
+
 
 @pytest.fixture(scope="session")
 def mock_asset_features_file_index(mock_features_file_index):

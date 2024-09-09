@@ -19,7 +19,7 @@ def format_laz_log(fpath: Path, msg: str) -> str:
 
 def ahn_filename(tile_id: str) -> str:
     """Creates an AHN LAZ file name from an AHN tile ID."""
-    return f'C_{tile_id.upper()}.LAZ'
+    return f"C_{tile_id.upper()}.LAZ"
 
 
 def ahn_dir(root_dir: Path, ahn_version: int) -> Path:
@@ -34,8 +34,9 @@ def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
 
 
-def download_ahn_index_esri(ahn_version: int, with_geom: bool = False) -> Union[
-    dict, None]:
+def download_ahn_index_esri(
+    ahn_version: int, with_geom: bool = False
+) -> Union[dict, None]:
     """Download the AHN3/4 tile index from the esri layer that is available in the
     official https://www.ahn.nl/ahn-viewer.
 
@@ -118,14 +119,14 @@ def download_ahn_index_esri(ahn_version: int, with_geom: bool = False) -> Union[
         "resultOffset": 0,
         "resultRecordCount": page_size,
         "returnGeometry": with_geom,
-        "outSR": 28992
+        "outSR": 28992,
     }
     features = {}
     while True:
         response = requests.get(url=service_url + "/query", params=params_features)
         if response.status_code == 200:
             r_json = response.json()
-        else: # pragma: no cover
+        else:  # pragma: no cover
             response.raise_for_status()
             return
         returned_features = r_json.get("features")
@@ -142,7 +143,7 @@ def download_ahn_index_esri(ahn_version: int, with_geom: bool = False) -> Union[
     return features
 
 
-def tile_index_origin() -> Tuple[float, float, float, float]: # pragma: no cover
+def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cover
     """Computes the BBOX of the AHN tile index."""
     tindex = download_ahn_index_esri(3, True)
     minx, miny = tindex["01cz1"]["geometry"]["coordinates"][0][0]
@@ -173,6 +174,9 @@ def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
     origin = bbox[:2]
     nr_cells_x = ceil((bbox[2] - bbox[0]) / cellsize)
     nr_cells_y = ceil((bbox[3] - bbox[1]) / cellsize)
-    bbox_new = (*origin, origin[0] + nr_cells_x * cellsize,
-                origin[1] + nr_cells_y * cellsize)
+    bbox_new = (
+        *origin,
+        origin[0] + nr_cells_x * cellsize,
+        origin[1] + nr_cells_y * cellsize,
+    )
     return bbox_new, nr_cells_x, nr_cells_y

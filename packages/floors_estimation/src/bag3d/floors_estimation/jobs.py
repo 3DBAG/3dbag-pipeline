@@ -10,6 +10,5 @@ job_floors_estimation = define_asset_job(
     | AssetSelection.assets(["floors_estimation", "all_features"])
     | AssetSelection.assets(["floors_estimation", "preprocessed_features"])
     | AssetSelection.assets(["floors_estimation", "inferenced_floors"])
-    | AssetSelection.assets(["floors_estimation", "save_cjfiles"])
-    ,
+    | AssetSelection.assets(["floors_estimation", "save_cjfiles"]),
 )

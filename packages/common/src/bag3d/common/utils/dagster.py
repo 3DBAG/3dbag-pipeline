@@ -1,8 +1,15 @@
 """Utilities for working with the dagster instance"""
+
 from datetime import date
 
-from dagster import TableColumn, TableSchema, AssetExecutionContext, AssetKey, \
-    StaticPartitionsDefinition, get_dagster_logger
+from dagster import (
+    TableColumn,
+    TableSchema,
+    AssetExecutionContext,
+    AssetKey,
+    StaticPartitionsDefinition,
+    get_dagster_logger,
+)
 
 from bag3d.common.utils.files import get_export_tile_ids
 
@@ -42,7 +49,9 @@ def format_date(input_date: date, version: bool = True) -> str:
         return input_date.strftime("%Y-%m-%d")
 
 
-def get_upstream_data_version(context: AssetExecutionContext, asset_key: AssetKey) -> str:
+def get_upstream_data_version(
+    context: AssetExecutionContext, asset_key: AssetKey
+) -> str:
     """Get the data version of an upstream asset.
     The upstream asset must be a dependency of the current asset that passes its
     execution context into this function."""

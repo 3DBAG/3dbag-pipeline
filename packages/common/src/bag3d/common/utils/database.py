@@ -6,8 +6,7 @@ from psycopg.sql import SQL, Composed, Identifier
 from pgutils import inject_parameters, PostgresTableIdentifier
 
 
-def load_sql(filename: str = None,
-             query_params: dict = None): # pragma: no cover 
+def load_sql(filename: str = None, query_params: dict = None):  # pragma: no cover
     """Load SQL from a file and inject parameters if provided.
 
     If providing query parametes, they need to be in a dict, where the keys are the
@@ -40,7 +39,8 @@ def load_sql(filename: str = None,
     pkgs = mod.__package__.split(".")
     if pkgs[0] != "bag3d" and len(pkgs) < 2:
         raise RuntimeError(
-            "Trying to load SQL files from a namspace that is not bag3d.<package>.")
+            "Trying to load SQL files from a namspace that is not bag3d.<package>."
+        )
     sqlfiles_module = ".".join([pkgs[0], pkgs[1], "sqlfiles"])
     # Get the name of the calling function
     _f = filename if filename is not None else f"{inspect.stack()[1].function}.sql"
@@ -69,8 +69,9 @@ def summary_md(fields, null_count):
     return mdtbl[:-1]
 
 
-def postgrestable_from_query(context: OpExecutionContext, query: Composed,
-                             table: PostgresTableIdentifier) -> dict:
+def postgrestable_from_query(
+    context: OpExecutionContext, query: Composed, table: PostgresTableIdentifier
+) -> dict:
     conn = context.resources.db_connection
     # log the query
     context.log.info(conn.print_query(query))
@@ -79,8 +80,9 @@ def postgrestable_from_query(context: OpExecutionContext, query: Composed,
     return postgrestable_metadata(context, table)
 
 
-def postgrestable_metadata(context: OpExecutionContext,
-                           table: PostgresTableIdentifier) -> dict:
+def postgrestable_metadata(
+    context: OpExecutionContext, table: PostgresTableIdentifier
+) -> dict:
     conn = context.resources.db_connection
     # row count
     row_count = conn.get_count(table)
@@ -94,7 +96,7 @@ def postgrestable_metadata(context: OpExecutionContext,
         "Database.Schema.Table": f"{conn.dbname}.{table}",
         "Rows": row_count,
         "Head": MarkdownMetadataValue(head),
-        "Summary": MarkdownMetadataValue(summary_md(fields, null_count))
+        "Summary": MarkdownMetadataValue(summary_md(fields, null_count)),
     }
 
 
@@ -113,6 +115,7 @@ def create_schema(context, new_schema):
     context.log.info(conn.print_query(q))
     conn.send_query(q)
 
+
 def table_exists(context, table) -> bool:
     """CHECKS IF TABLE EXISTS"""
     query = SQL("""SELECT EXISTS (
@@ -121,7 +124,6 @@ def table_exists(context, table) -> bool:
                    WHERE 
                         schemaname = {schema} AND 
                         tablename  = {table}
-                    );""").format(schema=table.schema.str,
-                                  table=table.table.str)
+                    );""").format(schema=table.schema.str, table=table.table.str)
     res = context.resources.db_connection.get_dict(query)
     return res[0]["exists"]

@@ -1,24 +1,18 @@
 from pathlib import Path
-from pprint import pprint
 
 import pytest
-from bag3d.common.resources import gdal
-from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
-                                        ogr2postgres, ogrinfo, parse_ogrinfo)
-from dagster import build_op_context
+from bag3d.common.utils.geodata import (
+    add_info,
+    geojson_poly_to_wkt,
+    ogr2postgres,
+    ogrinfo,
+    parse_ogrinfo,
+)
 from pgutils import PostgresTableIdentifier
 
 
-@pytest.mark.parametrize(
-    "config",
-    ({"exes": {"ogrinfo": "ogrinfo"}}, {"docker": {"image": ""}}),
-    ids=["exes", "docker"],
-)
-def test_info_exes(config, docker_gdal_image, test_data_dir):
+def test_info_exes(context, test_data_dir):
     """Run ogrinfo with local exe and with docker"""
-    if "docker" in config:
-        config["docker"]["image"] = docker_gdal_image
-    context = build_op_context(resources={"gdal": gdal.configured(config)})
     p = Path(f"{test_data_dir}/top10nl.zip")
     res = dict(
         ogrinfo(

@@ -11,12 +11,9 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @multi_asset(
-    outs={
-        "tiles": AssetOut(),
-        "index": AssetOut()
-    },
+    outs={"tiles": AssetOut(), "index": AssetOut()},
     required_resource_keys={"tyler", "db_connection"},
-    code_version=tyler_db_version()
+    code_version=tyler_db_version(),
 )
 def reconstruction_input_tiles(context, reconstruction_input):
     """The reconstruction input partitioned into tiles where a tile is produced in about
@@ -42,24 +39,28 @@ def reconstruction_input_tiles(context, reconstruction_input):
         f"--table {reconstruction_input}",
         f"--geometry-column {geometry_column}",
         f"--primary-key {primary_key}",
-        f"--output-schema {output_schema}"
+        f"--output-schema {output_schema}",
     ]
     context.resources.tyler.execute("tyler-db", " ".join(cmd))
 
     conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
     conn.send_query(
-        f"CREATE INDEX tiles_boundary_idx ON {output_schema}.tiles USING gist (boundary)")
+        f"CREATE INDEX tiles_boundary_idx ON {output_schema}.tiles USING gist (boundary)"
+    )
 
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY ({primary_key}) REFERENCES {reconstruction_input} ({primary_key})")
+        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY ({primary_key}) REFERENCES {reconstruction_input} ({primary_key})"
+    )
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY (tile_id) REFERENCES {output_schema}.tiles (tile_id)")
+        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY (tile_id) REFERENCES {output_schema}.tiles (tile_id)"
+    )
     conn.send_query(
-        f"CREATE INDEX index_tile_id_idx ON {output_schema}.index (tile_id)")
+        f"CREATE INDEX index_tile_id_idx ON {output_schema}.index (tile_id)"
+    )
 
-    return Output(PostgresTableIdentifier(output_schema, "tiles"),
-                  output_name="tiles"), Output(
-        PostgresTableIdentifier(output_schema, "index"), output_name="index")
+    return Output(
+        PostgresTableIdentifier(output_schema, "tiles"), output_name="tiles"
+    ), Output(PostgresTableIdentifier(output_schema, "index"), output_name="index")
 
 
 def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
@@ -67,7 +68,8 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
     tile IDs that intersect the wkt polygon. The SRID for the wkt is set to 28992."""
     if wkt:
         query = SQL(
-            f"select tile_id from {schema}.{table_tiles} where st_intersects(st_geometryfromtext('SRID=28992;{wkt}'), boundary)")
+            f"select tile_id from {schema}.{table_tiles} where st_intersects(st_geometryfromtext('SRID=28992;{wkt}'), boundary)"
+        )
     else:
         query = SQL(f"select tile_id from {schema}.{table_tiles}")
     try:
@@ -81,7 +83,8 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
         tile_ids = [row[0] for row in conn.get_query(query)]
     except OperationalError:
         logger.error(
-            f"cannot establish database connection from the environment variables BAG3D_PG_*")
+            "cannot establish database connection from the environment variables BAG3D_PG_*"
+        )
         tile_ids = []
     except UndefinedTable:
         logger.error(f"tiles table {schema}.{table_tiles} does not exist")

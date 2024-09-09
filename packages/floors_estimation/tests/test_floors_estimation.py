@@ -1,14 +1,18 @@
-import json
-import pickle
 from pathlib import Path
-from typing import Dict
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 from bag3d.floors_estimation.assets.floors_estimation import (
-    all_features, bag3d_features, external_features, features_file_index,
-    inferenced_floors, make_chunks, predictions_table, preprocessed_features,
-    save_cjfiles)
+    all_features,
+    bag3d_features,
+    external_features,
+    features_file_index,
+    inferenced_floors,
+    make_chunks,
+    predictions_table,
+    preprocessed_features,
+    save_cjfiles,
+)
 
 
 def test_features_file_index(context):

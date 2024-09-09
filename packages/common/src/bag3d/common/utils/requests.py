@@ -5,8 +5,13 @@ from typing import Mapping, Union
 from urllib.parse import urlparse, urljoin
 
 import requests
-from dagster import get_dagster_logger, RetryRequested, PathMetadataValue, \
-    UrlMetadataValue, FloatMetadataValue
+from dagster import (
+    get_dagster_logger,
+    RetryRequested,
+    PathMetadataValue,
+    UrlMetadataValue,
+    FloatMetadataValue,
+)
 
 
 def download_as_str(url: str, parameters: Mapping = None) -> str:
@@ -18,15 +23,16 @@ def download_as_str(url: str, parameters: Mapping = None) -> str:
     resp = requests.get(url=url, params=parameters)
     if resp.status_code == 200:
         return resp.text
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError(
             f"Failed to download JSON. HTTP Status {resp.status_code} "
             f"for {resp.url}"
         )
 
 
-def download_file(url: str, target_path: Path, chunk_size: int = 1024,
-                  parameters: Mapping = None) -> Union[Path, None]:
+def download_file(
+    url: str, target_path: Path, chunk_size: int = 1024, parameters: Mapping = None
+) -> Union[Path, None]:
     """Download a large file and save it to disk.
 
     Args:
@@ -48,17 +54,20 @@ def download_file(url: str, target_path: Path, chunk_size: int = 1024,
         fpath = target_path
     logger.info(f"Downloading from {url} to {fpath}")
     session = requests.Session()  # https://stackoverflow.com/a/63417213
-    
+
     try:
         r = session.get(url, params=parameters, stream=True)
         if r.ok:
-            with fpath.open('wb') as fd:
+            with fpath.open("wb") as fd:
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     fd.write(chunk)
             return fpath
-        else: # pragma: no cover
+        else:  # pragma: no cover
             r.raise_for_status()
-    except (requests.exceptions.BaseHTTPError, requests.exceptions.HTTPError) as e: # pragma: no cover
+    except (
+        requests.exceptions.BaseHTTPError,
+        requests.exceptions.HTTPError,
+    ) as e:  # pragma: no cover
         logger.exception(e)
         return None
     finally:
@@ -71,18 +80,20 @@ def get_metadata(url_api: str):
     :returns: {"timeliness": <date>: [featuretype,...]}
     """
     r_meta = requests.get(url_api)
-    if not r_meta.status_code == requests.codes.ok: # pragma: no cover
+    if not r_meta.status_code == requests.codes.ok:  # pragma: no cover
         r_meta.raise_for_status()
     meta = {"timeliness": {}}
     for layer in r_meta.json()["timeliness"]:
         if layer["datetimeTo"][-1] == "Z":
             dt = str(datetime.fromisoformat(layer["datetimeTo"][:-1]).date())
-        else: # pragma: no cover
+        else:  # pragma: no cover
             dt = str(datetime.fromisoformat(layer["datetimeTo"]).date())
         if dt in meta["timeliness"]:
             meta["timeliness"][dt].append(layer["featuretype"])
         else:
-            meta["timeliness"][dt] = [layer["featuretype"], ]
+            meta["timeliness"][dt] = [
+                layer["featuretype"],
+            ]
     return meta
 
 
@@ -90,36 +101,39 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
     """Request an export and download link from the API."""
     logger = get_dagster_logger()
     request_json = {
-        "featuretypes": featuretypes, "format": data_format,
+        "featuretypes": featuretypes,
+        "format": data_format,
     }
     if geofilter is not None:
         request_json["geofilter"] = geofilter
     r_post = requests.post(url, json=request_json)
     logger.info(f"Requesting extract: {r_post.url} with {request_json} ")
-    if not r_post.status_code == requests.codes.accepted: # pragma: no cover
+    if not r_post.status_code == requests.codes.accepted:  # pragma: no cover
         logger.error(r_post.text)
         r_post.raise_for_status()
     else:
         _u = urlparse(url)
         pdok_server = f"{_u.scheme}://{_u.hostname}/"
-        url_status = urljoin(pdok_server, r_post.json()['_links']['status']['href'])
+        url_status = urljoin(pdok_server, r_post.json()["_links"]["status"]["href"])
         url_download = None
 
         if requests.get(url_status).status_code == requests.codes.ok:
             while (
-                    r_status := requests.get(
-                        url_status)).status_code == requests.codes.ok:
+                r_status := requests.get(url_status)
+            ).status_code == requests.codes.ok:
                 sleep(15)
-            if not r_status.status_code == requests.codes.created: # pragma: no cover
+            if not r_status.status_code == requests.codes.created:  # pragma: no cover
                 logger.error(r_status.text)
                 r_status.raise_for_status()
-            url_download = urljoin(pdok_server,
-                                   r_status.json()['_links']['download']['href'])
-        elif requests.get(url_status).status_code == requests.codes.created: 
+            url_download = urljoin(
+                pdok_server, r_status.json()["_links"]["download"]["href"]
+            )
+        elif requests.get(url_status).status_code == requests.codes.created:
             r_status = requests.get(url_status)
-            url_download = urljoin(pdok_server,
-                                   r_status.json()['_links']['download']['href'])
-        else: # pragma: no cover
+            url_download = urljoin(
+                pdok_server, r_status.json()["_links"]["download"]["href"]
+            )
+        else:  # pragma: no cover
             _r = requests.get(url_status)
             logger.error(_r.text)
             _r.raise_for_status()
@@ -127,8 +141,9 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
         return url_download
 
 
-def download_extract(dataset, url_api, featuretypes, data_format, geofilter,
-                     download_dir):
+def download_extract(
+    dataset, url_api, featuretypes, data_format, geofilter, download_dir
+):
     _m = get_metadata(f"{url_api}/dataset")
     metadata = {"timeliness": {}}
     for dt, ft in _m["timeliness"].items():
@@ -139,7 +154,7 @@ def download_extract(dataset, url_api, featuretypes, data_format, geofilter,
         url=f"{url_api}/full/custom",
         featuretypes=featuretypes,
         data_format=data_format,
-        geofilter=geofilter
+        geofilter=geofilter,
     )
 
     dest_file = Path(download_dir) / f"{dataset}.zip"
@@ -152,6 +167,7 @@ def download_extract(dataset, url_api, featuretypes, data_format, geofilter,
         "Extract Path": PathMetadataValue(dest_file),
         "Download URL": UrlMetadataValue(url_download),
         "Size [Mb]": FloatMetadataValue(
-            round(dest_file.stat().st_size * 0.000001, ndigits=2)),
+            round(dest_file.stat().st_size * 0.000001, ndigits=2)
+        ),
         "timeliness": metadata["timeliness"],
     }

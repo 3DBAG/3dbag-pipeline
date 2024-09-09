@@ -1,11 +1,10 @@
-import pickle
-from pathlib import Path
-
 import pytest
 from bag3d.party_walls.assets.party_walls import (
-    TilesFilesIndex, cityjsonfeatures_with_party_walls_nl,
-    distribution_tiles_files_index, features_file_index, party_walls_nl)
-from dagster import asset
+    cityjsonfeatures_with_party_walls_nl,
+    distribution_tiles_files_index,
+    features_file_index,
+    party_walls_nl,
+)
 
 TILE_IDS = ("10/564/624", "10/564/626", "10/566/624", "10/566/626", "9/560/624")
 
@@ -42,7 +41,7 @@ def test_cityjsonfeatures_with_party_walls_nl(
     result = cityjsonfeatures_with_party_walls_nl(
         context=context,
         party_walls_nl=mock_party_walls_nl,
-        features_file_index=mock_features_file_index
+        features_file_index=mock_features_file_index,
     )
     assert result[0].stem == "NL.IMBAG.Pand.0307100000308298.city"
     assert result[0].suffix == ".jsonl"

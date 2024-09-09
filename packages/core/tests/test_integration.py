@@ -1,16 +1,16 @@
-import pickle
+import os
 
 import pytest
-from bag3d.common.resources import gdal
-from bag3d.common.resources.executables import geoflow, roofer, tyler
+from bag3d.common.resources.executables import geoflow, roofer, tyler, GdalResource
 from bag3d.common.resources.files import file_store
-from bag3d.common.resources.temp_until_configurableresource import (
-    EXE_PATH_ROOFER_RECONSTRUCT, EXE_PATH_ROOFER_CROP, EXE_PATH_TYLER, EXE_PATH_TYLER_DB,
-    FLOWCHART_PATH_RECONSTRUCT, EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, EXE_PATH_SOZIP)
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
-from dagster import (AssetKey, Definitions, ExecuteInProcessResult,
-                     load_assets_from_package_module)
+from dagster import (
+    AssetKey,
+    Definitions,
+    ExecuteInProcessResult,
+    load_assets_from_package_module,
+)
 
 
 @pytest.mark.slow
@@ -25,28 +25,29 @@ def test_integration_reconstruction_and_export(
 ):
     resources = {
         "tyler": tyler.configured(
-            {"exes": {"tyler-db": EXE_PATH_TYLER_DB, "tyler": EXE_PATH_TYLER}}
+            {
+                "exes": {
+                    "tyler-db": os.getenv("EXE_PATH_TYLER_DB"),
+                    "tyler": os.getenv("EXE_PATH_TYLER"),
+                }
+            }
         ),
         "geoflow": geoflow.configured(
             {
-                "exes": {"geof": EXE_PATH_ROOFER_RECONSTRUCT},
-                "flowcharts": {"reconstruct": FLOWCHART_PATH_RECONSTRUCT},
+                "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
+                "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
             }
         ),
         "roofer": roofer.configured(
             {
-                "exes": {"crop": EXE_PATH_ROOFER_CROP},
+                "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": gdal.configured(
-            {
-                "exes": {
-                    "ogr2ogr": EXE_PATH_OGR2OGR,
-                    "ogrinfo": EXE_PATH_OGRINFO,
-                    "sozip": EXE_PATH_SOZIP,
-                }
-            }
-        ),
+        "gdal": GdalResource(
+            exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+            exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+            exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+        ).gdal,
         "db_connection": database,
         "file_store": file_store.configured(
             {
