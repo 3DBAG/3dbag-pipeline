@@ -1,37 +1,25 @@
+import os
 from pathlib import Path
 
 import pytest
 from bag3d.common import resources
 from dagster import build_init_resource_context
+from bag3d.common.resources.executables import GdalResource, DockerConfig, DOCKER_GDAL_IMAGE
 
 
-@pytest.mark.parametrize(
-    ("config", "data_dir", "filename"),
-    (
-        (
-            {
-                "docker": {
-                    "image": resources.executables.DOCKER_GDAL_IMAGE,
-                    "mount_point": "/tmp",
-                }
-            },
-            "test_data_dir",
-            Path("top10nl.zip"),
-        ),
-        ({"exes": {"ogrinfo": "ogrinfo"}}, "test_data_dir", Path("top10nl.zip")),
-    ),
-    ids=["docker", "local"],
-)
-def test_gdal(config, data_dir, filename, request):
+def test_gdal(test_data_dir):
     """Use GDAL in a docker image"""
-    init_context = build_init_resource_context(config=config)
-    gdal_exe = resources.executables.gdal(init_context)
-    if "docker" in config:
-        assert gdal_exe.with_docker
-    elif "exes" in config:
-        assert not gdal_exe.with_docker
-    local_path = request.getfixturevalue(data_dir) / filename
-    return_code, output = gdal_exe.execute(
+
+    gdal_docker = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp"))
+    assert gdal_docker.with_docker
+
+    gdal_local = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+                              exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+                              exe_sozip=os.getenv("EXE_PATH_SOZIP"))
+    assert not gdal_local.with_docker
+
+    local_path = test_data_dir / Path("top10nl.zip")
+    return_code, output = gdal_docker.gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     print(output)
