@@ -20,31 +20,31 @@ def format_version_stdout(version: str) -> str:
 
 def tyler_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_TYLER")} --version"
+        f"{os.getenv('EXE_PATH_TYLER')} --version"
     )
     return format_version_stdout(version)
 
 
 def tyler_db_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_TYLER_DB")} --version"
+        f"{os.getenv('EXE_PATH_TYLER_DB')} --version"
     )
     return format_version_stdout(version)
 
 
 def roofer_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_ROOFER_CROP")} --version"
+        f"{os.getenv('EXE_PATH_ROOFER_CROP')} --version"
     )
     return format_version_stdout(version)
 
 
 def geoflow_version():
     version_geof, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")} --version --verbose"
+        f"{os.getenv('EXE_PATH_ROOFER_RECONSTRUCT')} --version --verbose"
     )
     version_plugins, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")} --list-plugins --verbose"
+        f"{os.getenv('EXE_PATH_ROOFER_RECONSTRUCT')} --list-plugins --verbose"
     )
     gv = version_geof.strip().replace("\n", ", ")
     plugin_versions = version_plugins.find(" >")
@@ -60,20 +60,20 @@ def geoflow_version():
 
 def gdal_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_OGR2OGR")} --version"
+        f"{os.getenv('EXE_PATH_OGR2OGR')} --version"
     )
     return format_version_stdout(version)
 
 
 def pdal_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_PDAL")} --version"
+        f"{os.getenv('EXE_PATH_PDAL')} --version"
     )
     return version.replace("-", "").replace("\n", "")
 
 
 def lastools_version():
     version, returncode = execute_shell_command_silent(
-        f"{os.getenv("EXE_PATH_LAS2LAS")} -version"
+        f"{os.getenv('EXE_PATH_LAS2LAS')} -version"
     )
     return format_version_stdout(version)
