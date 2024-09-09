@@ -5,13 +5,7 @@ from copy import deepcopy
 import signal
 from subprocess import PIPE, STDOUT, Popen
 
-from dagster import (
-    get_dagster_logger,
-    resource,
-    Field,
-    Noneable,
-    Failure
-)
+from dagster import get_dagster_logger, resource, Field, Noneable, Failure
 from dagster_shell import execute_shell_command
 import docker
 from docker.errors import ImageNotFound
@@ -77,14 +71,13 @@ def execute_shell_command_silent(shell_command: str, cwd=None, env=None):
             sub_process.terminate()
 
 
-
 class AppImage:
     """An application, either as paths of executables, or as a docker image."""
 
     def __init__(
         self,
         exes: dict,
-        docker_cfg = None,
+        docker_cfg=None,
         with_docker: bool = False,
         kwargs: dict = None,
     ):
@@ -244,34 +237,41 @@ class AppImage:
 
 @resource(
     description="GDAL executables, either local or in a docker image. Defaults to ogr* "
-                "that is in the path.",
+    "that is in the path.",
     config_schema={
         "exes": {
             "ogr2ogr": Field(
-                Noneable(str), default_value=None,
-                description="Path to the ogr2ogr executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the ogr2ogr executable",
             ),
             "ogrinfo": Field(
-                Noneable(str), default_value=None,
-                description="Path to the ogrinfo executable"
+                Noneable(str),
+                default_value=None,
+                description="Path to the ogrinfo executable",
             ),
             "sozip": Field(
-                Noneable(str), default_value=None,
-                description="Path to the sozip executable"
-            )
+                Noneable(str),
+                default_value=None,
+                description="Path to the sozip executable",
+            ),
         },
         "docker": {
             "image": Field(
-                str, default_value=DOCKER_GDAL_IMAGE,
-                description="Docker image reference"
+                str,
+                default_value=DOCKER_GDAL_IMAGE,
+                description="Docker image reference",
             ),
             "mount_point": Field(
-                str, default_value="/tmp",
-                description=("The mount point in the container where the data "
-                             "directory from the host is bind mounted.")
-            )
+                str,
+                default_value="/tmp",
+                description=(
+                    "The mount point in the container where the data "
+                    "directory from the host is bind mounted."
+                ),
+            ),
         },
-    }
+    },
 )
 def gdal(context):
     """GDAL executables in a docker image or locally. Defaults to using a docker
@@ -284,9 +284,11 @@ def gdal(context):
         gdal_exes["sozip"] = "sozip"
     else:
         with_docker = False
-    return AppImage(exes=gdal_exes,
-                    docker_cfg=context.resource_config.get("docker"),
-                    with_docker=with_docker)
+    return AppImage(
+        exes=gdal_exes,
+        docker_cfg=context.resource_config.get("docker"),
+        with_docker=with_docker,
+    )
 
 
 @resource(
