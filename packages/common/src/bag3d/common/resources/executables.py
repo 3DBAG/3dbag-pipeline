@@ -84,8 +84,8 @@ def format_version_stdout(version: str) -> str:
 
 
 class DockerConfig(ConfigurableResource):
-    image: str = DOCKER_GDAL_IMAGE
-    mount_point: str = "/tmp"
+    image: str
+    mount_point: str
 
 
 class AppImage:
@@ -254,29 +254,31 @@ class AppImage:
 
 class GdalResource(ConfigurableResource):
     """
-    Resource to GDAL, can be configured by either the EXE pahts
-    for ogr2ogr, ogrinfo and sozip, or by providing the DockerConfig
-    for the Gdal image.
+    A GDAL Resource can be configured by either the local EXE paths
+    for `ogr2ogr`, `ogrinfo` and `sozip`, or by providing the DockerConfig
+    for the GDAL image.
 
     For the local exes you can use:
 
-    gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-                                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-                                 exe_sozip=os.getenv("EXE_PATH_SOZIP"))
+        gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+                                     exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+                                     exe_sozip=os.getenv("EXE_PATH_SOZIP"))
 
     For the docker image you can use:
 
-    gdal_local = GdalResource(docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE,mount_point="/tmp"))
+        gdal_local = GdalResource(docker_cfg=DockerConfig(
+                                image=DOCKER_GDAL_IMAGE,
+                                mount_point="/tmp"))
 
-    If instantiated with GdalResource() then the Docker image is used.
+    If instantiated with GdalResource() then the Docker image is used by
+    default. After the resource has been instantiated, gdal (AppImage) can
+    be acquired with the `gdal` property:
 
-    After the resource is intantiated, gdal can be acquired with the gdal property:
+        gdal_resource.gdal
 
-    gdal_resouces.gdal
+    The version can be acquired with the `version` property:
 
-    The version be acquired with the version property:
-
-    gdal_resouces.version
+        gdal_resource.version
     """
 
     exe_ogrinfo: str
@@ -371,7 +373,30 @@ def partialzip(context):
 
 
 class PdalResource(ConfigurableResource):
-    """ """
+    """
+    A PDAL Resource can be configured by either the local EXE path
+    for `pdal` or by providing the DockerConfig for the PDAL image.
+
+    For the local exe you can use:
+
+        pdal_resource = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+
+    For the docker image you can use:
+
+        pdal_resource = PdalResource(docker_cfg=DockerConfig(
+                                        image=DOCKER_PDAL_IMAGE,
+                                        mount_point="/tmp"))
+
+    If instantiated with PdalResource() then the Docker image is used by
+    default. After the resource has been instantiated, pdal (AppImage) can
+    be acquired with the `pdal` property:
+
+        pdal_resource.pdal
+
+    The version can be acquired with the `version` property:
+
+        pdal_resource.version
+    """
 
     exe_pdal: str
     docker_cfg: DockerConfig
