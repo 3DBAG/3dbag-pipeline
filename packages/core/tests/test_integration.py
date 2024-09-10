@@ -1,7 +1,14 @@
 import os
 
 import pytest
-from bag3d.common.resources.executables import geoflow, roofer, tyler, gdal, DOCKER_GDAL_IMAGE
+from bag3d.common.resources.executables import (
+    geoflow,
+    roofer,
+    tyler,
+    DOCKER_GDAL_IMAGE,
+    GdalResource,
+    DockerConfig,
+)
 from bag3d.common.resources.files import file_store
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
@@ -16,12 +23,12 @@ from dagster import (
 @pytest.mark.slow
 def test_integration_reconstruction_and_export(
     database,
-    docker_gdal_image,
     test_data_dir,
     mock_asset_regular_grid_200m,
     mock_asset_reconstruction_input,
     mock_asset_tiles,
     mock_asset_index,
+    gdal,
 ):
     resources = {
         "tyler": tyler.configured(
@@ -43,14 +50,7 @@ def test_integration_reconstruction_and_export(
                 "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": gdal.configured(
-            {
-                "docker": {
-                    "image": DOCKER_GDAL_IMAGE,
-                    "mount_point": "/tmp"
-                }
-            }
-        ),
+        "gdal": gdal.gdal,
         "db_connection": database,
         "file_store": file_store.configured(
             {
