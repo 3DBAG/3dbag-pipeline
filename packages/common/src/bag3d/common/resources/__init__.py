@@ -1,7 +1,8 @@
 import os
 
 from bag3d.common.resources.executables import (
-    gdal,
+    GdalResource,
+    DockerConfig,
     pdal,
     lastools,
     tyler,
@@ -16,21 +17,16 @@ from bag3d.common.resources.database import db_connection
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 
-gdal_local = gdal.configured({
-    "docker": {
-        "image": DOCKER_GDAL_IMAGE,
-        "mount_point": "/tmp"
-    }
-})
+gdal_local = GdalResource(
+    docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+)
 
 
-gdal_prod = gdal.configured({
-    "exes": {
-        "ogr2ogr": os.getenv("EXE_PATH_OGR2OGR"),
-        "ogrinfo": os.getenv("EXE_PATH_OGRINFO"),
-        "sozip": os.getenv("EXE_PATH_SOZIP"),
-    }
-})
+gdal_prod = GdalResource(
+    exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+    exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+    exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+)
 
 
 db_connection_docker = db_connection.configured(
@@ -55,7 +51,12 @@ file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"
 pdal_prod = pdal.configured({"exes": {"pdal": os.getenv("EXE_PATH_PDAL")}})
 
 lastools_prod = lastools.configured(
-    {"exes": {"lasindex": os.getenv("EXE_PATH_LASINDEX"), "las2las": os.getenv("EXE_PATH_LAS2LAS")}}
+    {
+        "exes": {
+            "lasindex": os.getenv("EXE_PATH_LASINDEX"),
+            "las2las": os.getenv("EXE_PATH_LAS2LAS"),
+        }
+    }
 )
 
 tyler_prod = tyler.configured(
