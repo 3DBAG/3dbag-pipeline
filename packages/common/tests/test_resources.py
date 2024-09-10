@@ -6,31 +6,61 @@ from bag3d.common import resources
 from dagster import build_init_resource_context
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
+    DOCKER_PDAL_IMAGE,
     GdalResource,
+    PdalResource,
     DockerConfig,
 )
+from bag3d.common.utils.geodata import pdal_info
 
 
-def test_gdal(gdal, test_data_dir):
+def test_gdal_docker(test_data_dir):
     """Use GDAL in a docker image"""
-    gdal_docker = GdalResource(
+    gdal = GdalResource(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
-    assert gdal_docker.with_docker
+    assert gdal.with_docker
 
-    gdal_local = GdalResource(
+    local_path = test_data_dir / Path("top10nl.zip")
+    return_code, output = gdal.gdal.execute(
+        "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
+    )
+    print(output)
+
+
+def test_gdal_local(test_data_dir):
+    """Use local GDAL installation"""
+    gdal = GdalResource(
         exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
         exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
         exe_sozip=os.getenv("EXE_PATH_SOZIP"),
     )
 
-    assert not gdal_local.with_docker
+    assert not gdal.with_docker
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal_docker.gdal.execute(
+    return_code, output = gdal.gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     print(output)
+
+
+def test_pdal_docker(test_data_dir):
+    """Use PDAL in a docker image"""
+    pdal = PdalResource(
+        docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
+    )
+    assert pdal.with_docker
+    filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
+    output = pdal_info(pdal.pdal, filepath, with_all=True)
+
+
+def test_pdal_local(test_data_dir):
+    """Use local PDAL installation"""
+    pdal = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+    assert not pdal.with_docker
+    filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
+    output = pdal_info(pdal.pdal, filepath, with_all=True)
 
 
 def test_file_store_init_temp():

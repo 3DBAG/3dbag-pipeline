@@ -370,46 +370,46 @@ def partialzip(context):
     )
 
 
-@resource(
-    config_schema={
-        "exes": {
-            "pdal": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the pdal executable",
-            ),
-        },
-        "docker": {
-            "image": Field(
-                str,
-                default_value=DOCKER_PDAL_IMAGE,
-                description="Docker image reference",
-            ),
-            "mount_point": Field(
-                str,
-                default_value="/tmp",
-                description=(
-                    "The mount point in the container where the data "
-                    "directory from the host is bind mounted."
-                ),
-            ),
-        },
-    }
-)
-def pdal(context):
-    """PDAL executables in a docker image or a local executable. Defaults to using a
-    docker image."""
-    pdal_exe = {k: v for k, v in context.resource_config.get("exes").items()}
-    if pdal_exe["pdal"]:
-        with_docker = False
-    else:
-        with_docker = True
-        pdal_exe["pdal"] = "pdal"
-    return AppImage(
-        exes=pdal_exe,
-        docker_cfg=context.resource_config.get("docker"),
-        with_docker=with_docker,
-    )
+class PdalResource(ConfigurableResource):
+    """ """
+
+    exe_pdal: str
+    docker_cfg: DockerConfig
+
+    def __init__(
+        self,
+        exe_pdal: Optional[str] = None,
+        docker_cfg: Optional[DockerConfig] = None,
+    ):
+        super().__init__(
+            exe_pdal=exe_pdal or "pdal",
+            docker_cfg=docker_cfg
+            or DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp"),
+        )
+
+    @property
+    def exes(self) -> Dict[str, str]:
+        return {
+            "pdal": self.exe_pdal,
+        }
+
+    @property
+    def with_docker(self) -> bool:
+        if self.exe_pdal == "pdal":
+            return True
+        else:
+            return False
+
+    @property
+    def pdal(self) -> AppImage:
+        return AppImage(
+            exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
+        )
+
+    @property
+    def version(self):
+        version, returncode = execute_shell_command_silent(f"{self.exe_pdal} --version")
+        return format_version_stdout(version)
 
 
 @resource(

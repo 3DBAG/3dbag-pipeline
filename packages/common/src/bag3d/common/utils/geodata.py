@@ -13,6 +13,7 @@ from dagster import (
 from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.database import postgrestable_metadata
+from bag3d.common.resources.executables import AppImage
 
 
 def wkt_from_bbox(bbox):
@@ -234,7 +235,9 @@ def ogr2postgres(
         return postgrestable_metadata(context, new_table)
 
 
-def pdal_info(pdal, file_path: Path, with_all: bool = False) -> Tuple[int, dict]:
+def pdal_info(
+    pdal: AppImage, file_path: Path, with_all: bool = False
+) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:

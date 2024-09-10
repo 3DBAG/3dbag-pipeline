@@ -2,13 +2,14 @@ import os
 
 from bag3d.common.resources.executables import (
     GdalResource,
+    PdalResource,
     DockerConfig,
-    pdal,
     lastools,
     tyler,
     geoflow,
     roofer,
     DOCKER_GDAL_IMAGE,
+    DOCKER_PDAL_IMAGE,
 )
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
@@ -29,6 +30,13 @@ gdal_prod = GdalResource(
 )
 
 
+pdal_local = PdalResource(
+    docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
+)
+
+pdal_prod = PdalResource = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+
+
 db_connection_docker = db_connection.configured(
     {
         "port": int(os.getenv("BAG3D_PG_PORT", 5432)),
@@ -47,8 +55,6 @@ db_connection_docker = db_connection.configured(
 file_store_gilfoyle = file_store.configured({"data_dir": "/data"})
 file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"})
 
-
-pdal_prod = pdal.configured({"exes": {"pdal": os.getenv("EXE_PATH_PDAL")}})
 
 lastools_prod = lastools.configured(
     {
@@ -86,7 +92,7 @@ RESOURCES_LOCAL = {
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "pdal": pdal,
+    "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler_prod,
     "geoflow": geoflow_prod,
@@ -100,7 +106,7 @@ RESOURCES_PYTEST = {
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "pdal": pdal,
+    "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
