@@ -25,7 +25,7 @@ def test_gdal_docker(test_data_dir):
     return_code, output = gdal.gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
-    print(output)
+    assert return_code == 0
 
 
 def test_gdal_local(test_data_dir):
@@ -42,7 +42,11 @@ def test_gdal_local(test_data_dir):
     return_code, output = gdal.gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
-    print(output)
+    assert return_code == 0
+
+
+def test_gdal_docker_version(gdal):
+    assert gdal.gdal.version("ogrinfo") == "GDAL 3.7.0, released 2023/05/02,"
 
 
 def test_pdal_docker(test_data_dir):
@@ -52,7 +56,8 @@ def test_pdal_docker(test_data_dir):
     )
     assert pdal.with_docker
     filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
-    output = pdal_info(pdal.pdal, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
+    assert return_code == 0
 
 
 def test_pdal_local(test_data_dir):
@@ -60,7 +65,8 @@ def test_pdal_local(test_data_dir):
     pdal = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
     assert not pdal.with_docker
     filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
-    output = pdal_info(pdal.pdal, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
+    assert return_code == 0
 
 
 def test_file_store_init_temp():

@@ -251,6 +251,10 @@ class AppImage:
                 "executable resource was not initialized with a " "docker image"
             )
 
+    def version(self, exe: str):
+        version, returncode = execute_shell_command_silent(f"{exe} --version")
+        return format_version_stdout(version)
+
 
 class GdalResource(ConfigurableResource):
     """
@@ -275,10 +279,6 @@ class GdalResource(ConfigurableResource):
     be acquired with the `gdal` property:
 
         gdal_resource.gdal
-
-    The version can be acquired with the `version` property:
-
-        gdal_resource.version
     """
 
     exe_ogrinfo: str
@@ -325,13 +325,6 @@ class GdalResource(ConfigurableResource):
         return AppImage(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
-
-    @property
-    def version(self):
-        version, returncode = execute_shell_command_silent(
-            f"{self.exe_ogr2ogr} --version"
-        )
-        return format_version_stdout(version)
 
 
 @resource(
@@ -430,11 +423,6 @@ class PdalResource(ConfigurableResource):
         return AppImage(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
-
-    @property
-    def version(self):
-        version, returncode = execute_shell_command_silent(f"{self.exe_pdal} --version")
-        return format_version_stdout(version)
 
 
 @resource(
