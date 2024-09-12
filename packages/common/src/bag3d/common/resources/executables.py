@@ -425,27 +425,40 @@ class PdalResource(ConfigurableResource):
         )
 
 
-@resource(
-    description="LASTools executables on the local system.",
-    config_schema={
-        "exes": {
-            "lasindex": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the lasindex executable",
-            ),
-            "las2las": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the las2las executable",
-            ),
-        },
-    },
-)
-def lastools(context):
-    """LASTools executables on the local system."""
-    lastools_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(exes=lastools_exes, with_docker=False)
+class LASToolsResource(ConfigurableResource):
+    """
+    A LASTools Resource can be configured by providing the paths to
+    LASTools executables "lasindex" and "las2las" on the local system.
+
+    Example:
+
+        lastools_resource = LASToolsResource(exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+                                             exe_las2las=s.getenv("EXE_PATH_LAS2LAS"))
+
+    After the resource has been instantiated, lastools (AppImage) can
+    be acquired with the `lastools` property:
+
+        lastools_resource.lastools
+
+    The version can be acquired with the `version` property:
+
+       lastools_resource.version
+    """
+
+    exe_lasindex: str
+    exe_las2las: str
+
+    @property
+    def exes(self) -> Dict[str, str]:
+        return {"lasindex": self.exe_lasindex, "las2las": self.exe_las2las}
+
+    @property
+    def with_docker(self) -> bool:
+        return False
+
+    @property
+    def pdal(self) -> AppImage:
+        return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
 @resource(

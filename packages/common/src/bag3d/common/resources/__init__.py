@@ -4,7 +4,7 @@ from bag3d.common.resources.executables import (
     GdalResource,
     PdalResource,
     DockerConfig,
-    lastools,
+    LASToolsResource,
     tyler,
     geoflow,
     roofer,
@@ -56,13 +56,9 @@ file_store_gilfoyle = file_store.configured({"data_dir": "/data"})
 file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"})
 
 
-lastools_prod = lastools.configured(
-    {
-        "exes": {
-            "lasindex": os.getenv("EXE_PATH_LASINDEX"),
-            "las2las": os.getenv("EXE_PATH_LAS2LAS"),
-        }
-    }
+lastools = LASToolsResource(
+    exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+    exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
 )
 
 tyler_prod = tyler.configured(
@@ -119,7 +115,7 @@ RESOURCES_PROD = {
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection_docker,
     "pdal": pdal_prod,
-    "lastools": lastools_prod,
+    "lastools": lastools,
     "tyler": tyler_prod,
     "geoflow": geoflow_prod,
     "roofer": roofer_prod,
