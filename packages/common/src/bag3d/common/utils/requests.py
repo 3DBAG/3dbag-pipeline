@@ -56,7 +56,7 @@ def download_file(
     session = requests.Session()  # https://stackoverflow.com/a/63417213
 
     try:
-        r = session.get(url, params=parameters, stream=True)
+        r = session.get(url, params=parameters, stream=True, verify=False)
         if r.ok:
             with fpath.open("wb") as fd:
                 for chunk in r.iter_content(chunk_size=chunk_size):
