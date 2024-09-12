@@ -457,7 +457,7 @@ class LASToolsResource(ConfigurableResource):
         return False
 
     @property
-    def pdal(self) -> AppImage:
+    def lastools(self) -> AppImage:
         return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 

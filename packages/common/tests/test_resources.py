@@ -10,6 +10,7 @@ from bag3d.common.resources.executables import (
     GdalResource,
     PdalResource,
     DockerConfig,
+    LASToolsResource,
 )
 from bag3d.common.utils.geodata import pdal_info
 
@@ -49,23 +50,47 @@ def test_gdal_docker_version(gdal):
     assert gdal.gdal.version("ogrinfo") == "GDAL 3.7.0, released 2023/05/02,"
 
 
-def test_pdal_docker(test_data_dir):
+def test_pdal_docker(laz_files_ahn3_dir):
     """Use PDAL in a docker image"""
     pdal = PdalResource(
         docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
     )
     assert pdal.with_docker
-    filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
     return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
     assert return_code == 0
 
 
-def test_pdal_local(test_data_dir):
+def test_pdal_local(laz_files_ahn3_dir):
     """Use local PDAL installation"""
     pdal = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
     assert not pdal.with_docker
-    filepath = test_data_dir / "pointcloud/AHN3/tiles_200m/t_1042098.laz"
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
     return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
+    assert return_code == 0
+
+
+def test_lastools(laz_files_ahn3_dir):
+    lastools = LASToolsResource(
+        exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+        exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+    )
+    assert not lastools.with_docker
+
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+
+    cmd_list = [
+        "{exe}",
+        "-i {local_path}",
+        "-append",
+        "-tile_size",
+        "100",
+        "-dont_reindex",
+    ]
+    return_code, output = lastools.lastools.execute(
+        "lasindex", " ".join(cmd_list), local_path=filepath
+    )
+
     assert return_code == 0
 
 

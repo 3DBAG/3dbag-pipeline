@@ -102,3 +102,8 @@ def setenv():
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
+
+
+@pytest.fixture(scope="session")
+def laz_files_ahn3_dir(test_data_dir):
+    yield test_data_dir / "pointcloud/AHN3/tiles_200m/"
