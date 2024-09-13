@@ -94,11 +94,6 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_slow)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setenv():
-    os.environ["DAGSTER_DEPLOYMENT"] = "pytest"
-
-
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
