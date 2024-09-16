@@ -6,7 +6,7 @@ from bag3d.common.resources.executables import (
     roofer,
     tyler,
     DOCKER_GDAL_IMAGE,
-    GdalResource,
+    GDALResources,
     DockerConfig,
 )
 from bag3d.common.resources.files import file_store

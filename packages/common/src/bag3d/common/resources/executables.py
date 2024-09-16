@@ -256,7 +256,7 @@ class AppImage:
         return format_version_stdout(version)
 
 
-class GdalResource(ConfigurableResource):
+class GDALResources(ConfigurableResource):
     """
     A GDAL Resource can be configured by either the local EXE paths
     for `ogr2ogr`, `ogrinfo` and `sozip`, or by providing the DockerConfig
@@ -264,17 +264,17 @@ class GdalResource(ConfigurableResource):
 
     For the local exes you can use:
 
-        gdal_resource = GdalResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+        gdal_resource = GDALResources(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                                      exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                                      exe_sozip=os.getenv("EXE_PATH_SOZIP"))
 
     For the docker image you can use:
 
-        gdal_local = GdalResource(docker_cfg=DockerConfig(
+        gdal_local = GDALResources(docker_cfg=DockerConfig(
                                 image=DOCKER_GDAL_IMAGE,
                                 mount_point="/tmp"))
 
-    If instantiated with GdalResource() then the Docker image is used by
+    If instantiated with GDALResources() then the Docker image is used by
     default. After the resource has been instantiated, gdal (AppImage) can
     be acquired with the `gdal` property:
 

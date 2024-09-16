@@ -7,7 +7,7 @@ from dagster import build_init_resource_context
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
-    GdalResource,
+    GDALResources,
     PdalResource,
     DockerConfig,
     LASToolsResource,
@@ -17,7 +17,7 @@ from bag3d.common.utils.geodata import pdal_info
 
 def test_gdal_docker(test_data_dir):
     """Use GDAL in a docker image"""
-    gdal = GdalResource(
+    gdal = GDALResources(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
     assert gdal.with_docker
@@ -31,7 +31,7 @@ def test_gdal_docker(test_data_dir):
 
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
-    gdal = GdalResource(
+    gdal = GDALResources(
         exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
         exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
         exe_sozip=os.getenv("EXE_PATH_SOZIP"),
