@@ -7,7 +7,7 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
     TylerResource,
     RooferResource,
-    geoflow,
+    GeoflowResource,
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
 )
@@ -67,11 +67,9 @@ tyler = TylerResource(
 
 roofer = RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP"))
 
-geoflow_prod = geoflow.configured(
-    {
-        "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
-        "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
-    }
+geoflow = GeoflowResource(
+    exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+    flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
 )
 
 RESOURCES_LOCAL = {
@@ -82,7 +80,7 @@ RESOURCES_LOCAL = {
     "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
-    "geoflow": geoflow_prod,
+    "geoflow": geoflow,
     "roofer": roofer,
 }
 
@@ -108,7 +106,7 @@ RESOURCES_PROD = {
     "pdal": pdal_prod,
     "lastools": lastools,
     "tyler": tyler,
-    "geoflow": geoflow_prod,
+    "geoflow": geoflow,
     "roofer": roofer,
 }
 

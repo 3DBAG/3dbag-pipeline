@@ -475,30 +475,37 @@ class RooferResource(ConfigurableResource):
         return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
-@resource(
-    description="Geoflow executable on the local system.",
-    config_schema={
-        "exes": {
-            "geof": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the geof executable",
-            ),
-        },
-        "flowcharts": {
-            "reconstruct": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the reconstruct flowchart",
-            )
-        },
-    },
-)
-def geoflow(context):
-    """Geoflow executable on the local system."""
-    geoflow_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(
-        exes=geoflow_exes,
-        with_docker=False,
-        kwargs={"flowcharts": context.resource_config.get("flowcharts")},
-    )
+class GeoflowResource(ConfigurableResource):
+    """
+    A GeoflowResource can be configured by providing the paths to
+    Geoflow `exe_geoflow` executable on the local system
+    and the path to the reconstruction flowchart.
+
+    Example:
+
+        geoflow_resource = GeoflowResource(exe_geoflow = os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+                                           flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"))
+
+    After the resource has been instantiated, geoflow (AppImage) can
+    be acquired with the `app` property:
+
+        geoflow = geoflow_resource.app
+    """
+
+    exe_geoflow: str
+    flowchart: str
+
+    def exes(self) -> Dict[str, str]:
+        return {"geoflow": self.exe_geoflow}
+
+    @property
+    def with_docker(self) -> bool:
+        return False
+
+    @property
+    def app(self) -> AppImage:
+        return AppImage(
+            exes=self.exes,
+            with_docker=self.with_docker,
+            kwargs={"flowcharts": {"reconstruct": self.flowchart}},
+        )

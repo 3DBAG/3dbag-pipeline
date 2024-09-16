@@ -33,15 +33,13 @@ def test_integration_reconstruction_and_export(
     resources = {
         "tyler": TylerResource(
             exe_tyler=os.getenv("EXE_PATH_TYLER"),
-            exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+            exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB").app,
         ),
-        "geoflow": geoflow.configured(
-            {
-                "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
-                "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
-            }
-        ),
-        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")),
+        "geoflow": GeoflowResource(
+            exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+            flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
+        ).app,
+        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")).app,
         "gdal": gdal.app,
         "db_connection": database,
         "file_store": file_store.configured(
