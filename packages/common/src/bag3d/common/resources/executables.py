@@ -365,22 +365,22 @@ def partialzip(context):
     )
 
 
-class PdalResource(ConfigurableResource):
+class PDALResources(ConfigurableResource):
     """
     A PDAL Resource can be configured by either the local EXE path
     for `pdal` or by providing the DockerConfig for the PDAL image.
 
     For the local exe you can use:
 
-        pdal_resource = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+        pdal_resource = PDALResources(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
     For the docker image you can use:
 
-        pdal_resource = PdalResource(docker_cfg=DockerConfig(
+        pdal_resource = PDALResources(docker_cfg=DockerConfig(
                                         image=DOCKER_PDAL_IMAGE,
                                         mount_point="/tmp"))
 
-    If instantiated with PdalResource() then the Docker image is used by
+    If instantiated with PDALResources() then the Docker image is used by
     default. After the resource has been instantiated, pdal (AppImage) can
     be acquired with the `pdal` property:
 

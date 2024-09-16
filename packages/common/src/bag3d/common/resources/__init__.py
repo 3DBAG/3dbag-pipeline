@@ -2,7 +2,7 @@ import os
 
 from bag3d.common.resources.executables import (
     GDALResources,
-    PdalResource,
+    PDALResources,
     DockerConfig,
     LASToolsResource,
     tyler,
@@ -30,11 +30,11 @@ gdal_prod = GDALResources(
 )
 
 
-pdal_local = PdalResource(
+pdal_local = PDALResources(
     docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
 )
 
-pdal_prod = PdalResource = PdalResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+pdal_prod = PDALResources = PDALResources(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 db_connection_docker = db_connection.configured(

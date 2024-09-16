@@ -8,7 +8,7 @@ from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
     GDALResources,
-    PdalResource,
+    PDALResources,
     DockerConfig,
 )
 from bag3d.common.resources.files import file_store
@@ -31,7 +31,7 @@ def gdal():
 
 @pytest.fixture(scope="session")
 def pdal():
-    return PdalResource(
+    return PDALResources(
         docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
     )
 
