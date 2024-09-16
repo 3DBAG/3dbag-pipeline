@@ -423,28 +423,40 @@ class LASToolsResource(ConfigurableResource):
         return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
-@resource(
-    description="Tyler executables on the local system.",
-    config_schema={
-        "exes": {
-            "tyler-db": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the tyler-db executable",
-            ),
-            "tyler": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the tyler executable",
-            ),
-        },
-    },
-)
-def tyler(context):
-    """Tyler executables on the local system."""
-    tyler_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    app_image = AppImage(exes=tyler_exes, with_docker=False)
-    return app_image
+class TylerResource(ConfigurableResource):
+    """
+    A Tyler Resource can be configured by providing the paths to
+    Tyler executables "tyler" and "tyler-db" on the local system.
+
+    Example:
+
+        tyler_resource = TylerResource(exe_tyler=os.getenv("EXE_PATH_TYLER"),
+                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"))
+
+    After the resource has been instantiated, tyler (AppImage) can
+    be acquired with the `app` property:
+
+        tyler = tyler_resource.app
+
+    The version can be acquired with `version` function and the name of the exe
+    as input:
+
+        tyler.version(""tyler")
+    """
+
+    exe_tyler: str
+    exe_tyler_db: str
+
+    def exes(self) -> Dict[str, str]:
+        return {"tyler-db": self.exe_tyler, "tyler": self.exe_tyler_db}
+
+    @property
+    def with_docker(self) -> bool:
+        return False
+
+    @property
+    def app(self) -> AppImage:
+        return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
 @resource(

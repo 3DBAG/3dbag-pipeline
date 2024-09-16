@@ -5,7 +5,7 @@ from bag3d.common.resources.executables import (
     PDALResources,
     DockerConfig,
     LASToolsResource,
-    tyler,
+    TylerResource,
     geoflow,
     roofer,
     DOCKER_GDAL_IMAGE,
@@ -61,13 +61,8 @@ lastools = LASToolsResource(
     exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
 )
 
-tyler_prod = tyler.configured(
-    {
-        "exes": {
-            "tyler-db": os.getenv("EXE_PATH_TYLER_DB"),
-            "tyler": os.getenv("EXE_PATH_TYLER"),
-        }
-    }
+tyler = TylerResource(
+    exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB")
 )
 
 roofer_prod = roofer.configured(
@@ -90,7 +85,7 @@ RESOURCES_LOCAL = {
     "db_connection": db_connection_docker,
     "pdal": pdal_local,
     "lastools": lastools,
-    "tyler": tyler_prod,
+    "tyler": tyler,
     "geoflow": geoflow_prod,
     "roofer": roofer_prod,
 }
@@ -116,7 +111,7 @@ RESOURCES_PROD = {
     "db_connection": db_connection_docker,
     "pdal": pdal_prod,
     "lastools": lastools,
-    "tyler": tyler_prod,
+    "tyler": tyler,
     "geoflow": geoflow_prod,
     "roofer": roofer_prod,
 }
