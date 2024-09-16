@@ -496,7 +496,7 @@ class GeoflowResource(ConfigurableResource):
     flowchart: str
 
     def exes(self) -> Dict[str, str]:
-        return {"geoflow": self.exe_geoflow}
+        return {"geof": self.exe_geoflow}
 
     @property
     def with_docker(self) -> bool:
