@@ -62,7 +62,7 @@ lastools = LASToolsResource(
 )
 
 tyler = TylerResource(
-    exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB")
+    exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB")
 )
 
 roofer_prod = roofer.configured(
