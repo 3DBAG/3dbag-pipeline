@@ -6,8 +6,8 @@ from bag3d.common.resources.executables import (
     DockerConfig,
     LASToolsResource,
     TylerResource,
+    RooferResource,
     geoflow,
-    roofer,
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
 )
