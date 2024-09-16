@@ -327,44 +327,6 @@ class GDALResources(ConfigurableResource):
         )
 
 
-@resource(
-    config_schema={
-        "exes": {
-            "partialzip": Field(
-                Noneable(str),
-                default_value="partialzip",
-                description="Path to the partialzip executable",
-            ),
-        },
-        "docker": {
-            "image": Field(str, description="Docker image reference"),
-            "mount_point": Field(
-                str,
-                default_value="/tmp",
-                description=(
-                    "The mount point in the container where the data "
-                    "directory from the host is bind mounted."
-                ),
-            ),
-        },
-    }
-)
-def partialzip(context):
-    """partialzip (https://crates.io/crates/partialzip) executables, either local or
-    in a docker image. Defaults to 'partialzip' that is in the path."""
-    partialzip_exe = {k: v for k, v in context.resource_config.get("exes").items()}
-    if partialzip_exe["partialzip"]:
-        with_docker = False
-    else:
-        with_docker = True
-        partialzip_exe["partialzip"] = "partialzip"
-    return AppImage(
-        exes=partialzip_exe,
-        docker_cfg=context.resource_config.get("docker"),
-        with_docker=with_docker,
-    )
-
-
 class PDALResources(ConfigurableResource):
     """
     A PDAL Resource can be configured by either the local EXE path
