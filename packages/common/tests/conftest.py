@@ -60,7 +60,7 @@ def context(database, wkt_testarea, tmp_path, gdal):
             ],
         },
         resources={
-            "gdal": gdal.gdal,
+            "gdal": gdal.app,
             "db_connection": database,
             "file_store": file_store.configured(
                 {

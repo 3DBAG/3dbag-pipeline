@@ -276,9 +276,9 @@ class GDALResources(ConfigurableResource):
 
     If instantiated with GDALResources() then the Docker image is used by
     default. After the resource has been instantiated, gdal (AppImage) can
-    be acquired with the `gdal` property:
+    be acquired with the `app` property:
 
-        gdal_resource.gdal
+        gdal_resource.app
     """
 
     exe_ogrinfo: str
@@ -321,7 +321,7 @@ class GDALResources(ConfigurableResource):
             return False
 
     @property
-    def gdal(self) -> AppImage:
+    def app(self) -> AppImage:
         return AppImage(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
@@ -344,13 +344,9 @@ class PDALResources(ConfigurableResource):
 
     If instantiated with PDALResources() then the Docker image is used by
     default. After the resource has been instantiated, pdal (AppImage) can
-    be acquired with the `pdal` property:
+    be acquired with the `app` property:
 
-        pdal_resource.pdal
-
-    The version can be acquired with the `version` property:
-
-        pdal_resource.version
+        pdal_resource.app
     """
 
     exe_pdal: str
@@ -381,7 +377,7 @@ class PDALResources(ConfigurableResource):
             return False
 
     @property
-    def pdal(self) -> AppImage:
+    def app(self) -> AppImage:
         return AppImage(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
@@ -398,13 +394,9 @@ class LASToolsResource(ConfigurableResource):
                                              exe_las2las=s.getenv("EXE_PATH_LAS2LAS"))
 
     After the resource has been instantiated, lastools (AppImage) can
-    be acquired with the `lastools` property:
+    be acquired with the `app` property:
 
-        lastools_resource.lastools
-
-    The version can be acquired with the `version` property:
-
-       lastools_resource.version
+        lastools_resource.app
     """
 
     exe_lasindex: str
@@ -419,7 +411,7 @@ class LASToolsResource(ConfigurableResource):
         return False
 
     @property
-    def lastools(self) -> AppImage:
+    def app(self) -> AppImage:
         return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
@@ -437,11 +429,6 @@ class TylerResource(ConfigurableResource):
     be acquired with the `app` property:
 
         tyler = tyler_resource.app
-
-    The version can be acquired with `version` function and the name of the exe
-    as input:
-
-        tyler.version(""tyler")
     """
 
     exe_tyler: str

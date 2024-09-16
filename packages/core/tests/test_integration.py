@@ -46,7 +46,7 @@ def test_integration_reconstruction_and_export(
                 "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
             }
         ),
-        "gdal": gdal.gdal,
+        "gdal": gdal.app,
         "db_connection": database,
         "file_store": file_store.configured(
             {

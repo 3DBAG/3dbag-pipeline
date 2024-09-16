@@ -23,7 +23,7 @@ def test_gdal_docker(test_data_dir):
     assert gdal.with_docker
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.gdal.execute(
+    return_code, output = gdal.app.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     assert return_code == 0
@@ -40,14 +40,14 @@ def test_gdal_local(test_data_dir):
     assert not gdal.with_docker
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.gdal.execute(
+    return_code, output = gdal.app.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     assert return_code == 0
 
 
 def test_gdal_docker_version(gdal):
-    assert gdal.gdal.version("ogrinfo") == "GDAL 3.7.0, released 2023/05/02,"
+    assert gdal.app.version("ogrinfo") == "GDAL 3.7.0, released 2023/05/02,"
 
 
 def test_pdal_docker(laz_files_ahn3_dir):
@@ -57,7 +57,7 @@ def test_pdal_docker(laz_files_ahn3_dir):
     )
     assert pdal.with_docker
     filepath = laz_files_ahn3_dir / "t_1042098.laz"
-    return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
     assert return_code == 0
 
 
@@ -66,7 +66,7 @@ def test_pdal_local(laz_files_ahn3_dir):
     pdal = PDALResources(exe_pdal=os.getenv("EXE_PATH_PDAL"))
     assert not pdal.with_docker
     filepath = laz_files_ahn3_dir / "t_1042098.laz"
-    return_code, output = pdal_info(pdal.pdal, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
     assert return_code == 0
 
 
@@ -87,7 +87,7 @@ def test_lastools(laz_files_ahn3_dir):
         "100",
         "-dont_reindex",
     ]
-    return_code, output = lastools.lastools.execute(
+    return_code, output = lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=filepath
     )
 
