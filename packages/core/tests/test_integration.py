@@ -3,10 +3,10 @@ import os
 import pytest
 from bag3d.common.resources.executables import (
     geoflow,
-    roofer,
     DOCKER_GDAL_IMAGE,
     GDALResources,
     TylerResource,
+    RooferResource,
     DockerConfig,
 )
 from bag3d.common.resources.files import file_store
@@ -33,7 +33,7 @@ def test_integration_reconstruction_and_export(
     resources = {
         "tyler": TylerResource(
             exe_tyler=os.getenv("EXE_PATH_TYLER"),
-            exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"),
+            exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
         ),
         "geoflow": geoflow.configured(
             {
@@ -41,11 +41,7 @@ def test_integration_reconstruction_and_export(
                 "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
             }
         ),
-        "roofer": roofer.configured(
-            {
-                "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
-            }
-        ),
+        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")),
         "gdal": gdal.app,
         "db_connection": database,
         "file_store": file_store.configured(

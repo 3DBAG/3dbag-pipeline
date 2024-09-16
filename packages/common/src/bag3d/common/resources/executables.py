@@ -446,22 +446,33 @@ class TylerResource(ConfigurableResource):
         return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
-@resource(
-    description="Roofer executables on the local system.",
-    config_schema={
-        "exes": {
-            "crop": Field(
-                Noneable(str),
-                default_value=None,
-                description="Path to the roofer crop executable",
-            ),
-        },
-    },
-)
-def roofer(context):
-    """Roofer executables on the local system."""
-    roofer_exes = {k: v for k, v in context.resource_config.get("exes").items()}
-    return AppImage(exes=roofer_exes, with_docker=False)
+class RooferResource(ConfigurableResource):
+    """
+    A RooferResource can be configured by providing the paths to
+    Roofer `roofer-crop` executable on the local system.
+
+    Example:
+
+        roofer_resource = RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP"))
+
+    After the resource has been instantiated, roofer (AppImage) can
+    be acquired with the `app` property:
+
+        roofer = roofer_resource.app
+    """
+
+    exe_roofer_crop: str
+
+    def exes(self) -> Dict[str, str]:
+        return {"roofer-crop": self.exe_roofer_crop}
+
+    @property
+    def with_docker(self) -> bool:
+        return False
+
+    @property
+    def app(self) -> AppImage:
+        return AppImage(exes=self.exes, with_docker=self.with_docker)
 
 
 @resource(

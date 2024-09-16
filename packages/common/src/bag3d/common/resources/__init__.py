@@ -65,11 +65,7 @@ tyler = TylerResource(
     exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB")
 )
 
-roofer_prod = roofer.configured(
-    {
-        "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
-    }
-)
+roofer = RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP"))
 
 geoflow_prod = geoflow.configured(
     {
@@ -87,7 +83,7 @@ RESOURCES_LOCAL = {
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow_prod,
-    "roofer": roofer_prod,
+    "roofer": roofer,
 }
 
 # pytest config ---
@@ -113,7 +109,7 @@ RESOURCES_PROD = {
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow_prod,
-    "roofer": roofer_prod,
+    "roofer": roofer,
 }
 
 # Resource definitions for import
