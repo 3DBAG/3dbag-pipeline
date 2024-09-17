@@ -449,7 +449,7 @@ class TylerResource(ConfigurableResource):
 class RooferResource(ConfigurableResource):
     """
     A RooferResource can be configured by providing the paths to
-    Roofer `roofer-crop` executable on the local system.
+    Roofer `crop` executable on the local system.
 
     Example:
 
@@ -464,7 +464,7 @@ class RooferResource(ConfigurableResource):
     exe_roofer_crop: str
 
     def exes(self) -> Dict[str, str]:
-        return {"roofer-crop": self.exe_roofer_crop}
+        return {"crop": self.exe_roofer_crop}
 
     @property
     def with_docker(self) -> bool:
