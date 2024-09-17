@@ -434,6 +434,7 @@ class TylerResource(ConfigurableResource):
     exe_tyler: str
     exe_tyler_db: str
 
+    @property
     def exes(self) -> Dict[str, str]:
         return {"tyler-db": self.exe_tyler, "tyler": self.exe_tyler_db}
 
@@ -463,6 +464,7 @@ class RooferResource(ConfigurableResource):
 
     exe_roofer_crop: str
 
+    @property
     def exes(self) -> Dict[str, str]:
         return {"crop": self.exe_roofer_crop}
 
@@ -495,6 +497,7 @@ class GeoflowResource(ConfigurableResource):
     exe_geoflow: str
     flowchart: str
 
+    @property
     def exes(self) -> Dict[str, str]:
         return {"geof": self.exe_geoflow}
 
