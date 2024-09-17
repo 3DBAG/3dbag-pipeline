@@ -17,13 +17,15 @@ from bag3d.common.utils.geodata import pdal_info
 
 def test_gdal_docker(test_data_dir):
     """Use GDAL in a docker image"""
-    gdal = GDALResources(
+    gdal_resource = GDALResources(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
-    assert gdal.with_docker
+    assert gdal_resource.with_docker
+
+    gdal = gdal_resource.app
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.app.execute(
+    return_code, output = gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     assert return_code == 0
@@ -31,16 +33,18 @@ def test_gdal_docker(test_data_dir):
 
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
-    gdal = GDALResources(
+    gdal_resource = GDALResources(
         exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
         exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
         exe_sozip=os.getenv("EXE_PATH_SOZIP"),
     )
 
-    assert not gdal.with_docker
+    assert not gdal_resource.with_docker
+
+    gdal = gdal_resource.app
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.app.execute(
+    return_code, output = gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
     assert return_code == 0
@@ -71,11 +75,13 @@ def test_pdal_local(laz_files_ahn3_dir):
 
 
 def test_lastools(laz_files_ahn3_dir):
-    lastools = LASToolsResource(
+    lastools_resource = LASToolsResource(
         exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
         exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
     )
-    assert not lastools.with_docker
+    assert not lastools_resource.with_docker
+
+    lastools = lastools_resource.app
 
     filepath = laz_files_ahn3_dir / "t_1042098.laz"
 
@@ -87,7 +93,7 @@ def test_lastools(laz_files_ahn3_dir):
         "100",
         "-dont_reindex",
     ]
-    return_code, output = lastools.app.execute(
+    return_code, output = lastools.execute(
         "lasindex", " ".join(cmd_list), local_path=filepath
     )
 
