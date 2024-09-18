@@ -5,7 +5,7 @@ import pytest
 from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
-    GDALResources,
+    GDALResource,
     DockerConfig,
 )
 
