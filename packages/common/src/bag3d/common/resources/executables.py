@@ -256,7 +256,7 @@ class AppImage:
         return format_version_stdout(version)
 
 
-class GDALResources(ConfigurableResource):
+class GDALResource(ConfigurableResource):
     """
     A GDAL Resource can be configured by either the local EXE paths
     for `ogr2ogr`, `ogrinfo` and `sozip`, or by providing the DockerConfig
@@ -264,17 +264,17 @@ class GDALResources(ConfigurableResource):
 
     For the local exes you can use:
 
-        gdal_resource = GDALResources(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+        gdal_resource = GDALResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                                      exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                                      exe_sozip=os.getenv("EXE_PATH_SOZIP"))
 
     For the docker image you can use:
 
-        gdal_local = GDALResources(docker_cfg=DockerConfig(
+        gdal_local = GDALResource(docker_cfg=DockerConfig(
                                 image=DOCKER_GDAL_IMAGE,
                                 mount_point="/tmp"))
 
-    If instantiated with GDALResources() then the Docker image is used by
+    If instantiated with GDALResource() then the Docker image is used by
     default. After the resource has been instantiated, gdal (AppImage) can
     be acquired with the `app` property:
 
@@ -327,22 +327,22 @@ class GDALResources(ConfigurableResource):
         )
 
 
-class PDALResources(ConfigurableResource):
+class PDALResource(ConfigurableResource):
     """
     A PDAL Resource can be configured by either the local EXE path
     for `pdal` or by providing the DockerConfig for the PDAL image.
 
     For the local exe you can use:
 
-        pdal_resource = PDALResources(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+        pdal_resource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
     For the docker image you can use:
 
-        pdal_resource = PDALResources(docker_cfg=DockerConfig(
+        pdal_resource = PDALResource(docker_cfg=DockerConfig(
                                         image=DOCKER_PDAL_IMAGE,
                                         mount_point="/tmp"))
 
-    If instantiated with PDALResources() then the Docker image is used by
+    If instantiated with PDALResource() then the Docker image is used by
     default. After the resource has been instantiated, pdal (AppImage) can
     be acquired with the `app` property:
 

@@ -7,8 +7,8 @@ from bag3d.common.resources.database import DatabaseConnection
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
-    GDALResources,
-    PDALResources,
+    GDALResource,
+    PDALResource,
     DockerConfig,
 )
 from bag3d.common.resources.files import file_store
@@ -24,14 +24,14 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 @pytest.fixture(scope="session")
 def gdal():
-    return GDALResources(
+    return GDALResource(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
 
 
 @pytest.fixture(scope="session")
 def pdal():
-    return PDALResources(
+    return PDALResource(
         docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
     )
 

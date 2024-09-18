@@ -4,7 +4,7 @@ import pytest
 from bag3d.common.resources.executables import (
     GeoflowResource,
     DOCKER_GDAL_IMAGE,
-    GDALResources,
+    GDALResource,
     TylerResource,
     RooferResource,
     DockerConfig,
