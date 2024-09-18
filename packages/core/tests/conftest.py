@@ -24,7 +24,7 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 @pytest.fixture(scope="session")
 def gdal():
-    return GDALResources(
+    return GDALResource(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
 
