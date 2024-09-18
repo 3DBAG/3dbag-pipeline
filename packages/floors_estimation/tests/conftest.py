@@ -21,9 +21,15 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def root_data_dir(test_data_dir) -> Path:
+def input_data_dir(test_data_dir) -> Path:
     """Root directory path for test data"""
     return test_data_dir / "reconstruction_data"
+
+
+@pytest.fixture(scope="session")
+def fastssd_data_dir(test_data_dir) -> Path:
+    """Root directory path for test data"""
+    return test_data_dir / "fastssd_dir"
 
 
 @pytest.fixture(scope="session")
@@ -33,21 +39,10 @@ def intermediate_data_dir(test_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
-def input_data_dir(root_data_dir) -> Path:
-    """Directory for input data"""
-    return root_data_dir / "input"
-
-
-@pytest.fixture(scope="session")
 def model_dir(test_data_dir) -> Path:
     """Directory for the floors estimation model"""
     return test_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
 
-
-@pytest.fixture(scope="session")
-def export_dir_uncompressed(input_data_dir) -> Path:
-    """3D BAG exported data before compression"""
-    return input_data_dir / "export_uncompressed"
 
 
 @pytest.fixture(scope="function")
@@ -59,19 +54,19 @@ def database():
 
 
 @pytest.fixture
-def context(database, export_dir_uncompressed, input_data_dir, model_dir):
+def context(database, input_data_dir, model_dir, fastssd_data_dir):
     yield build_op_context(
         partition_key="10/564/624",
         resources={
             "db_connection": database,
             "file_store": file_store.configured(
                 {
-                    "data_dir": str(export_dir_uncompressed),
+                    "data_dir": str(input_data_dir),
                 }
             ),
             "file_store_fastssd": file_store.configured(
                 {
-                    "data_dir": str(input_data_dir),
+                    "data_dir": str(fastssd_data_dir),
                 }
             ),
             "model_store": model_dir,

@@ -44,12 +44,12 @@ def test_integration_reconstruction_and_export(
         "db_connection": database,
         "file_store": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "reconstruction_data" / "input"),
+                "data_dir": str(test_data_dir / "reconstruction_data"),
             }
         ),
         "file_store_fastssd": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "reconstruction_data" / "input"),
+                "data_dir": str(test_data_dir / "fastssd_dir"),
             }
         ),
     }

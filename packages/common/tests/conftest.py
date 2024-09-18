@@ -101,4 +101,4 @@ def test_data_dir():
 
 @pytest.fixture(scope="session")
 def laz_files_ahn3_dir(test_data_dir):
-    yield test_data_dir / "pointcloud/AHN3/tiles_200m/"
+    yield test_data_dir / "reconstruction_data/pointcloud/AHN3/tiles_200m/"
