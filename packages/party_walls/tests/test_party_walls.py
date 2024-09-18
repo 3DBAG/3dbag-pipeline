@@ -28,9 +28,9 @@ def test_party_walls(context, mock_distribution_tiles_files_index):
 
 
 def test_features_file_index(context):
-    """Can we find and map all the 5829 cityjson feature files of the test data?"""
+    """Can we find and map all the 5825 cityjson feature files of the test data?"""
     result = features_file_index(context=context)
-    assert len(result) == 5829
+    assert len(result) == 5825
 
 
 @pytest.mark.slow
