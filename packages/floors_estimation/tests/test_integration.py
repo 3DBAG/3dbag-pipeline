@@ -5,13 +5,13 @@ from dagster import ExecuteInProcessResult
 
 
 @pytest.mark.slow
-def test_job_floors_estimation(input_data_dir):
+def test_job_floors_estimation(fastssd_data_dir):
     resolved_job = defs.get_job_def("floors_estimation")
 
     resources = {
         "file_store_fastssd": file_store.configured(
             {
-                "data_dir": str(input_data_dir),
+                "data_dir": str(fastssd_data_dir),
             }
         )
     }
