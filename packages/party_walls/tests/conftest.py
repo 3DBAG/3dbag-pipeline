@@ -109,16 +109,16 @@ def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir):
     )
     for i, d in enumerate(data.paths_array):
         data.paths_array[i] = Path(
-            str(d).replace(str(d.parents[7]), str(input_data_dir))
+            str(d).replace(str(d.parents[6]), str(input_data_dir))
         )
     for k, v in data.export_results.items():
         cj_path = data.export_results[k].cityjson_path
         data.export_results[k].cityjson_path = Path(
-            str(cj_path).replace(str(cj_path.parents[7]), str(input_data_dir))
+            str(cj_path).replace(str(cj_path.parents[6]), str(input_data_dir))
         )
         gpkg_path = data.export_results[k].gpkg_path
         data.export_results[k].gpkg_path = Path(
-            str(gpkg_path).replace(str(gpkg_path.parents[7]), str(input_data_dir))
+            str(gpkg_path).replace(str(gpkg_path.parents[6]), str(input_data_dir))
         )
         # TODO: fix data.export_results[k].obj_paths
     return data
