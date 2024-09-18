@@ -7,8 +7,8 @@ from dagster import build_init_resource_context
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
-    GDALResources,
-    PDALResources,
+    GDALResource,
+    PDALResource,
     DockerConfig,
     LASToolsResource,
 )
@@ -17,7 +17,7 @@ from bag3d.common.utils.geodata import pdal_info
 
 def test_gdal_docker(test_data_dir):
     """Use GDAL in a docker image"""
-    gdal_resource = GDALResources(
+    gdal_resource = GDALResource(
         docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
     )
     assert gdal_resource.with_docker
@@ -33,7 +33,7 @@ def test_gdal_docker(test_data_dir):
 
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
-    gdal_resource = GDALResources(
+    gdal_resource = GDALResource(
         exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
         exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
         exe_sozip=os.getenv("EXE_PATH_SOZIP"),
@@ -56,7 +56,7 @@ def test_gdal_docker_version(gdal):
 
 def test_pdal_docker(laz_files_ahn3_dir):
     """Use PDAL in a docker image"""
-    pdal = PDALResources(
+    pdal = PDALResource(
         docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
     )
     assert pdal.with_docker
@@ -67,7 +67,7 @@ def test_pdal_docker(laz_files_ahn3_dir):
 
 def test_pdal_local(laz_files_ahn3_dir):
     """Use local PDAL installation"""
-    pdal = PDALResources(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+    pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
     assert not pdal.with_docker
     filepath = laz_files_ahn3_dir / "t_1042098.laz"
     return_code, output = pdal_info(pdal.app, filepath, with_all=True)
