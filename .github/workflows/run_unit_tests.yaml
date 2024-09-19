@@ -18,6 +18,9 @@ jobs:
       with:
         python-version: '3.11'
     - name: Create and populate .env file
+      env:
+        BAG3D_TEST_DATA: ${{ github.workspace }}/tests/test_data
+        TOOLS_DIR: ${{ github.workspace }}/.build-3dbag-pipeline
       run: |
         touch .env
         
