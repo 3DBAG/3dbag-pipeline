@@ -49,7 +49,7 @@ def test_integration_reconstruction_and_export(
         ),
         "file_store_fastssd": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "fastssd_dir"),
+                "data_dir": str(test_data_dir / "integration_core"),
             }
         ),
     }
