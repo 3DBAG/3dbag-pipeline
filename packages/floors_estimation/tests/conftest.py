@@ -29,7 +29,7 @@ def input_data_dir(test_data_dir) -> Path:
 @pytest.fixture(scope="session")
 def fastssd_data_dir(test_data_dir) -> Path:
     """Root directory path for test data"""
-    return test_data_dir / "fastssd_dir"
+    return test_data_dir / "integration_floors_estimation"
 
 
 @pytest.fixture(scope="session")
