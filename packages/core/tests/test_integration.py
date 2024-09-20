@@ -20,7 +20,7 @@ from dagster import (
 )
 
 
-@pytest.mark.slow
+@pytest.mark.integration
 def test_integration_reconstruction_and_export(
     database,
     test_data_dir,
@@ -44,7 +44,7 @@ def test_integration_reconstruction_and_export(
         "db_connection": database,
         "file_store": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "reconstruction_data"),
+                "data_dir": str(test_data_dir / "reconstruction_data_output"),
             }
         ),
         "file_store_fastssd": file_store.configured(

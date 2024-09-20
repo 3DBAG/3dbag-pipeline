@@ -10,7 +10,7 @@ from dagster import (
 )
 
 
-@pytest.mark.slow
+@pytest.mark.integration
 def test_job_party_walls(
     database,
     input_data_dir,
