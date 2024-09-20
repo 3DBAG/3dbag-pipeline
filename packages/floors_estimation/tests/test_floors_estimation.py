@@ -121,7 +121,7 @@ def test_predictions_table(context, mock_inferenced_floors):
 
 
 def test_save_cjfiles(
-    context, input_data_dir, mock_inferenced_floors, mock_features_file_index
+    context, fastssd_data_dir, mock_inferenced_floors, mock_features_file_index
 ):
     save_cjfiles(
         context,
@@ -129,6 +129,6 @@ def test_save_cjfiles(
         mock_features_file_index,
     )
     assert (
-        input_data_dir
+        fastssd_data_dir
         / "3DBAG/bouwlagen_features/10/564/624/NL.IMBAG.Pand.0307100000308298.city.jsonl"
     ).exists()
