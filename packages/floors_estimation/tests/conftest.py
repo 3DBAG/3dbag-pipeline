@@ -44,7 +44,6 @@ def model_dir(test_data_dir) -> Path:
     return test_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
 
 
-
 @pytest.fixture(scope="function")
 def database():
     db = DatabaseConnection(
