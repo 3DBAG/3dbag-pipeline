@@ -39,9 +39,11 @@ def test_integration_reconstruction_and_export(
             flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
         ).app,
         "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")).app,
-        "gdal": GDALResource(exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-                             exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-                             exe_sozip=os.getenv("EXE_PATH_SOZIP")).app,
+        "gdal": GDALResource(
+            exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+            exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+            exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+        ).app,
         "db_connection": database,
         "file_store": file_store.configured(
             {
