@@ -23,7 +23,7 @@ def test_data_dir():
 @pytest.fixture(scope="session")
 def input_data_dir(test_data_dir) -> Path:
     """Root directory path for test data"""
-    return test_data_dir / "reconstruction_data"
+    return test_data_dir / "reconstruction_input"
 
 
 @pytest.fixture(scope="session")
