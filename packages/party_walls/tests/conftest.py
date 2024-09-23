@@ -15,6 +15,11 @@ USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
+# update quadtree
+og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
+export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / "export"
+os.system(f"cp {og_quadtree} {export_dir}")
+
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -85,13 +90,13 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--runslow"):
+    if not config.getoption("--runslow"):  # pragma: no cover
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-    if not config.getoption("--integration"):
+    if not config.getoption("--integration"):  # pragma: no cover
         skip_integration = pytest.mark.skip(reason="need --integration option to run")
         for item in items:
             if "integration" in item.keywords:

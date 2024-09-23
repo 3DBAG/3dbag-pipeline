@@ -83,13 +83,13 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--runslow"):
+    if not config.getoption("--runslow"):  # pragma: no cover
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-    if not config.getoption("--integration"):
+    if not config.getoption("--integration"):  # pragma: no cover
         skip_integration = pytest.mark.skip(reason="need --integration option to run")
         for item in items:
             if "integration" in item.keywords:

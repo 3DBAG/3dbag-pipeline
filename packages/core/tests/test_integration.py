@@ -29,6 +29,11 @@ def test_integration_reconstruction_and_export(
     mock_asset_tiles,
     mock_asset_index,
 ):
+    # update quadtree
+    og_quadtree = test_data_dir / "quadtree.tsv"
+    export_dir = test_data_dir / "reconstruction_input" / "3DBAG" / "export"
+    os.system(f"cp {og_quadtree} {export_dir}")
+
     resources = {
         "tyler": TylerResource(
             exe_tyler=os.getenv("EXE_PATH_TYLER"),
