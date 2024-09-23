@@ -69,18 +69,16 @@ EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
 EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
 ```
 
-However, for running the integration tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the .env file.
+However, for running the integration tests and some of the unit tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the .env file.
 
 
-Then you run the tests from the root directory of the repo with:
+You can set up your environment with:
 
 ```shell
 make venvs
 make download
 make build 
 make run
-make test
-make integration
 ```
 
 Where:
@@ -88,8 +86,24 @@ make venvs = creates the [vitrual environments](#development-and-testing)
 make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
-make test =  runs the tests for core package. 
-make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
+
+Then you can run the fast unit  test for all packaged with:
+ 
+ ```shell
+ make test
+ ```
+
+ For running also the slow tests (which require more time) you can run:
+
+  ```shell
+ make test_slow
+ ```
+
+ For running all tests, including the ones that [require the building the tools](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and the integration tests, you can run:
+
+ ```shell
+ make test_all
+ ```
 
 
 ## Resources
