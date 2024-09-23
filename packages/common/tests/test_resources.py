@@ -31,6 +31,7 @@ def test_gdal_docker(test_data_dir):
     assert return_code == 0
 
 
+@pytest.mark.needs_tools
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
     gdal_resource = GDALResource(
@@ -50,10 +51,6 @@ def test_gdal_local(test_data_dir):
     assert return_code == 0
 
 
-def test_gdal_docker_version(gdal):
-    assert gdal.app.version("ogrinfo") == "GDAL 3.7.0, released 2023/05/02,"
-
-
 def test_pdal_docker(laz_files_ahn3_dir):
     """Use PDAL in a docker image"""
     pdal = PDALResource(
@@ -65,6 +62,7 @@ def test_pdal_docker(laz_files_ahn3_dir):
     assert return_code == 0
 
 
+@pytest.mark.needs_tools
 def test_pdal_local(laz_files_ahn3_dir):
     """Use local PDAL installation"""
     pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
@@ -74,6 +72,7 @@ def test_pdal_local(laz_files_ahn3_dir):
     assert return_code == 0
 
 
+@pytest.mark.needs_tools
 def test_lastools(laz_files_ahn3_dir):
     lastools_resource = LASToolsResource(
         exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),

@@ -4,7 +4,7 @@ from bag3d.floors_estimation.code_location import defs
 from dagster import ExecuteInProcessResult
 
 
-@pytest.mark.integration
+@pytest.mark.slow
 def test_job_floors_estimation(fastssd_data_dir):
     resolved_job = defs.get_job_def("floors_estimation")
 

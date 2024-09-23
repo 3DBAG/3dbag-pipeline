@@ -20,7 +20,7 @@ from dagster import (
 )
 
 
-@pytest.mark.integration
+@pytest.mark.needs_tools
 def test_integration_reconstruction_and_export(
     database,
     test_data_dir,

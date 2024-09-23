@@ -67,33 +67,35 @@ def context(database, wkt_testarea, tmp_path, gdal):
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
+        "--run-slow", action="store_true", default=False, help="run slow tests"
     )
     parser.addoption(
-        "--integration",
+        "--run-all",
         action="store_true",
         default=False,
-        help="run integration tests",
+        help="run all tests, including the ones that needs local builds of tools",
     )
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow to run")
-    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line(
+        "markers", "needs_tools: mark test as needing local builds of tools"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--runslow"):  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    if not config.getoption("--run-slow"):  # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-    if not config.getoption("--integration"):  # pragma: no cover
-        skip_integration = pytest.mark.skip(reason="need --integration option to run")
+    if not config.getoption("--run-all"):  # pragma: no cover
+        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
         for item in items:
-            if "integration" in item.keywords:
-                item.add_marker(skip_integration)
+            if "needs_tools" in item.keywords:
+                item.add_marker(skip_needs_tools)
 
 
 @pytest.fixture(scope="session")
