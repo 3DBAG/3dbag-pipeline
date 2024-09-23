@@ -4,7 +4,7 @@ import os
 from dagster import AssetKey, asset
 
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
-from bag3d.common.resources.temp_until_configurableresource import tyler_version
+from bag3d.common.resources import resource_defs
 
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
@@ -117,7 +117,7 @@ def reconstruction_output_3dtiles_nl(context):
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
-    code_version=tyler_version(),
+    code_version=resource_defs["tyler"].version("tyler"),
 )
 def reconstruction_output_multitiles_zuid_holland(context):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats, for the
@@ -128,7 +128,7 @@ def reconstruction_output_multitiles_zuid_holland(context):
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
-    code_version=tyler_version(),
+    code_version=resource_defs["tyler"].version("tyler"),
 )
 def reconstruction_output_3dtiles_zuid_holland(context):
     """3D Tiles v1.1 generated with tyler, for the province of Zuid-Holland."""
