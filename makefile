@@ -8,7 +8,7 @@ source:
 download: source
 	rm -rf $(BAG3D_TEST_DATA)
 	mkdir -p $(BAG3D_TEST_DATA)
-	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/test_data.zip ; unzip test_data.zip ; rm test_data.zip
+	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/test_data_v2.zip ; unzip test_data_v2.zip ; rm test_data_v2.zip
  
 build: source
 	docker build -t $(BAG3D_PG_DOCKERIMAGE) $(BAG3D_PG_DOCKERFILE) --build-arg pg_user=$(BAG3D_PG_USER) --build-arg pg_pswd=$(BAG3D_PG_PASSWORD) --build-arg pg_db=$(BAG3D_PG_DATABASE)
