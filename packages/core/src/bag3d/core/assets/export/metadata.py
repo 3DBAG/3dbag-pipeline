@@ -19,6 +19,7 @@ from psycopg.sql import SQL
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
+from bag3d.common.resources import resource_defs
 
 
 def get_info_per_cityobject(
@@ -321,43 +322,43 @@ def metadata(context: AssetExecutionContext):
                 "software": [
                     {
                         "name": "geoflow-bundle",
-                        "version": context.resources.geoflow.version("geof"),
+                        "version": resource_defs["geoflow"].version("geof"),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
                         "description": "3D building model reconstruction",
                     },
                     {
                         "name": "roofer",
-                        "version": context.resources.roofer.version("crop"),
+                        "version": resource_defs["roofer"].version("crop"),
                         "repository": "https://github.com/3DGI/roofer",
                         "description": "Point cloud selection and cropping",
                     },
                     {
                         "name": "tyler",
-                        "version": context.resources.tyler.version("tyler"),
+                        "version": resource_defs["tyler"].version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
                         "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
                     {
                         "name": "tyler-db",
-                        "version": context.resources.tyler.version("tyler-db"),
+                        "version": resource_defs["tyler"].version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
                     },
                     {
                         "name": "GDAL",
-                        "version": context.resources.gdal.version("ogr2ogr"),
+                        "version": resource_defs["gdal"].version("ogr2ogr"),
                         "repository": "https://gdal.org/",
                         "description": "Data loading with ogr2ogr",
                     },
                     {
                         "name": "PDAL",
-                        "version": context.resources.pdal.version("pdal"),
+                        "version": resource_defs["pdal"].version("pdal"),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
                     {
                         "name": "LASTools",
-                        "version": context.resources.lastools.version("lasindex"),
+                        "version": resource_defs["lastools"].version("lasindex"),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },
