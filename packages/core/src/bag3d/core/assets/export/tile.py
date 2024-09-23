@@ -25,7 +25,6 @@ def create_sequence_header_file(template_file, output_file, version_3dbag):
 def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     """Run tyler on the reconstruction output directory.
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
-    TODO: Generalize the paths that are currently hardcoded for gilfoyle.
     """
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.data_dir
@@ -33,7 +32,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
     version_3dbag = kwargs["version_3dbag"]
-    # on gilfoyle
+
     sequence_header_file = (
         bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
     )
