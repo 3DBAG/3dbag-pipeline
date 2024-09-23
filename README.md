@@ -39,7 +39,7 @@ First you need to set up the following environment variables in a `.env` file in
 BAG3D_VENVS=${PWD}/venvs
 BAG3D_TEST_DATA=${PWD}/tests/test_data
 BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model
-BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/3DBAG/export
+BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
@@ -198,10 +198,10 @@ make test
 
 Some test take a long time to execute. 
 If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
-In order to include the slow tests in the test execution, use the `--runslow` command line option.
+In order to include the slow tests in the test execution, use the `--run-slow` command line option.
 
 ```bash
-pytest --runslow
+pytest --run-slow
 ```
 
 These tests require the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
