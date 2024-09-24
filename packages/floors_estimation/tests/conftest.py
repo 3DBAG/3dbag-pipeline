@@ -39,7 +39,7 @@ def intermediate_data_dir(test_data_dir) -> Path:
 
 
 @pytest.fixture(scope="session")
-def model_dir(test_data_dir) -> Path:
+def model(test_data_dir) -> Path:
     """Directory for the floors estimation model"""
     return test_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
 
@@ -53,7 +53,7 @@ def database():
 
 
 @pytest.fixture
-def context(database, input_data_dir, model_dir, fastssd_data_dir):
+def context(database, input_data_dir, model, fastssd_data_dir):
     yield build_op_context(
         partition_key="10/564/624",
         resources={
@@ -68,7 +68,7 @@ def context(database, input_data_dir, model_dir, fastssd_data_dir):
                     "data_dir": str(fastssd_data_dir),
                 }
             ),
-            "model_store": model_dir,
+            "model_store": model,
         },
     )
 
