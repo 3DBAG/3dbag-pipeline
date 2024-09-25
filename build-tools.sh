@@ -311,11 +311,11 @@ if [ "$build_geoflow_roofer" = true ] ; then
     -B geoflow-roofer/build
   cmake --build geoflow-roofer/build -j $jobs --target install --config Release
 
-  roofer_flowcharts=share/geoflow-roofer/flowcharts
-  if ! [ -d "$roofer_flowcharts" ] ; then
-    mkdir -p "$roofer_flowcharts"
+  geoflow_flowcharts=share/geoflow-bundle/flowcharts
+  if ! [ -d "$geoflow_flowcharts" ] ; then
+    mkdir -p "$geoflow_flowcharts"
   fi
-  wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$roofer_flowcharts/reconstruct_bag.json"
+  wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$geoflow_flowcharts/reconstruct_bag.json"
 
 fi
 

@@ -58,11 +58,14 @@ BAG3D_PG_SSLMODE=allow
 TYLER_RESOURCES_DIR=${TOOLS_DIR}/share/tyler/resources
 TYLER_METADATA_JSON=${TOOLS_DIR}/share/tyler/resources/geof/metadata.json
 
+LD_LIBRARY_PATH=${TOOLS_DIR}/lib:$LD_LIBRARY_PATH
+PROJ_DATA=${TOOLS_DIR}/share/proj
 EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler
 EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db
 EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop
-EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct
-FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json
+EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/geof
+FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-bundle/flowcharts/reconstruct_bag.json
+GF_PLUGIN_FOLDER=${TOOLS_DIR}/share/geoflow-bundle/plugins
 EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr
 EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo
 EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip

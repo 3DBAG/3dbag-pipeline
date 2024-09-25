@@ -375,13 +375,13 @@ def reconstruct_building_models_func(context, cropped_input_and_config):
             cmd = cmd_template.format(config_path=config_path)
             try:
                 return_code, output = context.resources.geoflow.execute(
-                    "geof", cmd, local_path=flowchart, silent=True
+                    "geof", cmd, local_path=flowchart, silent=False
                 )
-                if return_code == 0:
-                    cnt += 1
-                else:
+                if return_code != 0 or "error" in output.lower():
                     context.log.error(output)
                     raise Failure
+                else:
+                    cnt += 1
             except Failure:
                 failed.append(feature)
     if cnt == 0:
