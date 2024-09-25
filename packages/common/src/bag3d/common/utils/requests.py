@@ -20,7 +20,7 @@ def download_as_str(url: str, parameters: Mapping = None) -> str:
     Returns:
          The downloaded package as string.
     """
-    resp = requests.get(url=url, params=parameters)
+    resp = requests.get(url=url, params=parameters, verify=True)
     if resp.status_code == 200:
         return resp.text
     else:  # pragma: no cover
@@ -56,7 +56,7 @@ def download_file(
     session = requests.Session()  # https://stackoverflow.com/a/63417213
 
     try:
-        r = session.get(url, params=parameters, stream=True, verify=False)
+        r = session.get(url, params=parameters, stream=True, verify=True)
         if r.ok:
             with fpath.open("wb") as fd:
                 for chunk in r.iter_content(chunk_size=chunk_size):
@@ -79,7 +79,7 @@ def get_metadata(url_api: str):
 
     :returns: {"timeliness": <date>: [featuretype,...]}
     """
-    r_meta = requests.get(url_api)
+    r_meta = requests.get(url_api, verify=True)
     if not r_meta.status_code == requests.codes.ok:  # pragma: no cover
         r_meta.raise_for_status()
     meta = {"timeliness": {}}
@@ -117,9 +117,9 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
         url_status = urljoin(pdok_server, r_post.json()["_links"]["status"]["href"])
         url_download = None
 
-        if requests.get(url_status).status_code == requests.codes.ok:
+        if requests.get(url_status, verify=True).status_code == requests.codes.ok:
             while (
-                r_status := requests.get(url_status)
+                r_status := requests.get(url_status, verify=True)
             ).status_code == requests.codes.ok:
                 sleep(15)
             if not r_status.status_code == requests.codes.created:  # pragma: no cover
@@ -128,13 +128,13 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
             url_download = urljoin(
                 pdok_server, r_status.json()["_links"]["download"]["href"]
             )
-        elif requests.get(url_status).status_code == requests.codes.created:
-            r_status = requests.get(url_status)
+        elif requests.get(url_status, verify=True).status_code == requests.codes.created:
+            r_status = requests.get(url_status, verify=True)
             url_download = urljoin(
                 pdok_server, r_status.json()["_links"]["download"]["href"]
             )
         else:  # pragma: no cover
-            _r = requests.get(url_status)
+            _r = requests.get(url_status, verify=True)
             logger.error(_r.text)
             _r.raise_for_status()
         logger.info(f"Extract URL: {url_download}")
