@@ -18,7 +18,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@configurable-resources#egg=bag3d-common&subdirectory=packages/common",
+    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
     "sklearn-pandas",
     "scikit-learn==1.4",
     "pandas",
