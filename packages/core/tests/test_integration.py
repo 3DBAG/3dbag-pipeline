@@ -1,7 +1,14 @@
 import os
 
 import pytest
-from bag3d.common.resources.executables import geoflow, roofer, tyler, gdal, DOCKER_GDAL_IMAGE
+from bag3d.common.resources.executables import (
+    GeoflowResource,
+    DOCKER_GDAL_IMAGE,
+    GDALResource,
+    TylerResource,
+    RooferResource,
+    DockerConfig,
+)
 from bag3d.common.resources.files import file_store
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
@@ -13,53 +20,44 @@ from dagster import (
 )
 
 
-@pytest.mark.slow
+@pytest.mark.needs_tools
 def test_integration_reconstruction_and_export(
     database,
-    docker_gdal_image,
     test_data_dir,
     mock_asset_regular_grid_200m,
     mock_asset_reconstruction_input,
     mock_asset_tiles,
     mock_asset_index,
 ):
+    # update quadtree
+    og_quadtree = test_data_dir / "quadtree.tsv"
+    export_dir = test_data_dir / "reconstruction_input" / "3DBAG" / "export"
+    os.system(f"cp {og_quadtree} {export_dir}")
+
     resources = {
-        "tyler": tyler.configured(
-            {
-                "exes": {
-                    "tyler-db": os.getenv("EXE_PATH_TYLER_DB"),
-                    "tyler": os.getenv("EXE_PATH_TYLER"),
-                }
-            }
-        ),
-        "geoflow": geoflow.configured(
-            {
-                "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
-                "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
-            }
-        ),
-        "roofer": roofer.configured(
-            {
-                "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
-            }
-        ),
-        "gdal": gdal.configured(
-            {
-                "docker": {
-                    "image": DOCKER_GDAL_IMAGE,
-                    "mount_point": "/tmp"
-                }
-            }
-        ),
+        "tyler": TylerResource(
+            exe_tyler=os.getenv("EXE_PATH_TYLER"),
+            exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+        ).app,
+        "geoflow": GeoflowResource(
+            exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+            flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
+        ).app,
+        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")).app,
+        "gdal": GDALResource(
+            exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+            exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+            exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+        ).app,
         "db_connection": database,
         "file_store": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "reconstruction_data" / "input"),
+                "data_dir": str(test_data_dir / "reconstruction_input"),
             }
         ),
         "file_store_fastssd": file_store.configured(
             {
-                "data_dir": str(test_data_dir / "reconstruction_data" / "input"),
+                "data_dir": str(test_data_dir / "integration_core"),
             }
         ),
     }

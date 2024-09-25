@@ -16,10 +16,9 @@ from pgutils import PostgresTableIdentifier
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.resources.wkt import ZUID_HOLLAND
-from bag3d.common.resources.temp_until_configurableresource import (
-    geoflow_version,
-    roofer_version,
-)
+
+from bag3d.common.resources import resource_defs
+
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 from bag3d.core.assets.ahn.core import ahn_dir
@@ -71,7 +70,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=roofer_version(),
+    code_version=resource_defs["roofer"].version("crop"),
 )
 def cropped_input_and_config_nl(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -136,7 +135,7 @@ def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_in
         "file_store",
         "file_store_fastssd",
     },
-    code_version=roofer_version(),
+    code_version=resource_defs["roofer"].version("crop"),
 )
 def cropped_input_and_config_zuid_holland(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -159,7 +158,7 @@ def cropped_input_and_config_zuid_holland(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=geoflow_version(),
+    code_version=resource_defs["geoflow"].version("geof"),
 )
 def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     """Generate the 3D building models by running the reconstruction sequentially
@@ -183,7 +182,7 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=roofer_version(),
+    code_version=resource_defs["roofer"].version("crop"),
 )
 def cropped_input_and_config_nl_rerun(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -199,7 +198,7 @@ def cropped_input_and_config_nl_rerun(
         partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=geoflow_version(),
+    code_version=resource_defs["geoflow"].version("geof"),
 )
 def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_rerun):
     """Rerun the reconstruction with just a specific set of partitions."""
@@ -211,7 +210,7 @@ def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=geoflow_version(),
+    code_version=resource_defs["geoflow"].version("geof"),
 )
 def reconstructed_building_models_zuid_holland(
     context, cropped_input_and_config_zuid_holland
@@ -376,13 +375,13 @@ def reconstruct_building_models_func(context, cropped_input_and_config):
             cmd = cmd_template.format(config_path=config_path)
             try:
                 return_code, output = context.resources.geoflow.execute(
-                    "geof", cmd, local_path=flowchart, silent=True
+                    "geof", cmd, local_path=flowchart, silent=False
                 )
-                if return_code == 0:
-                    cnt += 1
-                else:
+                if return_code != 0 or "error" in output.lower():
                     context.log.error(output)
                     raise Failure
+                else:
+                    cnt += 1
             except Failure:
                 failed.append(feature)
     if cnt == 0:

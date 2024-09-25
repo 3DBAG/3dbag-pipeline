@@ -19,8 +19,10 @@ Supported OS: Linux (tested on Ubuntu 22.04, 24.04)
 - [gdal](https://github.com/OSGeo/gdal)
 - [pdal](https://github.com/PDAL/PDAL)
 
-The `build-tools.sh` can help you to build the required tools. 
-Note that it can take a couple of hours to build everything.
+The `build-tools.sh` Bash script can help you to build the required tools. 
+See `build-tools.sh --help` for usage instructions.
+Note that you need to run `build-tools.sh` with `bash` (not `sh`), and it can take a 
+couple of hours to build everything.
 Requirements for building the tools:
 
 - C and C++ compilers (min. GCC 13 or Clang 18)
@@ -38,8 +40,8 @@ First you need to set up the following environment variables in a `.env` file in
 ```bash
 BAG3D_VENVS=${PWD}/venvs
 BAG3D_TEST_DATA=${PWD}/tests/test_data
-BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model
-BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/input/export/3DBAG/export
+BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model/pipeline_model1_gbr_untuned.joblib
+BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
@@ -56,11 +58,14 @@ BAG3D_PG_SSLMODE=allow
 TYLER_RESOURCES_DIR=${TOOLS_DIR}/share/tyler/resources
 TYLER_METADATA_JSON=${TOOLS_DIR}/share/tyler/resources/geof/metadata.json
 
+LD_LIBRARY_PATH=${TOOLS_DIR}/lib:$LD_LIBRARY_PATH
+PROJ_DATA=${TOOLS_DIR}/share/proj
 EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler
 EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db
 EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop
-EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct
-FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json
+EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/geof
+FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-bundle/flowcharts/reconstruct_bag.json
+GF_PLUGIN_FOLDER=${TOOLS_DIR}/share/geoflow-bundle/plugins
 EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr
 EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo
 EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip
@@ -69,18 +74,16 @@ EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
 EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
 ```
 
-However, for running the integration tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the .env file.
+However, for running the integration tests and some of the unit tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the `.env` file.
 
 
-Then you run the tests from the root directory of the repo with:
+You can set up your environment with:
 
 ```shell
 make venvs
 make download
 make build 
 make run
-make test
-make integration
 ```
 
 Where:
@@ -88,8 +91,24 @@ make venvs = creates the [vitrual environments](#development-and-testing)
 make download = [downloads test_data from the server](#data)
 make build = building the postgres image
 make run = starts the postgres container
-make test =  runs the tests for core package. 
-make integration = runs the integration tests (requires [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
+
+Then you can run the fast unit test for all packages with:
+ 
+ ```shell
+ make test
+ ```
+
+For running also the slow tests (which require more time) you can run:
+
+  ```shell
+ make test_slow
+ ```
+
+ For running all tests, including the ones that [require building the tools](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and the integration tests, you can run:
+
+ ```shell
+ make test_all
+ ```
 
 
 ## Resources
@@ -198,10 +217,10 @@ make test
 
 Some test take a long time to execute. 
 If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
-In order to include the slow tests in the test execution, use the `--runslow` command line option.
+In order to include the slow tests in the test execution, use the `--run-slow` command line option.
 
 ```bash
-pytest --runslow
+pytest --run-slow
 ```
 
 These tests require the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)

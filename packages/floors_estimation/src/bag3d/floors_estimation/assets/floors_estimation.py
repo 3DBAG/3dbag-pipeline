@@ -216,7 +216,7 @@ def preprocessed_features(
 @asset(required_resource_keys={"model_store"})
 def inferenced_floors(context, preprocessed_features: pd.DataFrame) -> pd.DataFrame:
     """Runs the inference on the features."""
-    context.log.info("Loading the model.")
+    context.log.info(f"Loading model from {context.resources.model_store}")
     pipeline = load(context.resources.model_store)
     context.log.info("Running the inference.")
     labels = pipeline.predict(preprocessed_features)

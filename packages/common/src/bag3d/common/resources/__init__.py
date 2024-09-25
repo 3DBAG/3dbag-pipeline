@@ -1,36 +1,39 @@
 import os
 
 from bag3d.common.resources.executables import (
-    gdal,
-    pdal,
-    lastools,
-    tyler,
-    geoflow,
-    roofer,
+    GDALResource,
+    PDALResource,
+    DockerConfig,
+    LASToolsResource,
+    TylerResource,
+    RooferResource,
+    GeoflowResource,
     DOCKER_GDAL_IMAGE,
+    DOCKER_PDAL_IMAGE,
 )
 from bag3d.common.resources.files import file_store
 from bag3d.common.resources.database import db_connection
 
-# Local config ---
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 
-gdal_local = gdal.configured({
-    "docker": {
-        "image": DOCKER_GDAL_IMAGE,
-        "mount_point": "/tmp"
-    }
-})
+gdal_local = GDALResource(
+    docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+).app
 
 
-gdal_prod = gdal.configured({
-    "exes": {
-        "ogr2ogr": os.getenv("EXE_PATH_OGR2OGR"),
-        "ogrinfo": os.getenv("EXE_PATH_OGRINFO"),
-        "sozip": os.getenv("EXE_PATH_SOZIP"),
-    }
-})
+gdal_prod = GDALResource(
+    exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+    exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+    exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+).app
+
+
+pdal_local = PDALResource(
+    docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
+).app
+
+pdal_prod = PDALResource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL")).app
 
 
 db_connection_docker = db_connection.configured(
@@ -45,61 +48,46 @@ db_connection_docker = db_connection.configured(
 )
 
 
-# Production config ---
-
 # Configure for gilfoyle
 file_store_gilfoyle = file_store.configured({"data_dir": "/data"})
 file_store_gilfoyle_fastssd = file_store.configured({"data_dir": "/fastssd/data"})
 
 
-pdal_prod = pdal.configured({"exes": {"pdal": os.getenv("EXE_PATH_PDAL")}})
+lastools = LASToolsResource(
+    exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+    exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+).app
 
-lastools_prod = lastools.configured(
-    {"exes": {"lasindex": os.getenv("EXE_PATH_LASINDEX"), "las2las": os.getenv("EXE_PATH_LAS2LAS")}}
-)
+tyler = TylerResource(
+    exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB")
+).app
 
-tyler_prod = tyler.configured(
-    {
-        "exes": {
-            "tyler-db": os.getenv("EXE_PATH_TYLER_DB"),
-            "tyler": os.getenv("EXE_PATH_TYLER"),
-        }
-    }
-)
+roofer = RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")).app
 
-roofer_prod = roofer.configured(
-    {
-        "exes": {"crop": os.getenv("EXE_PATH_ROOFER_CROP")},
-    }
-)
-
-geoflow_prod = geoflow.configured(
-    {
-        "exes": {"geof": os.getenv("EXE_PATH_ROOFER_RECONSTRUCT")},
-        "flowcharts": {"reconstruct": os.getenv("FLOWCHART_PATH_RECONSTRUCT")},
-    }
-)
+geoflow = GeoflowResource(
+    exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+    flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
+).app
 
 RESOURCES_LOCAL = {
     "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "pdal": pdal,
+    "pdal": pdal_local,
     "lastools": lastools,
-    "tyler": tyler_prod,
-    "geoflow": geoflow_prod,
-    "roofer": roofer_prod,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer,
 }
 
-# pytest config ---
 
 RESOURCES_PYTEST = {
     "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store,
     "db_connection": db_connection_docker,
-    "pdal": pdal,
+    "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -112,10 +100,10 @@ RESOURCES_PROD = {
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection_docker,
     "pdal": pdal_prod,
-    "lastools": lastools_prod,
-    "tyler": tyler_prod,
-    "geoflow": geoflow_prod,
-    "roofer": roofer_prod,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer,
 }
 
 # Resource definitions for import

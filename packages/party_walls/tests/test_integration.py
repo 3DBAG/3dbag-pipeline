@@ -10,11 +10,11 @@ from dagster import (
 )
 
 
-@pytest.mark.slow
+@pytest.mark.needs_tools
 def test_job_party_walls(
     database,
     input_data_dir,
-    export_dir_uncompressed,
+    fastssd_data_dir,
     mock_asset_distribution_tiles_files_index,
     mock_asset_features_file_index,
 ):
@@ -22,12 +22,12 @@ def test_job_party_walls(
         "db_connection": database,
         "file_store": file_store.configured(
             {
-                "data_dir": str(export_dir_uncompressed),
+                "data_dir": str(input_data_dir),
             }
         ),
         "file_store_fastssd": file_store.configured(
             {
-                "data_dir": str(input_data_dir),
+                "data_dir": str(fastssd_data_dir),
             }
         ),
     }

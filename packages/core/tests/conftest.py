@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 
 import pytest
-from bag3d.common.resources import gdal
 from bag3d.common.resources.database import DatabaseConnection
-from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
+from bag3d.common.resources.executables import (
+    DOCKER_GDAL_IMAGE,
+    GDALResource,
+    DockerConfig,
+)
 
 from bag3d.common.resources.files import file_store
 from bag3d.common.types import PostgresTableIdentifier
@@ -19,10 +22,11 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
-@pytest.fixture(scope="function")
-def docker_gdal_image():
-    """The GDAL docker image to use for the tests"""
-    return DOCKER_GDAL_IMAGE
+@pytest.fixture(scope="session")
+def gdal():
+    return GDALResource(
+        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+    )
 
 
 @pytest.fixture(scope="function")
@@ -40,7 +44,7 @@ def database():
 
 
 @pytest.fixture
-def context(database, docker_gdal_image, wkt_testarea, tmp_path):
+def context(database, wkt_testarea, tmp_path, gdal):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -50,7 +54,7 @@ def context(database, docker_gdal_image, wkt_testarea, tmp_path):
             ],
         },
         resources={
-            "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
+            "gdal": gdal.app,
             "db_connection": database,
             "file_store": file_store.configured(
                 {
@@ -61,32 +65,37 @@ def context(database, docker_gdal_image, wkt_testarea, tmp_path):
     )
 
 
-# Setup to add a CLI option to run tests that are marked "slow"
-# Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
 def pytest_addoption(parser):
     parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
+        "--run-slow", action="store_true", default=False, help="run slow tests"
+    )
+    parser.addoption(
+        "--run-all",
+        action="store_true",
+        default=False,
+        help="run all tests, including the ones that needs local builds of tools",
     )
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow to run")
+    config.addinivalue_line(
+        "markers", "needs_tools: mark test as needing local builds of tools"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    else:  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    if not config.getoption("--run-slow"):  # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setenv():
-    os.environ["DAGSTER_DEPLOYMENT"] = "pytest"
+    if not config.getoption("--run-all"):  # pragma: no cover
+        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
+        for item in items:
+            if "needs_tools" in item.keywords:
+                item.add_marker(skip_needs_tools)
 
 
 @pytest.fixture(scope="session")

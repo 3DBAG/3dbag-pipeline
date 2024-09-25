@@ -1,40 +1,102 @@
+import os
 from pathlib import Path
 
 import pytest
 from bag3d.common import resources
 from dagster import build_init_resource_context
-
-
-@pytest.mark.parametrize(
-    ("config", "data_dir", "filename"),
-    (
-        (
-            {
-                "docker": {
-                    "image": resources.executables.DOCKER_GDAL_IMAGE,
-                    "mount_point": "/tmp",
-                }
-            },
-            "test_data_dir",
-            Path("top10nl.zip"),
-        ),
-        ({"exes": {"ogrinfo": "ogrinfo"}}, "test_data_dir", Path("top10nl.zip")),
-    ),
-    ids=["docker", "local"],
+from bag3d.common.resources.executables import (
+    DOCKER_GDAL_IMAGE,
+    DOCKER_PDAL_IMAGE,
+    GDALResource,
+    PDALResource,
+    DockerConfig,
+    LASToolsResource,
 )
-def test_gdal(config, data_dir, filename, request):
+from bag3d.common.utils.geodata import pdal_info
+
+
+def test_gdal_docker(test_data_dir):
     """Use GDAL in a docker image"""
-    init_context = build_init_resource_context(config=config)
-    gdal_exe = resources.executables.gdal(init_context)
-    if "docker" in config:
-        assert gdal_exe.with_docker
-    elif "exes" in config:
-        assert not gdal_exe.with_docker
-    local_path = request.getfixturevalue(data_dir) / filename
-    return_code, output = gdal_exe.execute(
+    gdal_resource = GDALResource(
+        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+    )
+    assert gdal_resource.with_docker
+
+    gdal = gdal_resource.app
+
+    local_path = test_data_dir / Path("top10nl.zip")
+    return_code, output = gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
-    print(output)
+    assert return_code == 0
+
+
+@pytest.mark.needs_tools
+def test_gdal_local(test_data_dir):
+    """Use local GDAL installation"""
+    gdal_resource = GDALResource(
+        exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+        exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+    )
+
+    assert not gdal_resource.with_docker
+
+    gdal = gdal_resource.app
+
+    local_path = test_data_dir / Path("top10nl.zip")
+    return_code, output = gdal.execute(
+        "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
+    )
+    assert return_code == 0
+
+
+def test_pdal_docker(laz_files_ahn3_dir):
+    """Use PDAL in a docker image"""
+    pdal = PDALResource(
+        docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
+    )
+    assert pdal.with_docker
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
+    assert return_code == 0
+
+
+@pytest.mark.needs_tools
+def test_pdal_local(laz_files_ahn3_dir):
+    """Use local PDAL installation"""
+    pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+    assert not pdal.with_docker
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
+    assert return_code == 0
+
+
+@pytest.mark.needs_tools
+def test_lastools(laz_files_ahn3_dir):
+    lastools_resource = LASToolsResource(
+        exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+        exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+    )
+    assert not lastools_resource.with_docker
+
+    lastools = lastools_resource.app
+
+    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+
+    cmd_list = [
+        "{exe}",
+        "-i {local_path}",
+        "-append",
+        "-tile_size",
+        "100",
+        "-dont_reindex",
+    ]
+    return_code, output = lastools.execute(
+        "lasindex", " ".join(cmd_list), local_path=filepath
+    )
+
+    assert return_code == 0
 
 
 def test_file_store_init_temp():
@@ -61,14 +123,6 @@ def test_file_store_init_data_dir():
     with (tmp / "file.txt").open("r") as fo:
         fo.read()
     res.rm(force=True)
-
-
-@pytest.mark.xfail("Test is probably false positive")
-def test_file_store(tmp_path):
-    f_store = resources.files.FileStore(
-        data_dir=tmp_path / "test", docker_volume_id="foo"
-    )
-    f_store.rm
 
 
 def test_db_connection_init(database):
