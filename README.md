@@ -4,6 +4,10 @@ Repository of the 3D BAG production pipeline.
 
 Supported OS: Linux (tested on Ubuntu 22.04, 24.04)
 
+## Documentation
+
+https://3dbag.github.io/3dbag-pipeline/
+
 ## Quickstart for local development:
 
 ### Requirements for running the fast tests:

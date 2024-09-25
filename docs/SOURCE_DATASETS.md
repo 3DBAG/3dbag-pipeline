@@ -17,7 +17,7 @@ They are downloaded with the `source_input` job and they are:
 
 [**BAG Extract 2.0**](https://www.kadaster.nl/zakelijk/producten/adressen-en-gebouwen/bag-2.0-extract): It is a periodic extract from the LVBAG, created by the Kadaster. It is distributed in various manners; We are using the [free, downloadable version](https://www.kadaster.nl/-/kosteloze-download-bag-2-0-extract), which gets updated every month (on the 8th). Alternatively, there are daily and monthly extracts with mutations, per municipality or for the whole country, which are accessible through a subscription.
 
-### Notes
+**Notes**
 
 Technically, we could keep our BAG database up-to-date by processing monthly mutations, but the mutations are only available through a subscription. Therefore, we need to drop and recreate our BAG tables from the national extract each time we update the data. In fact, this is one of the recommended methods in the [Functioneele beschrijving mutatiebestaanded](https://www.kadaster.nl/-/functionele-beschrijving-mutatiebestanden) documentation: *"Het actualiseren van de lokaal ingerichte database kan door middel van het maandelijks inladen van een volledig BAG 2.0 Extract of door het verwerken van mutatiebestanden."*
 
@@ -25,7 +25,7 @@ We can reconstruct the BAG input at any give time (Ts) by selecting on `begingel
 
 The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
 
-### Some links:
+**Some links**
 
 [BAG object history documentation](https://www.kadaster.nl/-/specificatie-bag-historiemodel)
 
