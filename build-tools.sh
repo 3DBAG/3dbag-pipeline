@@ -10,15 +10,16 @@
 # - sqlite3
 # - libtiff
 
-build_tyler=true
-build_tyler_db=true
-build_geoflow_roofer=true
-build_geos=true
-build_proj=true
-build_lastools=true
-build_gdal=true
-build_geotiff=true
-build_pdal=true
+# Default variable values
+build_tyler=false
+build_tyler_db=false
+build_geoflow_roofer=false
+build_geos=false
+build_proj=false
+build_lastools=false
+build_gdal=false
+build_geotiff=false
+build_pdal=false
 
 geos_version="3.12.1"
 geotiff_version="1.7.3"
@@ -26,10 +27,121 @@ proj_version="9.4.0"
 lastools_version="2.0.3"
 gdal_version="3.8.5"
 pdal_version="2.8.0"
+geoflow_bundle_version="2024.08.09"
 
 jobs=8
 root_dir=$PWD
-clean_up=true
+clean_up=false
+
+# Function to display script usage
+# Ref.: https://medium.com/@wujido20/handling-flags-in-bash-scripts-4b06b4d0ed04
+usage() {
+ echo "Usage: $0 [OPTIONS]"
+ echo "Options:"
+ echo " -h, --help                Display this help message"
+ echo " -d, --dir                 Change to this directory"
+ echo " --clean                   Delete all build directories, incl. vcpkg"
+ echo " -j, --jobs                Number of jobs to run in parallel for the compilation [default 8]"
+ echo " --build-all               Build all dependencies"
+ echo " --build-tyler             Build Tyler"
+ echo " --build-tyler-db          Build Tyler-db"
+ echo " --build-geoflow-roofer    Build Geoflow-roofer"
+ echo " --build-geos              Build GEOS"
+ echo " --build-proj              Build PROJ"
+ echo " --build-lastools          Build LASTools"
+ echo " --build-gdal              Build GDAL"
+ echo " --build-geotiff           Build GeoTIFF"
+ echo " --build-pdal              Build PDAL"
+}
+
+has_argument() {
+    [[ ("$1" == *=* && -n ${1#*=}) || ( ! -z "$2" && "$2" != -*)  ]];
+}
+
+extract_argument() {
+  echo "${2:-${1#*=}}"
+}
+
+# Function to handle options and arguments
+handle_options() {
+  while [ $# -gt 0 ]; do
+    case $1 in
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      -d | --dir*)
+        if ! has_argument $@; then
+          echo "Directory not specified." >&2
+          usage
+          exit 1
+        fi
+        root_dir=$(extract_argument $@)
+        shift
+        ;;
+      --clean)
+        clean_up=true
+        ;;
+      -j | --jobs*)
+        if ! has_argument $@; then
+          echo "Number of jobs not specified." >&2
+          usage
+          exit 1
+        fi
+        jobs=$(extract_argument $@)
+        shift
+        ;;
+      --build-all)
+        build_tyler=true
+        build_tyler_db=true
+        build_geoflow_roofer=true
+        build_geos=true
+        build_proj=true
+        build_lastools=true
+        build_gdal=true
+        build_geotiff=true
+        build_pdal=true
+        ;;
+      --build-tyler)
+        build_tyler=true
+        ;;
+      --build-tyler-db)
+        build_tyler_db=true
+        ;;
+      --build-geoflow-roofer)
+        build_geoflow_roofer=true
+        ;;
+      --build-geos)
+        build_geos=true
+        ;;
+      --build-proj)
+        build_proj=true
+        ;;
+      --build-lastools)
+        build_lastools=true
+        ;;
+      --build-gdal)
+        build_gdal=true
+        ;;
+      --build-geotiff)
+        build_geotiff=true
+        ;;
+      --build-pdal)
+        build_pdal=true
+        ;;
+      *)
+        echo "Invalid option: $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
+
+# Main script execution
+handle_options "$@"
+cd $root_dir || exit
 
 
 if [ "$build_tyler" = true ] ; then
@@ -62,37 +174,6 @@ if [ "$build_tyler_db" = true ] ; then
     --bin tyler-db
 fi
 
-if [ "$build_geoflow_roofer" = true ] ; then
-  printf "\n\nInstalling vcpkg...\n\n"
-  cd $root_dir || exit
-  git clone https://github.com/microsoft/vcpkg.git
-  cd vcpkg && ./bootstrap-vcpkg.sh
-  export VCPKG_ROOT="$root_dir/vcpkg"
-
-  printf "\n\nInstalling Geoflow-roofer...\n\n"
-  cd $root_dir || exit
-  git clone https://github.com/3DBAG/geoflow-roofer.git
-  mkdir geoflow-roofer/build
-  cmake \
-    --preset vcpkg-minimal \
-    -DRF_USE_LOGGER_SPDLOG=ON \
-    -DRF_BUILD_APPS=ON \
-    -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -S geoflow-roofer \
-    -B geoflow-roofer/build
-  cmake --build geoflow-roofer/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm -rf geoflow-roofer
-    rm -rf vcpkg
-  fi
-
-  roofer_flowcharts=share/geoflow-roofer/flowcharts
-  if ! [ -d "$roofer_flowcharts" ] ; then
-    mkdir -p "$roofer_flowcharts"
-  fi
-  wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$roofer_flowcharts/reconstruct_bag.json"
-fi
-
 if [ "$build_geos" = true ] ; then
   rm -rf geos-${geos_version}
   wget https://download.osgeo.org/geos/geos-${geos_version}.tar.bz2
@@ -107,10 +188,6 @@ if [ "$build_geos" = true ] ; then
       -S geos-${geos_version} \
       -B geos-${geos_version}/build
   $cmake --build geos-${geos_version}/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm geos-${geos_version}.tar.bz2
-    rm -rf geos-${geos_version}
-  fi
 fi
 
 if [ "$build_lastools" = true ] ; then
@@ -126,10 +203,6 @@ if [ "$build_lastools" = true ] ; then
     -S LAStools-${lastools_version} \
     -B LAStools-${lastools_version}/build
   cmake --build LAStools-${lastools_version}/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm LAStools.zip
-    rm -rf LAStools-${lastools_version}
-  fi
 fi
 
 if [ "$build_proj" = true ] ; then
@@ -145,10 +218,6 @@ if [ "$build_proj" = true ] ; then
     -S proj-${proj_version} \
     -B proj-${proj_version}/build
   cmake --build proj-${proj_version}/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm proj-${proj_version}.tar.gz
-    rm -rf proj-${proj_version}
-  fi
 fi
 
 if [ "$build_gdal" = true ] ; then
@@ -165,10 +234,6 @@ if [ "$build_gdal" = true ] ; then
     -S gdal-${gdal_version} \
     -B gdal-${gdal_version}/build
   cmake --build gdal-${gdal_version}/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm gdal-${gdal_version}.tar.gz
-    rm -rf gdal-${gdal_version}
-  fi
 fi
 
 if [ "$build_geotiff" = true ] ; then
@@ -185,10 +250,6 @@ if [ "$build_geotiff" = true ] ; then
     -S libgeotiff-${geotiff_version} \
     -B libgeotiff-${geotiff_version}/build
   cmake --build libgeotiff-${geotiff_version}/build -j $jobs --target install --config Release
-  if [ "$clean_up" = true ] ; then
-    rm libgeotiff-${geotiff_version}.tar.gz
-    rm -rf libgeotiff-${geotiff_version}
-  fi
 fi
 
 if [ "$build_pdal" = true ] ; then
@@ -205,14 +266,79 @@ if [ "$build_pdal" = true ] ; then
     -S PDAL-${pdal_version}-src \
     -B PDAL-${pdal_version}-src/build
   cmake --build PDAL-${pdal_version}-src/build -j $jobs --target install --config Release
+fi
 
-  if [ "$clean_up" = true ] ; then
-    rm PDAL-${pdal_version}-src.tar.gz
-    rm -rf PDAL-${pdal_version}-src
+if [ "$build_geoflow_roofer" = true ] ; then
+  cd $root_dir || exit
+  if ! [ -d vcpkg ] ; then
+    printf "\n\nInstalling vcpkg...\n\n"
+    git clone https://github.com/microsoft/vcpkg.git
+    cd vcpkg && ./bootstrap-vcpkg.sh -disableMetrics
   fi
+  export VCPKG_ROOT="$root_dir/vcpkg"
+
+  printf "\n\nInstalling Geoflow-bundle...\n\n"
+  cd $root_dir || exit
+#  git clone --depth 1 --recurse-submodules https://github.com/geoflow3d/geoflow-bundle.git geoflow-bundle-src
+  mkdir geoflow-bundle-src/build
+  gf_plugin_folder="share/geoflow-bundle/plugins"
+  mkdir -p $gf_plugin_folder
+  # GLFW3 on Ubunutu requires libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config autoconf-archive
+  # GLFW3 on Wayland Ubuntu requires libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
+
+  cmake \
+    -DCMAKE_TOOLCHAIN_FILE=$root_dir/vcpkg/scripts/buildsystems/vcpkg.cmake \
+    -DCMAKE_PREFIX_PATH=$root_dir \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=$root_dir \
+    -DGF_BUILD_GUI=OFF \
+    -DGF_PLUGIN_FOLDER=$gf_plugin_folder \
+    -DGFP_WITH_PDAL=OFF \
+    -S geoflow-bundle-src \
+    -B geoflow-bundle-src/build
+  cmake --build geoflow-bundle-src/build -j $jobs --target install --config Release
+
+  printf "\n\nInstalling Geoflow-roofer...\n\n"
+  cd $root_dir || exit
+  git clone https://github.com/3DBAG/geoflow-roofer.git
+  mkdir geoflow-roofer/build
+  cmake \
+    --preset vcpkg-minimal \
+    -DRF_USE_LOGGER_SPDLOG=ON \
+    -DRF_BUILD_APPS=ON \
+    -DCMAKE_INSTALL_PREFIX=$root_dir \
+    -S geoflow-roofer \
+    -B geoflow-roofer/build
+  cmake --build geoflow-roofer/build -j $jobs --target install --config Release
+
+  roofer_flowcharts=share/geoflow-roofer/flowcharts
+  if ! [ -d "$roofer_flowcharts" ] ; then
+    mkdir -p "$roofer_flowcharts"
+  fi
+  wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$roofer_flowcharts/reconstruct_bag.json"
+
 fi
 
 if [ "$clean_up" = true ] ; then
   cd $root_dir || exit
-  rm -rf build
+  printf "\n\nDeleting build artifacts...\n\n"
+
+  rm geos-${geos_version}.tar.bz2 || true
+  rm -rf geos-${geos_version} || true
+  rm LAStools.zip || true
+  rm -rf LAStools-${lastools_version} || true
+  rm proj-${proj_version}.tar.gz || true
+  rm -rf proj-${proj_version} || true
+  rm gdal-${gdal_version}.tar.gz || true
+  rm -rf gdal-${gdal_version} || true
+  rm gdal-${gdal_version}.tar.gz || true
+  rm -rf gdal-${gdal_version} || true
+  rm libgeotiff-${geotiff_version}.tar.gz || true
+  rm -rf libgeotiff-${geotiff_version} || true
+  rm PDAL-${pdal_version}-src.tar.gz || true
+  rm -rf PDAL-${pdal_version}-src || true
+  rm -rf build || true
+  rm -rf geoflow-bundle-src || true
+  rm -rf geoflow-roofer || true
+  rm -rf vcpkg || true
 fi

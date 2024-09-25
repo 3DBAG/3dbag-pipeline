@@ -19,8 +19,10 @@ Supported OS: Linux (tested on Ubuntu 22.04, 24.04)
 - [gdal](https://github.com/OSGeo/gdal)
 - [pdal](https://github.com/PDAL/PDAL)
 
-The `build-tools.sh` can help you to build the required tools. 
-Note that it can take a couple of hours to build everything.
+The `build-tools.sh` Bash script can help you to build the required tools. 
+See `build-tools.sh --help` for usage instructions.
+Note that you need to run `build-tools.sh` with `bash` (not `sh`), and it can take a 
+couple of hours to build everything.
 Requirements for building the tools:
 
 - C and C++ compilers (min. GCC 13 or Clang 18)
