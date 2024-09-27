@@ -148,11 +148,6 @@ Additionally, this organization makes it easier to install and test the workflow
 - [`party_walls`](/packages/party_walls/README.md): Workflow for calculating the party walls.
 - [`floors-estimation`](/packages/floors_estimation/README.md): Workflow for estimating the number of floors.
 
-## Documentation
-
-The `common` package contains API documentation that can be viewed locally.
-The documentation of the components of the workflow packages can be viewed in the Dagster UI.
-
 ## Development and testing
 
 You need to have the workflow packages set up in their own virtual environments in `/venvs`.
@@ -188,6 +183,21 @@ make start_dagster
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
 
+### Documenting the package
+
+The documentation is built with [mkdocs](https://www.mkdocs.org/) and several plugins.
+The APIs (eg. `common`) is documented with [Google-style docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
+In order to generate the API documentation for a package, the package must be installed.
+Solely for documentation purposes, this is best done with `pip install --no-deps packages/<package>`.
+
+Install the documentation dependencies and view the docs locally:
+
+```shell
+pip install -r requirements_dev.txt
+mkdocs serve
+```
+
+Go to `http://127.0.0.1:8000/` in your browser.
 
 ### Data
 
@@ -358,11 +368,11 @@ This query to get the asset materializations metadata and asset dependencies (li
 
 They are downloaded with the `source_input` job and they are:
 
-- [BAG](docs/SOURCE_DATASETS.md#bag)
-- [AHN](docs/SOURCE_DATASETS.md#ahn)
-- [TOP10NL](docs/SOURCE_DATASETS.md#top10nl)
+- [BAG](SOURCE_DATASETS#bag)
+- [AHN](SOURCE_DATASETS#ahn)
+- [TOP10NL](SOURCE_DATASETS#top10nl)
 
-Read more about [the source datasets here](docs/SOURCE_DATASETS.md).
+Read more about [the source datasets here](SOURCE_DATASETS).
 
 
 ## Deployment

@@ -48,4 +48,7 @@ nav:
   - Source datasets: SOURCE_DATASETS.md
   - Packages:
     - common: index_common.md
+    - core: index_core.md
+    - floors_estimation: index_floors_estimation.md
+    - party_walls: index_party_walls.md
   - API Reference: reference/
