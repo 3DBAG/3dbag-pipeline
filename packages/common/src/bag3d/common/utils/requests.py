@@ -128,7 +128,9 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
             url_download = urljoin(
                 pdok_server, r_status.json()["_links"]["download"]["href"]
             )
-        elif requests.get(url_status, verify=True).status_code == requests.codes.created:
+        elif (
+            requests.get(url_status, verify=True).status_code == requests.codes.created
+        ):
             r_status = requests.get(url_status, verify=True)
             url_download = urljoin(
                 pdok_server, r_status.json()["_links"]["download"]["href"]
