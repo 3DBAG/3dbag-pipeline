@@ -1,0 +1,9 @@
+tmp
+venvs
+experiments
+tests/dagster_home
+tests/test_data
+docs
+docker/docker-copyedit
+.git
+.ruff_cache
