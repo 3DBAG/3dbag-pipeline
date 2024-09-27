@@ -1,0 +1,54 @@
+site_name: bag3d-pipeline
+site_url: https://3DBAG.github.io/3dbag-pipeline
+repo_url: https://github.com/3DBAG/3dbag-pipeline
+repo_name: 3DBAG/3dbag-pipeline
+
+theme:
+  name: material
+  font:
+    text: Roboto
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+      - docs/gen_ref_pages_common.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings
+#  - navigation.instant
+#  - navigation.tracking
+#  - navigation.sections
+#  - navigation.expand
+#  - navigation.top
+#  - navigation.indexes
+#  - search.highlight
+#  - search.suggest
+#  - content.tabs.link
+
+markdown_extensions:
+  - markdown_include.include:
+      base_path: docs
+  - toc:
+      permalink: true
+  # Python Markdown Extensions
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+
+nav:
+  - Overview: index.md
+  - Source datasets: SOURCE_DATASETS.md
+  - Packages:
+    - common: index_common.md
+    - core: index_core.md
+    - floors_estimation: index_floors_estimation.md
+    - party_walls: index_party_walls.md
+  - API Reference: reference/
