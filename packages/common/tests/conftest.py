@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from bag3d.common.resources.database import DatabaseConnection
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
@@ -44,9 +44,9 @@ def wkt_testarea():
 
 @pytest.fixture
 def database():
-    db = DatabaseConnection(
+    db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    )
+    ).connection
     yield db
 
 

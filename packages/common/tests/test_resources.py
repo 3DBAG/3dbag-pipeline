@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 import pytest
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.common import resources
-from dagster import build_init_resource_context
+from dagster import build_init_resource_context, EnvVar
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
@@ -125,18 +126,14 @@ def test_file_store_init_data_dir():
     res.rm(force=True)
 
 
-def test_db_connection_init(database):
+def test_db_connection_init():
     """Can we initialize a local database resource?"""
-    db = database
-    init_context = build_init_resource_context(
-        config={
-            "port": int(db.port),
-            "user": db.user,
-            "password": db.password,
-            "dbname": db.dbname,
-        }
-    )
-    res = resources.database.db_connection(init_context)
-    q = res.get_query("select version();")
+    db = DatabaseResource(
+        host=EnvVar("BAG3D_PG_HOST").get_value(),
+        user=EnvVar("BAG3D_PG_USER").get_value(),
+        password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
+        port=EnvVar("BAG3D_PG_PORT").get_value(),
+        dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
+    ).connection
+    q = db.get_query("select version();")
     assert "PostgreSQL" in q[0][0]
-    assert res.user == db.user

@@ -12,8 +12,9 @@ from bag3d.common.resources.executables import (
     DOCKER_PDAL_IMAGE,
 )
 from bag3d.common.resources.files import file_store
-from bag3d.common.resources.database import db_connection
+from bag3d.common.resources.database import DatabaseResource
 
+from dagster import EnvVar
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 
@@ -36,16 +37,13 @@ pdal_local = PDALResource(
 pdal_prod = PDALResource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL")).app
 
 
-db_connection_docker = db_connection.configured(
-    {
-        "port": int(os.getenv("BAG3D_PG_PORT", 5432)),
-        "user": os.getenv("BAG3D_PG_USER"),
-        "password": os.getenv("BAG3D_PG_PASSWORD"),
-        "dbname": os.getenv("BAG3D_PG_DATABASE"),
-        "host": os.getenv("BAG3D_PG_HOST"),
-        # , "sslmode": os.getenv("BAG3D_PG_SSLMODE", "allow"),
-    }
-)
+db_connection = DatabaseResource(
+    host=EnvVar("BAG3D_PG_HOST").get_value(),
+    user=EnvVar("BAG3D_PG_USER").get_value(),
+    password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
+    port=EnvVar("BAG3D_PG_PORT").get_value(),
+    dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
+).connection
 
 
 # Configure for gilfoyle
@@ -73,7 +71,7 @@ RESOURCES_LOCAL = {
     "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store,
-    "db_connection": db_connection_docker,
+    "db_connection": db_connection,
     "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
@@ -86,7 +84,7 @@ RESOURCES_PYTEST = {
     "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store,
-    "db_connection": db_connection_docker,
+    "db_connection": db_connection,
     "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
@@ -98,7 +96,7 @@ RESOURCES_PROD = {
     "gdal": gdal_prod,
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
-    "db_connection": db_connection_docker,
+    "db_connection": db_connection,
     "pdal": pdal_prod,
     "lastools": lastools,
     "tyler": tyler,
