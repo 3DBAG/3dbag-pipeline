@@ -43,6 +43,7 @@ db_connection = DatabaseResource(
     password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
     port=EnvVar("BAG3D_PG_PORT").get_value(),
     dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
+    other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value()},
 )
 
 

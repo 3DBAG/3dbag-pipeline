@@ -1,8 +1,10 @@
-from dagster import ConfigurableResource
+from dagster import ConfigurableResource, Permissive
 
 from pgutils import PostgresConnection, PostgresFunctions
 
 DatabaseConnection = PostgresConnection
+
+from typing import Optional
 
 
 class DatabaseResource(ConfigurableResource):
@@ -15,6 +17,25 @@ class DatabaseResource(ConfigurableResource):
     password: str
     dbname: str
     port: str
+    other_params: Permissive()
+
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        dbname: str,
+        port: str,
+        other_params: Optional[Permissive()] = None,
+    ):
+        super().__init__(
+            host=host,
+            user=user,
+            password=password,
+            dbname=dbname,
+            port=port,
+            other_params=other_params or {},
+        )
 
     @property
     def connect(self):
@@ -24,6 +45,7 @@ class DatabaseResource(ConfigurableResource):
             host=self.host,
             port=self.port,
             dbname=self.dbname,
+            **self.other_params,
         )
         # Create the utility Postgres functions
         PostgresFunctions(conn)
