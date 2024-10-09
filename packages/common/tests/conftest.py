@@ -23,18 +23,17 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
-def docker_config():
-    yield DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+def gdal():
+    yield GDALResource(
+        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+    )
 
 
 @pytest.fixture(scope="session")
-def gdal(docker_config):
-    yield GDALResource(docker_cfg=docker_config)
-
-
-@pytest.fixture(scope="session")
-def pdal(docker_config):
-    yield PDALResource(docker_cfg=docker_config)
+def pdal():
+    yield PDALResource(
+        docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
+    )
 
 
 @pytest.fixture(scope="function")

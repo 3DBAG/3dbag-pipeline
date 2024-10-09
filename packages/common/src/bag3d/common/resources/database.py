@@ -1,10 +1,10 @@
+from typing import Optional
+
 from dagster import ConfigurableResource, Permissive
 
 from pgutils import PostgresConnection, PostgresFunctions
 
 DatabaseConnection = PostgresConnection
-
-from typing import Optional
 
 
 class DatabaseResource(ConfigurableResource):
