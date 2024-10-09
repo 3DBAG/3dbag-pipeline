@@ -136,9 +136,9 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     match the reference.
     """
     tile_id = context.partition_key
-    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 3) / ahn_filename(
-        tile_id
-    )
+    fpath = ahn_laz_dir(
+        context.resources.file_store.file_store.data_dir, 3
+    ) / ahn_filename(tile_id)
     url_laz = tile_index_ahn3_pdok[tile_id]["properties"]["AHN3_LAZ"]
     lazdownload = download_ahn_laz(
         fpath=fpath,
@@ -161,9 +161,9 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
     match the reference.
     """
     tile_id = context.partition_key
-    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 4) / ahn_filename(
-        tile_id
-    )
+    fpath = ahn_laz_dir(
+        context.resources.file_store.file_store.data_dir, 4
+    ) / ahn_filename(tile_id)
     url_laz = tile_index_ahn4_pdok[tile_id]["properties"]["AHN4_LAZ"]
     lazdownload = download_ahn_laz(
         fpath=fpath,
@@ -194,10 +194,10 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
 #     """
 #     tile_id = context.partition_key
 #
-#     fpath = context.resources.file_store.data_dir / ahn_filename(tile_id)
+#     fpath = context.resources.file_store.file_store.data_dir / ahn_filename(tile_id)
 #     fpath = Path(f"/data/AHN3/tiles_200m/t_{tile_id}.laz")
 #     if "laz_files" in context.selected_output_names:
-#         fpath = context.resources.file_store.data_dir / ahn_filename(tile_id)
+#         fpath = context.resources.file_store.file_store.data_dir / ahn_filename(tile_id)
 #         lazdownload = download_ahn_laz(fpath=fpath, url_base=URL_LAZ["ahn3"],
 #                                        sha_reference=md5_pdok_ahn3,
 #                                        sha_func=HashChunkwise("md5"))

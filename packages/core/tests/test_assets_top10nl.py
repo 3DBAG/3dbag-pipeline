@@ -7,4 +7,4 @@ def test_extract_top10nl(context):
     """Does the complete asset work?"""
     res = download.extract_top10nl(context)
     assert res.value.exists()
-    context.resources.file_store.rm(force=True)
+    context.resources.file_store.file_store.rm(force=True)

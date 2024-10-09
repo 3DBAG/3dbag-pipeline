@@ -70,7 +70,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].version("crop"),
+    code_version=resource_defs["roofer"].app.version("crop"),
 )
 def cropped_input_and_config_nl(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -103,7 +103,7 @@ def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_in
     query = SQL("""SELECT identificatie from {reconstruction_input} 
                    WHERE st_area(geometry) > 100""")
 
-    res = context.resources.db_connection.get_query(
+    res = context.resources.db_connection.connect.get_query(
         query, query_params={"reconstruction_input": reconstruction_input}
     )
     for feature in objects_dir.iterdir():
@@ -135,7 +135,7 @@ def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_in
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].version("crop"),
+    code_version=resource_defs["roofer"].app.version("crop"),
 )
 def cropped_input_and_config_zuid_holland(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -158,7 +158,7 @@ def cropped_input_and_config_zuid_holland(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].version("geof"),
+    code_version=resource_defs["geoflow"].app.version("geof"),
 )
 def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     """Generate the 3D building models by running the reconstruction sequentially
@@ -182,7 +182,7 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].version("crop"),
+    code_version=resource_defs["roofer"].app.version("crop"),
 )
 def cropped_input_and_config_nl_rerun(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -198,7 +198,7 @@ def cropped_input_and_config_nl_rerun(
         partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].version("geof"),
+    code_version=resource_defs["geoflow"].app.version("geof"),
 )
 def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_rerun):
     """Rerun the reconstruction with just a specific set of partitions."""
@@ -210,7 +210,7 @@ def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].version("geof"),
+    code_version=resource_defs["geoflow"].app.version("geof"),
 )
 def reconstructed_building_models_zuid_holland(
     context, cropped_input_and_config_zuid_holland
@@ -278,7 +278,7 @@ def cropped_input_and_config_func(
              JOIN {tiles_ahn} g ON st_intersects(geometrie, g.geom)
     WHERE i.tile_id = {tile_id};
     """)
-    res = context.resources.db_connection.get_query(
+    res = context.resources.db_connection.connect.get_query(
         query_laz_tiles,
         query_params={
             "tiles_ahn": regular_grid_200m,
@@ -288,14 +288,14 @@ def cropped_input_and_config_func(
         },
     )
     out_dir_ahn3 = ahn_dir(
-        context.resources.file_store.data_dir, ahn_version=3
+        context.resources.file_store.file_store.data_dir, ahn_version=3
     ).joinpath("tiles_200m")
     laz_files_ahn3 = [
         str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
     # TODO: probably should take the tiles_200m directory from the asset output
     out_dir_ahn4 = ahn_dir(
-        context.resources.file_store.data_dir, ahn_version=4
+        context.resources.file_store.file_store.data_dir, ahn_version=4
     ).joinpath("tiles_200m")
     # TODO: same with the laz filename pattern
     laz_files_ahn4 = [
@@ -311,7 +311,7 @@ def cropped_input_and_config_func(
             USING (fid)
     WHERE ti.tile_id = {tile_id}
     """)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         query_tile_view,
         query_params={
             "tile_view": tile_view,
@@ -321,12 +321,12 @@ def cropped_input_and_config_func(
         },
     )
     output_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     ).joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
         tile_id=tile_id,
-        footprint_file=f"PG:{context.resources.db_connection.dsn} tables={tile_view}",
+        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=" ".join(laz_files_ahn3),
         ahn4_files=" ".join(laz_files_ahn4),
         output_path=output_dir,
@@ -334,10 +334,10 @@ def cropped_input_and_config_func(
     path_toml = output_dir / "crop.toml"
     with path_toml.open("w") as of:
         of.write(output_toml)
-    context.resources.roofer.execute(
+    context.resources.roofer.app.execute(
         "crop", "{exe} -c {local_path}", local_path=path_toml
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
     )
     # TODO: what are the conditions for partition failure?
@@ -353,7 +353,7 @@ def cropped_input_and_config_func(
 
 def reconstruct_building_models_func(context, cropped_input_and_config):
     context.log.info(f"geoflow.kwargs: {context.resources.geoflow.kwargs}")
-    flowchart = context.resources.geoflow.kwargs["flowcharts"]["reconstruct"]
+    flowchart = context.resources.geoflow.app.kwargs["flowcharts"]["reconstruct"]
     cmd_template = "{{exe}} {{local_path}} --config {config_path}"
     # TODO: what are the conditions for partition failure?
     objects_dir = cropped_input_and_config.joinpath("objects")
@@ -374,7 +374,7 @@ def reconstruct_building_models_func(context, cropped_input_and_config):
             config_path = feature.joinpath("config_.toml")
             cmd = cmd_template.format(config_path=config_path)
             try:
-                return_code, output = context.resources.geoflow.execute(
+                return_code, output = context.resources.geoflow.app.execute(
                     "geof", cmd, local_path=flowchart, silent=False
                 )
                 if return_code != 0 or "error" in output.lower():

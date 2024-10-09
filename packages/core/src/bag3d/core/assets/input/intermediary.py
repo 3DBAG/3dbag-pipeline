@@ -33,7 +33,7 @@ def bag_kas_warenhuis(context, bag_pandactueelbestaand, top10nl_gebouw):
         }
     )
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     return Output(new_table, metadata=metadata)
@@ -56,7 +56,7 @@ def bag_bag_overlap(context, bag_pandactueelbestaand):
         query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
     )
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     return Output(new_table, metadata=metadata)

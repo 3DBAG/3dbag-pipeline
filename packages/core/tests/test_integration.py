@@ -9,7 +9,7 @@ from bag3d.common.resources.executables import (
     RooferResource,
     DockerConfig,
 )
-from bag3d.common.resources.files import file_store
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
 from dagster import (
@@ -38,27 +38,23 @@ def test_integration_reconstruction_and_export(
         "tyler": TylerResource(
             exe_tyler=os.getenv("EXE_PATH_TYLER"),
             exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-        ).app,
+        ),
         "geoflow": GeoflowResource(
             exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
             flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
-        ).app,
-        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")).app,
+        ),
+        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")),
         "gdal": GDALResource(
             exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
             exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
             exe_sozip=os.getenv("EXE_PATH_SOZIP"),
-        ).app,
-        "db_connection": database,
-        "file_store": file_store.configured(
-            {
-                "data_dir": str(test_data_dir / "reconstruction_input"),
-            }
         ),
-        "file_store_fastssd": file_store.configured(
-            {
-                "data_dir": str(test_data_dir / "integration_core"),
-            }
+        "db_connection": database,
+        "file_store": FileStoreResource(
+            data_dir=str(test_data_dir / "reconstruction_input")
+        ),
+        "file_store_fastssd": FileStoreResource(
+            data_dir=str(test_data_dir / "integration_core")
         ),
     }
 

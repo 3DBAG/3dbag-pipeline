@@ -9,7 +9,7 @@ from bag3d.common.resources.executables import (
     DockerConfig,
 )
 
-from bag3d.common.resources.files import file_store
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from dagster import AssetKey, IOManager, SourceAsset, build_op_context
@@ -23,10 +23,13 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
-def gdal():
-    return GDALResource(
-        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-    )
+def docker_config():
+    yield DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
+
+
+@pytest.fixture(scope="session")
+def gdal(docker_config):
+    yield GDALResource(docker_cfg=docker_config)
 
 
 @pytest.fixture(scope="function")
@@ -39,12 +42,17 @@ def wkt_testarea():
 def database():
     db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    ).connection
+    )
     yield db
 
 
 @pytest.fixture
-def context(database, wkt_testarea, tmp_path, gdal):
+def file_store(tmp_path):
+    yield FileStoreResource(data_dir=str(tmp_path))
+
+
+@pytest.fixture
+def context(database, wkt_testarea, file_store, gdal):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -53,15 +61,7 @@ def context(database, wkt_testarea, tmp_path, gdal):
                 "gebouw",
             ],
         },
-        resources={
-            "gdal": gdal.app,
-            "db_connection": database,
-            "file_store": file_store.configured(
-                {
-                    "data_dir": str(tmp_path),
-                }
-            ),
-        },
+        resources={"gdal": gdal, "db_connection": database, "file_store": file_store},
     )
 
 
