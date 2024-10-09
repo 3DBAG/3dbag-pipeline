@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.files import file_store
+from bag3d.common.resources.files import FileStoreResource
 from dagster import AssetKey, IOManager, SourceAsset, build_op_context
 import pandas as pd
 
@@ -48,7 +48,7 @@ def intermediate_data_dir(test_data_dir) -> Path:
 def database():
     db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    ).connection
+    )
     yield db
 
 
@@ -58,16 +58,8 @@ def context(database, input_data_dir, fastssd_data_dir):
         partition_key="10/564/624",
         resources={
             "db_connection": database,
-            "file_store": file_store.configured(
-                {
-                    "data_dir": str(input_data_dir),
-                }
-            ),
-            "file_store_fastssd": file_store.configured(
-                {
-                    "data_dir": str(fastssd_data_dir),
-                }
-            ),
+            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
+            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
         },
     )
 
