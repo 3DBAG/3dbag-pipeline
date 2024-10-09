@@ -3,11 +3,9 @@ import os
 import pytest
 from bag3d.common.resources.executables import (
     GeoflowResource,
-    DOCKER_GDAL_IMAGE,
     GDALResource,
     TylerResource,
     RooferResource,
-    DockerConfig,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.core.assets import export, reconstruction

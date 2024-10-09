@@ -1,4 +1,4 @@
-name: Run unit tests
+name: Install, Lint, Format, Test
 
 on:
   push:
@@ -17,6 +17,8 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+    - name: Install dependencies
+      run: pip install ruff
     - name: Create and populate .env file
       env:
         BAG3D_TEST_DATA: ${{ github.workspace }}/tests/test_data
@@ -53,6 +55,10 @@ jobs:
         echo EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64 >> .env
         
         cat .env
+    - name: Lint
+      run: ruff check
+    - name: Format
+      run: ruff format --check
     - name: Create venvs
       run: make venvs
     - name: Download data

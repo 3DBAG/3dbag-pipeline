@@ -33,6 +33,7 @@
 /packages/common/src/bag3d_common.egg-info/
 /packages/common/.tox/
 /packages/common/tests/.pytest_cache/
+/packages/common/build/
 /venvs/venv_*
 /packages/core/src/bag3d_core.egg-info/
 /packages/core/tests/.pytest_cache/
@@ -44,3 +45,11 @@
 /packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
 /packages/floors_estimation/tests/.pytest_cache/
 /packages/floors_estimation/build/
+
+# Documentation
+packages/common/site
+site
+docs/reference
+
+.coverage
+*.ruff_cache
