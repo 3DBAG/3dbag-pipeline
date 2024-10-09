@@ -51,9 +51,12 @@ file_store = FileStoreResource
 file_store_fastssd = FileStoreResource
 
 # Configure for gilfoyle
-file_store_gilfoyle = FileStoreResource(data_dir="/data/gina", temp_dir_id="10_24")
+file_store_gilfoyle = FileStoreResource(
+    data_dir="/data/gina", temp_dir_id=os.getenv("BAG3D_RELEASE_VERSION")
+)
 file_store_gilfoyle_fastssd = FileStoreResource(
-    data_dir="/fastssd/data/gina", temp_dir_id="10_24"
+    data_dir="/fastssd/data/gina",
+    temp_dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
 )
 
 
