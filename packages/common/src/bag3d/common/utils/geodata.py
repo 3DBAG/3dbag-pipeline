@@ -53,7 +53,7 @@ def ogrinfo(
     xsd: str,
 ):
     """Runs ogrinfo on the zipped extract."""
-    gdal = context.resources.gdal
+    gdal = context.resources.gdal.app
     cmd = " ".join(
         [
             "{exe}",
@@ -203,8 +203,8 @@ def ogr2postgres(
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
     """
-    gdal = context.resources.gdal
-    dsn = context.resources.db_connection.dsn
+    gdal = context.resources.gdal.app
+    dsn = context.resources.db_connection.connect.dsn
 
     cmd = " ".join(
         [

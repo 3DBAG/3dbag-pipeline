@@ -72,7 +72,7 @@ def summary_md(fields, null_count):
 def postgrestable_from_query(
     context: OpExecutionContext, query: Composed, table: PostgresTableIdentifier
 ) -> dict:
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     # log the query
     context.log.info(conn.print_query(query))
     # execute the query
@@ -83,7 +83,7 @@ def postgrestable_from_query(
 def postgrestable_metadata(
     context: OpExecutionContext, table: PostgresTableIdentifier
 ) -> dict:
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     # row count
     row_count = conn.get_count(table)
     # schema
@@ -102,7 +102,7 @@ def postgrestable_metadata(
 
 def drop_table(context, new_table):
     """DROP TABLE IF EXISTS new_table CASCADE"""
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
     context.log.info(conn.print_query(q))
     conn.send_query(q)
@@ -110,7 +110,7 @@ def drop_table(context, new_table):
 
 def create_schema(context, new_schema):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     context.log.info(conn.print_query(q))
     conn.send_query(q)
@@ -125,5 +125,5 @@ def table_exists(context, table) -> bool:
                         schemaname = {schema} AND 
                         tablename  = {table}
                     );""").format(schema=table.schema.str, table=table.table.str)
-    res = context.resources.db_connection.get_dict(query)
+    res = context.resources.db_connection.connect.get_dict(query)
     return res[0]["exists"]

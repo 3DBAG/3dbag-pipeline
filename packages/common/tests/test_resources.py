@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common import resources
-from dagster import build_init_resource_context, EnvVar
+from dagster import EnvVar
 from bag3d.common.resources.executables import (
     DOCKER_GDAL_IMAGE,
     DOCKER_PDAL_IMAGE,
@@ -36,9 +36,9 @@ def test_gdal_docker(test_data_dir):
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
     gdal_resource = GDALResource(
-        exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-        exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+        exe_ogr2ogr=EnvVar("EXE_PATH_OGR2OGR").get_value(),
+        exe_ogrinfo=EnvVar("EXE_PATH_OGRINFO").get_value(),
+        exe_sozip=EnvVar("EXE_PATH_SOZIP").get_value(),
     )
 
     assert not gdal_resource.with_docker
@@ -66,7 +66,7 @@ def test_pdal_docker(laz_files_ahn3_dir):
 @pytest.mark.needs_tools
 def test_pdal_local(laz_files_ahn3_dir):
     """Use local PDAL installation"""
-    pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+    pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
     assert not pdal.with_docker
     filepath = laz_files_ahn3_dir / "t_1042098.laz"
     return_code, output = pdal_info(pdal.app, filepath, with_all=True)
@@ -76,8 +76,8 @@ def test_pdal_local(laz_files_ahn3_dir):
 @pytest.mark.needs_tools
 def test_lastools(laz_files_ahn3_dir):
     lastools_resource = LASToolsResource(
-        exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-        exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+        exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value(),
+        exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value(),
     )
     assert not lastools_resource.with_docker
 
@@ -101,29 +101,64 @@ def test_lastools(laz_files_ahn3_dir):
 
 
 def test_file_store_init_temp():
-    """Can we create a local temporary directory with the correct permissions?"""
-    init_context = build_init_resource_context(config={})
-    res = resources.files.file_store(init_context)
-    assert res.data_dir.exists()
+    """Can we create a local temporary directory with random id
+    with the correct permissions?"""
+    res = resources.files.FileStoreResource().file_store
+    path = Path(res.data_dir)
+    assert path.exists()
     with (res.data_dir / "file.txt").open("w") as fo:
         fo.write("test")
     with (res.data_dir / "file.txt").open("r") as fo:
-        pass
+        assert fo.read() == "test"
     res.rm(force=True)
+    assert not res.data_dir
+    assert not path.exists()
 
 
-def test_file_store_init_data_dir():
-    """Can we use an existing directory?"""
-    tmp = resources.files.FileStore.mkdir_temp(temp_dir_id="70784c0e")
-    init_context = build_init_resource_context(config={"data_dir": str(tmp)})
-    res = resources.files.file_store(init_context)
-    assert res.data_dir.exists()
-    assert res.data_dir.exists()
+def test_file_store_init_temp_with_id():
+    """Can we create a local temporary directory with input id
+    with the correct permissions?"""
+    res = resources.files.FileStoreResource(temp_dir_id="myID").file_store
+    path = Path(res.data_dir)
+    assert path.exists()
+    assert str(res.data_dir)[-4:] == "myID"
     with (res.data_dir / "file.txt").open("w") as fo:
         fo.write("test")
-    with (tmp / "file.txt").open("r") as fo:
-        fo.read()
+    with (res.data_dir / "file.txt").open("r") as fo:
+        assert fo.read() == "test"
     res.rm(force=True)
+    assert not res.data_dir
+    assert not path.exists()
+
+
+def test_file_store_init_data_dir(tmp_path):
+    """Can we use an existing directory?"""
+    res = resources.files.FileStoreResource(data_dir=tmp_path).file_store
+    path = Path(res.data_dir)
+    assert path.exists()
+    assert path == tmp_path
+    with (path / "file.txt").open("w") as fo:
+        fo.write("test")
+    with (tmp_path / "file.txt").open("r") as fo:
+        assert fo.read() == "test"
+    res.rm(force=True)
+    assert not path.exists()
+
+
+def test_file_store_init_data_dir_with_id(tmp_path):
+    """Can we use an existing directory but create a subdirectory with the given id?"""
+    res = resources.files.FileStoreResource(
+        data_dir=tmp_path, temp_dir_id="myID"
+    ).file_store
+    path = Path(res.data_dir)
+    assert str(res.data_dir)[-4:] == "myID"
+    assert path.exists()
+    with (path / "file.txt").open("w") as fo:
+        fo.write("test")
+    with (path / "file.txt").open("r") as fo:
+        assert fo.read() == "test"
+    res.rm(force=True)
+    assert not path.exists()
 
 
 def test_db_connection_init():
@@ -134,6 +169,6 @@ def test_db_connection_init():
         password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
         port=EnvVar("BAG3D_PG_PORT").get_value(),
         dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
-    ).connection
+    ).connect
     q = db.get_query("select version();")
     assert "PostgreSQL" in q[0][0]

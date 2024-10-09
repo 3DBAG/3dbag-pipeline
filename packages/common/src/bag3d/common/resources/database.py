@@ -17,7 +17,7 @@ class DatabaseResource(ConfigurableResource):
     port: str
 
     @property
-    def connection(self):
+    def connect(self):
         conn = DatabaseConnection(
             user=self.user,
             password=self.password,
