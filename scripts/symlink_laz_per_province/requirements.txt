@@ -1,0 +1,2 @@
+bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common
+shapely==2.0.6
