@@ -52,7 +52,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
     ]
     if context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
-    context.resources.lastools.execute(
+    context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn3.path
     )
 
@@ -87,7 +87,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
     ]
     if context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
-    context.resources.lastools.execute(
+    context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn4.path
     )
 
@@ -98,7 +98,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
 )
 def regular_grid_200m(context):
     """Regular grid tile boundaries for partitioning LAZ files."""
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     new_schema = "ahn"
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, "regular_grid_200m")
@@ -195,7 +195,7 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
 def partition_laz_with_grid(
     context, metadata_table_ahn, regular_grid_200m, ahn_version, cellsize, max_workers
 ):
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     query_params = {
         "grid_200m": regular_grid_200m,
         "metadata": metadata_table_ahn,
@@ -210,7 +210,7 @@ def partition_laz_with_grid(
     """)
     tile_ids = conn.get_query(query, query_params=query_params)
     out_dir = ahn_dir(
-        context.resources.file_store.data_dir, ahn_version=ahn_version
+        context.resources.file_store.file_store.data_dir, ahn_version=ahn_version
     ).joinpath(f"tiles_{cellsize}m")
     out_dir.mkdir(exist_ok=True)
     future_to_tile = {}
@@ -223,7 +223,8 @@ def partition_laz_with_grid(
             cmd.extend(
                 str(
                     ahn_laz_dir(
-                        context.resources.file_store.data_dir, ahn_version=ahn_version
+                        context.resources.file_store.file_store.data_dir,
+                        ahn_version=ahn_version,
                     )
                     / ahn_filename(t)
                 )
@@ -240,7 +241,7 @@ def partition_laz_with_grid(
             ]
             future_to_tile[
                 executor.submit(
-                    context.resources.lastools.execute,
+                    context.resources.lastools.app.execute,
                     "las2las",
                     " ".join(cmd),
                     local_path=out_file,

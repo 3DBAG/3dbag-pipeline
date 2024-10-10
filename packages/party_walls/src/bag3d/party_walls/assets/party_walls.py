@@ -44,11 +44,11 @@ def distribution_tiles_files_index(context) -> TilesFilesIndex:
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
     path_quadtree_tsv = bag3d_export_dir(
-        context.resources.file_store.data_dir
+        context.resources.file_store.file_store.data_dir
     ).joinpath("quadtree.tsv")
-    path_tiles_dir = bag3d_export_dir(context.resources.file_store.data_dir).joinpath(
-        "tiles"
-    )
+    path_tiles_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir
+    ).joinpath("tiles")
     export_results_gen = filter(
         lambda t: t.has_cityjson,
         check_export_results(
@@ -92,7 +92,7 @@ def party_walls_nl(
     ] + paths_neighbours
     df = city_stats(
         inputs=paths_inputs,
-        dsn=context.resources.db_connection.dsn,
+        dsn=context.resources.db_connection.connect.dsn,
         break_on_error=True,
     )
     context.add_output_metadata(
@@ -139,7 +139,7 @@ def features_file_index(context) -> dict[str, Path]:
     Returns a dict of {feature ID: feature file path}.
     """
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
     return dict(features_file_index_generator(reconstructed_root_dir))
 
@@ -155,7 +155,7 @@ def cityjsonfeatures_with_party_walls_nl(
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
     CityJSON tiles that is created with *tyler*."""
     reconstructed_features_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
     # For now, we do not overwrite the reconstructed features with the part walls
     # attributes, but save a new file

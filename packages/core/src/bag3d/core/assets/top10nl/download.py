@@ -29,7 +29,7 @@ def extract_top10nl(context) -> Output[Path]:
         featuretypes=context.op_config["featuretypes"],
         data_format="gml",
         geofilter=context.op_config.get("geofilter"),
-        download_dir=context.resources.file_store.data_dir,
+        download_dir=context.resources.file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")

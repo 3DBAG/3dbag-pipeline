@@ -1,35 +1,60 @@
-from dagster import resource, Field, Permissive
+from typing import Optional
+
+from dagster import ConfigurableResource, Permissive
 
 from pgutils import PostgresConnection, PostgresFunctions
-
 
 DatabaseConnection = PostgresConnection
 
 
-@resource(
-    config_schema={
-        "port": Field(int, description="Database port."),
-        "host": Field(
-            str, default_value="localhost", description="Database host to connect to."
-        ),
-        "user": Field(str, description="Database username."),
-        "password": Field(str, description="Database password."),
-        "dbname": Field(str, description="Database to connect to. It must exist."),
-        "other_params": Permissive(
-            description="Other connection parameters to be passed on to the database."
-        ),
-    },
-    description="Database connection.",
-)
-def db_connection(context):
-    conn = DatabaseConnection(
-        user=context.resource_config["user"],
-        password=context.resource_config["password"],
-        host=context.resource_config["host"],
-        port=context.resource_config["port"],
-        dbname=context.resource_config["dbname"],
-        **context.resource_config["other_params"],
-    )
-    # Create the utility Postgres functions
-    PostgresFunctions(conn)
-    return conn
+class DatabaseResource(ConfigurableResource):
+    """
+    Database connection.
+    """
+
+    host: str
+    user: str
+    password: str
+    dbname: str
+    port: str
+    other_params: Permissive()
+
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        dbname: str,
+        port: str,
+        other_params: Optional[Permissive()] = None,
+    ):
+        super().__init__(
+            host=host,
+            user=user,
+            password=password,
+            dbname=dbname,
+            port=port,
+            other_params=other_params or {},
+        )
+        conn = DatabaseConnection(
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            dbname=self.dbname,
+            **self.other_params,
+        )
+        # Create the utility Postgres functions
+        PostgresFunctions(conn)
+
+    @property
+    def connect(self):
+        conn = DatabaseConnection(
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            dbname=self.dbname,
+            **self.other_params,
+        )
+        return conn

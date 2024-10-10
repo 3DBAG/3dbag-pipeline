@@ -3,8 +3,8 @@ import pickle
 from pathlib import Path
 
 import pytest
-from bag3d.common.resources.database import DatabaseConnection
-from bag3d.common.resources.files import file_store
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
 from dagster import build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
@@ -44,9 +44,9 @@ def model(test_data_dir) -> Path:
     return test_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def database():
-    db = DatabaseConnection(
+    db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
     )
     yield db
@@ -58,16 +58,8 @@ def context(database, input_data_dir, model, fastssd_data_dir):
         partition_key="10/564/624",
         resources={
             "db_connection": database,
-            "file_store": file_store.configured(
-                {
-                    "data_dir": str(input_data_dir),
-                }
-            ),
-            "file_store_fastssd": file_store.configured(
-                {
-                    "data_dir": str(fastssd_data_dir),
-                }
-            ),
+            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
+            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
             "model_store": model,
         },
     )

@@ -81,11 +81,11 @@ def feature_evaluation(context):
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
-    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
 
     lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = (
@@ -147,7 +147,7 @@ def export_index(context):
     a tile. If a tile does not have any features in the quadtree, it is not included.
     Output it written to export_index.csv.
     """
-    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
     path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
@@ -322,43 +322,43 @@ def metadata(context: AssetExecutionContext):
                 "software": [
                     {
                         "name": "geoflow-bundle",
-                        "version": resource_defs["geoflow"].version("geof"),
+                        "version": resource_defs["geoflow"].app.version("geof"),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
                         "description": "3D building model reconstruction",
                     },
                     {
                         "name": "roofer",
-                        "version": resource_defs["roofer"].version("crop"),
+                        "version": resource_defs["roofer"].app.version("crop"),
                         "repository": "https://github.com/3DGI/roofer",
                         "description": "Point cloud selection and cropping",
                     },
                     {
                         "name": "tyler",
-                        "version": resource_defs["tyler"].version("tyler"),
+                        "version": resource_defs["tyler"].app.version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
                         "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
                     {
                         "name": "tyler-db",
-                        "version": resource_defs["tyler"].version("tyler-db"),
+                        "version": resource_defs["tyler"].app.version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
                     },
                     {
                         "name": "GDAL",
-                        "version": resource_defs["gdal"].version("ogr2ogr"),
+                        "version": resource_defs["gdal"].app.version("ogr2ogr"),
                         "repository": "https://gdal.org/",
                         "description": "Data loading with ogr2ogr",
                     },
                     {
                         "name": "PDAL",
-                        "version": resource_defs["pdal"].version("pdal"),
+                        "version": resource_defs["pdal"].app.version("pdal"),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].version("lasindex"),
+                        "version": resource_defs["lastools"].app.version("lasindex"),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },
@@ -366,7 +366,7 @@ def metadata(context: AssetExecutionContext):
             },
         },
     }
-    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
         json.dump(metadata, fo)

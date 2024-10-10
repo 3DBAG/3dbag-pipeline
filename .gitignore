@@ -50,3 +50,6 @@
 packages/common/site
 site
 docs/reference
+
+.coverage
+*.ruff_cache

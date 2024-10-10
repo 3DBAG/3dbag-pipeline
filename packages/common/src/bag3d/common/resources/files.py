@@ -4,11 +4,10 @@ from shutil import rmtree
 import random
 import string
 
-from dagster import resource, get_dagster_logger, Field
+from dagster import get_dagster_logger, ConfigurableResource
 import docker
 from docker.errors import NotFound
-
-from bag3d.common.utils.dagster import get_run_id
+from typing import Optional
 
 logger = get_dagster_logger("resources.file_store")
 
@@ -28,7 +27,10 @@ class FileStore:
         self.data_dir = None
         self.docker_volume = None
         if data_dir:
-            p = Path(data_dir).resolve()
+            directory = Path(data_dir)
+            if temp_dir_id:
+                directory = directory / ("Release_" + temp_dir_id)
+            p = directory.resolve()
             if p.is_dir():
                 pass
                 # # Need r+w for others, so that docker containers can write to the
@@ -91,35 +93,42 @@ class FileStore:
         return tmp
 
 
-@resource(
-    config_schema={
-        "data_dir": Field(
-            str,
-            is_required=False,
-            description="Local directory with permission mode 777. It is created if "
-            "does not exist.",
-        ),
-        "docker_volume": Field(str, is_required=False),
-    }
-)
-def file_store(context):
+class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline.
     Either local directory or a docker volume.
-    If neither `data_dir` nor `docker_volume` is given, a local temporary directory is
-    created.
+    If neither `data_dir` nor `docker_volume` is given, a local
+    temporary directory is created.
+    If both `data_dir` and `temp_dir_id` are input then a new folder is created within
+    the `data_dir`, with the name "Release_<temp_dir_id>"
 
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
-    run_id = get_run_id(context, short=True)
-    context.log.debug(f"file_store:config: {context.resource_config}\nrun_id:{run_id}")
 
-    if not context.resource_config.get("data_dir") and not context.resource_config.get(
-        "docker_volume"
+    data_dir: str
+    docker_volume_id: str
+    temp_dir_id: str
+
+    def __init__(
+        self,
+        data_dir: Optional[Union[Path, str]] = None,
+        docker_volume_id: Optional[str] = None,
+        temp_dir_id: Optional[str] = None,
     ):
-        context.log.debug(f"file_store temp init with run_id {run_id}")
-        return FileStore(temp_dir_id=run_id)
-    else:
-        return FileStore(
-            data_dir=context.resource_config.get("data_dir"),
-            docker_volume_id=context.resource_config.get("docker_volume"),
+        super().__init__(
+            data_dir=str(data_dir) if data_dir else "",
+            docker_volume_id=docker_volume_id or "",
+            temp_dir_id=temp_dir_id or "",
         )
+
+    @property
+    def file_store(self) -> FileStore:
+        if self.data_dir != "" and self.temp_dir_id != "":
+            return FileStore(data_dir=self.data_dir, temp_dir_id=self.temp_dir_id)
+        elif self.data_dir != "":
+            return FileStore(data_dir=self.data_dir)
+        elif self.docker_volume_id != "":
+            return FileStore(docker_volume_id=self.docker_volume_id)
+        elif self.temp_dir_id != "":
+            return FileStore(temp_dir_id=self.temp_dir_id)
+        else:
+            return FileStore()

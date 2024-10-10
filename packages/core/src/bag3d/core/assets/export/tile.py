@@ -27,14 +27,15 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
     """
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
-    output_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    output_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     context.log.debug(f"{reconstructed_root_dir=}")
     version_3dbag = kwargs["version_3dbag"]
 
     sequence_header_file = (
-        bag3d_dir(context.resources.file_store_fastssd.data_dir) / "metadata.json"
+        bag3d_dir(context.resources.file_store_fastssd.file_store.data_dir)
+        / "metadata.json"
     )
     create_sequence_header_file(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
@@ -56,7 +57,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         "--format",
         format.lower(),
         "--exe-geof",
-        str(context.resources.geoflow.exes["geof"]),
+        str(context.resources.geoflow.app.exes["geof"]),
         "--object-type",
         "Building",
         "--object-type",
@@ -85,7 +86,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
             f"invalid format: {format}, only 'multi' and '3dtiles' are " f"allowed"
         )
     context.log.debug(" ".join(cmd))
-    context.resources.tyler.execute("tyler", " ".join(cmd), cwd=str(output_dir))
+    context.resources.tyler.app.execute("tyler", " ".join(cmd), cwd=str(output_dir))
     return output_dir
 
 
@@ -116,7 +117,7 @@ def reconstruction_output_3dtiles_nl(context):
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["tyler"].version("tyler"),
+    code_version=resource_defs["tyler"].app.version("tyler"),
 )
 def reconstruction_output_multitiles_zuid_holland(context):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats, for the
@@ -127,7 +128,7 @@ def reconstruction_output_multitiles_zuid_holland(context):
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
     required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["tyler"].version("tyler"),
+    code_version=resource_defs["tyler"].app.version("tyler"),
 )
 def reconstruction_output_3dtiles_zuid_holland(context):
     """3D Tiles v1.1 generated with tyler, for the province of Zuid-Holland."""

@@ -152,7 +152,7 @@ def webservice_godzilla(context, downloadable_godzilla):
             "lod22_2d": lod22_2d,
         },
     )
-    sql = context.resources.db_connection.print_query(sql)
+    sql = context.resources.db_connection.connect.print_query(sql)
     with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
@@ -171,7 +171,7 @@ def webservice_godzilla(context, downloadable_godzilla):
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = context.resources.db_connection.print_query(sql)
+    sql = context.resources.db_connection.connect.print_query(sql)
     with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(
@@ -215,7 +215,7 @@ def webservice_godzilla(context, downloadable_godzilla):
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = context.resources.db_connection.print_query(sql)
+    sql = context.resources.db_connection.connect.print_query(sql)
     with Connection(host=host_godzilla, user=user_godzilla) as c:
         context.log.debug(sql)
         c.run(

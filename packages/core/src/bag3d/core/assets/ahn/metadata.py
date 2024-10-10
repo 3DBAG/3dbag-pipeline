@@ -72,11 +72,11 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_
 # TODO: add some op or sensor or sth that indexes and clusters the metadata table after
 #   the partitioned job is completed. Keep in mind that some partitions might fail, but
 #   we still need to index the table.
-# context.resources.db_connection.send_query(f"ALTER TABLE {metadata_table_ahn} ADD PRIMARY KEY (tile_id)")
+# context.resources.db_connection.connect.send_query(f"ALTER TABLE {metadata_table_ahn} ADD PRIMARY KEY (tile_id)")
 # geom_idx_name = f"{metadata_table_ahn.table}_boundary_idx"
-# context.resources.db_connection.send_query(
+# context.resources.db_connection.connect.send_query(
 #     f"CREATE INDEX {geom_idx_name} ON {metadata_table_ahn} USING gist (boundary)")
-# context.resources.db_connection.send_query(f"CLUSTER {metadata_table_ahn} USING {geom_idx_name}")
+# context.resources.db_connection.connect.send_query(f"CLUSTER {metadata_table_ahn} USING {geom_idx_name}")
 
 
 def compute_load_metadata(
@@ -97,7 +97,7 @@ def compute_load_metadata(
 
     """
     tile_id = context.partition_key
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     if not laz_files_ahn.new:
         if not context.op_config["force"]:
             context.log.info(
@@ -145,7 +145,7 @@ def compute_load_metadata(
 
 
 def metadata_table_ahn(context, ahn_version: int) -> PostgresTableIdentifier:
-    conn = context.resources.db_connection
+    conn = context.resources.db_connection.connect
     new_schema = "ahn"
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")

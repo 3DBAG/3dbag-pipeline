@@ -63,5 +63,5 @@ def test_download_extra(context):
         featuretypes=context.op_config["featuretypes"],
         data_format="gml",
         geofilter=context.op_config.get("geofilter"),
-        download_dir=context.resources.file_store.data_dir,
+        download_dir=context.resources.file_store.file_store.data_dir,
     )

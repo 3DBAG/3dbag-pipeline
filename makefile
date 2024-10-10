@@ -14,6 +14,7 @@ build: source
 	docker build -t $(BAG3D_PG_DOCKERIMAGE) $(BAG3D_PG_DOCKERFILE) --build-arg pg_user=$(BAG3D_PG_USER) --build-arg pg_pswd=$(BAG3D_PG_PASSWORD) --build-arg pg_db=$(BAG3D_PG_DATABASE)
 run: source
 	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml up -d
+	sleep 5
 
 stop: source
 	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml down

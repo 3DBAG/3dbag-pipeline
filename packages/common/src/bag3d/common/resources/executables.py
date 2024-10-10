@@ -6,11 +6,7 @@ import signal
 from subprocess import PIPE, STDOUT, Popen
 from typing import Dict, Optional
 
-from dagster import (
-    get_dagster_logger,
-    Failure,
-    ConfigurableResource,
-)
+from dagster import get_dagster_logger, Failure, ConfigurableResource, Config
 from dagster_shell import execute_shell_command
 import docker
 from docker.errors import ImageNotFound
@@ -80,7 +76,7 @@ def format_version_stdout(version: str) -> str:
     return version.replace("\n", ",")
 
 
-class DockerConfig(ConfigurableResource):
+class DockerConfig(Config):
     image: str
     mount_point: str
 
