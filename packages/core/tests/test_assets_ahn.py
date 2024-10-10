@@ -1,7 +1,7 @@
 import pytest
 from bag3d.core.assets.ahn.core import (
     ahn_laz_dir,
-    download_ahn_index_esri,
+    download_ahn_index,
     generate_grid,
 )
 from bag3d.core.assets.ahn.download import (
@@ -11,25 +11,22 @@ from bag3d.core.assets.ahn.download import (
     laz_files_ahn4,
     md5_pdok_ahn3,
     md5_pdok_ahn4,
-    tile_index_ahn3_pdok,
-    tile_index_ahn4_pdok,
+    tile_index_pdok,
 )
 from bag3d.core.assets.ahn.metadata import metadata_table_ahn3, metadata_table_ahn4
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 
 
-@pytest.mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
-def test_download_ahn_index_esri(ahn_version):
-    tile_ids = download_ahn_index_esri(ahn_version)
-    assert len(tile_ids) > 0
+def test_download_ahn_index():
+    tile_ids = download_ahn_index()
+    assert len(tile_ids) == 1407
     assert tile_ids[list(tile_ids.keys())[0]] is None
 
 
-@pytest.mark.parametrize("ahn_version", (3, 4), ids=("ahn3", "ahn4"))
-def test_download_ahn_index_esri_geometry(ahn_version):
-    features = download_ahn_index_esri(ahn_version, with_geom=True)
-    assert len(features) > 0
+def test_download_ahn_index_geometry():
+    features = download_ahn_index(with_geom=True)
+    assert len(features) == 1407
     assert features[list(features.keys())[0]] is not None
 
 
@@ -60,15 +57,10 @@ def test_md5_pdok_ahn(context):
         assert sha is not None
 
 
-def test_tile_index_ahn_pdok(context):
-    res = tile_index_ahn3_pdok(context)
-    assert len(res) > 0
+def test_tile_index_pdok(context):
+    res = tile_index_pdok(context)
+    assert len(res) == 1407
     assert res[list(res.keys())[0]] is not None
-
-    res = tile_index_ahn4_pdok(context)
-    assert len(res) > 0
-    assert res[list(res.keys())[0]] is not None
-
 
 @pytest.mark.slow
 def test_laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn3_pdok_fix):
