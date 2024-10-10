@@ -10,13 +10,14 @@ from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     format_laz_log,
     ahn_filename,
-    download_ahn_index_esri,
+    download_ahn_index,
     ahn_laz_dir,
 )
 
 logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file MD5 sums computed at PDOK
+# TODO: Add checksum for AHN5
 URL_LAZ_SHA = {
     "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
@@ -111,24 +112,16 @@ def md5_pdok_ahn4(context):
 
 
 @asset
-def tile_index_ahn3_pdok(context):
-    """The AHN3 tile index, including the tile geometry and the file donwload links.
-    Downloaded from esri's server."""
-    return download_ahn_index_esri(ahn_version=3, with_geom=True)
-
-
-@asset
-def tile_index_ahn4_pdok(context):
-    """The AHN4 tile index, including the tile geometry and the file donwload links.
-    Downloaded from esri's server."""
-    return download_ahn_index_esri(ahn_version=4, with_geom=True)
+def tile_index_pdok(context):
+    """The AHN tile index, including the tile geometry and the file donwload links."""
+    return download_ahn_index(with_geom=True)
 
 
 @asset(
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(ahn_version=3),
 )
-def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
+def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -139,7 +132,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     fpath = ahn_laz_dir(context.resources.file_store.data_dir, 3) / ahn_filename(
         tile_id
     )
-    url_laz = tile_index_ahn3_pdok[tile_id]["properties"]["AHN3_LAZ"]
+    url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
     lazdownload = download_ahn_laz(
         fpath=fpath,
         sha_reference=md5_pdok_ahn3,
@@ -153,7 +146,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(ahn_version=4),
 )
-def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
+def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -164,10 +157,34 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
     fpath = ahn_laz_dir(context.resources.file_store.data_dir, 4) / ahn_filename(
         tile_id
     )
-    url_laz = tile_index_ahn4_pdok[tile_id]["properties"]["AHN4_LAZ"]
+    url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
     lazdownload = download_ahn_laz(
         fpath=fpath,
         sha_reference=md5_pdok_ahn4,
+        sha_func=HashChunkwise("md5"),
+        url_laz=url_laz,
+    )
+    return Output(lazdownload, metadata=lazdownload.asdict())
+
+
+@asset(
+    required_resource_keys={"file_store"},
+    partitions_def=PartitionDefinitionAHN(ahn_version=5),
+)
+def laz_files_ahn5(context, tile_index_pdok):
+    """AHN5 LAZ files as they are downloaded from PDOK.
+
+    The download links are retrieved from the AHN tile index service (blaadindex).
+    Only downlaod a file if it does not exist locally, or the SHA of the file does not
+    match the reference.
+    """
+    tile_id = context.partition_key
+    fpath = ahn_laz_dir(context.resources.file_store.data_dir, 5) / ahn_filename(
+        tile_id
+    )
+    url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
+    lazdownload = download_ahn_laz(
+        fpath=fpath,
         sha_func=HashChunkwise("md5"),
         url_laz=url_laz,
     )
@@ -226,8 +243,8 @@ def get_md5_pdok(url: str) -> Mapping[str, str]:
 
 def download_ahn_laz(
     fpath: Path,
-    sha_reference: Mapping[str, str],
-    sha_func: HashChunkwise,
+    sha_reference: Mapping[str, str] = None,
+    sha_func: HashChunkwise = None,
     url_base: str = None,
     url_laz: str = None,
 ) -> LAZDownload:
@@ -270,7 +287,9 @@ def download_ahn_laz(
             is_new = True
     else:  # pragma: no cover
         is_new = False
-    match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
+    match = True
+    if sha_reference and sha_func:
+        match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
     if match:
         logger.debug(format_laz_log(fpath, "OK"))
         return LAZDownload(
@@ -288,9 +307,11 @@ def download_ahn_laz(
         fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
         if fpath is None:
             return error
-        match, sha = match_sha(
-            fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
-        )
+        match = True
+        if sha_reference and sha_func:  
+            match, sha = match_sha(
+                fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
+            )
         if not match:
             logger.error(format_laz_log(fpath, "ERROR"))
             return error

@@ -16,7 +16,7 @@ from bag3d.core.assets.ahn.core import (
     ahn_filename,
 )
 
-# The tile index bbox was computed from download_ahn_index_esri(3, True)
+# The tile index bbox was computed from download_ahn_index(3, True)
 PDOK_TILE_INDEX_BBOX = (13000, 306250, 279000, 616250)
 
 logger = get_dagster_logger("ahn.tile")
@@ -89,6 +89,41 @@ def lasindex_ahn4(context, laz_files_ahn4):
         cmd_list.append("-dont_reindex")
     context.resources.lastools.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn4.path
+    )
+
+
+@asset(
+    config_schema={
+        "tile_size": Field(
+            int,
+            default_value=100,
+            description="Set smallest spatial area indexed to tile_size by tile_size units.",
+        ),
+        "force": Field(
+            bool,
+            default_value=False,
+            description="Force the re-index the file, even if it is already indexed.",
+        ),
+    },
+    required_resource_keys={"lastools"},
+    partitions_def=PartitionDefinitionAHN(ahn_version=5),
+)
+def lasindex_ahn5(context, laz_files_ahn5):
+    """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.
+
+    See https://lastools.osgeo.org/download/lasindex_README.txt.
+    """
+    cmd_list = [
+        "{exe}",
+        "-i {local_path}",
+        "-append",
+        "-tile_size",
+        str(context.op_config["tile_size"]),
+    ]
+    if context.op_config["force"] is False:
+        cmd_list.append("-dont_reindex")
+    context.resources.lastools.execute(
+        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn5.path
     )
 
 
@@ -187,6 +222,29 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
         metadata_table_ahn4,
         regular_grid_200m,
         ahn_version=4,
+        cellsize=200,
+        max_workers=context.op_config["max_workers"],
+    )
+
+@asset(
+    config_schema={
+        "max_workers": Field(
+            int,
+            default_value=20,
+            description="Passed on to the subprocess.ThreadPoolExecutor that calls "
+            "las2las.",
+        )
+    },
+    deps={AssetKey(["ahn", "metadata_ahn5"])},
+    required_resource_keys={"file_store", "lastools", "db_connection"},
+)
+def laz_tiles_ahn5_200m(context, regular_grid_200m, metadata_table_ahn5):
+    """AHN5 partitioned by a grid of 200m cells on the extent of the AHN PDOK tiles."""
+    partition_laz_with_grid(
+        context,
+        metadata_table_ahn5,
+        regular_grid_200m,
+        ahn_version=5,
         cellsize=200,
         max_workers=context.op_config["max_workers"],
     )
