@@ -98,6 +98,8 @@ class FileStoreResource(ConfigurableResource):
     Either local directory or a docker volume.
     If neither `data_dir` nor `docker_volume` is given, a local
     temporary directory is created.
+    If both `data_dir` and `temp_dir_id` are input then a new folder is created within
+    the `data_dir`, with the name "Release_<temp_dir_id>"
 
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
