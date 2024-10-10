@@ -6,6 +6,7 @@ The province boundaries and AHN tile index is retrieved from webservices.
 import logging
 from argparse import ArgumentParser
 from json import loads as json_loads
+from pathlib import Path
 from sys import stdout
 
 from bag3d.common.utils.requests import download_as_str
@@ -44,6 +45,10 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    path_laz = Path(args.laz)
+    if not path_laz.is_dir():
+        raise NotADirectoryError(f"LAZ directory does not exist: {path_laz}")
+    path_output = Path(args.output)
 
     # Provinces
     # Source provinces: https://www.nationaalgeoregister.nl/geonetwork/srv/api/records/208bc283-7c66-4ce7-8ad3-1cf3e8933fb5?language=all
@@ -109,10 +114,10 @@ if __name__ == "__main__":
             dict_ahn_bladwijzer["features"][tile_i]["properties"]["AHN"]
             for tile_i in result
         ]
-        province_path = args.output / province_name.lower()
+        province_path = path_output / province_name.lower()
         province_path.mkdir(parents=True, exist_ok=True)
         for ahn_tile_name in ahn_tile_names:
             filename = ahn_filename(ahn_tile_name)
-            (province_path / filename).symlink_to(args.laz / filename)
+            (province_path / filename).symlink_to(path_laz / filename)
 
     log.info("Done")
