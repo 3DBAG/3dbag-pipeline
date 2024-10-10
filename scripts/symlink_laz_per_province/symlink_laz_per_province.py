@@ -118,6 +118,13 @@ if __name__ == "__main__":
         province_path.mkdir(parents=True, exist_ok=True)
         for ahn_tile_name in ahn_tile_names:
             filename = ahn_filename(ahn_tile_name)
-            (province_path / filename).symlink_to(path_laz / filename)
+            path_link = province_path / filename
+            path_lazfile = path_laz / filename
+            if path_lazfile.is_file():
+                if path_link.exists():
+                    path_link.unlink()
+                path_link.symlink_to(path_lazfile)
+            else:
+                log.error(f"File does not exist: {path_lazfile}")
 
     log.info("Done")
