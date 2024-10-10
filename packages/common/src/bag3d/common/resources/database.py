@@ -36,6 +36,19 @@ class DatabaseResource(ConfigurableResource):
             port=port,
             other_params=other_params or {},
         )
+        conn = DatabaseConnection(
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            dbname=self.dbname,
+            **self.other_params,
+        )
+        try:
+            # Create the utility Postgres functions
+            PostgresFunctions(conn)
+        finally:
+            conn.close()
 
     @property
     def connect(self):
@@ -47,6 +60,4 @@ class DatabaseResource(ConfigurableResource):
             dbname=self.dbname,
             **self.other_params,
         )
-        # Create the utility Postgres functions
-        PostgresFunctions(conn)
         return conn
