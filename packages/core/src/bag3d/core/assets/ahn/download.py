@@ -129,9 +129,9 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     match the reference.
     """
     tile_id = context.partition_key
-    fpath = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3) / ahn_filename(
-        tile_id
-    )
+    fpath = ahn_laz_dir(
+        context.resources.file_store.file_store.data_dir, 3
+    ) / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
     lazdownload = download_ahn_laz(
         fpath=fpath,
@@ -155,9 +155,9 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     """
     tile_id = context.partition_key
 
-    fpath = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4) / ahn_filename(
-        tile_id
-    )
+    fpath = ahn_laz_dir(
+        context.resources.file_store.file_store.data_dir, 4
+    ) / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
 
     lazdownload = download_ahn_laz(
@@ -291,7 +291,9 @@ def download_ahn_laz(
         is_new = False
     match = True
     if sha_reference and sha_func:
-        match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
+        match, sha = match_sha(
+            fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
+        )
     if match:
         logger.debug(format_laz_log(fpath, "OK"))
         return LAZDownload(
@@ -310,7 +312,7 @@ def download_ahn_laz(
         if fpath is None:
             return error
         match = True
-        if sha_reference and sha_func:  
+        if sha_reference and sha_func:
             match, sha = match_sha(
                 fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
             )
