@@ -22,10 +22,12 @@ def metadata_table_ahn4(context):
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(context, ahn_version=4)
 
+
 @asset(required_resource_keys={"db_connection"})
 def metadata_table_ahn5(context):
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(context, ahn_version=5)
+
 
 @asset(
     config_schema={
@@ -71,7 +73,6 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok)
     return compute_load_metadata(
         context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok
     )
-
 
 
 @asset(
@@ -133,13 +134,18 @@ def compute_load_metadata(
                 f"skipping computation."
             )
             return Output(None)
-    ret_code, out_info = pdal_info(
-        context.resources.pdal,
-        file_path=laz_files_ahn.path,
-        with_all=context.op_config["all"],
-    )
-    if ret_code != 0:
-        raise
+    try:
+        ret_code, out_info = pdal_info(
+            context.resources.pdal,
+            file_path=laz_files_ahn.path,
+            with_all=context.op_config["all"],
+        )
+        if ret_code != 0:
+            raise
+    # if pdal fails store nothing in the table
+    except Exception:
+        out_info = None
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),

@@ -34,7 +34,8 @@ def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
 
 
-def download_ahn_index(with_geom: bool = False
+def download_ahn_index(
+    with_geom: bool = False,
 ) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
     """Downloads the AHN 3/4/5 tile index.
     Args:
@@ -76,14 +77,15 @@ def download_ahn_index(with_geom: bool = False
     else:
         if with_geom:
             for f in r_json["features"]:
-                features[f['properties']['AHN'].lower()] = {
-                    "AHN3_LAZ" : f['properties']["AHN3 puntenwolk"],
-                    "AHN4_LAZ" : f['properties']["AHN4 puntenwolk"],
-                    "AHN5_LAZ" : f['properties']["AHN5 puntenwolk"]
-                    }
+                features[f["properties"]["AHN"].lower()] = {
+                    "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
+                    "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
+                    "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
+                    "geometry": f["geometry"],
+                }
         else:
             for f in r_json["features"]:
-                features[f['properties']['AHN'].lower()] = None
+                features[f["properties"]["AHN"].lower()] = None
 
     return features
 

@@ -226,6 +226,7 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
         max_workers=context.op_config["max_workers"],
     )
 
+
 @asset(
     config_schema={
         "max_workers": Field(
