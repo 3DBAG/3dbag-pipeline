@@ -34,13 +34,13 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
         query_params={"vbo_tbl": stage_bag_verblijfsobject, "new_table": new_table}
     )
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
     )
     return Output(new_table, metadata=metadata)
@@ -55,17 +55,17 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     query = load_sql(query_params={"pand_tbl": stage_bag_pand, "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     geom_idx_name = f"{table_name}_geometrie_idx"
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CLUSTER {new_table} USING {geom_idx_name}"
     )
     return Output(new_table, metadata=metadata)

@@ -29,7 +29,7 @@ def test_drop_table(context):
     ).format(
         table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
     )
-    context.resources.db_connection.send_query(query)
+    context.resources.db_connection.connect.send_query(query)
     assert table_exists(context, NON_EXISTING_TABLE) is True
     drop_table(context, NON_EXISTING_TABLE)
     assert table_exists(context, NON_EXISTING_TABLE) is False
@@ -43,13 +43,13 @@ def test_create_schema(context):
                 FROM information_schema.schemata 
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
-    res = context.resources.db_connection.get_dict(query)
+    res = context.resources.db_connection.connect.get_dict(query)
     assert res[0]["count"] == 1
 
 
 def test_summary_md(database):
-    null_count = database.count_nulls(EXISTING_TABLE)
-    fields = database.get_fields(EXISTING_TABLE)
+    null_count = database.connect.count_nulls(EXISTING_TABLE)
+    fields = database.connect.get_fields(EXISTING_TABLE)
 
     res = summary_md(fields, null_count)
     assert isinstance(res, str)
