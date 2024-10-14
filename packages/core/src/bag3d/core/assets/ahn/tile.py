@@ -122,7 +122,7 @@ def lasindex_ahn5(context, laz_files_ahn5):
     ]
     if context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
-    context.resources.lastools.execute(
+    context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn5.path
     )
 
