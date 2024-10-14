@@ -64,19 +64,19 @@ def test_tile_index_pdok(context):
 
 
 @pytest.mark.slow
-def test_laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn3_pdok_fix):
+def test_laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_pdok_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn3_pdok_fix)
+    res = laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_pdok_fix)
     assert res is not None
     print(res.value)
 
 
 @pytest.mark.slow
-def test_laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn4_pdok_fix):
+def test_laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_pdok_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn4_pdok_fix)
+    res = laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_pdok_fix)
     assert res is not None
 
 
