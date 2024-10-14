@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional
 from math import ceil
 
 import requests
