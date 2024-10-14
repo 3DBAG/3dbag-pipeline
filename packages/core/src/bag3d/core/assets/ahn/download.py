@@ -259,7 +259,7 @@ def laz_files_ahn5(context, tile_index_pdok):
         fpath=fpath,
         url_laz=url_laz,
     )
-    #TODO: Add validation when checksum become available. 
+    # TODO: Add validation when checksum become available.
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
