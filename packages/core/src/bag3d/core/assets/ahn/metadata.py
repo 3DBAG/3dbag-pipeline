@@ -144,7 +144,7 @@ def compute_load_metadata(
             raise
     # if pdal fails store nothing in the table
     except Exception:
-        out_info = None
+        out_info = {}
 
     query_params = {
         "metadata_table": metadata_table_ahn.id,
