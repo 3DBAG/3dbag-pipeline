@@ -10,9 +10,10 @@ from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     format_laz_log,
     ahn_filename,
-    download_ahn_index,
     ahn_laz_dir,
 )
+
+from bag3d.core.assets.ahn import TILES
 
 logger = get_dagster_logger("ahn.download")
 
@@ -131,7 +132,7 @@ def md5_pdok_ahn4(context):
 @asset
 def tile_index_pdok(context):
     """The AHN tile index, including the tile geometry and the file donwload links."""
-    return download_ahn_index(with_geom=True)
+    return TILES
 
 
 @asset(
