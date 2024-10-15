@@ -136,14 +136,15 @@ def compute_load_metadata(
             return Output(None)
     try:
         ret_code, out_info = pdal_info(
-            context.resources.pdal,
+            context.resources.pdal.app,
             file_path=laz_files_ahn.path,
             with_all=context.op_config["all"],
         )
         if ret_code != 0:
             raise
     # if pdal fails store nothing in the table
-    except Exception:
+    except Exception as e:
+        context.log.exception(e)
         out_info = {}
 
     query_params = {
