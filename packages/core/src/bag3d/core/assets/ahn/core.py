@@ -43,7 +43,7 @@ def download_ahn_index(
         with_geom: If False, request only the AHN tile ids. Else also request the
             tile boundaries as geojson.
     Returns:
-        A dict of {tile id: link to laz}. If not ``with_geom``, then value of the link is None.
+        A dict of {tile id: dict of links and geometry}. If not ``with_geom``, then value of the links is None.
     """
 
     service_url = (
@@ -63,7 +63,6 @@ def download_ahn_index(
     print(f"Downloading the AHN tile boundaries from {service_url}")
 
     features = {}
-    # TODO: include the tile geometry, and maybe use the download links from here
 
     response = requests.get(url=service_url + "/query", params=params_features)
     if response.status_code == 200:
