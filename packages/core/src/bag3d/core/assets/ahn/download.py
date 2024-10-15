@@ -136,7 +136,7 @@ def tile_index_pdok(context):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=3),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -188,7 +188,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=4),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -241,7 +241,7 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=5),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def laz_files_ahn5(context, tile_index_pdok):
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -265,7 +265,7 @@ def laz_files_ahn5(context, tile_index_pdok):
 
 # @multi_asset(
 #     required_resource_keys={"file_store", "pdal"},
-#     partitions_def=PartitionDefinitionAHN(ahn_version=3),
+#     partitions_def=PartitionDefinitionAHN(),
 #     ins={
 #         "md5_pdok_ahn3": AssetIn(["ahn", "md5_pdok_ahn3"])
 #     },

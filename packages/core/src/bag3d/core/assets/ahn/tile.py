@@ -36,7 +36,7 @@ logger = get_dagster_logger("ahn.tile")
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=3),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def lasindex_ahn3(context, laz_files_ahn3):
     """Append a spatial index to the AHN3 LAZ file, using LASTools's `lasindex`.
@@ -71,7 +71,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=4),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def lasindex_ahn4(context, laz_files_ahn4):
     """Append a spatial index to the AHN4 LAZ file, using LASTools's `lasindex`.
@@ -106,7 +106,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=5),
+    partitions_def=PartitionDefinitionAHN(),
 )
 def lasindex_ahn5(context, laz_files_ahn5):
     """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.

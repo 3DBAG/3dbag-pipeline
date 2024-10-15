@@ -7,7 +7,7 @@ from dagster import StaticPartitionsDefinition
 
 
 class PartitionDefinitionAHN(StaticPartitionsDefinition):
-    def __init__(self, ahn_version: int):
+    def __init__(self):
         tile_ids = download_ahn_index(with_geom=False)
         super().__init__(partition_keys=sorted(list(tile_ids)))
 
