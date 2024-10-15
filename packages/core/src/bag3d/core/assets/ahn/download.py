@@ -109,8 +109,8 @@ class LAZDownload:
             fpath=self.path, sha_reference=sha_reference, sha_func=sha_func
         )
 
-        self.hash_name = (sha.name,)
-        self.hash_hexdigest = (sha.hexdigest(),)
+        self.hash_name = sha.name
+        self.hash_hexdigest = sha.hexdigest()
         if match:
             logger.debug(format_laz_log(self.path, "OK"))
         return match
@@ -130,7 +130,7 @@ def md5_pdok_ahn4(context):
 
 @asset
 def tile_index_pdok(context):
-    """The AHN tile index, including the tile geometry and the file donwload links."""
+    """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
 
 
