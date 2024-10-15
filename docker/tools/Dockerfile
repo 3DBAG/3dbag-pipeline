@@ -16,7 +16,7 @@ RUN apt-get -y update && \
 
 RUN add-apt-repository -y ppa:deadsnakes/ppa ;\
     apt-get -y update ; \
-    apt-get -y install python3.11 python3.11-venv
+    apt-get -y install python3.11 python3.11-venv python3.11-pip
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
