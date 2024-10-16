@@ -26,21 +26,14 @@ RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 
-WORKDIR /3dbag-pipeline
+WORKDIR /opt/3dbag-pipeline
 COPY ./build-tools.sh .
-WORKDIR /3dbag-pipeline/.build-3dbag-pipeline
-RUN bash /3dbag-pipeline/build-tools.sh --build-all --jobs $JOBS --clean
+WORKDIR /opt/3dbag-pipeline/.build-3dbag-pipeline
+RUN bash /opt/3dbag-pipeline/build-tools.sh --build-all --jobs $JOBS --clean
 
-WORKDIR /3dbag-pipeline
+RUN python3.11 -m pip install \
+    dagster \
+    dagster-postgres \
+    dagster-docker \
 
-FROM tools
-COPY --from=tools /3dbag-pipeline/.build-3dbag-pipeline /3dbag-pipeline/.build-3dbag-pipeline
-
-WORKDIR /3dbag-pipeline
-COPY . /3dbag-pipeline
-COPY ./docker/tools/.env /3dbag-pipeline/.env
-
-WORKDIR /3dbag-pipeline
-RUN make venvs
-
-WORKDIR /3dbag-pipeline
+WORKDIR /opt/3dbag-pipeline

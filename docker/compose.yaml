@@ -16,6 +16,10 @@ services:
   data_postgresql:
     build:
       context: ./postgres
+      args:
+        - pg_user=$BAG3D_PG_USER
+        - pg_pswd=$BAG3D_PG_PASSWORD
+        - pg_db=$BAG3D_PG_DATABASE
 #    image: $BAG3D_PG_DOCKERIMAGE
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
@@ -28,6 +32,7 @@ services:
       - data_postgresql:/var/log/postgresql/
     environment:
       POSTGRES_USER: $BAG3D_PG_USER
+      POSTGRES_PASSWORD: $BAG3D_PG_PASSWORD
       BAG3D_PG_PASSWORD: $BAG3D_PG_PASSWORD
       POSTGRES_DB: $BAG3D_PG_DATABASE
     restart: always
@@ -40,18 +45,50 @@ services:
   # Multiple containers like this can be deployed separately - each just needs to run on
   # its own port, and have its own entry in the workspace.yaml file that's loaded by the
   # webserver.
-  pipeline:
+  bag3d_core:
     build:
       context: ../
-      dockerfile: ./docker/pipeline/Dockerfile
-    container_name: bag3d_pipeline
-    image: 3dbag-pipeline-from-compose
+      dockerfile: docker/pipeline/bag3d_core.dockerfile
+    container_name: bag3d-pipeline_core
+    image: bag3d-pipeline_core
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-from-compose"
+      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_core"
+    networks:
+      - bag3d_network
+    depends_on:
+      - data_postgresql
+  bag3d_floors_estimation:
+    build:
+      context: ../
+      dockerfile: docker/pipeline/bag3d_floors_estimation.dockerfile
+    container_name: bag3d-pipeline_floors_estimation
+    image: bag3d-pipeline_floors_estimation
+    restart: always
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_floors_estimation"
+    networks:
+      - bag3d_network
+    depends_on:
+      - data_postgresql
+  bag3d_party_walls:
+    build:
+      context: ../
+      dockerfile: docker/pipeline/bag3d_party_walls.dockerfile
+    container_name: bag3d-pipeline_party_walls
+    image: bag3d-pipeline_party_walls
+    restart: always
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_party_walls"
     networks:
       - bag3d_network
     depends_on:
@@ -87,7 +124,9 @@ services:
       - bag3d_network
     depends_on:
       - dagster_postgresql
-      - pipeline
+      - bag3d_core
+      - bag3d_floors_estimation
+      - bag3d_party_walls
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -110,7 +149,9 @@ services:
       - bag3d_network
     depends_on:
       - dagster_postgresql
-      - pipeline
+      - bag3d_core
+      - bag3d_floors_estimation
+      - bag3d_party_walls
 
 volumes:
   data_postgresql:

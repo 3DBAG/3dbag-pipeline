@@ -1,0 +1,15 @@
+# IDE config
+.run
+.idea
+
+# Build directories and cache
+src/*.egg-info
+build
+site
+tests/.pytest_cache
+*__pycache__*
+
+# Tools
+.tox
+.coverage
+*.ruff_cache
