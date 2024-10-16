@@ -1,55 +1,36 @@
 # Local env
-/.env_*
-/.env
+.env_*
+.env
 
 # IDE config
-/.run/
+.run
 .idea
 
-# Python build artefacts and chache
-.pytest_cache/
-/src/bag3d_pipeline.egg-info/
-/.tox/
+# Build artifacts and cache
+.pytest_cache
 *__pycache__*
 
 # Test data
-/tmp/*
-/tests/test_data/
-/tests/logs/
-/packages/party_walls/tests/data/
-/packages/core/tests/data/
+tmp/*
+tests/test_data/
 
 # Local DAGSTER_HOME
-/tests/dagster_home/.logs_queue/
-/tests/dagster_home/.telemetry/
-/tests/dagster_home/history/
-/tests/dagster_home/schedules/
-/tests/dagster_home/storage/
-/tests/dagster_home/logs/
-/tests/dagster_home/.nux
-/tests/dagster_home/tmp*
-/tests/dagster_home/.env
+tests/dagster_home/.logs_queue/
+tests/dagster_home/.nux
+tests/dagster_home/.telemetry/
+tests/dagster_home/history/
+tests/dagster_home/logs/
+tests/dagster_home/schedules/
+tests/dagster_home/storage/
 
-/packages/common/src/bag3d_common.egg-info/
-/packages/common/.tox/
-/packages/common/tests/.pytest_cache/
-/packages/common/build/
-/venvs/venv_*
-/packages/core/src/bag3d_core.egg-info/
-/packages/core/tests/.pytest_cache/
-/packages/core/.tox/
-/packages/core/build/
-/packages/party_walls/src/bag3d_party_walls.egg-info/
-/packages/party_walls/tests/.pytest_cache/
-/packages/party_walls/build/
-/packages/floors_estimation/src/bag3d_floors_estimation.egg-info/
-/packages/floors_estimation/tests/.pytest_cache/
-/packages/floors_estimation/build/
+# Virtual envs
+venvs/venv_*
 
 # Documentation
-packages/common/site
 site
 docs/reference
 
+# Tools
+.tox
 .coverage
 *.ruff_cache
