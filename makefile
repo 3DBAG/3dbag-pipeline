@@ -1,6 +1,6 @@
 include .env
 
-.PHONY: download build run stop venvs start_dagster test
+.PHONY: download build build_tools run stop venvs start_dagster test
 
 source:
 	set -a ; . ./.env ; set +a
@@ -12,12 +12,13 @@ download: source
  
 build: source
 	docker build -t $(BAG3D_PG_DOCKERIMAGE) -f $(BAG3D_PG_DOCKERFILE) --build-arg pg_user=$(BAG3D_PG_USER) --build-arg pg_pswd=$(BAG3D_PG_PASSWORD) --build-arg pg_db=$(BAG3D_PG_DATABASE) .
-run: source
-	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml up -d
-	sleep 5
 
 build_tools: source
 	docker build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" .
+
+run: source
+	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml up -d
+	sleep 5
 
 stop: source
 	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml down
