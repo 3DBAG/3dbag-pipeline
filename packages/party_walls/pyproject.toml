@@ -11,6 +11,7 @@ requires-python = ">=3.8"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
     { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

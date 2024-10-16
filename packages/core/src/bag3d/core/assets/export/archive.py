@@ -16,7 +16,7 @@ from bag3d.common.utils.files import bag3d_export_dir
 )
 def geopackage_nl(context):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
-    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
 
@@ -54,7 +54,7 @@ def geopackage_nl(context):
         str(first_path_with_data),
     ]
     cmd = " ".join(cmd)
-    return_code, output = context.resources.gdal.execute("ogr2ogr", cmd)
+    return_code, output = context.resources.gdal.app.execute("ogr2ogr", cmd)
 
     failed = []
     for lid in leaf_ids[first_i_with_data + 1 :]:
@@ -74,7 +74,7 @@ def geopackage_nl(context):
         ]
         cmd = " ".join(cmd)
         try:
-            return_code, output = context.resources.gdal.execute(
+            return_code, output = context.resources.gdal.app.execute(
                 "ogr2ogr", cmd, silent=True
             )
             if return_code != 0:
@@ -100,14 +100,14 @@ def geopackage_nl(context):
             f"\"SELECT CreateSpatialIndex('{name_layer}','geom')\"",
         ]
         cmd = " ".join(cmd)
-        context.resources.gdal.execute("ogrinfo", cmd)
+        context.resources.gdal.app.execute("ogrinfo", cmd)
 
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
     cmd = ["{exe}", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
-    context.resources.gdal.execute("sozip", cmd)
+    context.resources.gdal.app.execute("sozip", cmd)
 
     metadata = {}
     metadata["nr_failed"] = len(failed)
@@ -130,7 +130,7 @@ def create_path_layer(id_layer, path_tiles_dir):
 def compressed_tiles(context, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = bag3d_export_dir(context.resources.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)

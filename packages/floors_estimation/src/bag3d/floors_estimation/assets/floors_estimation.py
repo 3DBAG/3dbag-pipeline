@@ -97,7 +97,7 @@ def features_file_index(context) -> dict[str, Path]:
     Returns a dict of {feature ID: feature file path}.
     """
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
 
     reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
@@ -132,7 +132,7 @@ def bag3d_features(
         processing = {
             pool.submit(
                 process_chunk,
-                context.resources.db_connection,
+                context.resources.db_connection.connect,
                 chunk,
                 cid,
                 bag3d_features_table,
@@ -202,7 +202,7 @@ def preprocessed_features(
     }
 
     query = inject_parameters(query, query_params)
-    res = context.resources.db_connection.get_dict(query)
+    res = context.resources.db_connection.connect.get_dict(query)
     data = pd.DataFrame.from_records(res)
     context.log.info(len(data))
     data.set_index("identificatie", inplace=True, drop=True)
@@ -246,7 +246,7 @@ def predictions_table(
     query = f"""INSERT INTO {predictions_table}
                 VALUES (%s, %s);"""
 
-    with connect(context.resources.db_connection.dsn) as connection:
+    with connect(context.resources.db_connection.connect.dsn) as connection:
         with connection.cursor() as cur:
             cur.executemany(query, data, returning=True)
             connection.commit()
@@ -284,7 +284,7 @@ def save_cjfiles(
 ) -> None:
     """Saves the new cj files."""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir
+        context.resources.file_store_fastssd.file_store.data_dir
     )
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"

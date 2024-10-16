@@ -48,8 +48,12 @@ def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
     ```
     """
     extract_url = "https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip"
-    extract_zip = Path(context.resources.file_store.data_dir / "lvbag-extract-nl.zip")
-    extract_dir = Path(context.resources.file_store.data_dir / "lvbag-extract")
+    extract_zip = Path(
+        context.resources.file_store.file_store.data_dir / "lvbag-extract-nl.zip"
+    )
+    extract_dir = Path(
+        context.resources.file_store.file_store.data_dir / "lvbag-extract"
+    )
     # chunk_size: https://stackoverflow.com/a/23397581
     download_file(extract_url, extract_zip, chunk_size=1024 * 1024)
     unzip(extract_zip, extract_dir)
@@ -245,7 +249,7 @@ def load_bag_layer(
         "layer_dir": layer_dir,
         "shortdate": shortdate,
         "new_table": new_table,
-        "dsn": context.resources.db_connection.dsn,
+        "dsn": context.resources.db_connection.connect.dsn,
     }
 
     # Create the ogr2ogr command. The order of parameters is important!
@@ -267,7 +271,7 @@ def load_bag_layer(
     cmd = " ".join(cmd)
 
     # Execute
-    return_code, output = context.resources.gdal.execute(
+    return_code, output = context.resources.gdal.app.execute(
         "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
     )
     return True if return_code == 0 else False

@@ -42,17 +42,17 @@ def top10nl_gebouw(context, stage_top10nl_gebouw) -> Output[PostgresTableIdentif
         query_params={"gebouw_tbl": stage_top10nl_gebouw, "new_table": new_table}
     )
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_typegebouw_idx ON {new_table} USING gin (typegebouw)"
     )
-    context.resources.db_connection.send_query(
+    context.resources.db_connection.connect.send_query(
         f"CLUSTER {new_table} USING {geom_idx_name}"
     )
     return Output(new_table, metadata=metadata)
