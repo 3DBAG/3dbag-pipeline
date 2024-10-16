@@ -13,7 +13,7 @@ ENV POSTGRES_USER=$pg_user
 ENV POSTGRES_PASSWORD=$pg_pswd
 ENV POSTGRES_DB=$pg_db
 ENV POSTGRES_HOST=localhost
-ENV POSTGRES_HOST_AUTH_METHOD=trust
+#ENV POSTGRES_HOST_AUTH_METHOD=trust
 
 
 # Create a directory to store PostgreSQL data and logs

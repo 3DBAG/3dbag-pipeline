@@ -51,7 +51,12 @@ BAG3D_RELEASE_VERSION="10_24"
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
 
-BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres
+BAG3D_TOOLS_DOCKERFILE=${PWD}/docker/tools/Dockerfile
+BAG3D_TOOLS_DOCKERIMAGE=bag3d_image_tools
+BAG3D_TOOLS_DOCKERIMAGE_VERSION=2024.09.24
+BAG3D_TOOLS_DOCKERIMAGE_JOBS=8
+
+BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres/Dockerfile
 BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
 BAG3D_PG_USER=baseregisters_test_user
 BAG3D_PG_PASSWORD=baseregisters_test_pswd

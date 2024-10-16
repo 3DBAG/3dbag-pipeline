@@ -142,6 +142,7 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 cd $root_dir || exit
+export PATH="/opt/roofer-deps/bin:$PATH"
 
 
 if [ "$build_tyler" = true ] ; then
@@ -179,7 +180,7 @@ if [ "$build_geos" = true ] ; then
   wget https://download.osgeo.org/geos/geos-${geos_version}.tar.bz2
   tar xvfj geos-${geos_version}.tar.bz2
   mkdir geos-${geos_version}/build
-  $cmake \
+  cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=$root_dir \
       -DBUILD_TESTING:bool=OFF \
@@ -187,7 +188,10 @@ if [ "$build_geos" = true ] ; then
       -DBUILD_SHARED_LIBS:bool=ON \
       -S geos-${geos_version} \
       -B geos-${geos_version}/build
-  $cmake --build geos-${geos_version}/build -j $jobs --target install --config Release
+  cmake --build geos-${geos_version}/build -j $jobs --target install --config Release
+
+  rm -rf geos-${geos_version}
+  rm geos-${geos_version}.tar.bz2
 fi
 
 if [ "$build_lastools" = true ] ; then
@@ -203,6 +207,9 @@ if [ "$build_lastools" = true ] ; then
     -S LAStools-${lastools_version} \
     -B LAStools-${lastools_version}/build
   cmake --build LAStools-${lastools_version}/build -j $jobs --target install --config Release
+
+  rm -rf LAStools-${lastools_version}
+  rm LAStools.zip
 fi
 
 if [ "$build_proj" = true ] ; then
@@ -218,22 +225,9 @@ if [ "$build_proj" = true ] ; then
     -S proj-${proj_version} \
     -B proj-${proj_version}/build
   cmake --build proj-${proj_version}/build -j $jobs --target install --config Release
-fi
 
-if [ "$build_gdal" = true ] ; then
-  printf "\n\nInstalling GDAL...\n\n"
-  cd $root_dir || exit
-  rm -rf gdal-${gdal_version}
-  wget https://github.com/OSGeo/gdal/releases/download/v${gdal_version}/gdal-${gdal_version}.tar.gz
-  tar -xvf gdal-${gdal_version}.tar.gz
-  mkdir gdal-${gdal_version}/build
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -DCMAKE_PREFIX_PATH=$root_dir \
-    -S gdal-${gdal_version} \
-    -B gdal-${gdal_version}/build
-  cmake --build gdal-${gdal_version}/build -j $jobs --target install --config Release
+  rm -rf proj-${proj_version}
+  rm proj-${proj_version}.tar.gz
 fi
 
 if [ "$build_geotiff" = true ] ; then
@@ -250,6 +244,28 @@ if [ "$build_geotiff" = true ] ; then
     -S libgeotiff-${geotiff_version} \
     -B libgeotiff-${geotiff_version}/build
   cmake --build libgeotiff-${geotiff_version}/build -j $jobs --target install --config Release
+
+  rm -rf libgeotiff-${geotiff_version}
+  rm libgeotiff-${geotiff_version}.tar.gz
+fi
+
+if [ "$build_gdal" = true ] ; then
+  printf "\n\nInstalling GDAL...\n\n"
+  cd $root_dir || exit
+  rm -rf gdal-${gdal_version}
+  wget https://github.com/OSGeo/gdal/releases/download/v${gdal_version}/gdal-${gdal_version}.tar.gz
+  tar -xvf gdal-${gdal_version}.tar.gz
+  mkdir gdal-${gdal_version}/build
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=$root_dir \
+    -DCMAKE_PREFIX_PATH=$root_dir \
+    -S gdal-${gdal_version} \
+    -B gdal-${gdal_version}/build
+  cmake --build gdal-${gdal_version}/build -j $jobs --target install --config Release
+
+  rm -rf gdal-${gdal_version}
+  rm gdal-${gdal_version}.tar.gz
 fi
 
 if [ "$build_pdal" = true ] ; then
@@ -266,6 +282,9 @@ if [ "$build_pdal" = true ] ; then
     -S PDAL-${pdal_version}-src \
     -B PDAL-${pdal_version}-src/build
   cmake --build PDAL-${pdal_version}-src/build -j $jobs --target install --config Release
+
+  rm -rf PDAL-${pdal_version}-src
+  rm PDAL-${pdal_version}-src.tar.gz
 fi
 
 if [ "$build_geoflow_roofer" = true ] ; then
@@ -279,7 +298,7 @@ if [ "$build_geoflow_roofer" = true ] ; then
 
   printf "\n\nInstalling Geoflow-bundle...\n\n"
   cd $root_dir || exit
-#  git clone --depth 1 --recurse-submodules https://github.com/geoflow3d/geoflow-bundle.git geoflow-bundle-src
+  git clone --depth 1 --recurse-submodules https://github.com/geoflow3d/geoflow-bundle.git geoflow-bundle-src
   mkdir geoflow-bundle-src/build
   gf_plugin_folder="share/geoflow-bundle/plugins"
   mkdir -p $gf_plugin_folder
@@ -297,6 +316,8 @@ if [ "$build_geoflow_roofer" = true ] ; then
     -S geoflow-bundle-src \
     -B geoflow-bundle-src/build
   cmake --build geoflow-bundle-src/build -j $jobs --target install --config Release
+
+  rm -rf geoflow-bundle-src
 
   printf "\n\nInstalling Geoflow-roofer...\n\n"
   cd $root_dir || exit
@@ -317,6 +338,7 @@ if [ "$build_geoflow_roofer" = true ] ; then
   fi
   wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$geoflow_flowcharts/reconstruct_bag.json"
 
+  rm -rf geoflow-roofer
 fi
 
 if [ "$clean_up" = true ] ; then
