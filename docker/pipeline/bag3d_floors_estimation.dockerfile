@@ -1,7 +1,10 @@
 FROM 3dgi/3dbag-pipeline-tools:2024.09.24
 
-RUN apt-get install -y python3-venv python3-pip
-RUN python3 -m pip install --upgrade setuptools wheel
+RUN apt-get install -y python3-venv
+RUN python3.12 -m venv /venv_3dbag_pipeline
+ENV VIRTUAL_ENV=/venv_3dbag_pipeline
+ENV PATH=/venv_3dbag_pipeline/bin:$PATH
+RUN python3 -m pip install --upgrade setuptools wheel pip
 RUN python3 -m pip install \
     dagster \
     dagster-postgres \
