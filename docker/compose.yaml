@@ -57,6 +57,8 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
       DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_core"
+    env_file:
+      - ./.env
     volumes:
       - bag3d_data_pipeline:/data/volume
     networks:
@@ -75,6 +77,8 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
       DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_floors_estimation"
+    env_file:
+      - ./.env
     volumes:
       - bag3d_data_pipeline:/data/volume
     networks:
@@ -93,6 +97,8 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
       DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_party_walls"
+    env_file:
+      - ./.env
     volumes:
       - bag3d_data_pipeline:/data/volume
     networks:

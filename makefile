@@ -27,7 +27,7 @@ run: source
 	sleep 5
 
 stop: source
-	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml down
+	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml down --remove-orphans
 
 venvs: source
 	mkdir -p $(BAG3D_VENVS)

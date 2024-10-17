@@ -31,7 +31,6 @@ COPY ./tools-build.sh $3DBAG_PIPELINE_LOCATION
 COPY ./tools-test.sh $3DBAG_PIPELINE_LOCATION
 WORKDIR $3DBAG_PIPELINE_LOCATION/tools
 RUN bash $3DBAG_PIPELINE_LOCATION/tools-build.sh --build-all --jobs $JOBS --clean
-
 RUN bash $3DBAG_PIPELINE_LOCATION/tools-test.sh --dir $3DBAG_PIPELINE_LOCATION/tools
 
 #FROM tools AS dagster
