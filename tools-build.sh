@@ -142,8 +142,6 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 cd $root_dir || exit
-export PATH="/opt/roofer-deps/bin:$PATH"
-
 
 if [ "$build_tyler" = true ] ; then
   printf "\n\nInstalling Tyler...\n\n"

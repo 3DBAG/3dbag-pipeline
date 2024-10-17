@@ -1,6 +1,7 @@
 FROM ubuntu:24.04 AS tools
 ARG VERSION
 ARG JOBS
+ARG 3DBAG_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
 
@@ -12,7 +13,8 @@ RUN apt-get -y update && \
       libsqlite3-dev libtiff-dev openssh-client \
       libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
       autoconf-archive curl software-properties-common nlohmann-json3-dev unzip zip \
-      bzip2 tar libproj-dev clang
+      bzip2 tar libproj-dev clang \
+      python3-venv python3-pip
 
 RUN add-apt-repository -y ppa:deadsnakes/ppa ;\
     apt-get -y update ; \
@@ -25,15 +27,21 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
+COPY ./tools-build.sh $3DBAG_PIPELINE_LOCATION
+COPY ./tools-test.sh $3DBAG_PIPELINE_LOCATION
+WORKDIR $3DBAG_PIPELINE_LOCATION/tools
+RUN bash $3DBAG_PIPELINE_LOCATION/tools-build.sh --build-all --jobs $JOBS --clean
 
-WORKDIR /opt/3dbag-pipeline
-COPY ./build-tools.sh .
-WORKDIR /opt/3dbag-pipeline/.build-3dbag-pipeline
-RUN bash /opt/3dbag-pipeline/build-tools.sh --build-all --jobs $JOBS --clean
+RUN bash $3DBAG_PIPELINE_LOCATION/tools-test.sh --dir $3DBAG_PIPELINE_LOCATION/tools
 
-RUN python3.11 -m pip install \
-    dagster \
-    dagster-postgres \
-    dagster-docker \
-
-WORKDIR /opt/3dbag-pipeline
+#FROM tools AS dagster
+#
+#RUN python3.12 -m venv $3DBAG_PIPELINE_LOCATION/venv
+#ENV VIRTUAL_ENV=$3DBAG_PIPELINE_LOCATION/venv
+#ENV PATH=$3DBAG_PIPELINE_LOCATION/venv/bin:$PATH
+#RUN python3 -m pip install \
+#    dagster \
+#    dagster-postgres \
+#    dagster-docker \
+#
+#WORKDIR $3DBAG_PIPELINE_LOCATION
