@@ -47,8 +47,14 @@ db_connection = DatabaseResource(
 )
 
 
-file_store = FileStoreResource
-file_store_fastssd = FileStoreResource
+file_store = FileStoreResource(
+    data_dir="/tmp", temp_dir_id=os.getenv("BAG3D_RELEASE_VERSION")
+)
+file_store_fastssd = FileStoreResource(
+    data_dir="/tmp",
+    temp_dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+)
+
 
 # Configure for gilfoyle
 file_store_gilfoyle = FileStoreResource(
