@@ -16,6 +16,12 @@ build: source
 build_tools: source
 	docker build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" .
 
+build_volume: source
+	docker volume create bag3d_data_pipeline
+	docker run -d --name bag3d_temp_container --mount source=bag3d_data_pipeline,target=/data/volume busybox sleep infinity
+	docker cp ./tests/test_data/. bag3d_temp_container:/data/volume
+	docker rm -f bag3d_temp_container
+
 run: source
 	docker compose -p bag3d --env-file ./.env -f docker/compose.yaml up -d
 	sleep 5

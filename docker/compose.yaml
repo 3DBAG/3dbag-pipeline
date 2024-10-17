@@ -49,14 +49,16 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_core.dockerfile
-    container_name: bag3d-pipeline_core
-    image: bag3d-pipeline_core
+    container_name: bag3d_pipeline_core
+    image: bag3d_pipeline_core
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_core"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_core"
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -65,14 +67,16 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_floors_estimation.dockerfile
-    container_name: bag3d-pipeline_floors_estimation
-    image: bag3d-pipeline_floors_estimation
+    container_name: bag3d_pipeline_floors_estimation
+    image: bag3d_pipeline_floors_estimation
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_floors_estimation"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_floors_estimation"
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -81,14 +85,16 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_party_walls.dockerfile
-    container_name: bag3d-pipeline_party_walls
-    image: bag3d-pipeline_party_walls
+    container_name: bag3d_pipeline_party_walls
+    image: bag3d_pipeline_party_walls
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_party_walls"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_party_walls"
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -155,6 +161,8 @@ services:
 
 volumes:
   data_postgresql:
+  bag3d_data_pipeline:
+    external: true
 
 networks:
   bag3d_network:
