@@ -10,6 +10,7 @@ from bag3d.core.asset_groups import (
 )
 from bag3d.core.jobs import (
     job_source_input,
+    job_tile_index,
     job_ahn3,
     job_ahn4,
     job_ahn5,
@@ -32,6 +33,7 @@ all_assets = [
 
 all_jobs = [
     job_source_input,
+    job_tile_index,
     job_ahn3,
     job_ahn4,
     job_ahn5,
