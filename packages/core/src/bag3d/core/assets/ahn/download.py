@@ -109,8 +109,8 @@ class LAZDownload:
             fpath=self.path, sha_reference=sha_reference, sha_func=sha_func
         )
 
-        self.hash_name = (sha.name,)
-        self.hash_hexdigest = (sha.hexdigest(),)
+        self.hash_name = sha.name
+        self.hash_hexdigest = sha.hexdigest()
         if match:
             logger.debug(format_laz_log(self.path, "OK"))
         return match
@@ -130,7 +130,7 @@ def md5_pdok_ahn4(context):
 
 @asset
 def tile_index_pdok(context):
-    """The AHN tile index, including the tile geometry and the file donwload links."""
+    """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
 
 
@@ -150,9 +150,13 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     laz_dir.mkdir(exist_ok=True, parents=True)
     fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
     lazdownload = download_ahn_laz(
         fpath=fpath,
         url_laz=url_laz,
+        verify_ssl=verify_ssl,
     )
     first_validation = lazdownload.validate(
         sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
@@ -163,8 +167,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
         logger.info(format_laz_log(fpath, "Removing"))
         fpath.unlink()
         lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
+            fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
         )
         second_validation = lazdownload.validate(
             sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
@@ -203,9 +206,13 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     laz_dir.mkdir(exist_ok=True, parents=True)
     fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
     lazdownload = download_ahn_laz(
         fpath=fpath,
         url_laz=url_laz,
+        verify_ssl=verify_ssl,
     )
     first_validation = lazdownload.validate(
         sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
@@ -218,6 +225,7 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
         lazdownload = download_ahn_laz(
             fpath=fpath,
             url_laz=url_laz,
+            verify_ssl=verify_ssl,
         )
         second_validation = lazdownload.validate(
             sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
@@ -255,9 +263,13 @@ def laz_files_ahn5(context, tile_index_pdok):
     laz_dir.mkdir(exist_ok=True, parents=True)
     fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
     lazdownload = download_ahn_laz(
         fpath=fpath,
         url_laz=url_laz,
+        verify_ssl=verify_ssl,
     )
     # TODO: Add validation when checksum become available.
     return Output(lazdownload, metadata=lazdownload.asdict())
@@ -314,9 +326,7 @@ def get_md5_pdok(url: str) -> Mapping[str, str]:
 
 
 def download_ahn_laz(
-    fpath: Path,
-    url_laz: str = None,
-    url_base: str = None,
+    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False
 ) -> LAZDownload:
     """Download an AHN LAZ file from the input url to the given path,
     if the file does not exists.
@@ -326,7 +336,7 @@ def download_ahn_laz(
         url_laz: Complete URL of the file to download. If provided, 'url_base' is
             ignored.
         url_base (str): Base URL for the file to be downloaded.
-
+        verify_ssl (bool): Whether to verify the SSL certificate of the URL.
 
     Returns:
         A LAZDownload file
@@ -336,7 +346,9 @@ def download_ahn_laz(
 
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
+        fpath = download_file(
+            url=url, target_path=fpath.parent, chunk_size=1024 * 1024, verify=verify_ssl
+        )
         if fpath is None:
             # Download failed
             logger.warning(format_laz_log(fpath, "Downloading failed!"))

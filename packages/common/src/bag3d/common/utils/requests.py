@@ -31,7 +31,11 @@ def download_as_str(url: str, parameters: Mapping = None) -> str:
 
 
 def download_file(
-    url: str, target_path: Path, chunk_size: int = 1024, parameters: Mapping = None
+    url: str,
+    target_path: Path,
+    chunk_size: int = 1024,
+    parameters: Mapping = None,
+    verify: bool = True,
 ) -> Union[Path, None]:
     """Download a large file and save it to disk.
 
@@ -42,7 +46,7 @@ def download_file(
         chunk_size (int): The ``chunk_size`` parameter passed to
             :py:func:`request.Response.iter_content. Defaults to ``1024``.
         parameters (dict): Query parameters passed to :py:func:`requests.get`.
-
+        verify (bool): Whether to verify SSL certificate.
     Returns:
         The local Path to the downloaded file, or None on failure
     """
@@ -56,7 +60,7 @@ def download_file(
     session = requests.Session()  # https://stackoverflow.com/a/63417213
 
     try:
-        r = session.get(url, params=parameters, stream=True, verify=True)
+        r = session.get(url, params=parameters, stream=True, verify=verify)
         if r.ok:
             with fpath.open("wb") as fd:
                 for chunk in r.iter_content(chunk_size=chunk_size):
@@ -64,14 +68,13 @@ def download_file(
             return fpath
         else:  # pragma: no cover
             r.raise_for_status()
+        r.close()
     except (
         requests.exceptions.BaseHTTPError,
         requests.exceptions.HTTPError,
     ) as e:  # pragma: no cover
         logger.exception(e)
         return None
-    finally:
-        r.close()
 
 
 def get_metadata(url_api: str):

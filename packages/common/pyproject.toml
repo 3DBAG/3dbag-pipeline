@@ -25,6 +25,7 @@ dependencies = [
     "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2024.1013#egg=pgutils",
     "psycopg[binary]",
     "requests",
+    "certifi"
 ]
 
 [project.optional-dependencies]

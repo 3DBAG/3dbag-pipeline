@@ -304,7 +304,7 @@ def metadata(context: AssetExecutionContext):
                             "website": "https://www.ahn.nl",
                             "date": ["2014", "2019"],
                             "dateType": "creation",
-                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl",
+                            "licence": "https://creativecommons.org/publicdomain/zero/1.0/deed.nl",
                         },
                     },
                     {
@@ -315,7 +315,7 @@ def metadata(context: AssetExecutionContext):
                             "website": "https://www.ahn.nl",
                             "date": ["2020", "2022"],
                             "dateType": "creation",
-                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl",
+                            "licence": "https://creativecommons.org/publicdomain/zero/1.0/deed.nl",
                         },
                     },
                     {
