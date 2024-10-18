@@ -18,6 +18,7 @@ jobs:
       uses: docker/setup-buildx-action@v3
     - name: Build docker images
       run: |
+        cp docker/.env .
         make build_volume
         make run
         sleep 5
