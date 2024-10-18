@@ -15,6 +15,14 @@ COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 # Install the workflow package
 RUN python -m pip install $BAG3D_PIPELINE_LOCATION/packages/core/.[dev]
 
+# Clean up the image
+RUN rm -rf $HOME/.cache/*; \
+    rustup self uninstall; \
+    apt-get -y uninstall \
+      clang make ninja-build gcc g++ cmake git wget python3.11 python3.11-venv \
+      autoconf-archive autoconf libtool curl software-properties-common llvm-18; \
+    apt-get -y autoremove
+
 # Run dagster gRPC server on port 4000
 EXPOSE 4000
 

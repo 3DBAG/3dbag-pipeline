@@ -23,6 +23,14 @@ COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 # Install the workflow package
 RUN python -m pip install --no-cache-dir $BAG3D_PIPELINE_LOCATION/packages/party_walls/.[dev]
 
+# Clean up the image
+RUN rm -rf $HOME/.cache/*; \
+    rustup self uninstall; \
+    apt-get -y uninstall \
+      clang make ninja-build gcc g++ cmake git wget \
+      autoconf-archive autoconf libtool curl software-properties-common llvm-18; \
+    apt-get -y autoremove
+
 # Run dagster gRPC server on port 4002
 EXPOSE 4002
 

@@ -62,7 +62,7 @@ RUN echo $BAG3D_PIPELINE_LOCATION/tools/lib >> /etc/ld.so.conf.d/3dbag-pipeline-
     echo /export/lib >> /etc/ld.so.conf.d/3dbag-pipeline-tools.conf; \
     ldconfig
 
-#RUN bash $BAG3D_PIPELINE_LOCATION/tools-test.sh --dir $BAG3D_PIPELINE_LOCATION/tools
+RUN bash $BAG3D_PIPELINE_LOCATION/tools-test.sh --dir $BAG3D_PIPELINE_LOCATION/tools
 
 
 
