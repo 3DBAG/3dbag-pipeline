@@ -3,6 +3,7 @@ from bag3d.core.assets.ahn.core import (
     ahn_laz_dir,
     download_ahn_index,
     generate_grid,
+    tile_index_origin
 )
 from bag3d.core.assets.ahn.download import (
     URL_LAZ_SHA,
@@ -16,6 +17,14 @@ from bag3d.core.assets.ahn.download import (
 from bag3d.core.assets.ahn.metadata import metadata_table_ahn3, metadata_table_ahn4
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
+
+
+def test_tile_index_origin():
+    minx, miny, maxx, maxy = tile_index_origin()
+    assert minx == pytest.approx(9999.99998)
+    assert miny == pytest.approx(306250.00034)
+    assert maxx == pytest.approx(280000.00023)
+    assert maxy == pytest.approx(625000.00053)
 
 
 def test_download_ahn_index():
