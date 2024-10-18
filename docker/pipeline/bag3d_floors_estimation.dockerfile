@@ -1,4 +1,4 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.10.18
+FROM 3dgi/3dbag-pipeline-tools:latest1
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
@@ -13,7 +13,7 @@ COPY . $BAG3D_PIPELINE_LOCATION
 COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 
 # Install the workflow package
-RUN python3 -m pip install /3dbag-pipeline/packages/floors_estimation/.[dev]
+RUN python -m pip install $BAG3D_PIPELINE_LOCATION/packages/floors_estimation/.[dev]
 
 # Run dagster gRPC server on port 4001
 EXPOSE 4001

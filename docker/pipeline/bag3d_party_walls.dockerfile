@@ -1,4 +1,4 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.10.18
+FROM 3dgi/3dbag-pipeline-tools:latest1
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
@@ -21,7 +21,7 @@ COPY . $BAG3D_PIPELINE_LOCATION
 COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 
 # Install the workflow package
-RUN python -m pip install --no-cache-dir /3dbag-pipeline/packages/party_walls
+RUN python -m pip install --no-cache-dir $BAG3D_PIPELINE_LOCATION/packages/party_walls/.[dev]
 
 # Run dagster gRPC server on port 4002
 EXPOSE 4002
