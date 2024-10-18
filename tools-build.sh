@@ -156,11 +156,11 @@ if [ "$build_tyler" = true ] ; then
   if ! [ -d "$tyler_resources" ] ; then
     mkdir -p "$tyler_resources"/geof
   fi
-  wget https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O "$tyler_resources"/geof/createGLB.json
-  wget https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O "$tyler_resources"/geof/createMulti.json
-  wget https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O "$tyler_resources"/geof/metadata.json
-  wget https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O "$tyler_resources"/geof/process_feature.json
-  wget https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O "$tyler_resources"/geof/process_feature_multi.json
+  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O "$tyler_resources"/geof/createGLB.json
+  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O "$tyler_resources"/geof/createMulti.json
+  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O "$tyler_resources"/geof/metadata.json
+  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O "$tyler_resources"/geof/process_feature.json
+  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O "$tyler_resources"/geof/process_feature_multi.json
 fi
 
 if [ "$build_tyler_db" = true ] ; then
@@ -175,8 +175,8 @@ fi
 
 if [ "$build_geos" = true ] ; then
   rm -rf geos-${geos_version}
-  wget https://download.osgeo.org/geos/geos-${geos_version}.tar.bz2
-  tar xvfj geos-${geos_version}.tar.bz2
+  wget --no-verbose https://download.osgeo.org/geos/geos-${geos_version}.tar.bz2
+  tar xfj geos-${geos_version}.tar.bz2
   mkdir geos-${geos_version}/build
   cmake \
       -DCMAKE_BUILD_TYPE=Release \
@@ -196,8 +196,8 @@ if [ "$build_lastools" = true ] ; then
   printf "\n\nInstalling LAStools...\n\n"
   cd $root_dir || exit
   rm -rf LAStools
-  wget https://github.com/LAStools/LAStools/archive/refs/tags/v${lastools_version}.zip -O LAStools.zip
-  unzip LAStools.zip
+  wget --no-verbose https://github.com/LAStools/LAStools/archive/refs/tags/v${lastools_version}.zip -O LAStools.zip
+  unzip -q LAStools.zip
   mkdir LAStools-${lastools_version}/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -214,8 +214,8 @@ if [ "$build_proj" = true ] ; then
   printf "\n\nInstalling proj...\n\n"
   cd $root_dir || exit
   rm -rf proj-${proj_version}
-  wget https://download.osgeo.org/proj/proj-${proj_version}.tar.gz
-  tar -xvf proj-${proj_version}.tar.gz
+  wget --no-verbose https://download.osgeo.org/proj/proj-${proj_version}.tar.gz
+  tar -xf proj-${proj_version}.tar.gz
   mkdir proj-${proj_version}/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -232,8 +232,8 @@ if [ "$build_geotiff" = true ] ; then
   printf "\n\nInstalling GeoTIFF...\n\n"
   cd $root_dir || exit
   rm -rf libgeotiff-${geotiff_version}
-  wget https://github.com/OSGeo/libgeotiff/releases/download/${geotiff_version}/libgeotiff-${geotiff_version}.tar.gz
-  tar -xvf libgeotiff-${geotiff_version}.tar.gz
+  wget --no-verbose https://github.com/OSGeo/libgeotiff/releases/download/${geotiff_version}/libgeotiff-${geotiff_version}.tar.gz
+  tar -xf libgeotiff-${geotiff_version}.tar.gz
   mkdir libgeotiff-${geotiff_version}/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -251,8 +251,8 @@ if [ "$build_gdal" = true ] ; then
   printf "\n\nInstalling GDAL...\n\n"
   cd $root_dir || exit
   rm -rf gdal-${gdal_version}
-  wget https://github.com/OSGeo/gdal/releases/download/v${gdal_version}/gdal-${gdal_version}.tar.gz
-  tar -xvf gdal-${gdal_version}.tar.gz
+  wget --no-verbose https://github.com/OSGeo/gdal/releases/download/v${gdal_version}/gdal-${gdal_version}.tar.gz
+  tar -xf gdal-${gdal_version}.tar.gz
   mkdir gdal-${gdal_version}/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -270,8 +270,8 @@ if [ "$build_pdal" = true ] ; then
   printf "\n\nInstalling PDAL...\n\n"
   cd $root_dir || exit
   rm -rf PDAL-${pdal_version}-src
-  wget https://github.com/PDAL/PDAL/releases/download/${pdal_version}/PDAL-${pdal_version}-src.tar.gz
-  tar -xvf PDAL-${pdal_version}-src.tar.gz
+  wget --no-verbose https://github.com/PDAL/PDAL/releases/download/${pdal_version}/PDAL-${pdal_version}-src.tar.gz
+  tar -xf PDAL-${pdal_version}-src.tar.gz
   mkdir PDAL-${pdal_version}-src/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
@@ -294,33 +294,15 @@ if [ "$build_geoflow_roofer" = true ] ; then
   fi
   export VCPKG_ROOT="$root_dir/vcpkg"
 
-  printf "\n\nInstalling Geoflow-bundle...\n\n"
-  cd $root_dir || exit
-  git clone --depth 1 --recurse-submodules https://github.com/geoflow3d/geoflow-bundle.git geoflow-bundle-src
-  mkdir geoflow-bundle-src/build
-  gf_plugin_folder="share/geoflow-bundle/plugins"
-  mkdir -p $gf_plugin_folder
-  # GLFW3 on Ubunutu requires libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config autoconf-archive
-  # GLFW3 on Wayland Ubuntu requires libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
-
-  cmake \
-    -DCMAKE_TOOLCHAIN_FILE=$root_dir/vcpkg/scripts/buildsystems/vcpkg.cmake \
-    -DCMAKE_PREFIX_PATH=$root_dir \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -DGF_BUILD_GUI=OFF \
-    -DGF_PLUGIN_FOLDER=$gf_plugin_folder \
-    -DGFP_WITH_PDAL=OFF \
-    -S geoflow-bundle-src \
-    -B geoflow-bundle-src/build
-  cmake --build geoflow-bundle-src/build -j $jobs --target install --config Release
-
-  rm -rf geoflow-bundle-src
-
   printf "\n\nInstalling Geoflow-roofer...\n\n"
   cd $root_dir || exit
   git clone https://github.com/3DBAG/geoflow-roofer.git
   mkdir geoflow-roofer/build
+
+  cd geoflow-roofer
+  $root_dir/vcpkg/vcpkg x-update-baseline
+  cd $root_dir
+
   cmake \
     --preset vcpkg-minimal \
     -DRF_USE_LOGGER_SPDLOG=ON \
@@ -334,7 +316,7 @@ if [ "$build_geoflow_roofer" = true ] ; then
   if ! [ -d "$geoflow_flowcharts" ] ; then
     mkdir -p "$geoflow_flowcharts"
   fi
-  wget https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$geoflow_flowcharts/reconstruct_bag.json"
+  wget --no-verbose https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$geoflow_flowcharts/reconstruct_bag.json"
 
   rm -rf geoflow-roofer
 fi

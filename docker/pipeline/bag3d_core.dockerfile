@@ -1,27 +1,21 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.09.24
+FROM 3dgi/3dbag-pipeline-tools:2024.10.18
+ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-RUN apt-get install -y python3-venv
-RUN python3.12 -m venv /venv_3dbag_pipeline
-ENV VIRTUAL_ENV=/venv_3dbag_pipeline
-ENV PATH=/venv_3dbag_pipeline/bin:$PATH
-RUN python3 -m pip install --upgrade setuptools wheel pip
-RUN python3 -m pip install \
-    dagster \
-    dagster-postgres \
-    dagster-docker
+LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
+LABEL org.opencontainers.image.vendor="3DBAG"
+LABEL org.opencontainers.image.title="3dbag-pipeline-core"
+LABEL org.opencontainers.image.description="The core workflow package of the 3dbag-pipeline."
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
-WORKDIR /3dbag-pipeline
-COPY . /3dbag-pipeline
-COPY ./docker/.env /3dbag-pipeline/.env
+WORKDIR $BAG3D_PIPELINE_LOCATION
+COPY . $BAG3D_PIPELINE_LOCATION
+COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 
-ENV DAGSTER_HOME=/opt/dagster/dagster_home/
-RUN mkdir -p $DAGSTER_HOME
-
-
-RUN python3 -m pip install /3dbag-pipeline/packages/core
+# Install the workflow package
+RUN python -m pip install $BAG3D_PIPELINE_LOCATION/packages/core/.[dev]
 
 # Run dagster gRPC server on port 4000
-
 EXPOSE 4000
 
 # CMD allows this to be overridden from run launchers or executors that want

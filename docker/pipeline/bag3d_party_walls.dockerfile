@@ -1,26 +1,29 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.09.24
+FROM 3dgi/3dbag-pipeline-tools:2024.10.18
+ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
+
+LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
+LABEL org.opencontainers.image.vendor="3DBAG"
+LABEL org.opencontainers.image.title="3dbag-pipeline-party-walls"
+LABEL org.opencontainers.image.description="The party_walls workflow package of the 3dbag-pipeline."
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
 RUN python3.11 -m venv /venv_3dbag_pipeline
 ENV VIRTUAL_ENV=/venv_3dbag_pipeline
 ENV PATH=/venv_3dbag_pipeline/bin:$PATH
-RUN python3 -m pip install --upgrade setuptools wheel pip
-RUN python3 -m pip install \
-    dagster \
-    dagster-postgres \
-    dagster-docker
-
-WORKDIR /3dbag-pipeline
-COPY . /3dbag-pipeline
-COPY ./docker/.env /3dbag-pipeline/.env
-
-ENV DAGSTER_HOME=/opt/dagster/dagster_home/
-RUN mkdir -p $DAGSTER_HOME
-
+RUN python -m pip install --upgrade setuptools wheel pip
+COPY docker/tools/requirements.txt .
+RUN python -m pip install -r requirements.txt
 RUN apt-get install -y libgdal-dev
-RUN python3 -m pip install --no-cache-dir /3dbag-pipeline/packages/party_walls
+
+WORKDIR $BAG3D_PIPELINE_LOCATION
+COPY . $BAG3D_PIPELINE_LOCATION
+COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
+
+# Install the workflow package
+RUN python -m pip install --no-cache-dir /3dbag-pipeline/packages/party_walls
 
 # Run dagster gRPC server on port 4002
-
 EXPOSE 4002
 
 # CMD allows this to be overridden from run launchers or executors that want

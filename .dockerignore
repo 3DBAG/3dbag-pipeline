@@ -11,7 +11,8 @@
 *__pycache__*
 
 # Test data
-tmp/*
+tmp
+tests/test_data
 
 # Local DAGSTER_HOME
 tests/dagster_home/.logs_queue/
@@ -23,13 +24,18 @@ tests/dagster_home/schedules/
 tests/dagster_home/storage/
 
 # Virtual envs
-venvs/venv_*
+venvs
 
 # Documentation
 site
-docs/reference
+docs
 
 # Tools
 .tox
 .coverage
 *.ruff_cache
+
+# Other
+experiments
+deployment
+scripts

@@ -1,4 +1,3 @@
-ruff
 mkdocs
 mkdocstrings[python]
 mkdocs-gen-files
