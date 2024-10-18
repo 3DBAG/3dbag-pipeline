@@ -21,7 +21,6 @@ jobs:
         echo BAG3D_TEST_DATA=${PWD}/tests/test_data >> .env
     - name: Build docker images
       run: |
-        cp docker/.env .
         make download
         make build_volume
         make run
