@@ -22,14 +22,14 @@ class FileStore:
         self,
         data_dir: Union[str, Path, None] = None,
         docker_volume_id: Union[str, None] = None,
-        temp_dir_id: Union[str, None] = None,
+        dir_id: Union[str, None] = None,
     ):
         self.data_dir = None
         self.docker_volume = None
         if data_dir:
             directory = Path(data_dir)
-            if temp_dir_id:
-                directory = directory / ("Release_" + temp_dir_id)
+            if dir_id:
+                directory = directory / ("release_" + dir_id)
             p = directory.resolve()
             if p.is_dir():
                 pass
@@ -55,8 +55,8 @@ class FileStore:
                 )
                 logger.info(f"Created docker volume: {docker_volume_id}")
         else:
-            # In case temp_dir_id is also None, we create a temp dir with a random ID.
-            tmp = self.mkdir_temp(temp_dir_id)
+            # In case dir_id is also None, we create a temp dir with a random ID.
+            tmp = self.mkdir_temp(dir_id)
             self.data_dir = tmp
             logger.info(f"Created local temporary directory {self.data_dir}")
 
@@ -98,37 +98,37 @@ class FileStoreResource(ConfigurableResource):
     Either local directory or a docker volume.
     If neither `data_dir` nor `docker_volume` is given, a local
     temporary directory is created.
-    If both `data_dir` and `temp_dir_id` are input then a new folder is created within
-    the `data_dir`, with the name "Release_<temp_dir_id>"
+    If both `data_dir` and `dir_id` are input then a new folder is created within
+    the `data_dir`, with the name "release_<dir_id>"
 
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
     data_dir: str
     docker_volume_id: str
-    temp_dir_id: str
+    dir_id: str
 
     def __init__(
         self,
         data_dir: Optional[Union[Path, str]] = None,
         docker_volume_id: Optional[str] = None,
-        temp_dir_id: Optional[str] = None,
+        dir_id: Optional[str] = None,
     ):
         super().__init__(
             data_dir=str(data_dir) if data_dir else "",
             docker_volume_id=docker_volume_id or "",
-            temp_dir_id=temp_dir_id or "",
+            dir_id=dir_id or "",
         )
 
     @property
     def file_store(self) -> FileStore:
-        if self.data_dir != "" and self.temp_dir_id != "":
-            return FileStore(data_dir=self.data_dir, temp_dir_id=self.temp_dir_id)
+        if self.data_dir != "" and self.dir_id != "":
+            return FileStore(data_dir=self.data_dir, dir_id=self.dir_id)
         elif self.data_dir != "":
             return FileStore(data_dir=self.data_dir)
         elif self.docker_volume_id != "":
             return FileStore(docker_volume_id=self.docker_volume_id)
-        elif self.temp_dir_id != "":
-            return FileStore(temp_dir_id=self.temp_dir_id)
+        elif self.dir_id != "":
+            return FileStore(dir_id=self.dir_id)
         else:
             return FileStore()
