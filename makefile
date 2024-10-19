@@ -15,6 +15,10 @@ build_volume:
 	docker run -d --name bag3d_temp_container --mount source=bag3d_data_pipeline,target=/data/volume busybox sleep infinity
 	docker cp ./tests/test_data/. bag3d_temp_container:/data/volume
 	docker rm -f bag3d_temp_container
+	docker volume create bag3d_data_postgresql
+	docker run -d --name bag3d_temp_container --mount source=bag3d_data_postgresql,target=/data busybox sleep infinity
+	docker exec bag3d_temp_container mkdir /data/pgdata /data/pglog
+	docker rm -f bag3d_temp_container
 
 build: source
 	docker buildx build -t $(BAG3D_PG_DOCKERIMAGE) -f $(BAG3D_PG_DOCKERFILE) --build-arg pg_user=$(BAG3D_PG_USER) --build-arg pg_pswd=$(BAG3D_PG_PASSWORD) --build-arg pg_db=$(BAG3D_PG_DATABASE) docker/postgres
@@ -23,11 +27,11 @@ build_tools: source
 	rm docker_build_tools.log || true
 	docker buildx build --cache-to=type=registry,ref=$(BAG3D_TOOLS_DOCKERIMAGE):buildcache,mode=max --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
 
-run_data_postgresql: build_volume
+run_data_postgresql:
 	docker compose -p bag3d -f docker/compose.yaml up -d data_postgresql
 	sleep 5
 
-run: build_volume
+run:
 	docker compose -p bag3d -f docker/compose.yaml up -d
 	sleep 5
 

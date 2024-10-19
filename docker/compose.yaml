@@ -27,8 +27,17 @@ services:
     ports:
       - "5560:5432"
     volumes:
-      - $BAG3D_TEST_DATA:/var/lib/postgresql/data
-      - data_postgresql:/var/log/postgresql/
+      - bag3d_data_pipeline:/data/volume
+      - type: volume
+        source: bag3d_data_postgresql
+        target: /var/lib/postgresql/data
+        volume:
+          subpath: pgdata
+      - type: volume
+        source: bag3d_data_postgresql
+        target: /var/log/postgresql
+        volume:
+          subpath: pglog
     restart: always
     networks:
       - bag3d_network
@@ -160,7 +169,8 @@ services:
       - bag3d_party_walls
 
 volumes:
-  data_postgresql:
+  bag3d_data_postgresql:
+    external: true
   bag3d_data_pipeline:
     external: true
 
