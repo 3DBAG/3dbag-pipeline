@@ -63,9 +63,7 @@ jobs:
       run: make venvs
     - name: Download data
       run: make download
-    - name: Build docker image
-      run: make build
     - name: Start docker containers
-      run: make run
+      run: make run_data_postgresql
     - name: Run unit tests
       run: make test
