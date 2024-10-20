@@ -120,6 +120,20 @@ For running also the slow tests (which require more time) you can run:
  make test_all
  ```
 
+## Docker
+
+```
+make download
+make docker_volume_create
+make docker_up
+```
+
+Remove the volumes, containers and images created in previous steps.
+
+```shell
+make docker_down_rm
+```
+
 
 ## Resources
 
@@ -199,7 +213,7 @@ Solely for documentation purposes, this is best done with `pip install --no-deps
 Install the documentation dependencies and view the docs locally:
 
 ```shell
-pip install -r requirements_dev.txt
+pip install -r requirements_docs.txt
 mkdocs serve
 ```
 
