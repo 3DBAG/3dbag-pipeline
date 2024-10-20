@@ -352,7 +352,7 @@ def cropped_input_and_config_func(
 
 
 def reconstruct_building_models_func(context, cropped_input_and_config):
-    context.log.info(f"geoflow.kwargs: {context.resources.geoflow.kwargs}")
+    context.log.info(f"geoflow.kwargs: {context.resources.geoflow.app.kwargs}")
     flowchart = context.resources.geoflow.app.kwargs["flowcharts"]["reconstruct"]
     cmd_template = "{{exe}} {{local_path}} --config {config_path}"
     # TODO: what are the conditions for partition failure?
