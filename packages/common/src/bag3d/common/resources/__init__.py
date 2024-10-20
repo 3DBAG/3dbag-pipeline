@@ -34,7 +34,7 @@ pdal_docker = PDALResource(
     docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
 )
 
-pdal_local = PDALResource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+pdal_local = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 db_connection = DatabaseResource(

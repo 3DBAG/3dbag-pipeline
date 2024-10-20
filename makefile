@@ -39,11 +39,13 @@ run:
 	docker compose -p bag3d -f docker/compose.yaml up -d
 	sleep 8
 
+restart: stop_rm rm_volume build_volume run
+
 stop:
 	docker compose -p bag3d down --remove-orphans
 
 stop_rm:
-	docker compose -p bag3d down --volumes --remove-orphans --rmi all
+	docker compose -p bag3d down --volumes --remove-orphans --rmi local
 
 venvs: source
 	mkdir -p $(BAG3D_VENVS)

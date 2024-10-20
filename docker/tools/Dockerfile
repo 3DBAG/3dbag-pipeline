@@ -54,6 +54,10 @@ ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
 COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /export /export
+COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
+COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
+COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/lib/LASlib /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/lib/gdalplugins /export/usr/local/lib/
 COPY --from=3dgi/geoflow-bundle-builder:2024.08.09 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 
@@ -81,6 +85,7 @@ RUN python -m pip install -r requirements.txt
 
 # Set DAGSTER_HOME, because the dagster grpc server needs it
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
-RUN mkdir -p $DAGSTER_HOME
+RUN mkdir -p $DAGSTER_HOME && \
+    touch $DAGSTER_HOME/dagster.yaml
 
 WORKDIR $BAG3D_PIPELINE_LOCATION
