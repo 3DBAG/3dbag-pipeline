@@ -61,8 +61,10 @@ jobs:
       run: ruff format --check
     - name: Create venvs
       run: make venvs
-    - name: Download data
-      run: make download
+    - name: Download data and build volume
+      run: |
+        make download
+        make build_volume
     - name: Start docker containers
       run: make run_data_postgresql
     - name: Run unit tests
