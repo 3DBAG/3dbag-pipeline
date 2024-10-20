@@ -10,7 +10,7 @@ download: source
 	mkdir -p $(BAG3D_TEST_DATA)
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v3.zip ; unzip -q test_data_v3.zip ; rm test_data_v3.zip
 
-build_volume:
+docker_volume_create:
 	docker volume create bag3d_data_pipeline
 	docker run -d --name bag3d_temp_container --mount source=bag3d_data_pipeline,target=/data/volume busybox sleep infinity
 	docker cp ./tests/test_data/. bag3d_temp_container:/data/volume
@@ -20,31 +20,28 @@ build_volume:
 	docker exec bag3d_temp_container mkdir /data/pgdata /data/pglog
 	docker rm -f bag3d_temp_container
 
-rm_volume:
+docker_volume_rm:
 	docker volume rm -f bag3d_data_pipeline
 	docker volume rm -f bag3d_data_postgresql
 
-build: source
-	docker buildx build -t $(BAG3D_PG_DOCKERIMAGE) -f $(BAG3D_PG_DOCKERFILE) --build-arg pg_user=$(BAG3D_PG_USER) --build-arg pg_pswd=$(BAG3D_PG_PASSWORD) --build-arg pg_db=$(BAG3D_PG_DATABASE) docker/postgres
-
-build_tools: source
+docker_build_tools: source
 	rm docker_build_tools.log || true
 	docker buildx build --cache-to=type=registry,ref=$(BAG3D_TOOLS_DOCKERIMAGE):buildcache,mode=max --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
 
-run_data_postgresql:
+docker_up_postgres:
 	docker compose -p bag3d -f docker/compose.yaml up -d data_postgresql
 	sleep 8
 
-run:
+docker_up:
 	docker compose -p bag3d -f docker/compose.yaml up -d
 	sleep 8
 
-restart: stop_rm rm_volume build_volume run
+docker_restart: docker_down_rm docker_volume_rm docker_volume_create docker_up
 
-stop:
+docker_down:
 	docker compose -p bag3d down --remove-orphans
 
-stop_rm:
+docker_down_rm:
 	docker compose -p bag3d down --volumes --remove-orphans --rmi local
 
 venvs: source
@@ -82,7 +79,7 @@ integration: source
 	. $(BAG3D_VENVS)/venv_party_walls/bin/activate ; pytest $(PWD)/packages/party_walls/tests/test_integration.py -v -s --run-all
 	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; pytest $(PWD)/packages/floors_estimation/tests/test_integration.py -v -s --run-all
 
-integration_docker:
+docker_integration:
 	docker compose -p bag3d exec bag3d_core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all
 	docker compose -p bag3d exec bag3d_party_walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all
 	docker compose -p bag3d exec bag3d_floors_estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all

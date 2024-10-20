@@ -22,12 +22,8 @@ jobs:
     - name: Build docker images
       run: |
         make download
-        make build_volume
-        make run
+        make docker_volume_create
+        make docker_up
         sleep 5
-    - name: Test core
-      run: docker compose -p bag3d exec bag3d_core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all
-    - name: Test party walls
-      run: docker compose -p bag3d exec bag3d_party_walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all
-    - name: Test floors estimation
-      run: docker compose -p bag3d exec bag3d_floors_estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all
+    - name: Run integration tests
+      run: make docker_integration

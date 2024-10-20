@@ -64,8 +64,8 @@ jobs:
     - name: Download data and build volume
       run: |
         make download
-        make build_volume
+        make docker_volume_create
     - name: Start docker containers
-      run: make run_data_postgresql
+      run: make docker_up_postgres
     - name: Run unit tests
       run: make test
