@@ -18,23 +18,23 @@ from dagster import EnvVar
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
 
-gdal_local = GDALResource(
+gdal_docker = GDALResource(
     docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
 )
 
 
-gdal_prod = GDALResource(
+gdal_local = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
     exe_sozip=os.getenv("EXE_PATH_SOZIP"),
 )
 
 
-pdal_local = PDALResource(
+pdal_docker = PDALResource(
     docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
 )
 
-pdal_prod = PDALResource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+pdal_local = PDALResource = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 db_connection = DatabaseResource(
@@ -102,11 +102,11 @@ RESOURCES_PYTEST = {
 }
 
 RESOURCES_PROD = {
-    "gdal": gdal_prod,
+    "gdal": gdal_local,
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_prod,
+    "pdal": pdal_local,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,

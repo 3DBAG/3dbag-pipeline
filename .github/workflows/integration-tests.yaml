@@ -26,14 +26,8 @@ jobs:
         make run
         sleep 5
     - name: Test core
-      working-directory: docker
-      run: |
-        docker compose -p bag3d exec bag3d_core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all
+      run: docker compose -p bag3d exec bag3d_core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all
     - name: Test party walls
-      working-directory: docker
-      run: |
-        docker compose -p bag3d exec bag3d_party_walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all
+      run: docker compose -p bag3d exec bag3d_party_walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all
     - name: Test floors estimation
-      working-directory: docker
-      run: |
-        docker compose -p bag3d exec bag3d_floors_estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all
+      run: docker compose -p bag3d exec bag3d_floors_estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all
