@@ -19,7 +19,8 @@ jobs:
         sudo rm -rf /usr/local/share/vcpkg
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        apt-get -y uninstall --purge clang llvm
+        apt-get -y remove clang-18 llvm-18
+        apt-get -y autoremove
     - uses: actions/checkout@v4
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
