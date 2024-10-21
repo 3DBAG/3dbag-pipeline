@@ -120,21 +120,6 @@ For running also the slow tests (which require more time) you can run:
  make test_all
  ```
 
-## Docker
-
-```
-make download
-make docker_volume_create
-make docker_up
-```
-
-Remove the volumes, containers and images created in previous steps.
-
-```shell
-make docker_down_rm
-```
-
-
 ## Resources
 
 The 3DBAG pipeline is a heavy process that requires a well configured database. Some instructions for configuring your database can be found here in the following links:
@@ -402,6 +387,10 @@ Possible values are in `bag3d.common.resources`.
 
 Sometimes the dagster instance storage schema changes and the schema needs to be updated with `dagster instance migrate`.
 
+### Docker
+
+We provide a sample docker compose file for deploying the 3dbag-pipeline in a multi-container setup.
+You can read more about the [docker-based deployment here](docker).
 
 ## License
 
