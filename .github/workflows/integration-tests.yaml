@@ -15,10 +15,10 @@ jobs:
     steps:
     - name: Remove unnecessary files
       run: |
-        sudo rm -rf /usr/share/miniconda
-        sudo rm -rf /usr/local/share/vcpkg
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        rm -rf /usr/share/miniconda
+        rm -rf /usr/local/share/vcpkg
+        rm -rf /usr/share/dotnet
+        rm -rf "$AGENT_TOOLSDIRECTORY"
         apt-get -y remove clang-18 llvm-18
         apt-get -y autoremove
     - uses: actions/checkout@v4
