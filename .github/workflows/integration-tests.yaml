@@ -16,7 +16,6 @@ jobs:
     - name: Remove unnecessary files
       run: |
         rm -rf /usr/share/miniconda
-        rm -rf /usr/local/share/vcpkg
         rm -rf /usr/share/dotnet
         rm -rf "$AGENT_TOOLSDIRECTORY"
         apt-get -y remove clang-18 llvm-18
