@@ -13,13 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Remove unnecessary files
-      run: |
-        rm -rf /usr/share/miniconda
-        rm -rf /usr/share/dotnet
-        rm -rf "$AGENT_TOOLSDIRECTORY"
-        apt-get -y remove clang-18 llvm-18
-        apt-get -y autoremove
     - uses: actions/checkout@v4
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
