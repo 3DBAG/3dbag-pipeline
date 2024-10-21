@@ -1,10 +1,10 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.10.20
+FROM 3dgi/3dbag-pipeline-tools:2024.10.20 AS develop
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
 LABEL org.opencontainers.image.vendor="3DBAG"
 LABEL org.opencontainers.image.title="3dbag-pipeline-party-walls"
-LABEL org.opencontainers.image.description="The party_walls workflow package of the 3dbag-pipeline."
+LABEL org.opencontainers.image.description="The party_walls workflow package of the 3dbag-pipeline. Image for building the pipeline packages."
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
@@ -26,10 +26,36 @@ RUN python -m pip install --no-cache-dir $BAG3D_PIPELINE_LOCATION/packages/party
 # Clean up the image
 RUN rm -rf $HOME/.cache/*; \
     rustup self uninstall; \
-    apt-get -y uninstall \
+    apt-get -y remove \
       clang make ninja-build gcc g++ cmake git wget \
       autoconf-archive autoconf libtool curl software-properties-common llvm-18; \
-    apt-get -y autoremove
+    apt-get -y autoremove; \
+    python -m pip cache purge; \
+    apt-get -y clean;
+
+# Run dagster gRPC server on port 4002
+EXPOSE 4002
+
+# CMD allows this to be overridden from run launchers or executors that want
+# to run other commands against your repository
+CMD ["dagster", "api", "grpc", "-h", "0.0.0.0", "-p", "4002", "-m", "bag3d.party_walls.code_location", "--inject-env-vars-from-instance"]
+
+FROM ubuntu:24.04 AS production
+ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
+
+LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
+LABEL org.opencontainers.image.vendor="3DBAG"
+LABEL org.opencontainers.image.title="3dbag-pipeline-party-walls"
+LABEL org.opencontainers.image.description="The party_walls workflow package of the 3dbag-pipeline. Minimized image for production."
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
+
+WORKDIR $BAG3D_PIPELINE_LOCATION
+# Activate the virtual environment
+ENV VIRTUAL_ENV=$BAG3D_PIPELINE_LOCATION/venv
+ENV PATH=$BAG3D_PIPELINE_LOCATION/venv/bin:$PATH
+
+COPY --from=develop / /
 
 # Run dagster gRPC server on port 4002
 EXPOSE 4002

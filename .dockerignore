@@ -1,14 +1,18 @@
+# !!! .dockerignore files cannot be nested in subdirectories, thus it does not work like .gitignore
+
 # Local env
 .env_*
 .env
 
 # IDE config
-.run
-.idea
+**/.run
+**/.idea
 
 # Build artifacts and cache
-.pytest_cache
-*__pycache__*
+**/*.egg-info
+**/build
+**/.pytest_cache
+**/*__pycache__*
 
 # Test data
 tmp
@@ -27,13 +31,13 @@ tests/dagster_home/storage/
 venvs
 
 # Documentation
-site
-docs
+**/site
+**/docs
 
 # Tools
-.tox
-.coverage
-*.ruff_cache
+**/.tox
+**/.coverage
+**/*.ruff_cache
 
 # Other
 experiments
