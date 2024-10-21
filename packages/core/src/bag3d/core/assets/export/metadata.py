@@ -304,7 +304,7 @@ def metadata(context: AssetExecutionContext):
                             "website": "https://www.ahn.nl",
                             "date": ["2014", "2019"],
                             "dateType": "creation",
-                            "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl",
+                            "licence": "https://creativecommons.org/publicdomain/zero/1.0/deed.nl",
                         },
                     },
                     {
@@ -314,6 +314,17 @@ def metadata(context: AssetExecutionContext):
                             "author": "Het Waterschapshuis",
                             "website": "https://www.ahn.nl",
                             "date": ["2020", "2022"],
+                            "dateType": "creation",
+                            "licence": "https://creativecommons.org/publicdomain/zero/1.0/deed.nl",
+                        },
+                    },
+                    {
+                        "source": {
+                            "name": "AHN5",
+                            "description": "Actueel Hoogtebestaand Nederland (AHN) 5 puntenwolk (LAZ), gebruikt voor de hoogte-informatie voor de gebouwmodellen.",
+                            "author": "Het Waterschapshuis",
+                            "website": "https://www.ahn.nl",
+                            "date": ["2023", "2025"],
                             "dateType": "creation",
                             "licence": "http://creativecommons.org/licenses/by/4.0/deed.nl",
                         },
