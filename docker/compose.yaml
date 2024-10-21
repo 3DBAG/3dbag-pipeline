@@ -4,7 +4,7 @@ services:
   # and event log storage.
   dagster_postgresql:
     image: postgres:16
-    container_name: bag3d_dagster_postgresql
+    container_name: bag3d-dagster-postgresql
     environment:
       POSTGRES_USER: "postgres_user"
       POSTGRES_PASSWORD: "postgres_password"
@@ -20,21 +20,24 @@ services:
         - pg_user=$BAG3D_PG_USER
         - pg_pswd=$BAG3D_PG_PASSWORD
         - pg_db=$BAG3D_PG_DATABASE
-#    image: $BAG3D_PG_DOCKERIMAGE
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
-    container_name: bag3d_data_postgresql
+    container_name: bag3d-data-postgresql
     shm_size: '1gb' 
     ports:
       - "5560:5432"
     volumes:
-      - $BAG3D_TEST_DATA:/var/lib/postgresql/data
-      - data_postgresql:/var/log/postgresql/
-    environment:
-      POSTGRES_USER: $BAG3D_PG_USER
-      POSTGRES_PASSWORD: $BAG3D_PG_PASSWORD
-      BAG3D_PG_PASSWORD: $BAG3D_PG_PASSWORD
-      POSTGRES_DB: $BAG3D_PG_DATABASE
+      - bag3d_data_pipeline:/data/volume
+      - type: volume
+        source: bag3d_data_postgresql
+        target: /var/lib/postgresql/data
+        volume:
+          subpath: pgdata
+      - type: volume
+        source: bag3d_data_postgresql
+        target: /var/log/postgresql
+        volume:
+          subpath: pglog
     restart: always
     networks:
       - bag3d_network
@@ -49,14 +52,18 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_core.dockerfile
-    container_name: bag3d-pipeline_core
-    image: bag3d-pipeline_core
+    container_name: bag3d-pipeline-core
+    image: bag3d-pipeline-core
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_core"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_core"
+    env_file:
+      - ./.env
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -65,14 +72,18 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_floors_estimation.dockerfile
-    container_name: bag3d-pipeline_floors_estimation
-    image: bag3d-pipeline_floors_estimation
+    container_name: bag3d-pipeline-floors-estimation
+    image: bag3d-pipeline-floors-estimation
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_floors_estimation"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_floors_estimation"
+    env_file:
+      - ./.env
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -81,14 +92,18 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d_party_walls.dockerfile
-    container_name: bag3d-pipeline_party_walls
-    image: bag3d-pipeline_party_walls
+    container_name: bag3d-pipeline-party-walls
+    image: bag3d-pipeline-party-walls
     restart: always
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-      DAGSTER_CURRENT_IMAGE: "bag3d-pipeline_party_walls"
+      DAGSTER_CURRENT_IMAGE: "bag3d_pipeline_party_walls"
+    env_file:
+      - ./.env
+    volumes:
+      - bag3d_data_pipeline:/data/volume
     networks:
       - bag3d_network
     depends_on:
@@ -108,7 +123,7 @@ services:
       - "3000"
       - -w
       - workspace.yaml
-    container_name: bag3d_dagster_webserver
+    container_name: bag3d-dagster-webserver
     expose:
       - "3000"
     ports:
@@ -136,7 +151,7 @@ services:
     entrypoint:
       - dagster-daemon
       - run
-    container_name: bag3d_dagster_daemon
+    container_name: bag3d-dagster-daemon
     restart: on-failure
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
@@ -154,7 +169,10 @@ services:
       - bag3d_party_walls
 
 volumes:
-  data_postgresql:
+  bag3d_data_postgresql:
+    external: true
+  bag3d_data_pipeline:
+    external: true
 
 networks:
   bag3d_network:

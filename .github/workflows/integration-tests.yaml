@@ -1,0 +1,27 @@
+name: Integration tests
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - run: |
+        touch .env
+        echo BAG3D_TEST_DATA=${PWD}/tests/test_data >> .env
+    - name: Build docker images
+      run: |
+        make download
+        make docker_volume_create
+        make docker_up
+        sleep 5
+    - name: Run integration tests
+      run: make docker_integration
