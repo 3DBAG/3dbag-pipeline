@@ -4,9 +4,8 @@ from dagster import define_asset_job, AssetSelection
 job_tile_index = define_asset_job(
     name="tile_index",
     description="Get the tile_index for AHN 3, 4 and 5.",
-    selection=AssetSelection.assets(["ahn", "tile_index_pdok"])
+    selection=AssetSelection.assets(["ahn", "tile_index_pdok"]),
 )
-
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
 job_ahn3 = define_asset_job(

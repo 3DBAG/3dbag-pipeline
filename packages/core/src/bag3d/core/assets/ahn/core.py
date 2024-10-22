@@ -7,11 +7,12 @@ from dagster import StaticPartitionsDefinition, get_dagster_logger
 
 logger = get_dagster_logger("ahn")
 
+from bag3d.core import AHN_TILE_IDS
+
 
 class PartitionDefinitionAHN(StaticPartitionsDefinition):
     def __init__(self):
-        tile_ids = download_ahn_index(with_geom=False)
-        super().__init__(partition_keys=sorted(list(tile_ids)))
+        super().__init__(partition_keys=sorted(list(AHN_TILE_IDS)))
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
@@ -34,6 +35,14 @@ def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
     """Create a directory path where to store the AHN LAZ files for the given AHN
     version."""
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
+
+
+def validate_new_ahn_tile_ids(features: dict) -> None:
+    feature_set = {f["properties"]["AHN"].lower() for f in features}
+    if len(feature_set ^ AHN_TILE_IDS) > 0:
+        logger.warning(
+            f"Received AHN tile list has diverged from the one used, list must be updated"
+        )
 
 
 def download_ahn_index(
@@ -73,6 +82,7 @@ def download_ahn_index(
         response.raise_for_status()
         return
     returned_features = r_json.get("features")
+    validate_new_ahn_tile_ids(returned_features)
     if returned_features is None or len(returned_features) == 0:
         logger.error(
             "The response did not contain a 'features' member or had 0 features."
@@ -80,7 +90,7 @@ def download_ahn_index(
         return features
     else:
         if with_geom:
-            for f in r_json["features"]:
+            for f in returned_features:
                 features[f["properties"]["AHN"].lower()] = {
                     "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
                     "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
@@ -88,7 +98,7 @@ def download_ahn_index(
                     "geometry": f["geometry"],
                 }
         else:
-            for f in r_json["features"]:
+            for f in returned_features:
                 features[f["properties"]["AHN"].lower()] = None
 
     return features
