@@ -117,7 +117,7 @@ def test_file_store_init_temp():
 def test_file_store_init_temp_with_id():
     """Can we create a local temporary directory with input id
     with the correct permissions?"""
-    res = resources.files.FileStoreResource(temp_dir_id="myID").file_store
+    res = resources.files.FileStoreResource(dir_id="myID").file_store
     path = Path(res.data_dir)
     assert path.exists()
     assert str(res.data_dir)[-4:] == "myID"
@@ -147,7 +147,7 @@ def test_file_store_init_data_dir(tmp_path):
 def test_file_store_init_data_dir_with_id(tmp_path):
     """Can we use an existing directory but create a subdirectory with the given id?"""
     res = resources.files.FileStoreResource(
-        data_dir=tmp_path, temp_dir_id="myID"
+        data_dir=tmp_path, dir_id="myID"
     ).file_store
     path = Path(res.data_dir)
     assert str(res.data_dir)[-4:] == "myID"
