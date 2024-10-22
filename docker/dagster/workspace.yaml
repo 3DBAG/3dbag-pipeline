@@ -1,0 +1,14 @@
+load_from:
+  # Each entry here corresponds to a service in the docker-compose file that exposes user code.
+  - grpc_server:
+      host: bag3d_core
+      port: 4000
+      location_name: "core"
+  - grpc_server:
+      host: bag3d_floors_estimation
+      port: 4001
+      location_name: "floors_estimation"
+  - grpc_server:
+      host: bag3d_party_walls
+      port: 4002
+      location_name: "party_walls"

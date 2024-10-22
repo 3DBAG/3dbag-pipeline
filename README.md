@@ -51,7 +51,12 @@ BAG3D_RELEASE_VERSION="10_24"
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
 
-BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres
+BAG3D_TOOLS_DOCKERFILE=${PWD}/docker/tools/Dockerfile
+BAG3D_TOOLS_DOCKERIMAGE=bag3d_image_tools
+BAG3D_TOOLS_DOCKERIMAGE_VERSION=2024.09.24
+BAG3D_TOOLS_DOCKERIMAGE_JOBS=8
+
+BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres/Dockerfile
 BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
 BAG3D_PG_USER=baseregisters_test_user
 BAG3D_PG_PASSWORD=baseregisters_test_pswd
@@ -87,15 +92,15 @@ You can set up your environment with:
 ```shell
 make venvs
 make download
-make build 
-make run
+make docker_volume_create
+make docker_up_postgres
 ```
 
 Where:
 make venvs = creates the [vitrual environments](#development-and-testing)
 make download = [downloads test_data from the server](#data)
-make build = building the postgres image
-make run = starts the postgres container
+make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
+make docker_up_postgres = starts the postgres container
 
 Then you can run the fast unit test for all packages with:
  
@@ -114,7 +119,6 @@ For running also the slow tests (which require more time) you can run:
  ```shell
  make test_all
  ```
-
 
 ## Resources
 
@@ -194,7 +198,7 @@ Solely for documentation purposes, this is best done with `pip install --no-deps
 Install the documentation dependencies and view the docs locally:
 
 ```shell
-pip install -r requirements_dev.txt
+pip install -r requirements_docs.txt
 mkdocs serve
 ```
 
@@ -383,6 +387,10 @@ Possible values are in `bag3d.common.resources`.
 
 Sometimes the dagster instance storage schema changes and the schema needs to be updated with `dagster instance migrate`.
 
+### Docker
+
+We provide a sample docker compose file for deploying the 3dbag-pipeline in a multi-container setup.
+You can read more about the [docker-based deployment here](docker).
 
 ## License
 

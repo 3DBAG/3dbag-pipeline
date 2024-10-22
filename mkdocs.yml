@@ -46,6 +46,8 @@ markdown_extensions:
 nav:
   - Overview: index.md
   - Source datasets: SOURCE_DATASETS.md
+  - Deployment:
+      - docker: docker.md
   - Packages:
     - common: index_common.md
     - core: index_core.md

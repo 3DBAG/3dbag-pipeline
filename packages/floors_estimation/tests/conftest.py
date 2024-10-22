@@ -8,7 +8,7 @@ from bag3d.common.resources.files import FileStoreResource
 from dagster import build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
-HOST = "localhost"
+HOST = os.getenv("BAG3D_PG_HOST")
 PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
