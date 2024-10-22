@@ -23,6 +23,12 @@ def metadata_table_ahn4(context):
     return metadata_table_ahn(context, ahn_version=4)
 
 
+@asset(required_resource_keys={"db_connection"})
+def metadata_table_ahn5(context):
+    """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
+    return metadata_table_ahn(context, ahn_version=5)
+
+
 @asset(
     config_schema={
         "all": Field(
@@ -35,14 +41,14 @@ def metadata_table_ahn4(context):
         ),
     },
     required_resource_keys={"pdal", "db_connection"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=3),
+    partitions_def=PartitionDefinitionAHN(),
 )
-def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_pdok):
+def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_pdok):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_pdok
+        context, laz_files_ahn3, metadata_table_ahn3, tile_index_pdok
     )
 
 
@@ -58,14 +64,37 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn3_
         ),
     },
     required_resource_keys={"pdal", "db_connection"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=4),
+    partitions_def=PartitionDefinitionAHN(),
 )
-def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_pdok):
+def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn4_pdok
+        context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok
+    )
+
+
+@asset(
+    config_schema={
+        "all": Field(
+            bool, default_value=True, description="Run `pdal info` with `--all`."
+        ),
+        "force": Field(
+            bool,
+            default_value=True,
+            description="Force the re-compute of the metadata.",
+        ),
+    },
+    required_resource_keys={"pdal", "db_connection"},
+    partitions_def=PartitionDefinitionAHN(),
+)
+def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_pdok):
+    """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
+    computed with 'pdal info'.
+    The metadata is loaded into the metadata database table."""
+    return compute_load_metadata(
+        context, laz_files_ahn5, metadata_table_ahn5, tile_index_pdok
     )
 
 
@@ -91,7 +120,7 @@ def compute_load_metadata(
             `laz_files_ahn*` asset.
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
-        tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index_esri`.
+        tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
 
     Returns:
 
@@ -105,13 +134,19 @@ def compute_load_metadata(
                 f"skipping computation."
             )
             return Output(None)
-    ret_code, out_info = pdal_info(
-        context.resources.pdal,
-        file_path=laz_files_ahn.path,
-        with_all=context.op_config["all"],
-    )
-    if ret_code != 0:
-        raise
+    try:
+        ret_code, out_info = pdal_info(
+            context.resources.pdal.app,
+            file_path=laz_files_ahn.path,
+            with_all=context.op_config["all"],
+        )
+        if ret_code != 0:
+            raise
+    # if pdal fails store nothing in the table
+    except Exception as e:
+        context.log.exception(e)
+        out_info = {}
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),

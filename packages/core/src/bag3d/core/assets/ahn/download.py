@@ -10,13 +10,14 @@ from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     format_laz_log,
     ahn_filename,
-    download_ahn_index_esri,
+    download_ahn_index,
     ahn_laz_dir,
 )
 
 logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file MD5 sums computed at PDOK
+# TODO: Add checksum for AHN5
 URL_LAZ_SHA = {
     "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
@@ -73,6 +74,7 @@ class LAZDownload:
     """AHN LAZ download result.
 
     Args:
+        url(str): Url where the Laz file was downloaded from
         path (Path): The Path to the LAZ file.
         success (bool): Operations succeeded on the file.
         hash_name (Optional[hashlib.HASH]): The hash object returned from the hashing
@@ -81,6 +83,7 @@ class LAZDownload:
         size (float): File size in Mb.
     """
 
+    url: str
     path: Path
     success: bool
     hash_name: Union[str, None]
@@ -90,12 +93,27 @@ class LAZDownload:
 
     def asdict(self) -> dict:
         return {
+            "Url": self.url,
             "Path": str(self.path),
             "Success": self.success,
             "Hash": f"{self.hash_name}:{self.hash_hexdigest}",
             "New": self.new,
             "Size [Mb]": self.size,
         }
+
+    def validate(
+        self, sha_reference: Mapping[str, str], sha_func: HashChunkwise
+    ) -> bool:
+        """Compare the SHA of the local file to the provided reference."""
+        match, sha = match_sha(
+            fpath=self.path, sha_reference=sha_reference, sha_func=sha_func
+        )
+
+        self.hash_name = sha.name
+        self.hash_hexdigest = sha.hexdigest()
+        if match:
+            logger.debug(format_laz_log(self.path, "OK"))
+        return match
 
 
 @asset
@@ -111,24 +129,16 @@ def md5_pdok_ahn4(context):
 
 
 @asset
-def tile_index_ahn3_pdok(context):
-    """The AHN3 tile index, including the tile geometry and the file donwload links.
-    Downloaded from esri's server."""
-    return download_ahn_index_esri(ahn_version=3, with_geom=True)
-
-
-@asset
-def tile_index_ahn4_pdok(context):
-    """The AHN4 tile index, including the tile geometry and the file donwload links.
-    Downloaded from esri's server."""
-    return download_ahn_index_esri(ahn_version=4, with_geom=True)
+def tile_index_pdok(context):
+    """The AHN tile index, including the tile geometry and the file download links."""
+    return download_ahn_index(with_geom=True)
 
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=3),
+    partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
+def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -136,47 +146,138 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn3_pdok):
     match the reference.
     """
     tile_id = context.partition_key
-    fpath = ahn_laz_dir(
-        context.resources.file_store.file_store.data_dir, 3
-    ) / ahn_filename(tile_id)
-    url_laz = tile_index_ahn3_pdok[tile_id]["properties"]["AHN3_LAZ"]
+    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
+    laz_dir.mkdir(exist_ok=True, parents=True)
+    fpath = laz_dir / ahn_filename(tile_id)
+    url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
     lazdownload = download_ahn_laz(
         fpath=fpath,
-        sha_reference=md5_pdok_ahn3,
-        sha_func=HashChunkwise("md5"),
         url_laz=url_laz,
+        verify_ssl=verify_ssl,
     )
+    first_validation = lazdownload.validate(
+        sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
+    )
+
+    # Let's try to re-download the file once
+    if not first_validation:
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
+        lazdownload = download_ahn_laz(
+            fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
+        )
+        second_validation = lazdownload.validate(
+            sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
+        )
+        if not second_validation:
+            logger.error(format_laz_log(fpath, "ERROR"))
+            lazdownload = LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            )
+    else:
+        logger.debug(format_laz_log(fpath, "OK"))
+
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(ahn_version=4),
+    partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn4_pdok):
+def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
-    Only downlaod a file if it does not exist locally, or the SHA of the file does not
+    Only downloads a file if it does not exist locally, or the SHA of the file does not
     match the reference.
     """
     tile_id = context.partition_key
-    fpath = ahn_laz_dir(
-        context.resources.file_store.file_store.data_dir, 4
-    ) / ahn_filename(tile_id)
-    url_laz = tile_index_ahn4_pdok[tile_id]["properties"]["AHN4_LAZ"]
+
+    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
+    laz_dir.mkdir(exist_ok=True, parents=True)
+    fpath = laz_dir / ahn_filename(tile_id)
+    url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
     lazdownload = download_ahn_laz(
         fpath=fpath,
-        sha_reference=md5_pdok_ahn4,
-        sha_func=HashChunkwise("md5"),
         url_laz=url_laz,
+        verify_ssl=verify_ssl,
     )
+    first_validation = lazdownload.validate(
+        sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
+    )
+
+    # Let's try to re-download the file once
+    if not first_validation:
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+        )
+        second_validation = lazdownload.validate(
+            sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
+        )
+        if not second_validation:
+            logger.error(format_laz_log(fpath, "ERROR"))
+            lazdownload = LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            )
+    else:
+        logger.debug(format_laz_log(fpath, "OK"))
+
+    return Output(lazdownload, metadata=lazdownload.asdict())
+
+
+@asset(
+    required_resource_keys={"file_store"},
+    partitions_def=PartitionDefinitionAHN(),
+)
+def laz_files_ahn5(context, tile_index_pdok):
+    """AHN5 LAZ files as they are downloaded from PDOK.
+
+    The download links are retrieved from the AHN tile index service (blaadindex).
+     Only downloads a file if it does not exist locally.
+     At the moment there is no sha validation for AHN5.
+    """
+    tile_id = context.partition_key
+    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
+    laz_dir.mkdir(exist_ok=True, parents=True)
+    fpath = laz_dir / ahn_filename(tile_id)
+    url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
+    # Because https://ns_hwh.fundaments.nl is not configured properly.
+    # Check with https://www.digicert.com/help/
+    verify_ssl = False
+    lazdownload = download_ahn_laz(
+        fpath=fpath,
+        url_laz=url_laz,
+        verify_ssl=verify_ssl,
+    )
+    # TODO: Add validation when checksum become available.
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
 # @multi_asset(
 #     required_resource_keys={"file_store", "pdal"},
-#     partitions_def=PartitionDefinitionAHN(ahn_version=3),
+#     partitions_def=PartitionDefinitionAHN(),
 #     ins={
 #         "md5_pdok_ahn3": AssetIn(["ahn", "md5_pdok_ahn3"])
 #     },
@@ -225,84 +326,54 @@ def get_md5_pdok(url: str) -> Mapping[str, str]:
 
 
 def download_ahn_laz(
-    fpath: Path,
-    sha_reference: Mapping[str, str],
-    sha_func: HashChunkwise,
-    url_base: str = None,
-    url_laz: str = None,
+    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False
 ) -> LAZDownload:
-    """Download an AHN LAZ file, if needed.
-
-    1. Check if the file exists and download if missing.
-    2. Compare the SHA of the local file to the provided reference. If there is a
-        mismatch, re-download the file once.
+    """Download an AHN LAZ file from the input url to the given path,
+    if the file does not exists.
 
     Args:
+        fpath: Path to the LAZ file that may exist locally. If not it will be downloaded.
         url_laz: Complete URL of the file to download. If provided, 'url_base' is
             ignored.
         url_base (str): Base URL for the file to be downloaded.
-        fpath: Path to the LAZ file that should exist locally.
-        sha_reference: sha_reference: Reference SHA sums to match against,
-            as { filename : SHA }.
-        sha_func: An SHA function object
+        verify_ssl (bool): Whether to verify the SSL certificate of the URL.
 
     Returns:
-        A tuple of (success, SHA of file, Path to the file, file is new),
-            where `success` is a boolean, indicating a successful operation, and the
-            `file is new` is a boolean, indicating that the file was newly downloaded.
+        A LAZDownload file
     """
-    error = LAZDownload(
-        path=Path(),
-        success=False,
-        hash_name=None,
-        hash_hexdigest=None,
-        new=False,
-        size=0.0,
-    )
+
     url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
+
     if not fpath.is_file():
-        logger.info(format_laz_log(fpath, "Not found"))
-        fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
-        if fpath is None:  # pragma: no cover
+        logger.info(format_laz_log(fpath, "Not found. Downloading..."))
+        fpath = download_file(
+            url=url, target_path=fpath.parent, chunk_size=1024 * 1024, verify=verify_ssl
+        )
+        if fpath is None:
             # Download failed
-            return error
+            logger.warning(format_laz_log(fpath, "Downloading failed!"))
+            return LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            )
         else:
             is_new = True
     else:  # pragma: no cover
         is_new = False
-    match, sha = match_sha(fpath=fpath, sha_reference=sha_reference, sha_func=sha_func)
-    if match:
-        logger.debug(format_laz_log(fpath, "OK"))
-        return LAZDownload(
-            path=fpath,
-            success=True,
-            hash_name=sha.name,
-            hash_hexdigest=sha.hexdigest(),
-            new=is_new,
-            size=round(fpath.stat().st_size / 1e6, 2),
-        )
-    else:  # pragma: no cover
-        # Let's try to re-download the file once
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        fpath = download_file(url=url, target_path=fpath.parent, chunk_size=1024 * 1024)
-        if fpath is None:
-            return error
-        match, sha = match_sha(
-            fpath=fpath, sha_reference=sha_reference, sha_func=sha_func
-        )
-        if not match:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            return error
-        else:
-            return LAZDownload(
-                path=fpath,
-                success=True,
-                hash_name=sha.name,
-                hash_hexdigest=sha.hexdigest(),
-                new=True,
-                size=round(fpath.stat().st_size / 1e6, 2),
-            )
+    return LAZDownload(
+        url=url_laz,
+        path=fpath,
+        success=True,
+        hash_name=None,
+        hash_hexdigest=None,
+        new=is_new,
+        size=round(fpath.stat().st_size / 1e6, 2),
+    )
 
 
 def match_sha(
