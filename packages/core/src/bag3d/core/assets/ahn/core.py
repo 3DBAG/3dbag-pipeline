@@ -4,10 +4,9 @@ from math import ceil
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
+from bag3d.core import AHN_TILE_IDS
 
 logger = get_dagster_logger("ahn")
-
-from bag3d.core import AHN_TILE_IDS
 
 
 class PartitionDefinitionAHN(StaticPartitionsDefinition):
@@ -41,7 +40,7 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
     feature_set = {f["properties"]["AHN"].lower() for f in features}
     if len(feature_set ^ AHN_TILE_IDS) > 0:
         logger.warning(
-            f"Received AHN tile list has diverged from the one used, list must be updated"
+            "Received AHN tile list has diverged from the one used, list must be updated"
         )
 
 
