@@ -8,6 +8,9 @@ LABEL org.opencontainers.image.description="The core workflow package of the 3db
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
+ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
+ENV PROJ_DATA=/usr/share/proj
+
 WORKDIR $BAG3D_PIPELINE_LOCATION
 COPY . $BAG3D_PIPELINE_LOCATION
 COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env

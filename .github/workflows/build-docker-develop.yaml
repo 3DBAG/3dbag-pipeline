@@ -1,11 +1,11 @@
-name: Production Candidate Docker Images
+name: Build and Publish Docker Images
 
 on:
   pull_request:
     branches:
       - develop
     types: [closed]
-
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./docker/pipeline/bag3d_core.dockerfile
+          file: ./docker/pipeline/bag3d-core.dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./docker/pipeline/bag3d_floors_estimation.dockerfile
+          file: ./docker/pipeline/bag3d-floors-estimation.dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./
-          file: ./docker/pipeline/bag3d_party_walls.dockerfile
+          file: ./docker/pipeline/bag3d-party-walls.dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
