@@ -8,9 +8,6 @@ LABEL org.opencontainers.image.description="The party_walls workflow package of 
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
-ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV PROJ_DATA=/usr/share/proj
-
 RUN rm -rf $VIRTUAL_ENV
 RUN python3.11 -m venv $VIRTUAL_ENV
 RUN python -m pip install --upgrade setuptools wheel pip
