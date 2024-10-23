@@ -5,7 +5,6 @@ from dagster import ConfigurableResource, Permissive
 from pgutils import PostgresConnection, PostgresFunctions
 
 DatabaseConnection = PostgresConnection
-import pydantic
 
 
 class DatabaseResource(ConfigurableResource):
@@ -18,7 +17,7 @@ class DatabaseResource(ConfigurableResource):
     password: str
     dbname: str
     port: str
-    other_params: pydantic.SkipValidation(Permissive())
+    other_params: Permissive()
 
     def __init__(
         self,
@@ -27,7 +26,7 @@ class DatabaseResource(ConfigurableResource):
         password: str,
         dbname: str,
         port: str,
-        other_params: Optional[pydantic.SkipValidation(Permissive())] = None,
+        other_params: Optional[Permissive()] = None,
     ):
         super().__init__(
             host=host,
