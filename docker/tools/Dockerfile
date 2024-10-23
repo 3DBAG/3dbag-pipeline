@@ -104,6 +104,9 @@ RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \
     echo /export/lib >> /etc/ld.so.conf.d/geoflow.conf; \
     ldconfig
 
+RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts && \
+    wget --no-verbose https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts/reconstruct_bag.json
+
 
 FROM geoflow-old AS dagster
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline

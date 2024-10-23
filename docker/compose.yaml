@@ -52,6 +52,8 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d-core.dockerfile
+      args:
+        - VERSION=develop
     container_name: 3dbag-pipeline-core-develop
     image: 3dbag-pipeline-core:develop
     restart: always
@@ -69,6 +71,8 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d-floors-estimation.dockerfile
+      args:
+        - VERSION=develop
     container_name: 3dbag-pipeline-floors-estimation-develop
     image: 3dbag-pipeline-floors-estimation:develop
     restart: always
@@ -86,6 +90,8 @@ services:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d-party-walls.dockerfile
+      args:
+        - VERSION=develop
     container_name: 3dbag-pipeline-party-walls-develop
     image: 3dbag-pipeline-party-walls:develop
     restart: always
