@@ -26,15 +26,13 @@ docker_volume_rm:
 
 docker_build_tools: source
 	rm docker_build_tools.log || true
-	docker buildx build --cache-to=type=registry,ref=$(BAG3D_TOOLS_DOCKERIMAGE):buildcache,mode=max --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
+	docker buildx build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
 
 docker_up_postgres:
 	docker compose -p bag3d-dev -f docker/compose.yaml up -d data-postgresql
-	sleep 8
 
 docker_up:
 	docker compose -p bag3d-dev -f docker/compose.yaml up -d
-	sleep 8
 
 docker_restart: docker_down_rm docker_volume_rm docker_volume_create docker_up
 

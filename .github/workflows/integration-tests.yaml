@@ -24,6 +24,5 @@ jobs:
         make download
         make docker_volume_create
         make docker_up
-        sleep 5
     - name: Run integration tests
       run: make docker_integration

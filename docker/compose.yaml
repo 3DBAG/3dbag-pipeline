@@ -23,6 +23,12 @@ services:
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
     container_name: bag3d-data-postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE}"]
+      interval: 5s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     shm_size: '1gb' 
     ports:
       - "$BAG3D_PG_PORT_ON_HOST:5432"
@@ -66,7 +72,9 @@ services:
     networks:
       - bag3d-dev-network
     depends_on:
-      - data-postgresql
+      data-postgresql:
+        condition: service_healthy
+        restart: true
   bag3d-floors-estimation:
     build:
       context: ../
@@ -85,7 +93,9 @@ services:
     networks:
       - bag3d-dev-network
     depends_on:
-      - data-postgresql
+      data-postgresql:
+        condition: service_healthy
+        restart: true
   bag3d-party-walls:
     build:
       context: ../
@@ -104,7 +114,9 @@ services:
     networks:
       - bag3d-dev-network
     depends_on:
-      - data-postgresql
+      data-postgresql:
+        condition: service_healthy
+        restart: true
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
