@@ -85,6 +85,10 @@ ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 COPY --link --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
+COPY --link --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+COPY --link --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
+ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
 # We only need this until we replace the old geoflow with roofer
 FROM roofer AS geoflow-old
