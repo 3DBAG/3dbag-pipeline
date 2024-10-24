@@ -44,10 +44,10 @@ def distribution_tiles_files_index(context) -> TilesFilesIndex:
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
     path_quadtree_tsv = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir, version=context.resources
+        context.resources.file_store.file_store.data_dir, version=context.resources.version
     ).joinpath("quadtree.tsv")
     path_tiles_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir, version=context.resources
+        context.resources.file_store.file_store.data_dir, version=context.resources.version
     ).joinpath("tiles")
     export_results_gen = filter(
         lambda t: t.has_cityjson,
