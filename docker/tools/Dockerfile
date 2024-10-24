@@ -79,7 +79,8 @@ RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     echo /tyler/lib64 >> /etc/ld.so.conf.d/tyler.conf; \
     ldconfig
 
-RUN wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
+RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createMulti.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/metadata.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
