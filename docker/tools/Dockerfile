@@ -79,12 +79,23 @@ RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     echo /tyler/lib64 >> /etc/ld.so.conf.d/tyler.conf; \
     ldconfig
 
+RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createMulti.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/metadata.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature_multi.json
+
 
 FROM tyler AS roofer
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 COPY --link --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
+COPY --link --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+COPY --link --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
+ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
 # We only need this until we replace the old geoflow with roofer
 FROM roofer AS geoflow-old
