@@ -347,7 +347,7 @@ def download_ahn_laz(
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
         fpath = download_file(
-            url=url, target_path=fpath.parent, chunk_size=1024 * 2048, verify=verify_ssl
+            url=url, target_path=fpath.parent, chunk_size=1024 * 1024, verify=verify_ssl
         )
         if fpath is None:
             # Download failed

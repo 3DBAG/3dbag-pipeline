@@ -84,7 +84,7 @@ geoflow = GeoflowResource(
 
 RESOURCES_LOCAL = {
     "gdal": gdal_local,
-    "file_store": file_store_gilfoyle,
+    "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
     "db_connection": db_connection,
     "pdal": pdal_local,
