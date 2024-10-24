@@ -17,7 +17,8 @@ from bag3d.common.utils.files import bag3d_export_dir
 def geopackage_nl(context):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir, version=context.resources.version
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
@@ -133,7 +134,8 @@ def compressed_tiles(context, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir, version=context.resources.version
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:

@@ -30,7 +30,8 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         context.resources.file_store_fastssd.file_store.data_dir
     )
     output_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir, version=context.resources.version
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version,
     )
     context.log.debug(f"{reconstructed_root_dir=}")
     version_3dbag = kwargs["version_3dbag"]
