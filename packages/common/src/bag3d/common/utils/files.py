@@ -50,9 +50,9 @@ def geoflow_crop_dir(root_dir: os.PathLike) -> Path:
     return bag3d_dir(root_dir) / "crop_reconstruct"
 
 
-def bag3d_export_dir(root_dir: os.PathLike) -> Path:
+def bag3d_export_dir(root_dir: os.PathLike, version: str) -> Path:
     """Create the 3DBAG export directory if does not exist"""
-    export_dir = bag3d_dir(root_dir) / f"export_{os.getenv('BAG3D_RELEASE_VERSION')}"
+    export_dir = bag3d_dir(root_dir) / f"export_{version}"
     export_dir.mkdir(exist_ok=True)
     return export_dir
 

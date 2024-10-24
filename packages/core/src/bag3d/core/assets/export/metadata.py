@@ -83,7 +83,9 @@ def feature_evaluation(context):
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.file_store.data_dir
     )
-    output_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
+    output_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir, version=context.resources
+    )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection.connect
 
@@ -147,7 +149,9 @@ def export_index(context):
     a tile. If a tile does not have any features in the quadtree, it is not included.
     Output it written to export_index.csv.
     """
-    path_export_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir, version=context.resources
+    )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
     path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
@@ -377,7 +381,9 @@ def metadata(context: AssetExecutionContext):
             },
         },
     }
-    output_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
+    output_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir, version=context.resources
+    )
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
         json.dump(metadata, fo)

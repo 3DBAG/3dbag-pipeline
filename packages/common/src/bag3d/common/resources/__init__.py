@@ -13,10 +13,13 @@ from bag3d.common.resources.executables import (
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.version import VersionResource
 
 from dagster import EnvVar
 
 # The 'mount_point' is the directory in the container that is bind-mounted on the host
+
+version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 gdal_docker = GDALResource(
     docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
@@ -77,6 +80,7 @@ geoflow = GeoflowResource(
     flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
 )
 
+
 RESOURCES_LOCAL = {
     "gdal": gdal_local,
     "file_store": file_store,
@@ -87,6 +91,7 @@ RESOURCES_LOCAL = {
     "tyler": tyler,
     "geoflow": geoflow,
     "roofer": roofer,
+    "version": version,
 }
 
 
@@ -100,6 +105,7 @@ RESOURCES_PYTEST = {
     "tyler": tyler,
     "geoflow": geoflow,
     "roofer": roofer,
+    "version": version,
 }
 
 RESOURCES_PROD = {
@@ -112,6 +118,7 @@ RESOURCES_PROD = {
     "tyler": tyler,
     "geoflow": geoflow,
     "roofer": roofer,
+    "version": version,
 }
 
 # Resource definitions for import
