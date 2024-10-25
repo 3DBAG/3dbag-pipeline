@@ -95,7 +95,13 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd", "version"},
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+    },
 )
 def reconstruction_output_multitiles_nl(context, metadata):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
@@ -110,7 +116,13 @@ def reconstruction_output_multitiles_nl(context, metadata):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd", "version"},
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+    },
 )
 def reconstruction_output_3dtiles_nl(context):
     """3D Tiles v1.1 generated with tyler."""
@@ -119,7 +131,13 @@ def reconstruction_output_3dtiles_nl(context):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd", "version"},
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+    },
     code_version=resource_defs["tyler"].app.version("tyler"),
 )
 def reconstruction_output_multitiles_zuid_holland(context):
@@ -130,7 +148,13 @@ def reconstruction_output_multitiles_zuid_holland(context):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_zuid_holland"))},
-    required_resource_keys={"tyler", "geoflow", "file_store", "file_store_fastssd", "version"},
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+    },
     code_version=resource_defs["tyler"].app.version("tyler"),
 )
 def reconstruction_output_3dtiles_zuid_holland(context):
