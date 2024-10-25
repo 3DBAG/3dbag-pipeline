@@ -74,7 +74,7 @@ def features_to_csv(
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={"file_store", "file_store_fastssd", "db_connection"},
+    required_resource_keys={"file_store", "file_store_fastssd", "db_connection", "version"},
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
@@ -85,7 +85,7 @@ def feature_evaluation(context):
     )
     output_dir = bag3d_export_dir(
         context.resources.file_store.file_store.data_dir,
-        version=context.resources.version,
+        version=context.resources.version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = context.resources.db_connection.connect
@@ -141,7 +141,7 @@ def feature_evaluation(context):
 
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
-    required_resource_keys={"file_store"},
+    required_resource_keys={"file_store", "version"},
 )
 def export_index(context):
     """Index of the distribution tiles.
@@ -152,7 +152,7 @@ def export_index(context):
     """
     path_export_dir = bag3d_export_dir(
         context.resources.file_store.file_store.data_dir,
-        version=context.resources.version,
+        version=context.resources.version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
@@ -176,7 +176,7 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
 ]
 
 
-@asset(deps=ASSET_DEPENDENCIES_FOR_METADATA, required_resource_keys={"file_store"})
+@asset(deps=ASSET_DEPENDENCIES_FOR_METADATA, required_resource_keys={"file_store", "version"})
 def metadata(context: AssetExecutionContext):
     """3D BAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
@@ -385,7 +385,7 @@ def metadata(context: AssetExecutionContext):
     }
     output_dir = bag3d_export_dir(
         context.resources.file_store.file_store.data_dir,
-        version=context.resources.version,
+        version=context.resources.version.version,
     )
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
