@@ -1,4 +1,4 @@
-FROM 3dgi/3dbag-pipeline-tools:2024.10.20 AS develop
+FROM 3dgi/3dbag-pipeline-tools:2024.10.23 AS develop
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
@@ -8,9 +8,8 @@ LABEL org.opencontainers.image.description="The party_walls workflow package of 
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
-RUN python3.11 -m venv /venv_3dbag_pipeline
-ENV VIRTUAL_ENV=/venv_3dbag_pipeline
-ENV PATH=/venv_3dbag_pipeline/bin:$PATH
+RUN rm -rf $VIRTUAL_ENV
+RUN python3.11 -m venv $VIRTUAL_ENV
 RUN python -m pip install --upgrade setuptools wheel pip
 COPY docker/tools/requirements.txt .
 RUN python -m pip install -r requirements.txt
@@ -29,33 +28,12 @@ RUN rm -rf $HOME/.cache/*; \
     apt-get -y remove \
       clang make ninja-build gcc g++ cmake git wget \
       autoconf-archive autoconf libtool curl software-properties-common llvm-18; \
-    apt-get -y autoremove; \
     python -m pip cache purge; \
-    apt-get -y clean;
-
-# Run dagster gRPC server on port 4002
-EXPOSE 4002
-
-# CMD allows this to be overridden from run launchers or executors that want
-# to run other commands against your repository
-CMD ["dagster", "api", "grpc", "-h", "0.0.0.0", "-p", "4002", "-m", "bag3d.party_walls.code_location", "--inject-env-vars-from-instance"]
-
-FROM ubuntu:24.04 AS production
-ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
-
-LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"
-LABEL org.opencontainers.image.vendor="3DBAG"
-LABEL org.opencontainers.image.title="3dbag-pipeline-party-walls"
-LABEL org.opencontainers.image.description="The party_walls workflow package of the 3dbag-pipeline. Minimized image for production."
-LABEL org.opencontainers.image.version=$VERSION
-LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
-
-WORKDIR $BAG3D_PIPELINE_LOCATION
-# Activate the virtual environment
-ENV VIRTUAL_ENV=$BAG3D_PIPELINE_LOCATION/venv
-ENV PATH=$BAG3D_PIPELINE_LOCATION/venv/bin:$PATH
-
-COPY --from=develop / /
+    apt-get -y clean; \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*; \
+    rm -rf /opt/3dbag-pipeline/.git; \
+    rm -rf /opt/3dbag-pipeline/packages/common/.*; \
+    rm -rf /opt/3dbag-pipeline/packages/party_walls/.*;
 
 # Run dagster gRPC server on port 4002
 EXPOSE 4002

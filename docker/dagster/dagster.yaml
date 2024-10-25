@@ -14,7 +14,7 @@ run_launcher:
       - DAGSTER_POSTGRES_USER
       - DAGSTER_POSTGRES_PASSWORD
       - DAGSTER_POSTGRES_DB
-    network: bag3d_network
+    network: bag3d-dev-network
     container_kwargs:
       volumes: # Make docker client accessible to any launched containers as well
         - /var/run/docker.sock:/var/run/docker.sock
@@ -25,7 +25,7 @@ run_storage:
   class: PostgresRunStorage
   config:
     postgres_db:
-      hostname: dagster_postgresql
+      hostname: dagster-postgresql
       username:
         env: DAGSTER_POSTGRES_USER
       password:
@@ -39,7 +39,7 @@ schedule_storage:
   class: PostgresScheduleStorage
   config:
     postgres_db:
-      hostname: dagster_postgresql
+      hostname: dagster-postgresql
       username:
         env: DAGSTER_POSTGRES_USER
       password:
@@ -53,7 +53,7 @@ event_log_storage:
   class: PostgresEventLogStorage
   config:
     postgres_db:
-      hostname: dagster_postgresql
+      hostname: dagster-postgresql
       username:
         env: DAGSTER_POSTGRES_USER
       password:
