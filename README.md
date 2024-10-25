@@ -99,7 +99,7 @@ make docker_up_postgres
 Where:
 make venvs = creates the [vitrual environments](#development-and-testing)
 make download = [downloads test_data from the server](#data)
-make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
+make docker_volume_create = creates the docker volumes that mount the test data onto the postgres container
 make docker_up_postgres = starts the postgres container
 
 Then you can run the fast unit test for all packages with:
