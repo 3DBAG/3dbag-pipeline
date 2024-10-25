@@ -129,7 +129,9 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_lod12_2d
 
 
-@asset(deps={AssetKey("geopackage_nl")}, required_resource_keys={"file_store", "version"})
+@asset(
+    deps={AssetKey("geopackage_nl")}, required_resource_keys={"file_store", "version"}
+)
 def compressed_tiles(context, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""

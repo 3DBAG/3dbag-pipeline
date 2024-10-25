@@ -74,7 +74,12 @@ def features_to_csv(
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={"file_store", "file_store_fastssd", "db_connection", "version"},
+    required_resource_keys={
+        "file_store",
+        "file_store_fastssd",
+        "db_connection",
+        "version",
+    },
 )
 def feature_evaluation(context):
     """Compare the reconstruction output to the input, for each feature.
@@ -176,7 +181,10 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
 ]
 
 
-@asset(deps=ASSET_DEPENDENCIES_FOR_METADATA, required_resource_keys={"file_store", "version"})
+@asset(
+    deps=ASSET_DEPENDENCIES_FOR_METADATA,
+    required_resource_keys={"file_store", "version"},
+)
 def metadata(context: AssetExecutionContext):
     """3D BAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,

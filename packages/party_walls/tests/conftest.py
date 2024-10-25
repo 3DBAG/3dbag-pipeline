@@ -18,7 +18,7 @@ VERSION = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
 
 # update quadtree
 og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
-export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_"+VERSION)
+export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
 os.system(f"cp {og_quadtree} {export_dir}")
 
 

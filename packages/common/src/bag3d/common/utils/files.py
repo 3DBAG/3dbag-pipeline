@@ -103,9 +103,7 @@ def get_export_tile_ids() -> Sequence[str]:
     """
     tileids = []
     version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
-    export_dir = Path(
-        os.getenv("BAG3D_EXPORT_DIR", f"/data/3DBAG/export_{version}")
-    )
+    export_dir = Path(os.getenv("BAG3D_EXPORT_DIR", f"/data/3DBAG/export_{version}"))
     if export_dir.exists():
         path_tiles_dir = export_dir.joinpath("tiles")
         path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
