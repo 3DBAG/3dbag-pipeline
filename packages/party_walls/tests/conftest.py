@@ -60,6 +60,7 @@ def context(database, input_data_dir, fastssd_data_dir):
             "db_connection": database,
             "file_store": FileStoreResource(data_dir=str(input_data_dir)),
             "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "version": "test_version",
         },
     )
 
