@@ -94,7 +94,7 @@ def get_export_tile_ids() -> Sequence[str]:
 
     Fixme:
         * Currently we read the root data dir from the BAG3D_EXPORT_DIR environment
-        variable, or use /data/3DBAG/export as default. Maybe we could consolidate all resource
+        variable, or use /data/3DBAG/export_{version} as default. Maybe we could consolidate all resource
         configurations to .env files and load from there in all places. But need to be
         able to load different .env files and production and dev setup.
 
@@ -102,7 +102,10 @@ def get_export_tile_ids() -> Sequence[str]:
         List of tile IDs
     """
     tileids = []
-    export_dir = Path(os.environ.get("BAG3D_EXPORT_DIR", "/data/3DBAG/export"))
+    version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
+    export_dir = Path(
+        os.getenv("BAG3D_EXPORT_DIR", f"/data/3DBAG/export_{version}")
+    )
     if export_dir.exists():
         path_tiles_dir = export_dir.joinpath("tiles")
         path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
