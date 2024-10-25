@@ -8,6 +8,7 @@ from bag3d.common.resources.executables import (
     RooferResource,
 )
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import VersionResource
 from bag3d.core.assets import export, reconstruction
 from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
 from dagster import (
@@ -54,6 +55,7 @@ def test_integration_reconstruction_and_export(
         "file_store_fastssd": FileStoreResource(
             data_dir=str(test_data_dir / "integration_core")
         ),
+        "version": VersionResource("test_version"),
     }
 
     all_reconstruction_assets = load_assets_from_package_module(
