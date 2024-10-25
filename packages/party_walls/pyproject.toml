@@ -7,7 +7,7 @@ name = "bag3d-party-walls"
 version = "2024.1004"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
     { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },

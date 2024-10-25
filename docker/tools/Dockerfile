@@ -19,21 +19,19 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     apt-get -y install \
       make ninja-build gcc g++ cmake git wget \
       libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
-      autoconf-archive autoconf libtool curl software-properties-common \
-      unzip zip bzip2 tar
+      autoconf-archive autoconf libtool curl unzip zip bzip2 tar
 
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get -y install libgeos-dev libgeos++-dev sqlite3 \
     libsqlite3-dev libtiff-dev libproj-dev libproj25 libpq5 libpq-dev libpqxx-dev \
-    libgeotiff-dev nlohmann-json3-dev python3-venv python3-pip openssh-client openssl \
+    libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev
 
+COPY --link --from=ghcr.io/astral-sh/uv:0.4.26 /uv /uvx /bin/
 # Python 3.11 is currently required by the party_walls package
-RUN add-apt-repository -y ppa:deadsnakes/ppa ;\
-    apt-get -y update ; \
-    apt-get -y install python3.11 python3.11-venv
+RUN uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
 COPY --link ./tools-build.sh $BAG3D_PIPELINE_LOCATION
@@ -122,24 +120,34 @@ RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts && \
 FROM geoflow-old AS dagster
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-# Create a virtual environment, otherwise python complains
-RUN python3.12 -m venv $BAG3D_PIPELINE_LOCATION/venv
 # Activate the virtual environment
 ENV VIRTUAL_ENV=$BAG3D_PIPELINE_LOCATION/venv
-ENV PATH=$BAG3D_PIPELINE_LOCATION/venv/bin:$PATH
-# Install packages into the virtual environment
-COPY --link docker/tools/requirements.txt .
-RUN python -m pip install --upgrade setuptools wheel pip
-RUN python -m pip install -r requirements.txt
-
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
 # Set DAGSTER_HOME, because the dagster grpc server needs it
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
+
 RUN mkdir -p $DAGSTER_HOME && \
     touch $DAGSTER_HOME/dagster.yaml
+#RUN useradd -ms /bin/sh -u 1001 bag3d && \
+#    chown -R bag3d /opt/3dbag-pipeline && \
+#    chown -R bag3d $DAGSTER_HOME
+#USER bag3d
 
-WORKDIR $BAG3D_PIPELINE_LOCATION
+# Create a virtual environment, otherwise python complains
+RUN uv venv --python 3.12 $VIRTUAL_ENV
+# Install packages into the virtual environment
+COPY --link docker/tools/requirements.txt .
+RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
+
 
 
 FROM dagster AS test-tools
+
+# Clean up the image
+RUN rm -rf $HOME/.cache/*; \
+    apt-get -y remove \
+      make ninja-build gcc g++ cmake wget autoconf-archive autoconf libtool curl; \
+    apt-get -y clean; \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*;
 
 RUN bash $BAG3D_PIPELINE_LOCATION/tools-test.sh --dir $BAG3D_PIPELINE_LOCATION/tools
