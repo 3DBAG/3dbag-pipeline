@@ -34,6 +34,9 @@ docker_up_postgres:
 docker_up:
 	docker compose -p bag3d-dev -f docker/compose.yaml up -d
 
+docker_watch:
+	docker compose -p bag3d-dev -f docker/compose.yaml watch
+
 docker_restart: docker_down_rm docker_volume_rm docker_volume_create docker_up
 
 docker_down:

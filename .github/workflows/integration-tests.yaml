@@ -2,9 +2,15 @@ name: Integration tests
 
 on:
   push:
-    branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
+    branches: [ "develop", "master" ]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+#  pull_request:
+#    branches: [ "develop", "master" ]
+#    paths-ignore:
+#      - "docs/**"
+#      - "**.md"
 
 jobs:
 
