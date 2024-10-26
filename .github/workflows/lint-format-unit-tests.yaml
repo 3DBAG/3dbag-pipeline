@@ -1,12 +1,12 @@
 name: Install, Lint, Format, Test
 
 on:
-  push:
+  pull_request:
     branches: [ "develop", "master" ]
     paths-ignore:
       - "docs/**"
       - "**.md"
-#  pull_request:
+#  push:
 #    branches: [ "develop", "master" ]
 #    paths-ignore:
 #      - "docs/**"
