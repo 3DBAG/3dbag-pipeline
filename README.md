@@ -188,30 +188,6 @@ make start_dagster
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
 
-### Documenting the package
-
-The documentation is built with [mkdocs](https://www.mkdocs.org/) and several plugins.
-The APIs (eg. `common`) is documented with [Google-style docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
-In order to generate the API documentation for a package, the package must be installed.
-Solely for documentation purposes, this is best done with `pip install --no-deps packages/<package>`.
-
-Install the documentation dependencies and view the docs locally:
-
-```shell
-pip install -r requirements_docs.txt
-mkdocs serve
-```
-
-Go to `http://127.0.0.1:8000/` in your browser.
-
-### Data
-
-Download test data with:
-
-```bash
-export BAG3D_TEST_DATA=<path/to/where/the/data/should/be/stored>
-make download
-```
 
 ### Tests
 

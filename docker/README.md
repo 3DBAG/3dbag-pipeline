@@ -55,11 +55,3 @@ make docker_restart
 
 The 3dbag-pipeline calls several tools in a subprocess, e.g. roofer, tyler, gdal, pdal etc.
 We maintain a builder image in `docker/tools/Dockerfile` with all of these tools installed, and use it as a base image for building the images of the workflow packages (`core`, `floors_estimation`, `party_walls`.)
-
-## Local development in docker containers
-
-It is possible to set up your own development environment by compiling all the tools (see `tools-build.sh`) and installing the 3dbag-pipeline packages into virtual environments.
-
-The alternative is to develop the 3dbag-pipeline code in docker containers that already contain the necessary dependencies and tools.
-
-The docker documentation describes in detail how [does the compose watch functionality work](https://docs.docker.com/compose/how-tos/file-watch/).
