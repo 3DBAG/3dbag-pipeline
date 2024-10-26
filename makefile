@@ -30,6 +30,7 @@ docker_build_tools: source
 
 docker_up_postgres:
 	docker compose -p bag3d-dev -f docker/compose.yaml up -d data-postgresql
+	sleep 5
 
 docker_up:
 	docker compose -p bag3d-dev -f docker/compose.yaml up -d
