@@ -17,7 +17,7 @@ docker_volume_create:
 	docker rm -f bag3d-dev-temp-container
 	docker volume create bag3d-dev-data-postgresql
 	docker run -d --name bag3d-dev-temp-container --mount source=bag3d-dev-data-postgresql,target=/data busybox sleep infinity
-	docker exec bag3d-dev-temp-container mkdir /data/pgdata /data/pglog
+	docker exec bag3d-dev-temp-container mkdir -p /data/pgdata /data/pglog
 	docker rm -f bag3d-dev-temp-container
 
 docker_volume_rm:
