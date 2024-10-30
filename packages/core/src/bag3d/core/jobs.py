@@ -4,14 +4,14 @@ from dagster import define_asset_job, AssetSelection
 job_ahn_tile_index = define_asset_job(
     name="ahn_tile_index",
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
-                "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
-                "the AHN jobs can be run.",
+    "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
+    "the AHN jobs can be run.",
     selection=AssetSelection.assets(["ahn", "tile_index_pdok"])
     | AssetSelection.assets(["ahn", "md5_pdok_ahn3"])
     | AssetSelection.assets(["ahn", "md5_pdok_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
-    | AssetSelection.assets(["ahn", "metadata_table_ahn5"])
+    | AssetSelection.assets(["ahn", "metadata_table_ahn5"]),
 )
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
@@ -28,7 +28,7 @@ job_ahn4 = define_asset_job(
     name="ahn4",
     description="Make sure that the available AHN 4 LAZ files are present on disk, "
     "and their metadata is recorded.",
-    selection= AssetSelection.assets(["ahn", "laz_files_ahn4"])
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_ahn4"])
     | AssetSelection.assets(["ahn", "lasindex_ahn4"]),
 )
@@ -37,7 +37,7 @@ job_ahn5 = define_asset_job(
     name="ahn5",
     description="Make sure that the available AHN 5 LAZ files are present on disk, "
     "and their metadata is recorded.",
-    selection= AssetSelection.assets(["ahn", "laz_files_ahn5"])
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
 )
