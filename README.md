@@ -218,7 +218,7 @@ make download
 You can run the full tests, including integration with :
 
 ```bash
-make test_full
+make test_all
 ```
 ####  Unit testing
 
@@ -247,7 +247,7 @@ These tests require the [full requirements installation](#requirements-for-runni
 
 #### Integration tests
 
-THe integrations tests are made in such way so that the main jobs that comprise the pipeline are run for a small region of 
+The integration tests are made in such way so that the main jobs that comprise the pipeline are run for a small region.
 
 ```bash
 make integration
