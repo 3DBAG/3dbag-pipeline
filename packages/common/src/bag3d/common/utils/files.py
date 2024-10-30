@@ -114,7 +114,9 @@ def get_export_tile_ids() -> Sequence[str]:
                 for er in check_export_results(path_quadtree_tsv, path_tiles_dir)
             ]
         else:
-            raise FileNotFoundError(f"""Quadtree file was not found in {path_quadtree_tsv}.""")
+            raise FileNotFoundError(
+                f"""Quadtree file was not found in {path_quadtree_tsv}."""
+            )
     else:
         raise FileNotFoundError(f"""Export directory {export_dir} does not exist.
                                 You need to set the BAG3D_EXPORT_DIR variable.""")
