@@ -29,9 +29,11 @@ jobs:
         echo BAG3D_VENVS=${PWD}/venvs >> .env
         echo BAG3D_TEST_DATA=${PWD}/tests/test_data >> .env
         echo BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model/pipeline_model1_gbr_untuned.joblib >> .env
-        echo BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_data/input/export/3DBAG/export >> .env
+        echo BAG3D_RELEASE_VERSION=test_version
+        echo BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export_${BAG3D_RELEASE_VERSION} >> .env
         echo DAGSTER_HOME=${PWD}/tests/dagster_home >> .env
         echo TOOLS_DIR=${HOME}/.build-3dbag-pipeline >> .env
+        
         echo BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres/Dockerfile >> .env
         echo BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis >> .env
         echo BAG3D_PG_USER=baseregisters_test_user >> .env
