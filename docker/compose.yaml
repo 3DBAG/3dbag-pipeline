@@ -69,6 +69,7 @@ services:
       - ./.env
     volumes:
       - bag3d-dev-data-pipeline:/data/volume
+      - bag3d-dev-dagster-home:/opt/dagster/dagster_home
     networks:
       - bag3d-dev-network
     depends_on:
@@ -105,6 +106,7 @@ services:
       - ./.env
     volumes:
       - bag3d-dev-data-pipeline:/data/volume
+      - bag3d-dev-dagster-home:/opt/dagster/dagster_home
     networks:
       - bag3d-dev-network
     depends_on:
@@ -140,6 +142,7 @@ services:
       - ./.env
     volumes:
       - bag3d-dev-data-pipeline:/data/volume
+      - bag3d-dev-dagster-home:/opt/dagster/dagster_home
     networks:
       - bag3d-dev-network
     depends_on:
@@ -186,6 +189,7 @@ services:
     volumes: # Make docker client accessible so we can terminate containers from the webserver
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
+      - bag3d-dev-dagster-home:/opt/dagster/dagster_home
     networks:
       - bag3d-dev-network
     depends_on:
@@ -210,6 +214,7 @@ services:
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/io_manager_storage:/tmp/io_manager_storage
+      - bag3d-dev-dagster-home:/opt/dagster/dagster_home
     networks:
       - bag3d-dev-network
     depends_on:
@@ -222,6 +227,8 @@ volumes:
   bag3d-dev-data-postgresql:
     external: true
   bag3d-dev-data-pipeline:
+    external: true
+  bag3d-dev-dagster-home:
     external: true
 
 networks:
