@@ -105,6 +105,7 @@ def get_export_tile_ids() -> Sequence[str]:
     version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
     export_dir = Path(os.getenv("BAG3D_EXPORT_DIR", f"/data/3DBAG/export_{version}"))
     if export_dir.exists():
+        print(export_dir)
         path_tiles_dir = export_dir.joinpath("tiles")
         path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
         if path_quadtree_tsv.exists():
@@ -112,6 +113,8 @@ def get_export_tile_ids() -> Sequence[str]:
                 er.tile_id
                 for er in check_export_results(path_quadtree_tsv, path_tiles_dir)
             ]
+        else:
+            raise FileNotFoundError(f"""Quadtree file was not found in {path_quadtree_tsv}.""")
     else:
         raise FileNotFoundError(f"""Export directory {export_dir} does not exist.
                                 You need to set the BAG3D_EXPORT_DIR variable.""")
