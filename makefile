@@ -21,8 +21,8 @@ docker_volume_create:
 	docker rm -f bag3d-dev-temp-container
 	docker volume create bag3d-dev-dagster-home
 	docker run -d --name bag3d-dev-temp-container --mount source=bag3d-dev-dagster-home,target=/opt/dagster/dagster_home busybox sleep infinity
-	docker cp dagster.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
-	docker cp workspace.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
+	docker cp docker/dagster/dagster.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
+	docker cp docker/dagster/workspace.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
 	docker rm -f bag3d-dev-temp-container
 
 docker_volume_rm:
