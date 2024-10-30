@@ -19,6 +19,8 @@ jobs:
     - run: |
         touch .env
         echo BAG3D_TEST_DATA=${PWD}/tests/test_data >> .env
+        echo BAG3D_RELEASE_VERSION=test_version >> .env
+        echo BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export_${BAG3D_RELEASE_VERSION} >> .env
     - name: Build docker images
       run: |
         make download
