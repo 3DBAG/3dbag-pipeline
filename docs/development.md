@@ -48,6 +48,8 @@ Create the docker volumes that store the test data.
 make docker_volume_create
 ```
 
+In addition, `make docker_volume_rm` removes the volumes, `make docker_volume_recreate` recreates the volumes.
+
 Note that if you change the test data locally and you want that the docker services use the updated data, then you need to,
 1. stop the services: `make docker_down`
 2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`

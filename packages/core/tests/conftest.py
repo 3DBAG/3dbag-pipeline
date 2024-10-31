@@ -29,7 +29,17 @@ def docker_config():
 
 @pytest.fixture(scope="session")
 def gdal(docker_config):
-    yield GDALResource(docker_cfg=docker_config)
+    exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
+    exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
+    exe_sozip = os.getenv("EXE_PATH_SOZIP")
+    if exe_ogr2ogr is None and exe_ogrinfo is None and exe_sozip is None:
+        yield GDALResource(docker_cfg=docker_config)
+    else:
+        yield GDALResource(
+            exe_ogr2ogr=exe_ogr2ogr,
+            exe_ogrinfo=exe_ogrinfo,
+            exe_sozip=exe_sozip,
+        )
 
 
 @pytest.fixture(scope="function")
