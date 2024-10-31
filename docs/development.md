@@ -3,7 +3,7 @@
 Thank you for considering to contribute to the 3dbag-pipeline.
 In this document we describe how can you get set up for developing the software locally, how to submit a contribution, what guidelines do we follow and what do we expect from your contribution, what can you expect from us.
 
-## Set up
+## Setup
 
 After cloning the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline), the recommended way to set up your environment is with docker.
 
@@ -48,6 +48,11 @@ Create the docker volumes that store the test data.
 make docker_volume_create
 ```
 
+Note that if you change the test data locally and you want that the docker services use the updated data, then you need to,
+1. stop the services: `make docker_down`
+2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`
+3. start the service again: `make docker_up`
+
 #### Docker setup
 
 Start the docker containers with `watch` enabled.
@@ -73,6 +78,25 @@ The docker documentation describes in detail how [does the compose watch functio
 If you don't want to enable the code synchronization with `watch`, the `make docker_up` command starts the containers in normally.
 
 The `docker_watch`, `docker_up` targets will set the docker compose project name to `bag3d-dev`.
+
+#### Docker setup in PyCharm (professional)
+
+Create run configuration that uses the docker compose file.
+For example, see the screenshot below. 
+![](images/docker_compose_run_config.png)
+
+Start the services by running the configuration from the compose file.
+For example, see the screenshot below. 
+![](images/docker_compose_start.png)
+
+Set up the python interpreter in the docker container as the project interpreter, using PyCharm's docker-compose interpreter setup.
+Note here that you need to use the matching service for the 3dbag-pipeline package. 
+For example, for working on the `core` package, you need to configure the `bag3d-core` service for the python interpreter.
+
+To run a specific test, set up a run configuration with the python interpreter in docker and make sure to use the environment variables from the `docker/.env` file.
+![](images/docker_compose_test_config.png)
+
+For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
 ## Documenting the package
 
