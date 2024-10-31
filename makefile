@@ -59,8 +59,8 @@ docker_down_rm:
 	docker compose -p bag3d-dev down --volumes --remove-orphans --rmi local
 
 venvs: source
-	#mkdir -p $(BAG3D_VENVS)
-	#cd $(BAG3D_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster ; python3.11 -m venv venv_common
+	mkdir -p $(BAG3D_VENVS)
+	cd $(BAG3D_VENVS) ; python3.11 -m venv venv_floors_estimation ; python3.11 -m venv venv_party_walls ; python3.11 -m venv venv_core ; python3.11 -m venv venv_dagster ; python3.11 -m venv venv_common
 	. $(BAG3D_VENVS)/venv_core/bin/activate ; pip install -e $(PWD)/packages/core/.[dev] ; pip install -e $(PWD)/packages/common/.[dev]
 	. $(BAG3D_VENVS)/venv_floors_estimation/bin/activate ; pip install -e $(PWD)/packages/floors_estimation ; pip install -e $(PWD)/packages/common/.[dev]
 	. $(BAG3D_VENVS)/venv_party_walls/bin/activate ; pip install -e $(PWD)/packages/party_walls ; pip install -e $(PWD)/packages/common/.[dev]
