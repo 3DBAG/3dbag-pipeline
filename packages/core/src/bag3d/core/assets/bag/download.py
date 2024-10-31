@@ -145,7 +145,7 @@ def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdent
             default_value=False,
             description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
             is_required=False,
-        )
+        ),
     },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
