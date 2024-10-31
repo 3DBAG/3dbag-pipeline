@@ -27,7 +27,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     apt-get -y install libgeos-dev libgeos++-dev sqlite3 \
     libsqlite3-dev libtiff-dev libproj-dev libproj25 libpq5 libpq-dev libpqxx-dev \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
-    libxml++2.6-dev
+    libxml++2.6-dev parallel
 
 COPY --link --from=ghcr.io/astral-sh/uv:0.4.26 /uv /uvx /bin/
 # Python 3.11 is currently required by the party_walls package
