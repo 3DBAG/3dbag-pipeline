@@ -17,12 +17,13 @@ class BadArchiveError(OSError):
     pass
 
 
-def unzip(file: Path, dest: Path) -> None:
-    """Uncompress the whole zip archive and delete the zip.
+def unzip(file: Path, dest: Path, remove: bool = True) -> None:
+    """Uncompress the whole zip archive and optionally delete the zip.
 
     Args:
         file: The Path to the zip.
         dest: The Path to the destination directory.
+        remove: Whether to remove the zip.
 
     Raises:
         BadArchiveError: The archive contains at least one bad file
@@ -36,8 +37,9 @@ def unzip(file: Path, dest: Path) -> None:
                 f"The archive contains at least one bad file: {first_bad_file}"
             )
         ezip.extractall(path=dest)
-    logger.info(f"Deleting {file}")
-    file.unlink()
+    if remove:
+        logger.info(f"Deleting {file}")
+        file.unlink()
 
 
 def bag3d_dir(root_dir: os.PathLike) -> Path:
