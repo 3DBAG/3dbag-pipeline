@@ -292,13 +292,12 @@ def load_bag_layer(
         "dsn": context.resources.db_connection.connect.dsn,
     }
 
-    # Decompress the layer archive
-    layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
-    layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
-    unzip(layer_zip, layer_dir, remove=remove_zip)
-
     # Create the ogr2ogr command. The order of parameters is important!
     if context.op_config.get("with_parallel"):
+        # Decompress the layer archive
+        layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
+        layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
+        unzip(layer_zip, layer_dir, remove=remove_zip)
         cmd = [
             'parallel "{exe}',
             "--config PG_USE_COPY=YES",
@@ -330,7 +329,7 @@ def load_bag_layer(
             "-lco SPATIAL_INDEX=NONE",
         ]
         cmd.append('-f PostgreSQL PG:"{dsn}"')
-        cmd.append(str(layer_dir))
+        cmd.append("/vsizip/{local_path}/9999{layer_dir}{shortdate}.zip")
         cmd = " ".join(cmd)
 
     # Execute
