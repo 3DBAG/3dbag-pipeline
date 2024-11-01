@@ -15,16 +15,12 @@ from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
-from bag3d.common.resources.wkt import ZUID_HOLLAND
 
 from bag3d.common.resources import resource_defs
 
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 from bag3d.core.assets.ahn.core import ahn_dir
-
-# debug
-from bag3d.core.assets.reconstruction import RECONSTRUCT_RERUN_INPUT_PARTITIONS
 
 
 def generate_3dbag_version_date(context):
@@ -122,40 +118,6 @@ def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_in
 
 @asset(
     partitions_def=PartitionDefinition3DBagReconstruction(
-        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
-    ),
-    ins={
-        "regular_grid_200m": AssetIn(key_prefix="ahn"),
-        "tiles": AssetIn(key_prefix="input"),
-        "index": AssetIn(key_prefix="input"),
-        "reconstruction_input": AssetIn(key_prefix="input"),
-    },
-    required_resource_keys={
-        "db_connection",
-        "roofer",
-        "file_store",
-        "file_store_fastssd",
-    },
-    code_version=resource_defs["roofer"].app.version("crop"),
-)
-def cropped_input_and_config_zuid_holland(
-    context, regular_grid_200m, tiles, index, reconstruction_input
-):
-    """Runs roofer for cropping the input data per feature and selects the best point
-    cloud for the reconstruction per feature.
-
-    1. Crop the point clouds with the BAG footprints
-    2. Select the best point cloud for the footprint and write the point cloud file
-    3. Write the geoflow (.toml) reconstruction configuration file for the footprint
-    """
-
-    return cropped_input_and_config_func(
-        context, index, reconstruction_input, regular_grid_200m, tiles
-    )
-
-
-@asset(
-    partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
     required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
@@ -165,62 +127,6 @@ def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition. Runs geof."""
     return reconstruct_building_models_func(context, cropped_input_and_config_nl)
-
-
-@asset(
-    partitions_def=StaticPartitionsDefinition(
-        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS
-    ),
-    ins={
-        "regular_grid_200m": AssetIn(key_prefix="ahn"),
-        "tiles": AssetIn(key_prefix="input"),
-        "index": AssetIn(key_prefix="input"),
-        "reconstruction_input": AssetIn(key_prefix="input"),
-    },
-    required_resource_keys={
-        "db_connection",
-        "roofer",
-        "file_store",
-        "file_store_fastssd",
-    },
-    code_version=resource_defs["roofer"].app.version("crop"),
-)
-def cropped_input_and_config_nl_rerun(
-    context, regular_grid_200m, tiles, index, reconstruction_input
-):
-    """Rerun the reconstruction with just a specific set of partitions."""
-    return cropped_input_and_config_func(
-        context, index, reconstruction_input, regular_grid_200m, tiles
-    )
-
-
-@asset(
-    partitions_def=StaticPartitionsDefinition(
-        partition_keys=RECONSTRUCT_RERUN_INPUT_PARTITIONS
-    ),
-    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].app.version("geof"),
-)
-def reconstructed_building_models_nl_rerun(context, cropped_input_and_config_nl_rerun):
-    """Rerun the reconstruction with just a specific set of partitions."""
-    return reconstruct_building_models_func(context, cropped_input_and_config_nl_rerun)
-
-
-@asset(
-    partitions_def=PartitionDefinition3DBagReconstruction(
-        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles", wkt=ZUID_HOLLAND
-    ),
-    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].app.version("geof"),
-)
-def reconstructed_building_models_zuid_holland(
-    context, cropped_input_and_config_zuid_holland
-):
-    """Generate the 3D building models by running the reconstruction sequentially
-    within one partition. Runs geof."""
-    return reconstruct_building_models_func(
-        context, cropped_input_and_config_zuid_holland
-    )
 
 
 def cropped_input_and_config_func(
