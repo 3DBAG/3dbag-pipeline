@@ -45,7 +45,9 @@ job_ahn5 = define_asset_job(
 job_source_input = define_asset_job(
     name="source_input",
     description="Update the source data sets and prepare the input for the reconstruction.",
-    selection=AssetSelection.groups("bag")
+    selection=AssetSelection.assets(["bag", "extract_bag"])
+    | AssetSelection.assets(["bag", "stage_bag_pand"])
+    | AssetSelection.assets(["bag", "bag_pandactueelbestaand"])
     | AssetSelection.groups("top10nl")
     | AssetSelection.groups("input"),
 )

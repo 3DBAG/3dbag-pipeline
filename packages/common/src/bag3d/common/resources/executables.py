@@ -274,40 +274,32 @@ class GDALResource(ConfigurableResource):
         gdal_resource.app
     """
 
-    exe_ogrinfo: str
-    exe_ogr2ogr: str
-    exe_sozip: str
-    docker_cfg: DockerConfig
-
-    def __init__(
-        self,
-        exe_ogrinfo: Optional[str] = None,
-        exe_ogr2ogr: Optional[str] = None,
-        exe_sozip: Optional[str] = None,
-        docker_cfg: Optional[DockerConfig] = None,
-    ):
-        super().__init__(
-            exe_ogrinfo=exe_ogrinfo or "ogrinfo",
-            exe_ogr2ogr=exe_ogr2ogr or "ogr2ogr",
-            exe_sozip=exe_sozip or "sozip",
-            docker_cfg=docker_cfg
-            or DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp"),
-        )
+    exe_ogrinfo: Optional[str] = None
+    exe_ogr2ogr: Optional[str] = None
+    exe_sozip: Optional[str] = None
+    docker_cfg: Optional[DockerConfig] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {
-            "ogrinfo": self.exe_ogrinfo,
-            "ogr2ogr": self.exe_ogr2ogr,
-            "sozip": self.exe_sozip,
-        }
+        if self.docker_cfg is None:
+            return {
+                "ogrinfo": self.exe_ogrinfo,
+                "ogr2ogr": self.exe_ogr2ogr,
+                "sozip": self.exe_sozip,
+            }
+        else:
+            return {
+                "ogrinfo": "ogrinfo",
+                "ogr2ogr": "ogr2ogr",
+                "sozip": "sozip",
+            }
 
     @property
     def with_docker(self) -> bool:
         if (
-            self.exe_ogrinfo == "ogrinfo"
-            and self.exe_ogr2ogr == "ogr2ogr"
-            and self.exe_sozip == "sozip"
+            self.exe_ogrinfo is None
+            and self.exe_ogr2ogr is None
+            and self.exe_sozip is None
         ):
             return True
         else:

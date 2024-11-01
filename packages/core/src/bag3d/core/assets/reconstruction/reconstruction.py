@@ -42,7 +42,8 @@ def generate_3dbag_version_date(context):
 def reconstruction_date():
     """Generates a version from today's date, so that each partition in the
     reconstruction assets get the same version, even if they are executed over multiple
-    days."""
+    days.
+    """
     template = "v{date}"
     return template.format(date=format_date(date.today()))
 

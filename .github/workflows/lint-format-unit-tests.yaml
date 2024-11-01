@@ -53,9 +53,6 @@ jobs:
         echo EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop >> .env
         echo EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct >> .env
         echo FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json >> .env
-        echo EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr >> .env
-        echo EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo >> .env
-        echo EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip >> .env
         echo EXE_PATH_PDAL=${TOOLS_DIR}/bin/pdal >> .env
         echo EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64 >> .env
         echo EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64 >> .env
