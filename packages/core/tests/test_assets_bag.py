@@ -28,6 +28,7 @@ def test_load_bag_layer(context, test_data_dir):
         layer="ligplaats",
         shortdate="08102022",
         new_table=test_bag_table,
+        remove_zip=False,
     )
     assert res is True
     assert res is not None
@@ -50,6 +51,7 @@ def test_stage_bag_layer(context, test_data_dir):
         dict(),
         "08102022",
         test_data_dir / "lvbag-extract",
+        remove_zip=False,
     )
     assert res is not None
     test_bag_table = PostgresTableIdentifier("stage_lvbag", "ligplaats")

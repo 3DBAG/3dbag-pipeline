@@ -7,7 +7,7 @@ on:
       - '202[2-9].[0-9]+-pc[0-9]+'
   pull_request:
     branches:
-      - develop
+      - "develop"
     types: [ closed ]
   workflow_dispatch:
 
@@ -37,9 +37,9 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=develop
+            VERSION=${{ env.DOCKER_TAG }}
           push: true
-          tags: 3dgi/3dbag-pipeline-core:develop
+          tags: 3dgi/3dbag-pipeline-core:${{ env.DOCKER_TAG }}
       - name: Build and push floors estimation
         uses: docker/build-push-action@v6
         with:
@@ -48,9 +48,9 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=develop
+            VERSION=${{ env.DOCKER_TAG }}
           push: true
-          tags: 3dgi/3dbag-pipeline-floors-estimation:develop
+          tags: 3dgi/3dbag-pipeline-floors-estimation:${{ env.DOCKER_TAG }}
       - name: Build and push party walls
         uses: docker/build-push-action@v6
         with:
@@ -59,9 +59,9 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=develop
+            VERSION=${{ env.DOCKER_TAG }}
           push: true
-          tags: 3dgi/3dbag-pipeline-party-walls:develop
+          tags: 3dgi/3dbag-pipeline-party-walls:${{ env.DOCKER_TAG }}
       - name: Build and push dagster
         uses: docker/build-push-action@v6
         with:
@@ -70,6 +70,6 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=develop
+            VERSION=${{ env.DOCKER_TAG }}
           push: true
-          tags: 3dgi/3dbag-pipeline-dagster:develop
+          tags: 3dgi/3dbag-pipeline-dagster:${{ env.DOCKER_TAG }}
