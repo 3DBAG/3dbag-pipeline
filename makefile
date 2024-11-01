@@ -8,7 +8,7 @@ source:
 download: source
 	rm -rf $(BAG3D_TEST_DATA)
 	mkdir -p $(BAG3D_TEST_DATA)
-	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v3.zip ; unzip -q test_data_v3.zip ; rm test_data_v3.zip
+	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v4.zip ; unzip -q test_data_v4.zip ; rm test_data_v4.zip
 
 docker_volume_create:
 	docker rm -f bag3d-dev-temp-container > /dev/null 2>&1 || true
@@ -18,7 +18,7 @@ docker_volume_create:
 	docker rm -f bag3d-dev-temp-container
 	docker volume create bag3d-dev-data-postgresql
 	docker run -d --name bag3d-dev-temp-container --mount source=bag3d-dev-data-postgresql,target=/data busybox sleep infinity
-	docker exec bag3d-dev-temp-container mkdir /data/pgdata /data/pglog
+	docker exec bag3d-dev-temp-container mkdir -p /data/pgdata /data/pglog
 	docker rm -f bag3d-dev-temp-container
 	docker volume create bag3d-dev-dagster-home
 	docker run -d --name bag3d-dev-temp-container --mount source=bag3d-dev-dagster-home,target=/opt/dagster/dagster_home busybox sleep infinity

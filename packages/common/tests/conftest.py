@@ -68,6 +68,7 @@ def context(database, wkt_testarea, file_store, gdal):
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
+            "version": "test_version",
         },
     )
 

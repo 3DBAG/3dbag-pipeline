@@ -45,8 +45,8 @@ First you need to set up the following environment variables in a `.env` file in
 BAG3D_VENVS=${PWD}/venvs
 BAG3D_TEST_DATA=${PWD}/tests/test_data
 BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model/pipeline_model1_gbr_untuned.joblib
-BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export
-BAG3D_RELEASE_VERSION="10_24"
+BAG3D_RELEASE_VERSION=test_version
+BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export_${BAG3D_RELEASE_VERSION}
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
@@ -99,7 +99,7 @@ make docker_up_postgres
 Where:
 make venvs = creates the [vitrual environments](#development-and-testing)
 make download = [downloads test_data from the server](#data)
-make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
+make docker_volume_create = creates the docker volumes that mount the test data onto the postgres container
 make docker_up_postgres = starts the postgres container
 
 Then you can run the fast unit test for all packages with:
@@ -194,7 +194,7 @@ The UI is served at `http://localhost:3000`, but check the logs in the terminal 
 You can run the full tests, including integration with :
 
 ```bash
-make test_full
+make test_all
 ```
 ####  Unit testing
 
@@ -223,7 +223,7 @@ These tests require the [full requirements installation](#requirements-for-runni
 
 #### Integration tests
 
-THe integrations tests are made in such way so that the main jobs that comprise the pipeline are run for a small region of 
+The integration tests are made in such way so that the main jobs that comprise the pipeline are run for a small region.
 
 ```bash
 make integration

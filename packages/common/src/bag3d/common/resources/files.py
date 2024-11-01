@@ -28,8 +28,6 @@ class FileStore:
         self.docker_volume = None
         if data_dir:
             directory = Path(data_dir)
-            if dir_id:
-                directory = directory / ("release_" + dir_id)
             p = directory.resolve()
             if p.is_dir():
                 pass

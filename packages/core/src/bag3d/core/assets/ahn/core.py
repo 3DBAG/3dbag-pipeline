@@ -41,6 +41,7 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
     if len(feature_set ^ AHN_TILE_IDS) > 0:
         logger.warning(
             "Received AHN tile list has diverged from the one used, list must be updated"
+            f"Difference: {feature_set ^ AHN_TILE_IDS}"
         )
 
 

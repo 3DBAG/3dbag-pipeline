@@ -30,7 +30,7 @@ class TilesFilesIndex:
     paths_array: NDArray
 
 
-@asset(required_resource_keys={"file_store"})
+@asset(required_resource_keys={"file_store", "version"})
 def distribution_tiles_files_index(context) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
     that has an existing CityJSON file.
@@ -44,10 +44,12 @@ def distribution_tiles_files_index(context) -> TilesFilesIndex:
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
     path_quadtree_tsv = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
     ).joinpath("quadtree.tsv")
     path_tiles_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
     ).joinpath("tiles")
     export_results_gen = filter(
         lambda t: t.has_cityjson,
