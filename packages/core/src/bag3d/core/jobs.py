@@ -6,7 +6,7 @@ job_ahn_tile_index = define_asset_job(
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
     "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
     "the AHN jobs can be run.",
-    selection=AssetSelection.assets(["ahn", "tile_index_pdok"])
+    selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
     | AssetSelection.assets(["ahn", "md5_pdok_ahn3"])
     | AssetSelection.assets(["ahn", "md5_pdok_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])

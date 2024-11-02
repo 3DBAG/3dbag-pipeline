@@ -43,12 +43,12 @@ def metadata_table_ahn5(context):
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_pdok):
+def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context, laz_files_ahn3, metadata_table_ahn3, tile_index_pdok
+        context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn
     )
 
 
@@ -66,12 +66,12 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_pdok)
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok):
+def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok
+        context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn
     )
 
 
@@ -89,12 +89,12 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_pdok)
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_pdok):
+def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context, laz_files_ahn5, metadata_table_ahn5, tile_index_pdok
+        context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn
     )
 
 
