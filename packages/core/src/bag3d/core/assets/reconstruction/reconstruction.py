@@ -15,12 +15,14 @@ from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
+from bag3d.common.utils.geodata import geojson_poly_to_wkt
 
 from bag3d.common.resources import resource_defs
 
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
-from bag3d.core.assets.ahn.core import ahn_dir
+from bag3d.core.assets.ahn.core import ahn_dir, PartitionDefinitionAHN
+from bag3d.core.assets.ahn.download import LAZDownload
 
 
 def generate_3dbag_version_date(context):
@@ -120,62 +122,136 @@ def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_in
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
-    required_resource_keys={"geoflow", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["geoflow"].app.version("geof"),
+    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
+    code_version=resource_defs["roofer"].app.version("roofer"),
 )
-def reconstructed_building_models_nl(context, cropped_input_and_config_nl):
+def reconstructed_building_models_nl(context):
     """Generate the 3D building models by running the reconstruction sequentially
-    within one partition. Runs geof."""
-    return reconstruct_building_models_func(context, cropped_input_and_config_nl)
+    within one partition.
+    Runs roofer."""
+    return_code, output = context.resources.roofer.app.execute(
+        "roofer", cmd="{exe} --config {local_path}", local_path=None, silent=False
+    )
+    if return_code != 0 or "error" in output.lower():
+        context.log.error(output)
+        raise Failure
 
+
+@asset(
+    partitions_def=PartitionDefinitionAHN(),
+    ins={
+        "tile_index_ahn": AssetIn(key_prefix="ahn"),
+        "laz_files_ahn3": AssetIn(key_prefix="ahn"),
+        "laz_files_ahn4": AssetIn(key_prefix="ahn"),
+        "reconstruction_input": AssetIn(key_prefix="input"),
+    },
+    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
+    code_version=resource_defs["roofer"].app.version("roofer"),
+)
+def reconstructed_building_models_ahn_partition(context, tile_index_ahn, laz_files_ahn3: LAZDownload, laz_files_ahn4: LAZDownload, reconstruction_input):
+    """Generate the 3D building models by running the reconstruction parallely
+    within one partition.
+    Runs roofer."""
+    toml_template = """
+    [input.footprint]
+    source = '{footprint_file}'
+    id_attribute = "identificatie"
+    force_lod11_attribute = "kas_warenhuis"
+
+    [[input.pointclouds]]
+    name = "AHN3"
+    quality = 1
+    source = '{ahn3_files}'
+
+    [[input.pointclouds]]
+    name = "AHN4"
+    quality = 0
+    source = '{ahn4_files}'
+
+    [crop]
+    cellsize = 0.5
+
+    [reconstruct]
+    lod = 22
+
+    [output]
+    split_cjseq = false
+    folder = '{output_path}'
+    """
+
+    tile_id = context.partition_key
+    ahn_tile_geometry = tile_index_ahn[tile_id]["geometry"]
+    laz_file_ahn3 = laz_files_ahn3.path
+    laz_file_ahn4 = laz_files_ahn4.path
+
+    # Would be neater if we could use -sql in the OGR connection to do this query,
+    # instead of creating a view.
+    tile_view = PostgresTableIdentifier(reconstruction_input.schema, f"t_{tile_id}")
+    query_tile_view = SQL("""
+    CREATE OR REPLACE VIEW {tile_view} AS
+    SELECT i.*
+    FROM {reconstruction_input} i JOIN st_intersects({ahn_tile_geometry})
+    """)
+    context.resources.db_connection.connect.send_query(
+        query_tile_view,
+        query_params={
+            "tile_view": tile_id,
+            "reconstruction_input": reconstruction_input,
+            "ahn_tile_geometry": ahn_tile_geometry,
+        },
+    )
+    output_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.file_store.data_dir
+    ).joinpath(tile_id)
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    output_toml = toml_template.format(
+        tile_id=tile_id,
+        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
+        ahn3_files=laz_file_ahn3,
+        ahn4_files=laz_file_ahn4,
+        output_path=output_dir,
+    )
+    path_toml = output_dir / "crop.toml"
+    with path_toml.open("w") as of:
+        of.write(output_toml)
+    try:
+        context.resources.roofer.app.execute(
+            "roofer", "{exe} -c {local_path}", local_path=path_toml
+        )
+    finally:
+        context.resources.db_connection.connect.send_query(
+            SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
+        )
 
 def cropped_input_and_config_func(
     context, index, reconstruction_input, regular_grid_200m, tiles
 ):
     toml_template = """
     [input.footprint]
-    path = '{footprint_file}'
+    source = '{footprint_file}'
     id_attribute = "identificatie"
-
+    force_lod11_attribute = "kas_warenhuis"
+    
     [[input.pointclouds]]
     name = "AHN3"
     quality = 1
-    path = '{ahn3_files}'
-
+    source = '{ahn3_files}'
+    
     [[input.pointclouds]]
     name = "AHN4"
     quality = 0
-    path = '{ahn4_files}'
-
-    [parameters]
+    source = '{ahn4_files}'
+    
+    [crop]
     cellsize = 0.5
-
+    
+    [reconstruct]
+    lod = 22
+    
     [output]
-    path = '{output_path}'
-
-    # {{bid}} will be replaced by building identifier
-    # {{pc_name}} will be replaced by input pointcloud name
-    # {{path}} will be replaced by path
-    building_toml_file = '{{path}}/objects/{{bid}}/config_{{pc_name}}.toml'
-    building_las_file = '{{path}}/objects/{{bid}}/crop/{{bid}}_{{pc_name}}.las'
-    building_raster_file = '{{path}}/objects/{{bid}}/crop/{{bid}}_{{pc_name}}.tif'
-    building_gpkg_file = '{{path}}/objects/{{bid}}/crop/{{bid}}.gpkg'
-    building_jsonl_file = '{{path}}/objects/{{bid}}/reconstruct/{{bid}}.city.jsonl'
-
-    metadata_json_file = '{{path}}/metadata.json'
-    jsonl_list_file = '{{path}}/features.txt'
-    index_file = '{{path}}/index.gpkg'
-
-    # these get passed through to the geoflow config files that are generated for each building
-    [output.reconstruction_parameters]
-    GF_PROCESS_CRS="EPSG:7415"
-    OUTPUT_CRS="EPSG:7415"
-    CITYJSON_TRANSLATE_X=171800.0
-    CITYJSON_TRANSLATE_Y=472700.0
-    CITYJSON_TRANSLATE_Z=0.0
-    CITYJSON_SCALE_X=0.001
-    CITYJSON_SCALE_Y=0.001
-    CITYJSON_SCALE_Z=0.001
+    split_cjseq = false
+    folder = '{output_path}'
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""    
@@ -260,7 +336,6 @@ def cropped_input_and_config_func(
 
 def reconstruct_building_models_func(context, cropped_input_and_config):
     context.log.info(f"geoflow.kwargs: {context.resources.geoflow.app.kwargs}")
-    flowchart = context.resources.geoflow.app.kwargs["flowcharts"]["reconstruct"]
     cmd_template = "{{exe}} {{local_path}} --config {config_path}"
     # TODO: what are the conditions for partition failure?
     objects_dir = cropped_input_and_config.joinpath("objects")
@@ -281,8 +356,8 @@ def reconstruct_building_models_func(context, cropped_input_and_config):
             config_path = feature.joinpath("config_.toml")
             cmd = cmd_template.format(config_path=config_path)
             try:
-                return_code, output = context.resources.geoflow.app.execute(
-                    "geof", cmd, local_path=flowchart, silent=False
+                return_code, output = context.resources.roofer.app.execute(
+                    "roofer", cmd, silent=False
                 )
                 if return_code != 0 or "error" in output.lower():
                     context.log.error(output)

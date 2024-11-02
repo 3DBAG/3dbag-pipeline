@@ -138,7 +138,7 @@ def tile_index_ahn(context):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn):
+def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn) -> LAZDownload:
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
