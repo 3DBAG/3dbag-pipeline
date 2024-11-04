@@ -9,6 +9,7 @@ from dagster import (
     Output,
     Failure,
     get_dagster_logger,
+    AssetSpec,
 )
 from psycopg.sql import SQL
 from pgutils import PostgresTableIdentifier
@@ -21,7 +22,7 @@ from bag3d.common.resources import resource_defs
 
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
-from bag3d.core.assets.ahn.core import ahn_dir, PartitionDefinitionAHN
+from bag3d.core.assets.ahn.core import ahn_dir, PartitionDefinitionAHN, ahn_laz_dir
 from bag3d.core.assets.ahn.download import LAZDownload
 
 
@@ -138,6 +139,66 @@ def reconstructed_building_models_nl(context):
 
 
 @asset(
+    ins={
+        "reconstruction_input": AssetIn(key_prefix="input"),
+    },
+    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
+    code_version=resource_defs["roofer"].app.version("roofer"),
+)
+def reconstructed_building_models_direct(
+    context, reconstruction_input: PostgresTableIdentifier
+):
+    """Run roofer directly, without tiling."""
+    toml_template = """
+    [input.footprint]
+    source = '{footprint_file}'
+    id_attribute = "identificatie"
+    force_lod11_attribute = "kas_warenhuis"
+
+    [[input.pointclouds]]
+    name = "AHN3"
+    quality = 1
+    source = '{ahn3_files}'
+
+    [[input.pointclouds]]
+    name = "AHN4"
+    quality = 0
+    source = '{ahn4_files}'
+
+    [crop]
+    cellsize = 0.5
+
+    [reconstruct]
+    lod = 22
+
+    [output]
+    split_cjseq = false
+    folder = '{output_path}'
+    """
+    output_dir = geoflow_crop_dir(
+        context.resources.file_store_fastssd.file_store.data_dir
+    )
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    output_toml = toml_template.format(
+        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={reconstruction_input}",
+        ahn3_files=ahn_laz_dir(
+            root_dir=context.resources.file_store.data_dir, ahn_version=3
+        ),
+        ahn4_files=ahn_laz_dir(
+            root_dir=context.resources.file_store.data_dir, ahn_version=4
+        ),
+        output_path=output_dir,
+    )
+    path_toml = output_dir / "crop.toml"
+    with path_toml.open("w") as of:
+        of.write(output_toml)
+    context.resources.roofer.app.execute(
+        "roofer", "{exe} -c {local_path}", local_path=path_toml
+    )
+
+
+@asset(
     partitions_def=PartitionDefinitionAHN(),
     ins={
         "tile_index_ahn": AssetIn(key_prefix="ahn"),
@@ -148,7 +209,13 @@ def reconstructed_building_models_nl(context):
     required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
     code_version=resource_defs["roofer"].app.version("roofer"),
 )
-def reconstructed_building_models_ahn_partition(context, tile_index_ahn, laz_files_ahn3: LAZDownload, laz_files_ahn4: LAZDownload, reconstruction_input):
+def reconstructed_building_models_ahn_partition(
+    context,
+    tile_index_ahn,
+    laz_files_ahn3: LAZDownload,
+    laz_files_ahn4: LAZDownload,
+    reconstruction_input: PostgresTableIdentifier,
+):
     """Generate the 3D building models by running the reconstruction parallely
     within one partition.
     Runs roofer."""
@@ -190,7 +257,7 @@ def reconstructed_building_models_ahn_partition(context, tile_index_ahn, laz_fil
     query_tile_view = SQL("""
     CREATE OR REPLACE VIEW {tile_view} AS
     SELECT i.*
-    FROM {reconstruction_input} i JOIN st_intersects({ahn_tile_geometry})
+    FROM {reconstruction_input} i JOIN st_intersects(st_centroid({ahn_tile_geometry}))
     """)
     context.resources.db_connection.connect.send_query(
         query_tile_view,
@@ -223,6 +290,7 @@ def reconstructed_building_models_ahn_partition(context, tile_index_ahn, laz_fil
         context.resources.db_connection.connect.send_query(
             SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
         )
+
 
 def cropped_input_and_config_func(
     context, index, reconstruction_input, regular_grid_200m, tiles

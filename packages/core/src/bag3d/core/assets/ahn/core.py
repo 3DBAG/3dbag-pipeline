@@ -25,13 +25,13 @@ def ahn_filename(tile_id: str) -> str:
 
 
 def ahn_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Create a directory path where to store the AHN LAZ files for the given AHN
+    """Return a directory path where to store the AHN LAZ files for the given AHN
     version."""
     return Path(root_dir) / "pointcloud" / f"AHN{ahn_version}"
 
 
 def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Create a directory path where to store the AHN LAZ files for the given AHN
+    """Return a directory path where to store the AHN LAZ files for the given AHN
     version."""
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
 

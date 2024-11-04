@@ -138,7 +138,7 @@ def tile_index_ahn(context):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn) -> LAZDownload:
+def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -193,7 +193,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_ahn) -> LAZDownload:
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn):
+def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -251,7 +251,7 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_ahn):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn5(context, tile_index_ahn):
+def laz_files_ahn5(context, tile_index_ahn) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
