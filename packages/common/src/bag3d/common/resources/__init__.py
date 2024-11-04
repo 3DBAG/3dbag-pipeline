@@ -48,10 +48,10 @@ db_connection = DatabaseResource(
 
 
 file_store = FileStoreResource(
-    data_dir="/tmp", dir_id=os.getenv("BAG3D_RELEASE_VERSION")
+    data_dir=os.getenv("BAG3D_FILESTORE"), dir_id=os.getenv("BAG3D_RELEASE_VERSION")
 )
 file_store_fastssd = FileStoreResource(
-    data_dir="/tmp",
+    data_dir=os.getenv("BAG3D_FILESTORE"),
     dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
 )
 
