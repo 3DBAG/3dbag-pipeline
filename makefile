@@ -25,11 +25,13 @@ docker_volume_create:
 	docker cp docker/dagster/dagster.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
 	docker cp docker/dagster/workspace.yaml bag3d-dev-temp-container:/opt/dagster/dagster_home/
 	docker rm -f bag3d-dev-temp-container
+	docker volume create bag3d-dev-dagster-postgresql
 
 docker_volume_rm:
 	docker volume rm -f bag3d-dev-data-pipeline
 	docker volume rm -f bag3d-dev-data-postgresql
 	docker volume rm -f bag3d-dev-dagster-home
+	docker volume rm -f bag3d-dev-dagster-postgresql
 
 docker_volume_recreate: docker_volume_rm docker_volume_create
 
