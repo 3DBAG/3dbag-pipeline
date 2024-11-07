@@ -655,7 +655,7 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store"},
+    required_resource_keys={"file_store", "version"},
 )
 def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
     """Validates the compressed distribution tiles, for each format.
@@ -677,7 +677,10 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
 
     The computed attributes are described at the members of the TileResults class.
     """
-    path_export_dir = bag3d_export_dir(context.resources.file_store.file_store.data_dir)
+    path_export_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
+    )
     url_root = "https://data.3dbag.nl"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)

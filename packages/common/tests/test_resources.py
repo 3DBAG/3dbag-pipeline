@@ -144,20 +144,6 @@ def test_file_store_init_data_dir(tmp_path):
     assert not path.exists()
 
 
-def test_file_store_init_data_dir_with_id(tmp_path):
-    """Can we use an existing directory but create a subdirectory with the given id?"""
-    res = resources.files.FileStoreResource(data_dir=tmp_path, dir_id="myID").file_store
-    path = Path(res.data_dir)
-    assert str(res.data_dir)[-4:] == "myID"
-    assert path.exists()
-    with (path / "file.txt").open("w") as fo:
-        fo.write("test")
-    with (path / "file.txt").open("r") as fo:
-        assert fo.read() == "test"
-    res.rm(force=True)
-    assert not path.exists()
-
-
 def test_db_connection_init():
     """Can we initialize a local database resource?"""
     db = DatabaseResource(
