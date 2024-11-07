@@ -44,11 +44,11 @@ markdown_extensions:
   - pymdownx.details
 
 nav:
-  - Overview: index.md
-  - Source datasets: SOURCE_DATASETS.md
-  - Development: development.md
-  - Deployment:
-      - docker: docker.md
+  - Overview:
+    - index.md
+    - Source datasets: source_datasets.md
+  - Development: development/
+  - Deployment: deployment/
   - Packages:
     - common: index_common.md
     - core: index_core.md

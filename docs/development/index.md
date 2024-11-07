@@ -1,0 +1,1 @@
+The following sections describe how to get started with contributing to the 3dbag-pipeline.

@@ -1,4 +1,4 @@
-# Running the 3dbag-pipeline in docker containers
+# Docker
 
 The sample docker compose file (`docker/compose.yaml`) contains a multi-container setup for running the 3dbag-pipeline in a dockerized environment.
 The setup contains:
