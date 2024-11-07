@@ -55,8 +55,9 @@ job_source_input = define_asset_job(
 job_nl_reconstruct = define_asset_job(
     name="nl_reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
-    selection=AssetSelection.assets(["reconstruction", "cropped_input_and_config_nl"])
-    | AssetSelection.assets(["reconstruction", "reconstructed_building_models_nl"]),
+    selection=AssetSelection.assets(
+        ["reconstruction", "reconstructed_building_models_nl"]
+    ),
 )
 
 job_nl_export = define_asset_job(

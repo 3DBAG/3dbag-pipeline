@@ -54,6 +54,37 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         super().__init__(partition_keys=sorted(list(tile_ids)))
 
 
+# @asset(
+#     required_resource_keys={"db_connection"},
+#     ins={
+#         "reconstruction_input": AssetIn(key_prefix="input"),
+#     },
+# )
+# def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_input):
+#     """Use the cropped input .las files to identify greenhouses."""
+#     objects_dir = cropped_input_and_config_nl.joinpath("objects")
+#     if not objects_dir.exists():
+#         raise Failure(f"input features don't exists for {cropped_input_and_config_nl}")
+#
+#     query = SQL("""SELECT identificatie from {reconstruction_input}
+#                    WHERE st_area(geometry) > 100""")
+#
+#     res = context.resources.db_connection.connect.get_query(
+#         query, query_params={"reconstruction_input": reconstruction_input}
+#     )
+#     for feature in objects_dir.iterdir():
+#         if feature.is_dir():
+#             if feature.name in res:
+#                 context.log.info(
+#                     f"Feature {feature.name} has > 100m2 area and will be checked"
+#                 )
+#                 break
+#
+#     # new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "excluded_greenhouses")
+#
+#     # return Output(new_table, metadata=metadata)
+
+
 @asset(
     partitions_def=PartitionDefinition3DBagReconstruction(
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
@@ -70,72 +101,49 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].app.version("crop"),
-)
-def cropped_input_and_config_nl(
-    context, regular_grid_200m, tiles, index, reconstruction_input
-):
-    """Runs roofer for cropping the input data per feature and selects the best point
-    cloud for the reconstruction per feature.
-
-    1. Crop the point clouds with the BAG footprints
-    2. Select the best point cloud for the footprint and write the point cloud file
-    3. Write the geoflow (.toml) reconstruction configuration file for the footprint
-    """
-
-    return cropped_input_and_config_func(
-        context, index, reconstruction_input, regular_grid_200m, tiles
-    )
-
-
-@asset(
-    required_resource_keys={"db_connection"},
-    ins={
-        "reconstruction_input": AssetIn(key_prefix="input"),
-    },
-)
-def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_input):
-    """Use the cropped input .las files to identify greenhouses."""
-    objects_dir = cropped_input_and_config_nl.joinpath("objects")
-    if not objects_dir.exists():
-        raise Failure(f"input features don't exists for {cropped_input_and_config_nl}")
-
-    query = SQL("""SELECT identificatie from {reconstruction_input} 
-                   WHERE st_area(geometry) > 100""")
-
-    res = context.resources.db_connection.connect.get_query(
-        query, query_params={"reconstruction_input": reconstruction_input}
-    )
-    for feature in objects_dir.iterdir():
-        if feature.is_dir():
-            if feature.name in res:
-                context.log.info(
-                    f"Feature {feature.name} has > 100m2 area and will be checked"
-                )
-                break
-
-    # new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "excluded_greenhouses")
-
-    # return Output(new_table, metadata=metadata)
-
-
-@asset(
-    partitions_def=PartitionDefinition3DBagReconstruction(
-        schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
-    ),
-    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
     code_version=resource_defs["roofer"].app.version("roofer"),
 )
-def reconstructed_building_models_nl(context):
+def reconstructed_building_models_nl(
+    context, regular_grid_200m, tiles, index, reconstruction_input
+):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
     Runs roofer."""
-    return_code, output = context.resources.roofer.app.execute(
-        "roofer", cmd="{exe} --config {local_path}", local_path=None, silent=False
+
+    roofer_toml, output_dir, tile_view = create_roofer_config(
+        context, index, reconstruction_input, regular_grid_200m, tiles
     )
+
+    context.log.info(f"{roofer_toml=}")
+    context.log.info(f"{tile_view=}")
+
+    return_code, output = context.resources.roofer.app.execute(
+        exe_name="roofer",
+        command=f"{{exe}} --config {{local_path}} {output_dir}",
+        local_path=roofer_toml,
+        silent=False,
+    )
+
+    context.log.debug(f"{return_code=} {output=}")
     if return_code != 0 or "error" in output.lower():
         context.log.error(output)
         raise Failure
+
+    # try:
+    #     return_code, output = context.resources.roofer.app.execute(
+    #         exe_name="roofer",
+    #         command=f"{{exe}} --config {{local_path}} {output_dir}",
+    #         local_path=roofer_toml,
+    #         silent=False,
+    #     )
+    #     context.log.debug(f"{return_code=} {output=}")
+    #     if return_code != 0 or "error" in output.lower():
+    #         context.log.error(output)
+    #         raise Failure
+    # finally:
+    #     context.resources.db_connection.connect.send_query(
+    #         SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
+    #     )
 
 
 @asset(
@@ -194,7 +202,7 @@ def reconstructed_building_models_direct(
     with path_toml.open("w") as of:
         of.write(output_toml)
     context.resources.roofer.app.execute(
-        "roofer", "{exe} -c {local_path}", local_path=path_toml
+        exe_name="roofer", command="{exe} -c {local_path}", local_path=path_toml
     )
 
 
@@ -284,7 +292,7 @@ def reconstructed_building_models_ahn_partition(
         of.write(output_toml)
     try:
         context.resources.roofer.app.execute(
-            "roofer", "{exe} -c {local_path}", local_path=path_toml
+            exe_name="roofer", command="{exe} -c {local_path}", local_path=path_toml
         )
     finally:
         context.resources.db_connection.connect.send_query(
@@ -292,34 +300,29 @@ def reconstructed_building_models_ahn_partition(
         )
 
 
-def cropped_input_and_config_func(
+def create_roofer_config(
     context, index, reconstruction_input, regular_grid_200m, tiles
 ):
     toml_template = """
-    [input.footprint]
-    source = '{footprint_file}'
-    id_attribute = "identificatie"
-    force_lod11_attribute = "kas_warenhuis"
+    polygon-source = "{footprint_file}"
+    id-attribute = "identificatie"
+    force-lod11-attribute = "kas_warenhuis"
     
-    [[input.pointclouds]]
-    name = "AHN3"
-    quality = 1
-    source = '{ahn3_files}'
-    
-    [[input.pointclouds]]
-    name = "AHN4"
-    quality = 0
-    source = '{ahn4_files}'
-    
-    [crop]
     cellsize = 0.5
-    
-    [reconstruct]
     lod = 22
     
-    [output]
-    split_cjseq = false
-    folder = '{output_path}'
+    split-cjseq = false
+    output-directory = "{output_path}"
+    
+    [[pointclouds]]
+    name = "AHN3"
+    quality = 1
+    source = {ahn3_files}
+    
+    [[pointclouds]]
+    name = "AHN4"
+    quality = 0
+    source = {ahn4_files}
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""    
@@ -376,30 +379,16 @@ def cropped_input_and_config_func(
     ).joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
-        tile_id=tile_id,
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
-        ahn3_files=" ".join(laz_files_ahn3),
-        ahn4_files=" ".join(laz_files_ahn4),
+        ahn3_files=laz_files_ahn3,
+        ahn4_files=laz_files_ahn4,
         output_path=output_dir,
     )
-    path_toml = output_dir / "crop.toml"
+    path_toml = output_dir / "roofer.toml"
     with path_toml.open("w") as of:
         of.write(output_toml)
-    context.resources.roofer.app.execute(
-        "crop", "{exe} -c {local_path}", local_path=path_toml
-    )
-    context.resources.db_connection.connect.send_query(
-        SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
-    )
-    # TODO: what are the conditions for partition failure?
-    objects_dir = output_dir.joinpath("objects")
-    if objects_dir.exists():
-        feature_count = sum(1 for f in objects_dir.iterdir() if f.is_dir())
-    else:
-        feature_count = 0
-    return Output(
-        output_dir, metadata={"feature_count": feature_count, "path": str(output_dir)}
-    )
+
+    return path_toml, output_dir, tile_view
 
 
 def reconstruct_building_models_func(context, cropped_input_and_config):

@@ -78,15 +78,21 @@ services:
       data-postgresql:
         condition: service_healthy
         restart: true
+    # Normally we wouldn't need watch:action:rebuild, but because we are using
+    # dagster's DockerRunLauncher, it always starts a new container from the image, for
+    # each run. While, watch:action:sync (or sync+restart)copies the changed local code into the
+    # 3dbag-pipeline-core-develop container (not the image). But since DockerRunLauncher
+    # doesn't actaully use this container, but always starts a new one, we have to build
+    # a new image on each change.
     develop:
       watch:
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/common
           target: /opt/3dbag-pipeline/packages/common
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/core
           target: /opt/3dbag-pipeline/packages/core
         - action: rebuild
@@ -117,13 +123,13 @@ services:
         restart: true
     develop:
       watch:
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/common
           target: /opt/3dbag-pipeline/packages/common
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/floors_estimation
           target: /opt/3dbag-pipeline/packages/floors_estimation
         - action: rebuild
@@ -153,13 +159,13 @@ services:
         restart: true
     develop:
       watch:
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/common
           target: /opt/3dbag-pipeline/packages/common
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
-        - action: sync+restart
+        - action: rebuild
           path: ../packages/party_walls
           target: /opt/3dbag-pipeline/packages/party_walls
         - action: rebuild
