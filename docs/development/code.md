@@ -117,7 +117,7 @@ make start_dagster
 
 The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
 
-##### Requirements for running the fast tests:
+##### Requirements for running the fast tests
 
 - Python 3.11
 - Docker
@@ -205,8 +205,8 @@ make docker_up_postgres
 ```
 
 Where:
-make venvs = creates the [vitrual environments](#development-and-testing)
-make download = [downloads test_data from the server](#data)
+make venvs = creates the vitrual environments
+make download = downloads test_data from the server
 make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
 make docker_up_postgres = starts the postgres container
 

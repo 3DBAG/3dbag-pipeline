@@ -49,6 +49,7 @@ nav:
     - Source datasets: source_datasets.md
   - Development: development/
   - Deployment: deployment/
+  - Production: production.md
   - Packages:
     - common: index_common.md
     - core: index_core.md
