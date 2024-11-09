@@ -10,7 +10,8 @@ from dagster import (
     Output,
     Failure,
     get_dagster_logger,
-    AssetSpec, Field,
+    AssetSpec,
+    Field,
 )
 from psycopg.sql import SQL
 from pgutils import PostgresTableIdentifier
@@ -119,7 +120,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             description="Directory of the 200m tiles of AHN5. Used if the tiles are stored in a non-standard location.",
             is_required=False,
         ),
-    }
+    },
 )
 def reconstructed_building_models_nl(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -129,7 +130,11 @@ def reconstructed_building_models_nl(
     Runs roofer."""
 
     roofer_toml, output_dir, tile_view = create_roofer_config(
-        context, index, reconstruction_input, regular_grid_200m, tiles,
+        context,
+        index,
+        reconstruction_input,
+        regular_grid_200m,
+        tiles,
         dir_tiles_200m_ahn3=context.op_config.get("dir_tiles_200m_ahn3"),
         dir_tiles_200m_ahn4=context.op_config.get("dir_tiles_200m_ahn4"),
         dir_tiles_200m_ahn5=context.op_config.get("dir_tiles_200m_ahn5"),
@@ -322,8 +327,14 @@ def reconstructed_building_models_ahn_partition(
 
 
 def create_roofer_config(
-    context, index, reconstruction_input, regular_grid_200m, tiles,
-        dir_tiles_200m_ahn3=None, dir_tiles_200m_ahn4=None, dir_tiles_200m_ahn5=None,
+    context,
+    index,
+    reconstruction_input,
+    regular_grid_200m,
+    tiles,
+    dir_tiles_200m_ahn3=None,
+    dir_tiles_200m_ahn4=None,
+    dir_tiles_200m_ahn5=None,
 ):
     toml_template = """
     polygon-source = "{footprint_file}"
