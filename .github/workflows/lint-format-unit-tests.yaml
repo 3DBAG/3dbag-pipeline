@@ -53,6 +53,7 @@ jobs:
         echo EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler >> .env
         echo EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db >> .env
         echo EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop >> .env
+        echo EXE_PATH_ROOFER_ROOFER=${TOOLS_DIR}/bin/roofer >> .env
         echo EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/reconstruct >> .env
         echo FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-roofer/flowcharts/reconstruct_bag.json >> .env
         echo EXE_PATH_PDAL=${TOOLS_DIR}/bin/pdal >> .env
