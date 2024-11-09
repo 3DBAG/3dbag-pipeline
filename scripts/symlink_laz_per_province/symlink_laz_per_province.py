@@ -13,10 +13,9 @@ import psycopg
 from shapely import STRtree
 from shapely.geometry import shape
 import dotenv
+from bag3d.common.utils.requests import download_as_str
 
 dotenv.load_dotenv()
-
-from bag3d.common.utils.requests import download_as_str
 
 
 def ahn_filename(tile_name: str) -> str:

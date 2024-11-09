@@ -10,7 +10,6 @@ from dagster import (
     Output,
     Failure,
     get_dagster_logger,
-    AssetSpec,
     Field,
 )
 from psycopg.sql import SQL
@@ -18,7 +17,6 @@ from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
-from bag3d.common.utils.geodata import geojson_poly_to_wkt
 
 from bag3d.common.resources import resource_defs
 
