@@ -1,6 +1,7 @@
 from hashlib import sha1
 from datetime import date
 import time
+from pathlib import Path
 
 from dagster import (
     asset,
@@ -9,7 +10,7 @@ from dagster import (
     Output,
     Failure,
     get_dagster_logger,
-    AssetSpec,
+    AssetSpec, Field,
 )
 from psycopg.sql import SQL
 from pgutils import PostgresTableIdentifier
@@ -102,6 +103,23 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store_fastssd",
     },
     code_version=resource_defs["roofer"].app.version("roofer"),
+    config_schema={
+        "dir_tiles_200m_ahn3": Field(
+            str,
+            description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
+            is_required=False,
+        ),
+        "dir_tiles_200m_ahn4": Field(
+            str,
+            description="Directory of the 200m tiles of AHN4. Used if the tiles are stored in a non-standard location.",
+            is_required=False,
+        ),
+        "dir_tiles_200m_ahn5": Field(
+            str,
+            description="Directory of the 200m tiles of AHN5. Used if the tiles are stored in a non-standard location.",
+            is_required=False,
+        ),
+    }
 )
 def reconstructed_building_models_nl(
     context, regular_grid_200m, tiles, index, reconstruction_input
@@ -111,7 +129,10 @@ def reconstructed_building_models_nl(
     Runs roofer."""
 
     roofer_toml, output_dir, tile_view = create_roofer_config(
-        context, index, reconstruction_input, regular_grid_200m, tiles
+        context, index, reconstruction_input, regular_grid_200m, tiles,
+        dir_tiles_200m_ahn3=context.op_config.get("dir_tiles_200m_ahn3"),
+        dir_tiles_200m_ahn4=context.op_config.get("dir_tiles_200m_ahn4"),
+        dir_tiles_200m_ahn5=context.op_config.get("dir_tiles_200m_ahn5"),
     )
 
     context.log.info(f"{roofer_toml=}")
@@ -301,7 +322,8 @@ def reconstructed_building_models_ahn_partition(
 
 
 def create_roofer_config(
-    context, index, reconstruction_input, regular_grid_200m, tiles
+    context, index, reconstruction_input, regular_grid_200m, tiles,
+        dir_tiles_200m_ahn3=None, dir_tiles_200m_ahn4=None, dir_tiles_200m_ahn5=None,
 ):
     toml_template = """
     polygon-source = "{footprint_file}"
@@ -341,16 +363,22 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    out_dir_ahn3 = ahn_dir(
-        context.resources.file_store.file_store.data_dir, ahn_version=3
-    ).joinpath("tiles_200m")
+    if dir_tiles_200m_ahn3 is not None:
+        out_dir_ahn3 = Path(dir_tiles_200m_ahn3)
+    else:
+        out_dir_ahn3 = ahn_dir(
+            context.resources.file_store.file_store.data_dir, ahn_version=3
+        ).joinpath("tiles_200m")
     laz_files_ahn3 = [
         str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
     # TODO: probably should take the tiles_200m directory from the asset output
-    out_dir_ahn4 = ahn_dir(
-        context.resources.file_store.file_store.data_dir, ahn_version=4
-    ).joinpath("tiles_200m")
+    if dir_tiles_200m_ahn4 is not None:
+        out_dir_ahn4 = Path(dir_tiles_200m_ahn4)
+    else:
+        out_dir_ahn4 = ahn_dir(
+            context.resources.file_store.file_store.data_dir, ahn_version=4
+        ).joinpath("tiles_200m")
     # TODO: same with the laz filename pattern
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
