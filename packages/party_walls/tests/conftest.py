@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import VersionResource
 from dagster import AssetKey, IOManager, SourceAsset, build_op_context
 import pandas as pd
 
@@ -14,10 +15,11 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+VERSION = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
 
 # update quadtree
 og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
-export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / "export"
+export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
 os.system(f"cp {og_quadtree} {export_dir}")
 
 
@@ -60,6 +62,7 @@ def context(database, input_data_dir, fastssd_data_dir):
             "db_connection": database,
             "file_store": FileStoreResource(data_dir=str(input_data_dir)),
             "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "version": VersionResource(VERSION),
         },
     )
 
@@ -106,7 +109,11 @@ def mock_party_walls_nl(intermediate_data_dir) -> pd.DataFrame:
 def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
     data = pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
     for k, v in data.items():
-        data[k] = Path(str(v).replace(str(v.parents[8]), str(fastssd_data_dir)))
+        data[k] = Path(
+            str(v)
+            .replace(str(v.parents[8]), str(fastssd_data_dir))
+            .replace("export", "export_test_version")
+        )
     return data
 
 
@@ -117,16 +124,22 @@ def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir):
     )
     for i, d in enumerate(data.paths_array):
         data.paths_array[i] = Path(
-            str(d).replace(str(d.parents[6]), str(input_data_dir))
+            str(d)
+            .replace(str(d.parents[6]), str(input_data_dir))
+            .replace("export", "export_test_version")
         )
     for k, v in data.export_results.items():
         cj_path = data.export_results[k].cityjson_path
         data.export_results[k].cityjson_path = Path(
-            str(cj_path).replace(str(cj_path.parents[6]), str(input_data_dir))
+            str(cj_path)
+            .replace(str(cj_path.parents[6]), str(input_data_dir))
+            .replace("export", "export_test_version")
         )
         gpkg_path = data.export_results[k].gpkg_path
         data.export_results[k].gpkg_path = Path(
-            str(gpkg_path).replace(str(gpkg_path.parents[6]), str(input_data_dir))
+            str(gpkg_path)
+            .replace(str(gpkg_path.parents[6]), str(input_data_dir))
+            .replace("export", "export_test_version")
         )
         # TODO: fix data.export_results[k].obj_paths
     return data

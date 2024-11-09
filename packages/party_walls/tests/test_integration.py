@@ -1,5 +1,6 @@
 import pytest
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import VersionResource
 from bag3d.party_walls import assets
 from bag3d.party_walls.jobs import job_nl_party_walls
 from dagster import (
@@ -22,6 +23,7 @@ def test_job_party_walls(
         "db_connection": database,
         "file_store": FileStoreResource(data_dir=str(input_data_dir)),
         "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+        "version": VersionResource("test_version"),
     }
     all_party_assets = load_assets_from_package_module(
         assets, key_prefix="party_walls", group_name="party_walls"
