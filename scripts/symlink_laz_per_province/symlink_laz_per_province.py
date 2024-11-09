@@ -9,9 +9,14 @@ from json import loads as json_loads
 from pathlib import Path
 from sys import stdout
 
-from bag3d.common.utils.requests import download_as_str
+import psycopg
 from shapely import STRtree
 from shapely.geometry import shape
+import dotenv
+
+dotenv.load_dotenv()
+
+from bag3d.common.utils.requests import download_as_str
 
 
 def ahn_filename(tile_name: str) -> str:
@@ -38,6 +43,9 @@ parser = ArgumentParser(
     description="Create directories per Dutch province and creates symlinks to the LAZ files that are within the given province.",
 )
 parser.add_argument("--laz", help="Directory containing the LAZ files.")
+parser.add_argument("--t200", help="Directory containing the 200m tiles.")
+parser.add_argument("--dbname")
+parser.add_argument("--user")
 parser.add_argument(
     "--output",
     help="Directory to store the symlinks that point to the files in '--laz'.",
@@ -46,6 +54,7 @@ parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     path_laz = Path(args.laz)
+    path_200m = Path(args.t200)
     if not path_laz.is_dir():
         raise NotADirectoryError(f"LAZ directory does not exist: {path_laz}")
     path_output = Path(args.output)
@@ -106,6 +115,11 @@ if __name__ == "__main__":
     log.info(
         f"Creating symlinks for provinces in {args.output} to the LAZ files in {args.laz}"
     )
+
+    # AHN metadata database
+    schema = "ahn"
+    table = "regular_grid_200m"
+
     for province in dict_provinces["features"]:
         province_name = province["properties"]["naam"]
         province_geometry = shape(province["geometry"])
@@ -114,11 +128,11 @@ if __name__ == "__main__":
             dict_ahn_bladwijzer["features"][tile_i]["properties"]["AHN"]
             for tile_i in result
         ]
-        province_path = path_output / province_name.lower()
-        province_path.mkdir(parents=True, exist_ok=True)
+        province_path_laz = path_output / province_name.lower() / "LAZ"
+        province_path_laz.mkdir(parents=True, exist_ok=True)
         for ahn_tile_name in ahn_tile_names:
             filename = ahn_filename(ahn_tile_name)
-            path_link = province_path / filename
+            path_link = province_path_laz / filename
             path_lazfile = path_laz / filename
             if path_lazfile.is_file():
                 if path_link.exists():
@@ -126,5 +140,27 @@ if __name__ == "__main__":
                 path_link.symlink_to(path_lazfile)
             else:
                 log.error(f"File does not exist: {path_lazfile}")
+
+        # Link the 200m tiles
+        province_path_200m = path_output / province_name.lower() / "tiles_200m"
+        province_path_200m.mkdir(parents=True, exist_ok=True)
+        with psycopg.connect(
+            dbname=args.dbname, user=args.user, host="localhost", port=5432
+        ) as conn:
+            with conn.cursor() as cur:
+                wkt = f"SRID=28992;{province_geometry.wkt}"
+                cur.execute(
+                    f"select id from {schema}.{table} where st_intersects(geom, '{wkt}')"
+                )
+                for record in cur:
+                    filename = f"t_{record[0]}.laz"
+                    path_link = province_path_200m / filename
+                    path_200mfile = path_200m / filename
+                    if path_200mfile.is_file():
+                        if path_link.exists():
+                            path_link.unlink()
+                        path_link.symlink_to(path_200mfile)
+                    else:
+                        log.error(f"File does not exist: {path_200mfile}")
 
     log.info("Done")
