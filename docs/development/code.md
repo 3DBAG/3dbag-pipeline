@@ -228,7 +228,35 @@ For running also the slow tests (which require more time) you can run:
  make test_full
  ```
 
-## Conventions
+## Branches
+
+The `master` branch contains stable versions of the 3dbag-pipeline.
+We use the master branch to produce a 3DBAG version. 
+After a new 3DBAG is successfully produced, we tag and release the master branch, using the version number of the new 3DBAG, in the form of `<year>.<month>.<day>`, for example `2024.10.24`.
+
+We use production candidate tags in the form of `<year>.<month>-pc<build>`, for example `2024.10-pc0`.
+Production candidates are versions on the `develop` branch that are deployed to our production server and tested with a full pipeline run, but with a subset of the input.
+If a production candidate is successful then it will be used for producing the final 3DBAG.
+
+Moving the code onto a `production` branch helps the collaboration with external contributors.
+When we move a version onto `production`, we freeze that version and won't add any new features, only fixes that are required in the production test.
+At the same time, work can continue on the `develop` branch, pull requests can be opened and merged.
+
+The `develop` branch is a trunk where the pull requests from the contributors are merged.
+When a pull request is opened, the following checks are performed in GitHub Actions:
+- static code analysis,
+- formatting conformance,
+- unit testing,
+- integration testing.
+Each check must pass for the pull request in order to be approved.
+
+When a pull request is merged into the develop branch, the following actions are performed in GitHub Actions:
+- documentation is built,
+- the docker images are built and published on DockerHub with the `develop` tag,
+- the `develop` docker images are deployed onto our production server.
+
+
+## Coding Conventions
 
 SQL files are stored in the `sqlfiles` subpackage, so that the `bag3d.common.utils.database.load_sql` function can load them.
 
