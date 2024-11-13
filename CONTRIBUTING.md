@@ -1,0 +1,1 @@
+Please have a look at our contribution guidelines in our documentation: [https://innovation.3dbag.nl/3dbag-pipeline](https://innovation.3dbag.nl/3dbag-pipeline/development/guidelines).
