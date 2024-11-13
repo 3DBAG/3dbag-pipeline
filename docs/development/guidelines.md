@@ -19,7 +19,7 @@ Once the concept is solid, you can start coding.
 You can start implementing your idea or fix by making a feature branch from the `develop` branch.
 
 The `develop` branch is where the active development occurs and external contributors should base their work here.
-[See here for more information about our workflow and our branches](/docs/development/code.md#branches)
+[See here for more information about our workflow and our branches](code.md#branches)
 
 It is expected that you will provide sufficient documentation and tests for your code.
 Additionally, your code should be formatted according to the [PEP 8 style guide](https://peps.python.org/pep-0008/).
