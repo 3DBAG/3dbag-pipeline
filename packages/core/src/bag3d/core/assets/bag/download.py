@@ -326,9 +326,8 @@ def load_bag_layer(
         ]
         geofilter = context.op_config.get("geofilter")
         if geofilter:
-            bbox = bbox_from_wkt(geofilter)
-            cmd.append("-spat {bbox}")
-            kwargs["bbox"] = " ".join(map(str, bbox))
+            cmd.append("-clipsrc {wkt}")
+            kwargs["wkt"] = geofilter
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")
