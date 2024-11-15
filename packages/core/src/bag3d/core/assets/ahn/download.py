@@ -154,8 +154,8 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
     tile_id = context.partition_key
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
+    fpath = laz_dir / url_laz.split('/')[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -170,8 +170,8 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
 
     # Let's try to re-download the file once
     if not first_validation:
-        logger.info(format_laz_log(lazdownload.path, "Removing"))
-        lazdownload.path.unlink()
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
         lazdownload = download_ahn_laz(
             fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
         )
@@ -179,7 +179,7 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
             sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
         )
         if not second_validation:
-            logger.error(format_laz_log(lazdownload.path, "ERROR"))
+            logger.error(format_laz_log(fpath, "ERROR"))
             lazdownload = LAZDownload(
                 url=None,
                 path=Path(),
@@ -190,7 +190,7 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
                 size=0.0,
             )
     else:
-        logger.debug(format_laz_log(lazdownload.path, "OK"))
+        logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -210,8 +210,8 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
 
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
+    fpath = laz_dir / url_laz.split('/')[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -226,8 +226,8 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
 
     # Let's try to re-download the file once
     if not first_validation:
-        logger.info(format_laz_log(lazdownload.path, "Removing"))
-        lazdownload.path.unlink()
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
         lazdownload = download_ahn_laz(
             fpath=fpath,
             url_laz=url_laz,
@@ -237,7 +237,7 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
             sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
         )
         if not second_validation:
-            logger.error(format_laz_log(lazdownload.path, "ERROR"))
+            logger.error(format_laz_log(fpath, "ERROR"))
             lazdownload = LAZDownload(
                 url=None,
                 path=Path(),
@@ -248,7 +248,7 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
                 size=0.0,
             )
     else:
-        logger.debug(format_laz_log(lazdownload.path, "OK"))
+        logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -266,8 +266,8 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
     tile_id = context.partition_key
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
+    fpath = laz_dir / url_laz.split('/')[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -281,8 +281,8 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
     )
     # Let's try to re-download the file once
     if not first_validation:
-        logger.info(format_laz_log(lazdownload.path, "Removing"))
-        lazdownload.path.unlink()
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
         lazdownload = download_ahn_laz(
             fpath=fpath,
             url_laz=url_laz,
@@ -292,7 +292,7 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
         )
         if not second_validation:
-            logger.error(format_laz_log(lazdownload.path, "ERROR"))
+            logger.error(format_laz_log(fpath, "ERROR"))
             lazdownload = LAZDownload(
                 url=None,
                 path=Path(),
@@ -303,7 +303,7 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
                 size=0.0,
             )
     else:
-        logger.debug(format_laz_log(lazdownload.path, "OK"))
+        logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -380,7 +380,7 @@ def download_ahn_laz(
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
         fpath = download_file(
-            url=url, target_path=fpath.parent, chunk_size=1024 * 1024, verify=verify_ssl
+            url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
         )
         if fpath is None:
             # Download failed
@@ -397,6 +397,7 @@ def download_ahn_laz(
         else:
             is_new = True
     else:  # pragma: no cover
+        logger.info(format_laz_log(fpath, "File already downloaded"))
         is_new = False
     return LAZDownload(
         url=url_laz,
