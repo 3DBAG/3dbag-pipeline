@@ -9,7 +9,6 @@ from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     format_laz_log,
-    ahn_filename,
     download_ahn_index,
     ahn_laz_dir,
 )
