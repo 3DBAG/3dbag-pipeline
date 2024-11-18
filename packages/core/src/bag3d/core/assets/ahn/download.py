@@ -155,7 +155,7 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
-    fpath = laz_dir / url_laz.split('/')[-1]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -211,7 +211,7 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
-    fpath = laz_dir / url_laz.split('/')[-1]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -267,7 +267,7 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
-    fpath = laz_dir / url_laz.split('/')[-1]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
