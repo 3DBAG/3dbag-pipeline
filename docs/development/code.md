@@ -7,23 +7,28 @@ Thank you for considering contributing to the 3DBAG pipeline. In this document, 
 After cloning the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline), the recommended way to set up your environment is with Docker.
 
 Requirements:
+
 - Python >=3.11
+
 - make
+
 - Docker Engine
+
 - Docker Compose (>= 2.22.0)
+
 
 We use `make` for managing many commands that we use in development.
 
 ### Test data & Docker Volumes
 
-Download test data.
+Download test data:
 
-```bash
+```shell
 export BAG3D_TEST_DATA=${PWD}/tests/test_data
 make download
 ```
 
-Create the docker volumes that store the test data.
+Create the docker volumes that store the test data:
 
 ```shell
 make docker_volume_create
@@ -32,8 +37,11 @@ make docker_volume_create
 In addition, `make docker_volume_rm` removes the volumes, `make docker_volume_recreate` recreates the volumes.
 
 Note that if you change the test data locally and you want the docker services to use the updated data, you need to:
+
 1. stop the services: `make docker_down`
+
 2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`
+
 3. start the service again: `make docker_up`
 
 ### Docker containers
@@ -44,12 +52,16 @@ Start the docker containers with `watch` enabled with the following command:
 make docker_watch
 ```
 
-The `watch` attribute allows you to synchronize changes in the code with your containers. When you issue this command for the first time, several things happe:
+The `watch` attribute allows you to synchronize changes in the code with your containers. When you issue this command for the first time, several things happen:
 
 1. The required base images are pulled from DockerHub.
+
 2. The 3dbag-pipeline workflow images are built from the local source code.
+
 3. The containers are connected to the volumes and networks.
-4. The dagster-webserver is published on `localhost:3003`,
+
+4. The dagster-webserver is published on `localhost:3003`.
+
 5. Docker compose starts watching for changes in the source code on the host machine.
 
 The running containers contain all the tools required for a complete run of the 3dbag-pipeline.
@@ -57,7 +69,7 @@ This means that you can develop and test any part of the code locally.
 
 If you make a change in the source code in your code editor, the files are automatically synced into the running containers. You can see your changes in effect **after reloading the code location, job, asset or resource** in the Dagster UI on `localhost:3003`.
 
-The docker documentation describes in detail how [does the compose watch functionality work](https://docs.docker.com/compose/how-tos/file-watch/).
+The docker documentation describes in detail [how the compose watch functionality works](https://docs.docker.com/compose/how-tos/file-watch/).
 
 If you don't want to enable the code synchronization, you can use `make docker_up` command, which starts the containers without without the  `watch` attribute.
 
@@ -88,47 +100,64 @@ For development purposes, you should also create a local virtual environment and
 
 You can do this in one step with:
 
-
-
 ```bash
 make local_venv
 ```
 
-To set up all this in one step you can run (make sure you've set the .env variables):
+Then you can format you code with:
 
-```bash
-make venvs
+```
+make format
 ```
 
-The `DAGSTER_HOME` contains the configuration for loading the *bag3d* packages into the main dagster instance, which we can operate via the UI. 
-In order to launch a local development dagster instance, navigate to the local `DAGSTER_HOME` (see below) and start the development instance with:
+###  Tests
+Tests are run separately for each package and they are located in the `tests` directory of the package.
+Tests use `pytest`.
 
-```bash
-cd tests/dagster_home
-dagster dev
-```
+Some tests take a long time to execute. These are marked with the `@pytest.mark.slow` decorator and they will be skipped by default. In order to include the slow tests in the test execution, use the `--run-slow` command line option.
 
-If you've set up the virtual environment correctly, this main dagster instance will load the *code location* of each workflow package.
+The tests use the sample data that are downloaded as shown above.
 
-You can also start it up directly with:
+You can run the fast unit test for all packages with:
+ 
+ ```shell
+ make test
+ ```
 
-```bash
-make start_dagster
-```
+For running also the slow tests (which require more time) you can run:
 
-The UI is served at `http://localhost:3000`, but check the logs in the terminal for the details.
+  ```shell
+ make test_slow
+ ```
 
-##### Requirements for running the fast tests
+ For running the integration tests you can use:
+
+  ```shell
+ make test_integration
+ ```
+
+ For running all tests, you can run:
+
+ ```shell
+ make test_all
+ ```
+
+## Installing requirements without the Docker setup
+
+The pipeline has the following requirements:
 
 - Python 3.11
+
 - Docker
 
-##### Requirements for running the slow and integration tests and for production
-
 - [Tyler](https://github.com/3DGI/tyler)
+
 - [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
+
 - [LAStools](https://github.com/LAStools/LAStools)
+
 - [gdal](https://github.com/OSGeo/gdal)
+
 - [pdal](https://github.com/PDAL/PDAL)
 
 The `build-tools.sh` Bash script can help you to build the required tools. 
@@ -146,89 +175,6 @@ Requirements for building the tools:
 - sqlite3
 - libtiff
 
-#### Environment variables
-
-First, you need to set up the following environment variables in a `.env` file in root directory of this repository. The `.env` file is required for running the commands in the makefile:
-
-```bash
-VIRTUAL_ENV='dev'
-BAG3D_VENVS=${PWD}/venvs
-BAG3D_TEST_DATA=${PWD}/tests/test_data
-BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model/pipeline_model1_gbr_untuned.joblib
-BAG3D_RELEASE_VERSION=test_version
-BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export_${BAG3D_RELEASE_VERSION}
-
-DAGSTER_HOME=${PWD}/tests/dagster_home
-TOOLS_DIR=${HOME}/.build-3dbag-pipeline
-
-BAG3D_TOOLS_DOCKERFILE=${PWD}/docker/tools/Dockerfile
-BAG3D_TOOLS_DOCKERIMAGE=bag3d_image_tools
-BAG3D_TOOLS_DOCKERIMAGE_VERSION=2024.09.24
-BAG3D_TOOLS_DOCKERIMAGE_JOBS=8
-
-BAG3D_PG_DOCKERFILE=${PWD}/docker/postgres/Dockerfile
-BAG3D_PG_DOCKERIMAGE=bag3d_image_postgis
-BAG3D_PG_USER=baseregisters_test_user
-BAG3D_PG_PASSWORD=baseregisters_test_pswd
-BAG3D_PG_DATABASE=baseregisters_test
-BAG3D_PG_HOST=localhost
-BAG3D_PG_PORT=5560
-BAG3D_PG_SSLMODE=allow
-
-TYLER_RESOURCES_DIR=${TOOLS_DIR}/share/tyler/resources
-TYLER_METADATA_JSON=${TOOLS_DIR}/share/tyler/resources/geof/metadata.json
-
-LD_LIBRARY_PATH=${TOOLS_DIR}/lib:$LD_LIBRARY_PATH
-PROJ_DATA=${TOOLS_DIR}/share/proj
-EXE_PATH_TYLER=${TOOLS_DIR}/bin/tyler
-EXE_PATH_TYLER_DB=${TOOLS_DIR}/bin/tyler-db
-EXE_PATH_ROOFER_CROP=${TOOLS_DIR}/bin/crop
-EXE_PATH_ROOFER_RECONSTRUCT=${TOOLS_DIR}/bin/geof
-FLOWCHART_PATH_RECONSTRUCT=${TOOLS_DIR}/share/geoflow-bundle/flowcharts/reconstruct_bag.json
-GF_PLUGIN_FOLDER=${TOOLS_DIR}/share/geoflow-bundle/plugins
-EXE_PATH_OGR2OGR=${TOOLS_DIR}/bin/ogr2ogr
-EXE_PATH_OGRINFO=${TOOLS_DIR}/bin/ogrinfo
-EXE_PATH_SOZIP=${TOOLS_DIR}/bin/sozip
-EXE_PATH_PDAL=${TOOLS_DIR}/bin/pdal
-EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
-EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
-```
-
-If you only wish to run the [fast tests](#tests), you can simply use the above variables without any modification. However, for running the integration tests and some of the unit tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the `.env` file.
-
-
-You can set up your environment with:
-
-```shell
-make venvs
-make download
-make docker_volume_create
-make docker_up_postgres
-```
-
-Where:
-make venvs = creates the virtual environments
-make download = downloads test_data from the server
-make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
-make docker_up_postgres = starts the postgres container
-
-Then you can run the fast unit test for all packages with:
- 
- ```shell
- make test
- ```
-
-For running also the slow tests (which require more time) you can run:
-
-  ```shell
- make test_slow
- ```
-
- For running all tests, including the ones that [require building the tools](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and the integration tests, you can run:
-
- ```shell
- make test_full
- ```
 
 ## Branches
 
@@ -272,45 +218,6 @@ For example `Returns a collection type, storing the...`
 
 Assets are usually some results of computations, therefore their names are nouns, not verbs.
 
-## Tests
-
-You can run the full tests, including integration with :
-
-```bash
-make test_full
-```
-####  Unit testing
-
-Tests are run separately for each package and they are located in the `tests` directory of the package.
-Tests use `pytest`.
-
-The tests use the sample data that are downloaded as shown above.
-You can run the unit tests with:
-
-```bash
-make test
-```
-
-#### Long running tests
-
-Some test take a long time to execute. 
-If you mark them with the `@pytest.mark.slow` decorator, they will be skipped by default.
-In order to include the slow tests in the test execution, use the `--run-slow` command line option.
-
-```bash
-pytest --run-slow
-```
-
-These tests require the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production)
-
-
-#### Integration tests
-
-The integrations tests are made in such way so that the main jobs that comprise the pipeline are run for a small region of 
-
-```bash
-make integration
-```
 
 ## Dagster
 
