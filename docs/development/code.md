@@ -1,16 +1,16 @@
 # Code
 
-Thank you for considering to contribute to the 3dbag-pipeline.
-In this document we describe how can you get set up for developing the software locally, how to submit a contribution, what guidelines do we follow and what do we expect from your contribution, what can you expect from us.
+Thank you for considering contributing to the 3DBAG pipeline. In this document, we will guide you through setting up your local development environment and running the tests. For information on how to submit a contribution, please refer to our [guidelines](guidelines.md).
 
 ## Setup
 
-After cloning the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline), the recommended way to set up your environment is with docker.
+After cloning the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline), the recommended way to set up your environment is with Docker.
 
 Requirements:
+- Python >=3.11
 - make
-- docker engine
-- docker compose (>= 2.22.0)
+- Docker Engine
+- Docker Compose (>= 2.22.0)
 
 We use `make` for managing many commands that we use in development.
 
@@ -36,7 +36,7 @@ Note that if you change the test data locally and you want that the docker servi
 2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`
 3. start the service again: `make docker_up`
 
-#### Docker setup
+### Docker containers
 
 Start the docker containers with `watch` enabled.
 If you issue the command the first time, several things will happen:
@@ -58,11 +58,11 @@ If you make a change in the source code in your code editor, the files are synce
 
 The docker documentation describes in detail how [does the compose watch functionality work](https://docs.docker.com/compose/how-tos/file-watch/).
 
-If you don't want to enable the code synchronization with `watch`, the `make docker_up` command starts the containers in normally.
+If you don't want to enable the code synchronization, you can use `make docker_up` command, which starts the containers without without the  `watch` attribute.
 
-The `docker_watch`, `docker_up` targets will set the docker compose project name to `bag3d-dev`.
+The `docker_watch` and `docker_up` targets will set the docker compose project name to `bag3d-dev`.
 
-#### Docker setup in PyCharm (professional)
+### Docker setup in PyCharm (professional)
 
 Create run configuration that uses the docker compose file.
 For example, see the screenshot below. 
@@ -147,14 +147,15 @@ Requirements for building the tools:
 
 #### Environment variables
 
-First you need to set up the following environment variables in a `.env` file in root of this repository. The `.env` file is required for running the commands in the makefile. For just running the fast tests, the following variables are necessary and no modification is needed (the tests will run in a docker-based database):
+First, you need to set up the following environment variables in a `.env` file in root directory of this repository. The `.env` file is required for running the commands in the makefile:
 
 ```bash
+VIRTUAL_ENV='dev'
 BAG3D_VENVS=${PWD}/venvs
 BAG3D_TEST_DATA=${PWD}/tests/test_data
 BAG3D_FLOORS_ESTIMATION_MODEL=${BAG3D_TEST_DATA}/model/pipeline_model1_gbr_untuned.joblib
-BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export
-BAG3D_RELEASE_VERSION="10_24"
+BAG3D_RELEASE_VERSION=test_version
+BAG3D_EXPORT_DIR=${BAG3D_TEST_DATA}/reconstruction_input/3DBAG/export_${BAG3D_RELEASE_VERSION}
 
 DAGSTER_HOME=${PWD}/tests/dagster_home
 TOOLS_DIR=${HOME}/.build-3dbag-pipeline
@@ -192,7 +193,7 @@ EXE_PATH_LAS2LAS=${TOOLS_DIR}/bin/las2las64
 EXE_PATH_LASINDEX=${TOOLS_DIR}/bin/lasindex64
 ```
 
-However, for running the integration tests and some of the unit tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the `.env` file.
+If you only wish to run the [fast tests](#tests), you can simply use the above variables without any modification. However, for running the integration tests and some of the unit tests you need the [full requirements installation](#requirements-for-running-the-slow-and-integration-tests-and-for-production) and you need to add the paths to your local tools installations to the `.env` file.
 
 
 You can set up your environment with:
@@ -205,7 +206,7 @@ make docker_up_postgres
 ```
 
 Where:
-make venvs = creates the vitrual environments
+make venvs = creates the virtual environments
 make download = downloads test_data from the server
 make docker_volume_create = create the docker volumes that mount the test data onto the postgres container
 make docker_up_postgres = starts the postgres container
