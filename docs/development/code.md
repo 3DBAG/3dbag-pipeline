@@ -14,7 +14,7 @@ Requirements:
 
 We use `make` for managing many commands that we use in development.
 
-#### Test data
+### Test data & Docker Volumes
 
 Download test data.
 
@@ -31,30 +31,31 @@ make docker_volume_create
 
 In addition, `make docker_volume_rm` removes the volumes, `make docker_volume_recreate` recreates the volumes.
 
-Note that if you change the test data locally and you want that the docker services use the updated data, then you need to,
+Note that if you change the test data locally and you want the docker services to use the updated data, you need to:
 1. stop the services: `make docker_down`
 2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`
 3. start the service again: `make docker_up`
 
 ### Docker containers
 
-Start the docker containers with `watch` enabled.
-If you issue the command the first time, several things will happen:
-
-1. the required base images are pulled from DockerHub,
-2. the 3dbag-pipeline workflow images are built from the local source code,
-3. the containers are connected to the volumes and networks,
-4. the dagster-webserver is published on `localhost:3003`,
-5. docker compose will start watching changes in the source code on the host machine.
+Start the docker containers with `watch` enabled with the following command:
 
 ```shell
 make docker_watch
 ```
 
-The running containers contain all the tools that are required for a complete run of the 3dbag-pipeline.
+The `watch` attribute allows you to synchronize changes in the code with your containers. When you issue this command for the first time, several things happe:
+
+1. The required base images are pulled from DockerHub.
+2. The 3dbag-pipeline workflow images are built from the local source code.
+3. The containers are connected to the volumes and networks.
+4. The dagster-webserver is published on `localhost:3003`,
+5. Docker compose starts watching for changes in the source code on the host machine.
+
+The running containers contain all the tools required for a complete run of the 3dbag-pipeline.
 This means that you can develop and test any part of the code locally.
 
-If you make a change in the source code in your code editor, the files are synced automatically into the running containers, so you can see your changes in effect **after reloading the code location, job, asset or resource** in the dagster UI on `localhost:3003`.
+If you make a change in the source code in your code editor, the files are automatically synced into the running containers. You can see your changes in effect **after reloading the code location, job, asset or resource** in the Dagster UI on `localhost:3003`.
 
 The docker documentation describes in detail how [does the compose watch functionality work](https://docs.docker.com/compose/how-tos/file-watch/).
 
@@ -81,16 +82,16 @@ To run a specific test, set up a run configuration with the python interpreter i
 
 For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
-#### Local setup
+### Local setup
 
-You need to have the workflow packages set up in their own virtual environments in `/venvs`.
-The virtual environment names follow the pattern of `venv_<package>`. You need to set up:  `/venvs/venv_core`, `/venvs/venv_party_walls` and `/venvs/venv_floors_estimation`
+For development purposes, you should also create a local virtual environment and install the required packages from `requirements-dev.txt`.
 
-The dagster UI (dagster-webserver) is installed and run separately from the *bag3d* packages, as done in our deployment setup.
-Create another virtual environment for the `dagster-webserver` and install the required packages from `requirements_dagster_webserver.txt`.
+You can do this in one step with:
+
+
 
 ```bash
-pip install -r requirements_dagster_webserver.txt
+make local_venv
 ```
 
 To set up all this in one step you can run (make sure you've set the .env variables):
