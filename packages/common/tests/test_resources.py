@@ -5,30 +5,11 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common import resources
 from dagster import EnvVar
 from bag3d.common.resources.executables import (
-    DOCKER_GDAL_IMAGE,
-    DOCKER_PDAL_IMAGE,
     GDALResource,
     PDALResource,
-    DockerConfig,
     LASToolsResource,
 )
 from bag3d.common.utils.geodata import pdal_info
-
-
-def test_gdal_docker(test_data_dir):
-    """Use GDAL in a docker image"""
-    gdal_resource = GDALResource(
-        docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-    )
-    assert gdal_resource.with_docker
-
-    gdal = gdal_resource.app
-
-    local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.execute(
-        "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
-    )
-    assert return_code == 0
 
 
 @pytest.mark.needs_tools
@@ -48,17 +29,6 @@ def test_gdal_local(test_data_dir):
     return_code, output = gdal.execute(
         "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
     )
-    assert return_code == 0
-
-
-def test_pdal_docker(laz_files_ahn3_dir):
-    """Use PDAL in a docker image"""
-    pdal = PDALResource(
-        docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
-    )
-    assert pdal.with_docker
-    filepath = laz_files_ahn3_dir / "t_1042098.laz"
-    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
     assert return_code == 0
 
 
