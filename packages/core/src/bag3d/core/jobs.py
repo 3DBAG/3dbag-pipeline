@@ -48,7 +48,7 @@ job_ahn_tiles_200m = define_asset_job(
     selection=AssetSelection.assets(["ahn", "regular_grid_200m"])
     | AssetSelection.assets(["ahn", "laz_tiles_ahn3_200m"])
     | AssetSelection.assets(["ahn", "laz_tiles_ahn4_200m"])
-    | AssetSelection.assets(["ahn", "laz_tiles_ahn5_200m"])
+    | AssetSelection.assets(["ahn", "laz_tiles_ahn5_200m"]),
 )
 
 job_source_input = define_asset_job(

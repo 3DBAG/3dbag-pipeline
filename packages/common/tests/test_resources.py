@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common import resources
 from dagster import EnvVar
