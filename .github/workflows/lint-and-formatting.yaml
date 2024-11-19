@@ -1,4 +1,4 @@
-name: Install, Lint, Format, Test
+name: Lint & Format
 
 on:
   pull_request:
