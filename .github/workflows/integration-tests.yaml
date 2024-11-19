@@ -31,4 +31,4 @@ jobs:
         make docker_volume_create
         make docker_up
     - name: Run integration tests
-      run: make docker_integration
+      run: make test_integration
