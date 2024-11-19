@@ -13,9 +13,9 @@ You can read more about the [docker-based deployment here](docker.md).
 
 ### Local
 
-In order to deploy the 3dbag-pipeline locally, as a service, you need to make sure that all the required tools are installed.
+In order to deploy the 3DBAG pipeline locally, as a service, you need to make sure that all the required tools are installed.
 We don't recommend doing this.
-However, the [local development setup](../development/code.md/#local-setup) and the [dagster deployment guide](https://docs.dagster.io/deployment/guides/service) can give you some hints on how to deploy the 3dbag-pipeline as a service.
+However, the [development setup](../development/code.md/#setup) and the [dagster deployment guide](https://docs.dagster.io/deployment/guides/service) can give you some hints on how to deploy the 3dbag-pipeline as a service.
 
 ## Resources
 

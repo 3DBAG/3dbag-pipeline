@@ -8,10 +8,11 @@ In this document we describe how can you get set up for writing documentation fo
 Clone the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline).
 
 The documentation is built with [mkdocs](https://www.mkdocs.org/) and several plugins.
-First, install the documentation dependencies (into a virtual environment).
+
+We recommend you install the documentation dependencies in a virtual environment. You can do this with
 
 ```shell
-pip install -r requirements-dev.txt
+make local_venv
 ```
 
 Start the *mkdocs* server.
