@@ -1,7 +1,7 @@
 # Documentation
 
 Thank you for considering to contribute to the 3dbag-pipeline.
-In this document we describe how can you get set up for writing documentation for the software, how to submit a contribution, what guidelines do we follow and what do we expect from your contribution, what can you expect from us.
+In this document we describe how can you get set up for writing documentation for the software.
 
 ## Setup
 
