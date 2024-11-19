@@ -11,7 +11,7 @@ The documentation is built with [mkdocs](https://www.mkdocs.org/) and several pl
 First, install the documentation dependencies (into a virtual environment).
 
 ```shell
-pip install -r requirements_docs.txt
+pip install -r requirements-dev.txt
 ```
 
 Start the *mkdocs* server.
