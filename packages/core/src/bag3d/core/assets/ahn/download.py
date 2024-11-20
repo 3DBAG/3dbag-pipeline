@@ -9,16 +9,15 @@ from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     format_laz_log,
-    ahn_filename,
     download_ahn_index,
     ahn_laz_dir,
 )
 
 logger = get_dagster_logger("ahn.download")
 
-# AHN LAZ file MD5 sums computed at PDOK
-# TODO: Add checksum for AHN5
+# AHN LAZ file with checksums.
 URL_LAZ_SHA = {
+    "ahn5": "https://gist.githubusercontent.com/GinaStavropoulou/4f6b70bd6d356c3a06434916bfa627e0/raw/a87213a9643446b485d5a1b8f5c7416bad1a05f5/01_LAZ.SHA256",
     "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
 }
@@ -117,15 +116,21 @@ class LAZDownload:
 
 
 @asset
-def md5_pdok_ahn3(context):
+def md5_ahn3(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
-    return get_md5_pdok(URL_LAZ_SHA["ahn3"])
+    return get_checksums(URL_LAZ_SHA["ahn3"])
 
 
 @asset
-def md5_pdok_ahn4(context):
+def md5_ahn4(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
-    return get_md5_pdok(URL_LAZ_SHA["ahn4"])
+    return get_checksums(URL_LAZ_SHA["ahn4"])
+
+
+@asset
+def sha256_ahn5(context):
+    """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
+    return get_checksums(URL_LAZ_SHA["ahn5"])
 
 
 @asset
@@ -138,7 +143,7 @@ def tile_index_pdok(context):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
+def laz_files_ahn3(context, md5_ahn3, tile_index_pdok):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -148,8 +153,8 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     tile_id = context.partition_key
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN3_LAZ"]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -159,7 +164,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
         verify_ssl=verify_ssl,
     )
     first_validation = lazdownload.validate(
-        sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
+        sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
     )
 
     # Let's try to re-download the file once
@@ -170,7 +175,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
             fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
         )
         second_validation = lazdownload.validate(
-            sha_reference=md5_pdok_ahn3, sha_func=HashChunkwise("md5")
+            sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
         )
         if not second_validation:
             logger.error(format_laz_log(fpath, "ERROR"))
@@ -193,7 +198,7 @@ def laz_files_ahn3(context, md5_pdok_ahn3, tile_index_pdok):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
+def laz_files_ahn4(context, md5_ahn4, tile_index_pdok):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -204,8 +209,8 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
 
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN4_LAZ"]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -215,7 +220,7 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
         verify_ssl=verify_ssl,
     )
     first_validation = lazdownload.validate(
-        sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
+        sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
     )
 
     # Let's try to re-download the file once
@@ -228,7 +233,7 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
             verify_ssl=verify_ssl,
         )
         second_validation = lazdownload.validate(
-            sha_reference=md5_pdok_ahn4, sha_func=HashChunkwise("md5")
+            sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
         )
         if not second_validation:
             logger.error(format_laz_log(fpath, "ERROR"))
@@ -251,18 +256,17 @@ def laz_files_ahn4(context, md5_pdok_ahn4, tile_index_pdok):
     required_resource_keys={"file_store"},
     partitions_def=PartitionDefinitionAHN(),
 )
-def laz_files_ahn5(context, tile_index_pdok):
+def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
-     Only downloads a file if it does not exist locally.
-     At the moment there is no sha validation for AHN5.
+    Only downloads a file if it does not exist locally.
     """
     tile_id = context.partition_key
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    fpath = laz_dir / ahn_filename(tile_id)
     url_laz = tile_index_pdok[tile_id]["AHN5_LAZ"]
+    fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
@@ -271,7 +275,35 @@ def laz_files_ahn5(context, tile_index_pdok):
         url_laz=url_laz,
         verify_ssl=verify_ssl,
     )
-    # TODO: Add validation when checksum become available.
+    first_validation = lazdownload.validate(
+        sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+    )
+    # Let's try to re-download the file once
+    if not first_validation:
+        logger.info(format_laz_log(fpath, "Removing"))
+        fpath.unlink()
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+        )
+        second_validation = lazdownload.validate(
+            sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+        )
+        if not second_validation:
+            logger.error(format_laz_log(fpath, "ERROR"))
+            lazdownload = LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            )
+    else:
+        logger.debug(format_laz_log(fpath, "OK"))
+
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
@@ -279,7 +311,7 @@ def laz_files_ahn5(context, tile_index_pdok):
 #     required_resource_keys={"file_store", "pdal"},
 #     partitions_def=PartitionDefinitionAHN(),
 #     ins={
-#         "md5_pdok_ahn3": AssetIn(["ahn", "md5_pdok_ahn3"])
+#         "md5_ahn3": AssetIn(["ahn", "md5_ahn3"])
 #     },
 #     outs={
 #         "laz_files_ahn3": Out(is_required=False),
@@ -287,7 +319,7 @@ def laz_files_ahn5(context, tile_index_pdok):
 #     },
 #     can_subset=True
 # )
-# def multi_laz_files_ahn3(context, md5_pdok_ahn3):
+# def multi_laz_files_ahn3(context, md5_ahn3):
 #     """AHN3 LAZ files as they are downloaded from PDOK.
 #
 #     Only downlaod a file if it does not exist locally, or the SHA of the file does not
@@ -300,7 +332,7 @@ def laz_files_ahn5(context, tile_index_pdok):
 #     if "laz_files" in context.selected_output_names:
 #         fpath = context.resources.file_store.file_store.data_dir / ahn_filename(tile_id)
 #         lazdownload = download_ahn_laz(fpath=fpath, url_base=URL_LAZ["ahn3"],
-#                                        sha_reference=md5_pdok_ahn3,
+#                                        sha_reference=md5_ahn3,
 #                                        sha_func=HashChunkwise("md5"))
 #         fpath = lazdownload.path
 #         yield Output(lazdownload.path, output_name="laz_files_ahn3",
@@ -311,18 +343,18 @@ def laz_files_ahn5(context, tile_index_pdok):
 #         yield Output(fpath, metadata={**out_info}, output_name="pdal_info_ahn3")
 
 
-def get_md5_pdok(url: str) -> Mapping[str, str]:
-    """Download the MD5 sum of AHN3 LAZ files from PDOK.
+def get_checksums(url: str) -> Mapping[str, str]:
+    """Download the checksums of AHN3/4/5 LAZ files.
 
     Returns:
-         { filename: md5 }
+         { filename: checksum }
     """
-    _md5 = download_as_str(url)
-    md5_pdok = {}
-    for tile in _md5.strip().split("\n"):
+    _hashes = download_as_str(url)
+    checksums = {}
+    for tile in _hashes.strip().split("\n"):
         sha, file = tile.split()
-        md5_pdok[file] = sha
-    return md5_pdok
+        checksums[file] = sha
+    return checksums
 
 
 def download_ahn_laz(
@@ -347,7 +379,7 @@ def download_ahn_laz(
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
         fpath = download_file(
-            url=url, target_path=fpath.parent, chunk_size=1024 * 1024, verify=verify_ssl
+            url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
         )
         if fpath is None:
             # Download failed
@@ -364,6 +396,7 @@ def download_ahn_laz(
         else:
             is_new = True
     else:  # pragma: no cover
+        logger.info(format_laz_log(fpath, "File already downloaded"))
         is_new = False
     return LAZDownload(
         url=url_laz,
@@ -393,7 +426,12 @@ def match_sha(
     if not fpath.is_file():  # pragma: no cover
         raise FileNotFoundError(fpath)
     sha = sha_func.compute(fpath)
-    if sha.hexdigest() == sha_reference[fpath.name]:
+    if not sha_reference[fpath.name]:
+        # this check if for ensuring that new AHN5 tiles which do not have a
+        # checksum yet will still be downloaded.
+        logger.info(format_laz_log(fpath, f"{sha.name} doesn't have a hash"))
+        return True, sha
+    elif sha.hexdigest() == sha_reference[fpath.name]:
         logger.info(format_laz_log(fpath, f"{sha.name} OK"))
         return True, sha
     else:  # pragma: no cover

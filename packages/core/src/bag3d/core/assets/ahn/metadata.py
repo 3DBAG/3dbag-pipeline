@@ -130,7 +130,7 @@ def compute_load_metadata(
     if not laz_files_ahn.new:
         if not context.op_config["force"]:
             context.log.info(
-                f"Metadata for AHN3 LAZ tile {tile_id} already exists, "
+                f"Metadata for this LAZ tile {tile_id} already exists, "
                 f"skipping computation."
             )
             return Output(None)

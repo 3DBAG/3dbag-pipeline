@@ -119,13 +119,20 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def md5_pdok_ahn3_fix():
+def md5_ahn3_fix():
     yield {"C_01CZ1.LAZ": "063b23d038f97576d279fb7d8a1481ad"}
 
 
 @pytest.fixture(scope="session")
-def md5_pdok_ahn4_fix():
+def md5_ahn4_fix():
     yield {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
+
+
+@pytest.fixture(scope="session")
+def sha256_ahn5_fix():
+    yield {
+        "2023_C_01CZ1.LAZ": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611"
+    }
 
 
 @pytest.fixture(scope="session")
