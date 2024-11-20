@@ -1,17 +1,18 @@
 # Documentation
 
 Thank you for considering to contribute to the 3dbag-pipeline.
-In this document we describe how can you get set up for writing documentation for the software, how to submit a contribution, what guidelines do we follow and what do we expect from your contribution, what can you expect from us.
+In this document we describe how can you get set up for writing documentation for the software.
 
 ## Setup
 
 Clone the repository from [https://github.com/3DBAG/3dbag-pipeline](https://github.com/3DBAG/3dbag-pipeline).
 
 The documentation is built with [mkdocs](https://www.mkdocs.org/) and several plugins.
-First, install the documentation dependencies (into a virtual environment).
+
+We recommend you install the documentation dependencies in a virtual environment. You can do this with
 
 ```shell
-pip install -r requirements_docs.txt
+make local_venv
 ```
 
 Start the *mkdocs* server.

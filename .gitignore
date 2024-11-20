@@ -24,8 +24,8 @@ tests/dagster_home/logs/
 tests/dagster_home/schedules/
 tests/dagster_home/storage/
 
-# Virtual envs
-venvs/venv_*
+# Virtual env
+.venv/
 
 # Documentation
 site

@@ -51,8 +51,11 @@ Congratulations, your contribution is now part of the stable 3DBAG pipeline!
 ## Additional Notes for New Contributors
 
 **Start Small:** New contributors are encouraged to start with small issues or bug fixes before proposing larger features. 
+
 **Ask for Help:** If you need help or aren’t sure about any steps, don’t hesitate to post a question on [Zulip](https://3dbag.zulipchat.com). The community is here to support you!
+
 **Stay Updated:** Follow repository updates to stay informed of any changes to the branching strategy or contribution processes. We are still figuring it out - so this might happen quite often.
+
 **Documentation:** Ensure all new features or changes are well-documented. Good documentation helps future contributors and maintainers understand the intent and functionality of your code. You can find the instructions on [how to generate the documentation here](documentation.md).
 
 Happy contributing! We appreciate your involvement in the 3DBAG pipeline project.

@@ -4,9 +4,7 @@ from pathlib import Path
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
-    DOCKER_GDAL_IMAGE,
     GDALResource,
-    DockerConfig,
 )
 
 from bag3d.common.resources.files import FileStoreResource
@@ -23,23 +21,15 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
-def docker_config():
-    yield DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-
-
-@pytest.fixture(scope="session")
-def gdal(docker_config):
+def gdal():
     exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
     exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
     exe_sozip = os.getenv("EXE_PATH_SOZIP")
-    if exe_ogr2ogr is None and exe_ogrinfo is None and exe_sozip is None:
-        yield GDALResource(docker_cfg=docker_config)
-    else:
-        yield GDALResource(
-            exe_ogr2ogr=exe_ogr2ogr,
-            exe_ogrinfo=exe_ogrinfo,
-            exe_sozip=exe_sozip,
-        )
+    yield GDALResource(
+        exe_ogr2ogr=exe_ogr2ogr,
+        exe_ogrinfo=exe_ogrinfo,
+        exe_sozip=exe_sozip,
+    )
 
 
 @pytest.fixture(scope="function")
