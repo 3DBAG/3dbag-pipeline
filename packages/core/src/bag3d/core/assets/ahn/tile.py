@@ -13,8 +13,9 @@ from bag3d.core.assets.ahn.core import (
     PartitionDefinitionAHN,
     ahn_dir,
     ahn_laz_dir,
-    ahn_filename,
 )
+
+import os
 
 # The tile index bbox was computed from download_ahn_index(3, True)
 PDOK_TILE_INDEX_BBOX = (13000, 306250, 279000, 616250)
@@ -274,21 +275,23 @@ def partition_laz_with_grid(
     out_dir.mkdir(exist_ok=True)
     future_to_tile = {}
     failed = []
+    ahn_path = ahn_laz_dir(
+        context.resources.file_store.file_store.data_dir,
+        ahn_version=ahn_version,
+    )
+    # Dictionary of all files in the AHN path
+    files_in_ahn_path = {
+        f[-9:-4].lower(): os.path.join(ahn_path, f)
+        for f in os.listdir(ahn_path)
+        if os.path.isfile(os.path.join(ahn_path, f))
+    }
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for tile, xmin, ymin, pdok_match in tile_ids:
             tile_size = cellsize
             out_file = out_dir / f"t_{tile}.laz"
             cmd = ["{exe}", "-v", "-i"]
-            cmd.extend(
-                str(
-                    ahn_laz_dir(
-                        context.resources.file_store.file_store.data_dir,
-                        ahn_version=ahn_version,
-                    )
-                    / ahn_filename(t)
-                )
-                for t in pdok_match
-            )
+            cmd.extend(str(files_in_ahn_path[t.lower()]) for t in pdok_match)
             cmd += [
                 "-inside_tile",
                 str(xmin),

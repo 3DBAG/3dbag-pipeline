@@ -307,42 +307,6 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_pdok):
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-# @multi_asset(
-#     required_resource_keys={"file_store", "pdal"},
-#     partitions_def=PartitionDefinitionAHN(),
-#     ins={
-#         "md5_ahn3": AssetIn(["ahn", "md5_ahn3"])
-#     },
-#     outs={
-#         "laz_files_ahn3": Out(is_required=False),
-#         "pdal_info_ahn3": Out(is_required=False)
-#     },
-#     can_subset=True
-# )
-# def multi_laz_files_ahn3(context, md5_ahn3):
-#     """AHN3 LAZ files as they are downloaded from PDOK.
-#
-#     Only downlaod a file if it does not exist locally, or the SHA of the file does not
-#     match the reference.
-#     """
-#     tile_id = context.partition_key
-#
-#     fpath = context.resources.file_store.file_store.data_dir / ahn_filename(tile_id)
-#     fpath = Path(f"/data/AHN3/tiles_200m/t_{tile_id}.laz")
-#     if "laz_files" in context.selected_output_names:
-#         fpath = context.resources.file_store.file_store.data_dir / ahn_filename(tile_id)
-#         lazdownload = download_ahn_laz(fpath=fpath, url_base=URL_LAZ["ahn3"],
-#                                        sha_reference=md5_ahn3,
-#                                        sha_func=HashChunkwise("md5"))
-#         fpath = lazdownload.path
-#         yield Output(lazdownload.path, output_name="laz_files_ahn3",
-#                      metadata=lazdownload.asdict())
-#     if "pdal_info" in context.selected_output_names:
-#         ret_code, out_info = pdal_info(context.resources.pdal, file_path=fpath,
-#                                        with_all=False)
-#         yield Output(fpath, metadata={**out_info}, output_name="pdal_info_ahn3")
-
-
 def get_checksums(url: str) -> Mapping[str, str]:
     """Download the checksums of AHN3/4/5 LAZ files.
 

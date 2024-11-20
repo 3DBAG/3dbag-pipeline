@@ -19,11 +19,6 @@ def format_laz_log(fpath: Path, msg: str) -> str:
     return f"{fpath.stem}{'.' * 5}{msg}"
 
 
-def ahn_filename(tile_id: str) -> str:
-    """Creates an AHN LAZ file name from an AHN tile ID."""
-    return f"C_{tile_id.upper()}.LAZ"
-
-
 def ahn_dir(root_dir: Path, ahn_version: int) -> Path:
     """Create a directory path where to store the AHN LAZ files for the given AHN
     version."""
