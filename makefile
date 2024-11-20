@@ -61,7 +61,7 @@ docker_down_rm:
 test: source
 	docker compose -p bag3d-dev exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v
 	docker compose -p bag3d-dev exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v
-	docker compose -p bag3d-dev exec bag3d-party-walls pyte+st /opt/3dbag-pipeline/packages/party_walls/tests/ -v 
+	docker compose -p bag3d-dev exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v 
 	docker compose -p bag3d-dev exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v
 
 test_slow: source
