@@ -23,7 +23,7 @@ You will find the complete documentation at [https://innovation.3dbag.nl/3dbag-p
 
 ## Project layout
 
-The 3dbag-pipeline are organized into several packages.
+The 3dbag-pipeline is organized into several packages.
 The packages are organized into a `common` package and a number of workflow packages.
 The `common` package contains the resources, functions and type definitions that are used by the 3DBAG packages that define the data processing workflows.
 The workflow packages contain the assets, jobs, sensors etc. that define a data processing workflow for a part of the complete 3DBAG.
