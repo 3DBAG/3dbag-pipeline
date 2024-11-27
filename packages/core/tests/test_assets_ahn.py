@@ -35,13 +35,13 @@ def test_tile_index_origin():
 
 def test_download_ahn_index():
     tile_ids = download_ahn_index()
-    assert len(tile_ids) == 1406
+    assert len(tile_ids) == 1407
     assert tile_ids[list(tile_ids.keys())[0]] is None
 
 
 def test_download_ahn_index_geometry():
     features = download_ahn_index(with_geom=True)
-    assert len(features) == 1406
+    assert len(features) == 1407
     assert features[list(features.keys())[0]] is not None
 
 
@@ -80,7 +80,7 @@ def test_checksums_for_ahn(context):
 
 def test_tile_index_ahn(context):
     res = tile_index_ahn(context)
-    assert len(res) == 1406
+    assert len(res) == 1407
     assert res[list(res.keys())[0]] is not None
 
 
