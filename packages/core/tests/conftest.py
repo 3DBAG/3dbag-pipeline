@@ -4,9 +4,7 @@ from pathlib import Path
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
-    DOCKER_GDAL_IMAGE,
     GDALResource,
-    DockerConfig,
 )
 
 from bag3d.common.resources.files import FileStoreResource
@@ -23,23 +21,15 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
-def docker_config():
-    yield DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-
-
-@pytest.fixture(scope="session")
-def gdal(docker_config):
+def gdal():
     exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
     exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
     exe_sozip = os.getenv("EXE_PATH_SOZIP")
-    if exe_ogr2ogr is None and exe_ogrinfo is None and exe_sozip is None:
-        yield GDALResource(docker_cfg=docker_config)
-    else:
-        yield GDALResource(
-            exe_ogr2ogr=exe_ogr2ogr,
-            exe_ogrinfo=exe_ogrinfo,
-            exe_sozip=exe_sozip,
-        )
+    yield GDALResource(
+        exe_ogr2ogr=exe_ogr2ogr,
+        exe_ogrinfo=exe_ogrinfo,
+        exe_sozip=exe_sozip,
+    )
 
 
 @pytest.fixture(scope="function")
@@ -119,17 +109,24 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def md5_pdok_ahn3_fix():
+def md5_ahn3_fix():
     yield {"C_01CZ1.LAZ": "063b23d038f97576d279fb7d8a1481ad"}
 
 
 @pytest.fixture(scope="session")
-def md5_pdok_ahn4_fix():
+def md5_ahn4_fix():
     yield {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
 
 
 @pytest.fixture(scope="session")
-def tile_index_ahn_fix():
+def sha256_ahn5_fix():
+    yield {
+        "2023_C_01CZ1.LAZ": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611"
+    }
+
+
+@pytest.fixture(scope="session")
+def tile_index_pdok_fix():
     yield {
         "01cz1": {
             "AHN3_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",

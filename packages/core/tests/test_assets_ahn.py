@@ -7,14 +7,20 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import (
     URL_LAZ_SHA,
-    get_md5_pdok,
+    get_checksums,
     laz_files_ahn3,
     laz_files_ahn4,
-    md5_pdok_ahn3,
-    md5_pdok_ahn4,
-    tile_index_ahn,
+    laz_files_ahn5,
+    md5_ahn3,
+    md5_ahn4,
+    sha256_ahn5,
+    tile_index_pdok,
 )
-from bag3d.core.assets.ahn.metadata import metadata_table_ahn3, metadata_table_ahn4
+from bag3d.core.assets.ahn.metadata import (
+    metadata_table_ahn3,
+    metadata_table_ahn4,
+    metadata_table_ahn5,
+)
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 
@@ -46,46 +52,63 @@ def test_generate_grid():
 
 
 @pytest.mark.parametrize(
-    "url", (URL_LAZ_SHA["ahn3"], URL_LAZ_SHA["ahn4"]), ids=("ahn3", "ahn4")
+    "url",
+    (URL_LAZ_SHA["ahn3"], URL_LAZ_SHA["ahn4"], URL_LAZ_SHA["ahn5"]),
+    ids=("ahn3", "ahn4", "ahn5"),
 )
-def test_get_md5_pdok(url):
-    md5_pdok = get_md5_pdok(url)
-    assert len(md5_pdok) > 0
-    for k, sha in list(md5_pdok.items())[:5]:
+def test_get_checksums(url):
+    checksums = get_checksums(url)
+    assert len(checksums) > 0
+    for k, sha in list(checksums.items())[:5]:
         assert sha is not None
 
 
-def test_md5_pdok_ahn(context):
-    res = md5_pdok_ahn3(context)
+def test_checksums_for_ahn(context):
+    res = md5_ahn3(context)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
-    res = md5_pdok_ahn4(context)
+    res = md5_ahn4(context)
+    assert len(res) > 0
+    for k, sha in list(res.items())[:5]:
+        assert sha is not None
+    res = sha256_ahn5(context)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
 
 
-def test_tile_index_ahn(context):
-    res = tile_index_ahn(context)
+def test_tile_index_pdok(context):
+    res = tile_index_pdok(context)
     assert len(res) == 1406
     assert res[list(res.keys())[0]] is not None
 
 
 @pytest.mark.slow
-def test_laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn_fix):
+def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_pdok_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn3(context, md5_pdok_ahn3_fix, tile_index_ahn_fix)
+    res = laz_files_ahn3(context, md5_ahn3_fix, tile_index_pdok_fix)
+    assert res.value.url is not None
     assert res is not None
     print(res.value)
 
 
 @pytest.mark.slow
-def test_laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn_fix):
+def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_pdok_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn4(context, md5_pdok_ahn4_fix, tile_index_ahn_fix)
+    res = laz_files_ahn4(context, md5_ahn4_fix, tile_index_pdok_fix)
+    assert res.value.url is not None
+    assert res is not None
+
+
+@pytest.mark.slow
+def test_laz_files_ahn5(context, sha256_ahn5_fix, tile_index_pdok_fix):
+    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
+    laz_dir.mkdir(exist_ok=True, parents=True)
+    res = laz_files_ahn5(context, sha256_ahn5_fix, tile_index_pdok_fix)
+    assert res.value.url is not None
     assert res is not None
 
 
@@ -100,6 +123,14 @@ def test_metadata_table_ahn3(context):
 def test_metadata_table_ahn4(context):
     metadata = metadata_table_ahn4(context)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
+    assert table_exists(context, tbl)
+    assert isinstance(metadata, PostgresTableIdentifier)
+    assert str(metadata) == f"{tbl.schema}.{tbl.table}"
+
+
+def test_metadata_table_ahn5(context):
+    metadata = metadata_table_ahn5(context)
+    tbl = PostgresTableIdentifier("ahn", "metadata_ahn5")
     assert table_exists(context, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"

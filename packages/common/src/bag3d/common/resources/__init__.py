@@ -3,13 +3,10 @@ import os
 from bag3d.common.resources.executables import (
     GDALResource,
     PDALResource,
-    DockerConfig,
     LASToolsResource,
     TylerResource,
     RooferResource,
     GeoflowResource,
-    DOCKER_GDAL_IMAGE,
-    DOCKER_PDAL_IMAGE,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
@@ -21,10 +18,6 @@ from dagster import EnvVar
 
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
-gdal_docker = GDALResource(
-    docker_cfg=DockerConfig(image=DOCKER_GDAL_IMAGE, mount_point="/tmp")
-)
-
 
 gdal_local = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
@@ -32,10 +25,6 @@ gdal_local = GDALResource(
     exe_sozip=os.getenv("EXE_PATH_SOZIP"),
 )
 
-
-pdal_docker = PDALResource(
-    docker_cfg=DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp")
-)
 
 pdal_local = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 

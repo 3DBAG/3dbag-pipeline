@@ -6,9 +6,10 @@ job_ahn_tile_index = define_asset_job(
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
     "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
     "the AHN jobs can be run.",
-    selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
-    | AssetSelection.assets(["ahn", "md5_pdok_ahn3"])
-    | AssetSelection.assets(["ahn", "md5_pdok_ahn4"])
+    selection=AssetSelection.assets(["ahn", "tile_index_pdok"])
+    | AssetSelection.assets(["ahn", "md5_ahn3"])
+    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn5"]),
@@ -40,6 +41,15 @@ job_ahn5 = define_asset_job(
     selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
+)
+
+job_ahn_tiles_200m = define_asset_job(
+    name="ahn_tiles_200m",
+    description="Tile the AHN LAZ files into 200m tiles.",
+    selection=AssetSelection.assets(["ahn", "regular_grid_200m"])
+    | AssetSelection.assets(["ahn", "laz_tiles_ahn3_200m"])
+    | AssetSelection.assets(["ahn", "laz_tiles_ahn4_200m"])
+    | AssetSelection.assets(["ahn", "laz_tiles_ahn5_200m"]),
 )
 
 job_source_input = define_asset_job(
