@@ -216,6 +216,12 @@ def create_roofer_config(
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
+    out_dir_ahn5 = ahn_dir(
+        context.resources.file_store.file_store.data_dir, ahn_version=5
+    ).joinpath("tiles_200m")
+    laz_files_ahn5 = [
+        str(out_dir_ahn5 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
+    ]
     # Would be neater if we could use -sql in the OGR connection to do this query,
     # instead of creating a view.
     tile_view = PostgresTableIdentifier(tiles.schema, f"t_{tile_id}")
@@ -243,6 +249,7 @@ def create_roofer_config(
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
+        ahn5_files=laz_files_ahn5,
         output_path=output_dir,
     )
     path_toml = output_dir / "roofer.toml"
