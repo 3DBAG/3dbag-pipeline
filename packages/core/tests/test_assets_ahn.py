@@ -14,7 +14,7 @@ from bag3d.core.assets.ahn.download import (
     md5_ahn3,
     md5_ahn4,
     sha256_ahn5,
-    tile_index_pdok,
+    tile_index_ahn,
 )
 from bag3d.core.assets.ahn.metadata import (
     metadata_table_ahn3,
@@ -78,36 +78,36 @@ def test_checksums_for_ahn(context):
         assert sha is not None
 
 
-def test_tile_index_pdok(context):
-    res = tile_index_pdok(context)
+def test_tile_index_ahn(context):
+    res = tile_index_ahn(context)
     assert len(res) == 1406
     assert res[list(res.keys())[0]] is not None
 
 
 @pytest.mark.slow
-def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_pdok_fix):
+def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn3(context, md5_ahn3_fix, tile_index_pdok_fix)
+    res = laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
     print(res.value)
 
 
 @pytest.mark.slow
-def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_pdok_fix):
+def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn4(context, md5_ahn4_fix, tile_index_pdok_fix)
+    res = laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 
 
 @pytest.mark.slow
-def test_laz_files_ahn5(context, sha256_ahn5_fix, tile_index_pdok_fix):
+def test_laz_files_ahn5(context, sha256_ahn5_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn5(context, sha256_ahn5_fix, tile_index_pdok_fix)
+    res = laz_files_ahn5(context, sha256_ahn5_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 

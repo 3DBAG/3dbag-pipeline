@@ -12,7 +12,6 @@ from dagster import (
 )
 from lxml import objectify
 
-from bag3d.common.utils.geodata import bbox_from_wkt
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
 from bag3d.common.utils.database import (
