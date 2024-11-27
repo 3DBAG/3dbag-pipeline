@@ -138,9 +138,6 @@ def create_roofer_config(
     id-attribute = "identificatie"
     force-lod11-attribute = "kas_warenhuis"
     
-    cellsize = 0.5
-    lod = 22
-    
     split-cjseq = true
     output-directory = "{output_path}"
     
@@ -153,6 +150,34 @@ def create_roofer_config(
     name = "AHN4"
     quality = 0
     source = {ahn4_files}
+
+    [output-attributes]
+    status = "b3_status"
+    reconstruction_time = "b3_t_run"
+    val3dity_lod12 = "b3_val3dity_lod12"
+    val3dity_lod13 = "b3_val3dity_lod13"
+    val3dity_lod22 = "b3_val3dity_lod22"
+    is_glass_roof = "b3_is_glas_dak"
+    nodata_frac = "b3_nodata_fractie"
+    nodata_r = "b3_nodata_radius"
+    pt_density = "b3_puntdichtheid"
+    is_mutated = "b3_mutatie"
+    pc_select = "b3_pw_selectie_reden"
+    pc_source = "b3_pw_bron"
+    pc_year = "b3_pw_datum"
+    force_lod11 = "b3_reconstructie_onvolledig"
+    roof_type = "b3_dak_type"
+    h_elevation_50p = "b3_h_dak_50p"
+    h_elevation_70p = "b3_h_dak_70p"
+    h_elevation_min = "b3_h_dak_min"
+    h_elevation_max = "b3_h_dak_max"
+    roof_n_planes = ""
+    rmse_lod12 = "b3_rmse_lod12"
+    rmse_lod13 = "b3_rmse_lod13"
+    rmse_lod22 = "b3_rmse_lod22"
+    h_ground = "b3_h_maaiveld"
+    slope = "b3_hellingshoek"
+    azimuth = "b3_azimut"
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""    
