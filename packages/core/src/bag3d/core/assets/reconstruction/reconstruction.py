@@ -141,7 +141,7 @@ def create_roofer_config(
     cellsize = 0.5
     lod = 22
     
-    split-cjseq = false
+    split-cjseq = true
     output-directory = "{output_path}"
     
     [[pointclouds]]
