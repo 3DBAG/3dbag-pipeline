@@ -272,7 +272,7 @@ def partition_laz_with_grid(
     out_dir = ahn_dir(
         context.resources.file_store.file_store.data_dir, ahn_version=ahn_version
     ).joinpath(f"tiles_{cellsize}m")
-    out_dir.mkdir(exist_ok=True)
+    out_dir.mkdir(exist_ok=True, parents=True)
     future_to_tile = {}
     failed = []
     ahn_path = ahn_laz_dir(
