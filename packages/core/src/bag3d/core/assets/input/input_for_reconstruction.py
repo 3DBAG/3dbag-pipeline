@@ -21,7 +21,7 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 )
 def reconstruction_input(
     context, bag_pandactueelbestaand, bag_kas_warenhuis, bag_bag_overlap
-):
+) -> Output[PostgresTableIdentifier]:
     """The input for the building reconstruction, where:
     - duplicates are removed
     """

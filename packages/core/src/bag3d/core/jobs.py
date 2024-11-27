@@ -6,7 +6,7 @@ job_ahn_tile_index = define_asset_job(
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
     "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
     "the AHN jobs can be run.",
-    selection=AssetSelection.assets(["ahn", "tile_index_pdok"])
+    selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
     | AssetSelection.assets(["ahn", "md5_ahn3"])
     | AssetSelection.assets(["ahn", "md5_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
@@ -65,8 +65,9 @@ job_source_input = define_asset_job(
 job_nl_reconstruct = define_asset_job(
     name="nl_reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
-    selection=AssetSelection.assets(["reconstruction", "cropped_input_and_config_nl"])
-    | AssetSelection.assets(["reconstruction", "reconstructed_building_models_nl"]),
+    selection=AssetSelection.assets(
+        ["reconstruction", "reconstructed_building_models_nl"]
+    ),
 )
 
 job_nl_export = define_asset_job(
@@ -85,52 +86,6 @@ job_nl_deploy = define_asset_job(
     selection=AssetSelection.assets(["export", "compressed_tiles"])
     | AssetSelection.assets(["export", "compressed_tiles_validation"])
     | AssetSelection.assets(["deploy", "compressed_export_nl"])
-    | AssetSelection.assets(["deploy", "downloadable_godzilla"])
-    | AssetSelection.assets(["deploy", "webservice_godzilla"]),
-)
-
-
-job_zuid_holland_reconstruct = define_asset_job(
-    name="zuid_holland_reconstruct",
-    description="Run the crop and reconstruct steps for the province of Zuid-Holland.",
-    selection=AssetSelection.assets(
-        ["reconstruction", "cropped_input_and_config_zuid_holland"]
-    )
-    | AssetSelection.assets(
-        ["reconstruction", "reconstructed_building_models_zuid_holland"]
-    ),
-)
-
-job_zuid_holland_export = define_asset_job(
-    name="zuid_holland_export",
-    description="Run the tyler export and 3D Tiles steps for the province of "
-    "Zuid-Holland.",
-    selection=AssetSelection.assets(["export", "feature_evaluation"])
-    | AssetSelection.assets(["export", "export_index"])
-    | AssetSelection.assets(["export", "metadata"])
-    | AssetSelection.assets(["export", "geopackage_nl"])
-    | AssetSelection.assets(["export", "reconstruction_output_multitiles_zuid_holland"])
-    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_zuid_holland"]),
-)
-
-job_zuid_holland_deploy = define_asset_job(
-    name="zuid_holland_deploy",
-    description="Deploy the Zuid-Holland data.",
-    selection=AssetSelection.assets(["deploy", "compressed_export_zuid_holland"])
-    | AssetSelection.assets(["deploy", "downloadable_godzilla"])
-    | AssetSelection.assets(["deploy", "webservice_godzilla"]),
-)
-
-job_zuid_holland_export_deploy = define_asset_job(
-    name="zuid_holland_export_deploy",
-    description="Run the tyler export and 3D Tiles and deploy steps for the province of "
-    "Zuid-Holland.",
-    selection=AssetSelection.assets(["export", "feature_evaluation"])
-    | AssetSelection.assets(["export", "export_index"])
-    | AssetSelection.assets(["export", "metadata"])
-    | AssetSelection.assets(["export", "geopackage_nl"])
-    | AssetSelection.assets(["export", "reconstruction_output_multitiles_zuid_holland"])
-    | AssetSelection.assets(["deploy", "compressed_export_zuid_holland"])
     | AssetSelection.assets(["deploy", "downloadable_godzilla"])
     | AssetSelection.assets(["deploy", "webservice_godzilla"]),
 )

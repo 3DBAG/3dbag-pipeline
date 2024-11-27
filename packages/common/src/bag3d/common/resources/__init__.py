@@ -40,10 +40,10 @@ db_connection = DatabaseResource(
 
 
 file_store = FileStoreResource(
-    data_dir="/tmp", dir_id=os.getenv("BAG3D_RELEASE_VERSION")
+    data_dir=os.getenv("BAG3D_FILESTORE"), dir_id=os.getenv("BAG3D_RELEASE_VERSION")
 )
 file_store_fastssd = FileStoreResource(
-    data_dir="/tmp",
+    data_dir=os.getenv("BAG3D_FILESTORE"),
     dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
 )
 
@@ -62,7 +62,10 @@ tyler = TylerResource(
     exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB")
 )
 
-roofer = RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP"))
+roofer = RooferResource(
+    exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
+    exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+)
 
 geoflow = GeoflowResource(
     exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),

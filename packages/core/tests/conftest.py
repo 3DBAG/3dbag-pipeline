@@ -126,7 +126,7 @@ def sha256_ahn5_fix():
 
 
 @pytest.fixture(scope="session")
-def tile_index_pdok_fix():
+def tile_index_ahn_fix():
     yield {
         "01cz1": {
             "AHN3_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
