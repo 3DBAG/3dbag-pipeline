@@ -68,6 +68,18 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     },
     code_version=resource_defs["roofer"].app.version("roofer"),
     config_schema={
+        "drop_views": Field(
+            bool,
+            description="Drop the tile view after reconstruction",
+            is_required=False,
+            default_value=True,
+        ),
+        "loglevel": Field(
+            str,
+            description="Roofer --loglevel.",
+            is_required=False,
+            default_value="info"
+        ),
         "dir_tiles_200m_ahn3": Field(
             str,
             description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
@@ -109,7 +121,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir}",
+            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']}",
             local_path=roofer_toml,
             silent=False,
         )
@@ -118,9 +130,10 @@ def reconstructed_building_models_nl(
             context.log.error(output)
             raise Failure
     finally:
-        context.resources.db_connection.connect.send_query(
-            SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
-        )
+        if context.op_config["drop_views"]:
+            context.resources.db_connection.connect.send_query(
+                SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
+            )
 
 
 def create_roofer_config(

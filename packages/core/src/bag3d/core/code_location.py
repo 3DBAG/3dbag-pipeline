@@ -16,6 +16,7 @@ from bag3d.core.jobs import (
     job_ahn5,
     job_ahn_tiles_200m,
     job_nl_reconstruct,
+    job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
 )
@@ -36,6 +37,7 @@ all_jobs = [
     job_ahn5,
     job_ahn_tiles_200m,
     job_nl_reconstruct,
+    job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
 ]
