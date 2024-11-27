@@ -78,7 +78,6 @@ def test_checksums_for_ahn(context):
         assert sha is not None
 
 
-
 def test_tile_index_ahn(context):
     res = tile_index_ahn(context)
     assert len(res) == 1407
