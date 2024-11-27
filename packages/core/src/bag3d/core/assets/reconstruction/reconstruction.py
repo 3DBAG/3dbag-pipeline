@@ -1,29 +1,25 @@
-from hashlib import sha1
-from datetime import date
 import time
+from datetime import date
+from hashlib import sha1
 from pathlib import Path
 
 from dagster import (
     asset,
     StaticPartitionsDefinition,
     AssetIn,
-    Output,
     Failure,
     get_dagster_logger,
     Field,
 )
-from psycopg.sql import SQL
 from pgutils import PostgresTableIdentifier
-
-from bag3d.common.utils.files import geoflow_crop_dir
-from bag3d.common.utils.dagster import format_date
+from psycopg.sql import SQL
 
 from bag3d.common.resources import resource_defs
-
+from bag3d.common.utils.dagster import format_date
+from bag3d.common.utils.files import geoflow_crop_dir
+from bag3d.core.assets.ahn.core import ahn_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
-from bag3d.core.assets.ahn.core import ahn_dir, PartitionDefinitionAHN, ahn_laz_dir
-from bag3d.core.assets.ahn.download import LAZDownload
 
 
 def generate_3dbag_version_date(context):
@@ -52,37 +48,6 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         logger = get_dagster_logger("PartitionDefinition3DBagReconstruction")
         tile_ids = get_tile_ids(schema, table_tiles, logger, wkt)
         super().__init__(partition_keys=sorted(list(tile_ids)))
-
-
-# @asset(
-#     required_resource_keys={"db_connection"},
-#     ins={
-#         "reconstruction_input": AssetIn(key_prefix="input"),
-#     },
-# )
-# def excluded_greenhouses(context, cropped_input_and_config_nl, reconstruction_input):
-#     """Use the cropped input .las files to identify greenhouses."""
-#     objects_dir = cropped_input_and_config_nl.joinpath("objects")
-#     if not objects_dir.exists():
-#         raise Failure(f"input features don't exists for {cropped_input_and_config_nl}")
-#
-#     query = SQL("""SELECT identificatie from {reconstruction_input}
-#                    WHERE st_area(geometry) > 100""")
-#
-#     res = context.resources.db_connection.connect.get_query(
-#         query, query_params={"reconstruction_input": reconstruction_input}
-#     )
-#     for feature in objects_dir.iterdir():
-#         if feature.is_dir():
-#             if feature.name in res:
-#                 context.log.info(
-#                     f"Feature {feature.name} has > 100m2 area and will be checked"
-#                 )
-#                 break
-#
-#     # new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "excluded_greenhouses")
-#
-#     # return Output(new_table, metadata=metadata)
 
 
 @asset(
@@ -141,183 +106,17 @@ def reconstructed_building_models_nl(
     context.log.info(f"{roofer_toml=}")
     context.log.info(f"{tile_view=}")
 
-    return_code, output = context.resources.roofer.app.execute(
-        exe_name="roofer",
-        command=f"{{exe}} --config {{local_path}} {output_dir}",
-        local_path=roofer_toml,
-        silent=False,
-    )
-
-    context.log.debug(f"{return_code=} {output=}")
-    if return_code != 0 or "error" in output.lower():
-        context.log.error(output)
-        raise Failure
-
-    # try:
-    #     return_code, output = context.resources.roofer.app.execute(
-    #         exe_name="roofer",
-    #         command=f"{{exe}} --config {{local_path}} {output_dir}",
-    #         local_path=roofer_toml,
-    #         silent=False,
-    #     )
-    #     context.log.debug(f"{return_code=} {output=}")
-    #     if return_code != 0 or "error" in output.lower():
-    #         context.log.error(output)
-    #         raise Failure
-    # finally:
-    #     context.resources.db_connection.connect.send_query(
-    #         SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
-    #     )
-
-
-@asset(
-    ins={
-        "reconstruction_input": AssetIn(key_prefix="input"),
-    },
-    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["roofer"].app.version("roofer"),
-)
-def reconstructed_building_models_direct(
-    context, reconstruction_input: PostgresTableIdentifier
-):
-    """Run roofer directly, without tiling."""
-    toml_template = """
-    [input.footprint]
-    source = '{footprint_file}'
-    id_attribute = "identificatie"
-    force_lod11_attribute = "kas_warenhuis"
-
-    [[input.pointclouds]]
-    name = "AHN3"
-    quality = 1
-    source = '{ahn3_files}'
-
-    [[input.pointclouds]]
-    name = "AHN4"
-    quality = 0
-    source = '{ahn4_files}'
-
-    [crop]
-    cellsize = 0.5
-
-    [reconstruct]
-    lod = 22
-
-    [output]
-    split_cjseq = false
-    folder = '{output_path}'
-    """
-    output_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
-    )
-    output_dir.mkdir(exist_ok=True, parents=True)
-
-    output_toml = toml_template.format(
-        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={reconstruction_input}",
-        ahn3_files=ahn_laz_dir(
-            root_dir=context.resources.file_store.data_dir, ahn_version=3
-        ),
-        ahn4_files=ahn_laz_dir(
-            root_dir=context.resources.file_store.data_dir, ahn_version=4
-        ),
-        output_path=output_dir,
-    )
-    path_toml = output_dir / "crop.toml"
-    with path_toml.open("w") as of:
-        of.write(output_toml)
-    context.resources.roofer.app.execute(
-        exe_name="roofer", command="{exe} -c {local_path}", local_path=path_toml
-    )
-
-
-@asset(
-    partitions_def=PartitionDefinitionAHN(),
-    ins={
-        "tile_index_ahn": AssetIn(key_prefix="ahn"),
-        "laz_files_ahn3": AssetIn(key_prefix="ahn"),
-        "laz_files_ahn4": AssetIn(key_prefix="ahn"),
-        "reconstruction_input": AssetIn(key_prefix="input"),
-    },
-    required_resource_keys={"roofer", "file_store", "file_store_fastssd"},
-    code_version=resource_defs["roofer"].app.version("roofer"),
-)
-def reconstructed_building_models_ahn_partition(
-    context,
-    tile_index_ahn,
-    laz_files_ahn3: LAZDownload,
-    laz_files_ahn4: LAZDownload,
-    reconstruction_input: PostgresTableIdentifier,
-):
-    """Generate the 3D building models by running the reconstruction parallely
-    within one partition.
-    Runs roofer."""
-    toml_template = """
-    [input.footprint]
-    source = '{footprint_file}'
-    id_attribute = "identificatie"
-    force_lod11_attribute = "kas_warenhuis"
-
-    [[input.pointclouds]]
-    name = "AHN3"
-    quality = 1
-    source = '{ahn3_files}'
-
-    [[input.pointclouds]]
-    name = "AHN4"
-    quality = 0
-    source = '{ahn4_files}'
-
-    [crop]
-    cellsize = 0.5
-
-    [reconstruct]
-    lod = 22
-
-    [output]
-    split_cjseq = false
-    folder = '{output_path}'
-    """
-
-    tile_id = context.partition_key
-    ahn_tile_geometry = tile_index_ahn[tile_id]["geometry"]
-    laz_file_ahn3 = laz_files_ahn3.path
-    laz_file_ahn4 = laz_files_ahn4.path
-
-    # Would be neater if we could use -sql in the OGR connection to do this query,
-    # instead of creating a view.
-    tile_view = PostgresTableIdentifier(reconstruction_input.schema, f"t_{tile_id}")
-    query_tile_view = SQL("""
-    CREATE OR REPLACE VIEW {tile_view} AS
-    SELECT i.*
-    FROM {reconstruction_input} i JOIN st_intersects(st_centroid({ahn_tile_geometry}))
-    """)
-    context.resources.db_connection.connect.send_query(
-        query_tile_view,
-        query_params={
-            "tile_view": tile_id,
-            "reconstruction_input": reconstruction_input,
-            "ahn_tile_geometry": ahn_tile_geometry,
-        },
-    )
-    output_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
-    ).joinpath(tile_id)
-    output_dir.mkdir(exist_ok=True, parents=True)
-
-    output_toml = toml_template.format(
-        tile_id=tile_id,
-        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
-        ahn3_files=laz_file_ahn3,
-        ahn4_files=laz_file_ahn4,
-        output_path=output_dir,
-    )
-    path_toml = output_dir / "crop.toml"
-    with path_toml.open("w") as of:
-        of.write(output_toml)
     try:
-        context.resources.roofer.app.execute(
-            exe_name="roofer", command="{exe} -c {local_path}", local_path=path_toml
+        return_code, output = context.resources.roofer.app.execute(
+            exe_name="roofer",
+            command=f"{{exe}} --config {{local_path}} {output_dir}",
+            local_path=roofer_toml,
+            silent=False,
         )
+        context.log.debug(f"{return_code=} {output=}")
+        if return_code != 0 or "error" in output.lower():
+            context.log.error(output)
+            raise Failure
     finally:
         context.resources.db_connection.connect.send_query(
             SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
@@ -426,50 +225,3 @@ def create_roofer_config(
         of.write(output_toml)
 
     return path_toml, output_dir, tile_view
-
-
-def reconstruct_building_models_func(context, cropped_input_and_config):
-    context.log.info(f"geoflow.kwargs: {context.resources.geoflow.app.kwargs}")
-    cmd_template = "{{exe}} {{local_path}} --config {config_path}"
-    # TODO: what are the conditions for partition failure?
-    objects_dir = cropped_input_and_config.joinpath("objects")
-    if not objects_dir.exists():
-        # In this case it would make more sense to raise Failure, but then a downstream,
-        # un-partitioned asset will never execute, because the downstream un-partitioned
-        # asset will expect that *all* upstream partitions succeeded.
-        # Maybe we could do something with a custom partition loader here...
-        context.log.error(f"input features don't exists for {cropped_input_and_config}")
-        return Output(
-            cropped_input_and_config,
-            metadata={"failed_nr": 0, "failed_id": [], "success_nr": 0},
-        )
-    failed = []
-    cnt = 0
-    for feature in objects_dir.iterdir():
-        if feature.is_dir():
-            config_path = feature.joinpath("config_.toml")
-            cmd = cmd_template.format(config_path=config_path)
-            try:
-                return_code, output = context.resources.roofer.app.execute(
-                    "roofer", cmd, silent=False
-                )
-                if return_code != 0 or "error" in output.lower():
-                    context.log.error(output)
-                    raise Failure
-                else:
-                    cnt += 1
-            except Failure:
-                failed.append(feature)
-    if cnt == 0:
-        raise Failure(
-            f"all features failed the reconstruction in {cropped_input_and_config}"
-        )
-    else:
-        return Output(
-            cropped_input_and_config,
-            metadata={
-                "failed_nr": len(failed),
-                "failed_id": [f.name for f in failed],
-                "success_nr": cnt,
-            },
-        )
