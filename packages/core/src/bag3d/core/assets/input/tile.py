@@ -27,6 +27,9 @@ def reconstruction_input_tiles(context, reconstruction_input):
     conn = context.resources.db_connection.connect
     conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
 
+    # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
+    uri = conn.dsn.replace("sslmode=allow", "").strip()
+
     # tiler-db creates two tables. output_schema.index and output_schema.tiles
     # The tiles table has 'tile_id' and 'boundary' columns.
     cmd = [
@@ -35,7 +38,7 @@ def reconstruction_input_tiles(context, reconstruction_input):
         "--drop-existing",
         f"--qtree-capacity {quadtree_capacity}",
         f"--grid-cellsize {grid_cellsize}",
-        f'--uri "{conn.dsn}"',
+        f'--uri "{uri}"',
         f"--table {reconstruction_input}",
         f"--geometry-column {geometry_column}",
         f"--primary-key {primary_key}",

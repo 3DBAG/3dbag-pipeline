@@ -25,13 +25,13 @@ def ahn_filename(tile_id: str) -> str:
 
 
 def ahn_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Create a directory path where to store the AHN LAZ files for the given AHN
+    """Return a directory path where to store the AHN LAZ files for the given AHN
     version."""
     return Path(root_dir) / "pointcloud" / f"AHN{ahn_version}"
 
 
 def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Create a directory path where to store the AHN LAZ files for the given AHN
+    """Return a directory path where to store the AHN LAZ files for the given AHN
     version."""
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
 
@@ -69,7 +69,7 @@ def download_ahn_index(
         "requestedEpsg": "28992",
         "outputFormat": "application/json",
         "CountDefault": "2000",
-        "typeName": "layerId_14b12666-cfbb-4362-905a-8832afe5ffa8",
+        "typeName": "layerId_1e56b6d6-3802-4246-a7ed-8f49824b85db",
     }
     logger.info(f"Downloading the AHN tile boundaries from {service_url}")
 

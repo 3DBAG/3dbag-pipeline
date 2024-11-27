@@ -216,6 +216,7 @@ def ogr2postgres(
             "-oo WRITE_GFS=NO",
             "-lco UNLOGGED=ON",
             "-lco SPATIAL_INDEX=NONE",
+            "-lco GEOMETRY_NAME=wkb_geometry",
             '-f PostgreSQL PG:"{dsn}"',
             "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
         ]

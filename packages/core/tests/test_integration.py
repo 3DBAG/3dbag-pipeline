@@ -42,7 +42,10 @@ def test_integration_reconstruction_and_export(
             exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
             flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
         ),
-        "roofer": RooferResource(exe_roofer_crop=os.getenv("EXE_PATH_ROOFER_CROP")),
+        "roofer": RooferResource(
+            exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+            exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
+        ),
         "gdal": GDALResource(
             exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
             exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),

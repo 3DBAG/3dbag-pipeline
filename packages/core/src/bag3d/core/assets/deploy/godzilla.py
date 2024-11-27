@@ -34,33 +34,6 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     return Output(output_tarfile, metadata=metadata_output)
 
 
-@asset(
-    ins={
-        "reconstruction_output_multitiles_zuid_holland": AssetIn(key_prefix="export"),
-        "geopackage_nl": AssetIn(key_prefix="export"),
-        "export_index": AssetIn(key_prefix="export"),
-        "metadata": AssetIn(key_prefix="export"),
-    },
-)
-def compressed_export_zuid_holland(
-    context,
-    reconstruction_output_multitiles_zuid_holland,
-    geopackage_nl,
-    export_index,
-    metadata,
-):
-    """A .tar.gz compressed full directory tree of the exports"""
-    export_dir = reconstruction_output_multitiles_zuid_holland
-    output_tarfile = export_dir.parent / "export.tar.gz"
-    with tarfile.open(output_tarfile, "w:gz") as tar:
-        tar.add(export_dir, arcname="export")
-    metadata_output = {
-        "size [Gb]": output_tarfile.stat().st_size * 1e-9,
-        "path": str(output_tarfile),
-    }
-    return Output(output_tarfile, metadata=metadata_output)
-
-
 @asset(ins={"metadata": AssetIn(key_prefix="export")})
 def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
     """Downloadable files hosted on godzilla.

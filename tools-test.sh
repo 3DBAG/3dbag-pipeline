@@ -89,7 +89,7 @@ check_exe_help() {
 
 check_exe "tyler"
 check_exe "tyler-db"
-check_exe "crop"
+check_exe "roofer"
 check_exe "geof"
 check_exe "ogr2ogr"
 check_exe "ogrinfo"

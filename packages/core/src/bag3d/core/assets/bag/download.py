@@ -12,7 +12,6 @@ from dagster import (
 )
 from lxml import objectify
 
-from bag3d.common.utils.geodata import bbox_from_wkt
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
 from bag3d.common.utils.database import (
@@ -298,19 +297,36 @@ def load_bag_layer(
         layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
         layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
         unzip(layer_zip, layer_dir, remove=remove_zip)
+        # Create an empty layer for appending
+        cmd = [
+            "{exe}",
+            "-limit 0",
+            "-overwrite",
+            "-nln {new_table}",
+            "-lco UNLOGGED=ON",
+            "-lco SPATIAL_INDEX=NONE",
+        ]
+        cmd.append("-f PostgreSQL PG:'{dsn}'")
+        cmd.append(str(layer_dir))
+        cmd = " ".join(cmd)
+        return_code, output = context.resources.gdal.app.execute(
+            "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
+        )
+        if return_code != 0:
+            return False
+        # Parallel insert
         cmd = [
             'parallel "{exe}',
             "--config PG_USE_COPY=YES",
-            "-overwrite",
+            "-append",
             "-nln {new_table}",
             "-lco UNLOGGED=ON",
             "-lco SPATIAL_INDEX=NONE",
         ]
         geofilter = context.op_config.get("geofilter")
         if geofilter:
-            bbox = bbox_from_wkt(geofilter)
-            cmd.append("-spat {bbox}")
-            kwargs["bbox"] = " ".join(map(str, bbox))
+            cmd.append("-clipsrc {wkt}")
+            kwargs["wkt"] = geofilter
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")
