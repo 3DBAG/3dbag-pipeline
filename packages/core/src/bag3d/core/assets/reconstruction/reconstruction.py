@@ -152,6 +152,8 @@ def create_roofer_config(
     force-lod11-attribute = "kas_warenhuis"
     
     split-cjseq = true
+    omit-metadata = true
+    cj-translate = [171800.0,472700.0,0.0]
     output-directory = "{output_path}"
     
     [[pointclouds]]
