@@ -7,20 +7,8 @@ run_coordinator:
   class: QueuedRunCoordinator
 
 run_launcher:
-  module: dagster_docker
-  class: DockerRunLauncher
-  config:
-    env_vars:
-      - DAGSTER_POSTGRES_USER
-      - DAGSTER_POSTGRES_PASSWORD
-      - DAGSTER_POSTGRES_DB
-    network: bag3d-dev-network
-    container_kwargs:
-      volumes: # Make docker client accessible to any launched containers as well
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /tmp/io_manager_storage:/tmp/io_manager_storage
-        - bag3d-dev-dagster-home:/opt/dagster/dagster_home
-        - bag3d-dev-data-pipeline:/data/volume
+  module: dagster.core.launcher
+  class: DefaultRunLauncher
 
 run_storage:
   module: dagster_postgres.run_storage

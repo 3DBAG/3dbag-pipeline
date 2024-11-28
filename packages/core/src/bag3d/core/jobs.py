@@ -79,13 +79,10 @@ job_nl_reconstruct_debug = define_asset_job(
     config={
         "ops": {
             "reconstructed_building_models_nl": {
-                "config": {
-                    "drop_views": False,
-                    "loglevel": "debug"
-                }
+                "config": {"drop_views": False, "loglevel": "debug"}
             }
         }
-    }
+    },
 )
 
 job_nl_export = define_asset_job(
