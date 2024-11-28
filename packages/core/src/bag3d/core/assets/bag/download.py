@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Tuple
 from copy import deepcopy
-import csv
 
 from dagster import (
     asset,
@@ -13,6 +12,7 @@ from dagster import (
 )
 from lxml import objectify
 
+from bag3d.common.utils.geodata import bbox_from_wkt
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
 from bag3d.common.utils.database import (
@@ -291,7 +291,6 @@ def load_bag_layer(
         "new_table": new_table,
         "dsn": context.resources.db_connection.connect.dsn,
     }
-    wkt_path = Path("/tmp/wkt.csv")
 
     # Create the ogr2ogr command. The order of parameters is important!
     if context.op_config.get("with_parallel"):
@@ -327,11 +326,9 @@ def load_bag_layer(
         ]
         geofilter = context.op_config.get("geofilter")
         if geofilter:
-            with wkt_path.open("w") as f:
-                csvwriter = csv.writer(f, quoting=csv.QUOTE_STRINGS)
-                csvwriter.writerow(["WKT",])
-                csvwriter.writerow([geofilter,])
-            cmd.append(f"-clipsrc {wkt_path}")
+            bbox = bbox_from_wkt(geofilter)
+            cmd.append("-spat {bbox}")
+            kwargs["bbox"] = " ".join(map(str, bbox))
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")
@@ -357,7 +354,6 @@ def load_bag_layer(
     return_code, output = context.resources.gdal.app.execute(
         "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
     )
-    wkt_path.unlink(missing_ok=True)
     return True if return_code == 0 else False
 
 
