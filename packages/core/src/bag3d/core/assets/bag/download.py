@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Tuple
 from copy import deepcopy
+import csv
 
 from dagster import (
     asset,
@@ -327,8 +328,9 @@ def load_bag_layer(
         geofilter = context.op_config.get("geofilter")
         if geofilter:
             with wkt_path.open("w") as f:
-                f.write("ID,WKT\n")
-                f.write(f"1,{geofilter}\n")
+                csvwriter = csv.writer(f, quoting=csv.QUOTE_STRINGS)
+                csvwriter.writerow(["WKT",])
+                csvwriter.writerow([geofilter,])
             cmd.append(f"-clipsrc {wkt_path}")
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
