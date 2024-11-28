@@ -78,7 +78,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             str,
             description="Roofer --loglevel.",
             is_required=False,
-            default_value="info"
+            default_value="info",
         ),
         "dir_tiles_200m_ahn3": Field(
             str,
