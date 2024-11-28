@@ -290,6 +290,7 @@ def load_bag_layer(
         "new_table": new_table,
         "dsn": context.resources.db_connection.connect.dsn,
     }
+    wkt_path = Path("wkt.csv")
 
     # Create the ogr2ogr command. The order of parameters is important!
     if context.op_config.get("with_parallel"):
@@ -325,8 +326,10 @@ def load_bag_layer(
         ]
         geofilter = context.op_config.get("geofilter")
         if geofilter:
-            cmd.append("-clipsrc {wkt}")
-            kwargs["wkt"] = geofilter
+            with wkt_path.open("w") as f:
+                f.write("ID,WKT\n")
+                f.write(f"1,{geofilter}\n")
+            cmd.append(f"-clipsrc {wkt_path}")
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")
@@ -352,6 +355,7 @@ def load_bag_layer(
     return_code, output = context.resources.gdal.app.execute(
         "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
     )
+    wkt_path.unlink(missing_ok=True)
     return True if return_code == 0 else False
 
 
