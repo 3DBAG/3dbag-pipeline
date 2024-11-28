@@ -290,7 +290,7 @@ def load_bag_layer(
         "new_table": new_table,
         "dsn": context.resources.db_connection.connect.dsn,
     }
-    wkt_path = Path("wkt.csv")
+    wkt_path = Path("/tmp/wkt.csv")
 
     # Create the ogr2ogr command. The order of parameters is important!
     if context.op_config.get("with_parallel"):
