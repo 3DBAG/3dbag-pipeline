@@ -334,25 +334,19 @@ class PDALResource(ConfigurableResource):
         pdal_resource.app
     """
 
-    exe_pdal: str
-    docker_cfg: DockerConfig
-
-    def __init__(
-        self,
-        exe_pdal: Optional[str] = None,
-        docker_cfg: Optional[DockerConfig] = None,
-    ):
-        super().__init__(
-            exe_pdal=exe_pdal or "pdal",
-            docker_cfg=docker_cfg
-            or DockerConfig(image=DOCKER_PDAL_IMAGE, mount_point="/tmp"),
-        )
+    exe_pdal: Optional[str] = None
+    docker_cfg: Optional[DockerConfig] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {
-            "pdal": self.exe_pdal,
-        }
+        if self.docker_cfg is None:
+            return {
+                "pdal": self.exe_pdal,
+            }
+        else:
+            return {
+                "pdal": "pdal",
+            }
 
     @property
     def with_docker(self) -> bool:
@@ -384,8 +378,8 @@ class LASToolsResource(ConfigurableResource):
         lastools_resource.app
     """
 
-    exe_lasindex: str
-    exe_las2las: str
+    exe_lasindex: Optional[str] = None
+    exe_las2las: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -416,8 +410,8 @@ class TylerResource(ConfigurableResource):
         tyler = tyler_resource.app
     """
 
-    exe_tyler: str
-    exe_tyler_db: str
+    exe_tyler: Optional[str] = None
+    exe_tyler_db: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -448,8 +442,8 @@ class RooferResource(ConfigurableResource):
         roofer = roofer_resource.app
     """
 
-    exe_crop: str
-    exe_roofer: str
+    exe_crop: Optional[str] = None
+    exe_roofer: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -484,8 +478,8 @@ class GeoflowResource(ConfigurableResource):
         geoflow = geoflow_resource.app
     """
 
-    exe_geoflow: str
-    flowchart: str
+    exe_geoflow: Optional[str] = None
+    flowchart: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:

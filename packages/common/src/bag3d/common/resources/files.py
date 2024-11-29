@@ -102,9 +102,9 @@ class FileStoreResource(ConfigurableResource):
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
-    data_dir: str
-    docker_volume_id: str
-    dir_id: str
+    data_dir: Optional[str] = None
+    docker_volume_id: Optional[str] = None
+    dir_id: Optional[str] = None
 
     def __init__(
         self,
@@ -113,20 +113,20 @@ class FileStoreResource(ConfigurableResource):
         dir_id: Optional[str] = None,
     ):
         super().__init__(
-            data_dir=str(data_dir) if data_dir else "",
-            docker_volume_id=docker_volume_id or "",
-            dir_id=dir_id or "",
+            data_dir=str(data_dir) if data_dir else None,
+            docker_volume_id=docker_volume_id,
+            dir_id=dir_id,
         )
 
     @property
     def file_store(self) -> FileStore:
-        if self.data_dir != "" and self.dir_id != "":
+        if self.data_dir and self.dir_id:
             return FileStore(data_dir=self.data_dir, dir_id=self.dir_id)
-        elif self.data_dir != "":
+        elif self.data_dir:
             return FileStore(data_dir=self.data_dir)
-        elif self.docker_volume_id != "":
+        elif self.docker_volume_id:
             return FileStore(docker_volume_id=self.docker_volume_id)
-        elif self.dir_id != "":
+        elif self.dir_id:
             return FileStore(dir_id=self.dir_id)
         else:
             return FileStore()

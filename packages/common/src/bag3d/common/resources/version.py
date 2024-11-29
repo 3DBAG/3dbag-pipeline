@@ -10,7 +10,7 @@ class VersionResource(ConfigurableResource):
     A resource for setting up the version release.
     """
 
-    version: str
+    version: Optional[str] = None
 
     def __init__(
         self,
