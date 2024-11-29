@@ -4,7 +4,6 @@ import os
 from dagster import AssetKey, asset
 
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
-from bag3d.common.resources import resource_defs
 
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
