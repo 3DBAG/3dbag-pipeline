@@ -70,6 +70,21 @@ job_nl_reconstruct = define_asset_job(
     ),
 )
 
+job_nl_reconstruct_debug = define_asset_job(
+    name="nl_reconstruct_debug",
+    description="Run the crop and reconstruct steps for the Netherlands with debug info.",
+    selection=AssetSelection.assets(
+        ["reconstruction", "reconstructed_building_models_nl"]
+    ),
+    config={
+        "ops": {
+            "reconstructed_building_models_nl": {
+                "config": {"drop_views": False, "loglevel": "debug"}
+            }
+        }
+    },
+)
+
 job_nl_export = define_asset_job(
     name="nl_export",
     description="Run the tyler export and 3D Tiles steps for the Netherlands.",

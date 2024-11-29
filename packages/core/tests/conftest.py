@@ -60,6 +60,7 @@ def context(database, wkt_testarea, file_store, gdal):
             "featuretypes": [
                 "gebouw",
             ],
+            "parallel": True,
         },
         resources={
             "gdal": gdal,

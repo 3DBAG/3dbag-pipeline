@@ -12,6 +12,7 @@ from dagster import (
 )
 from lxml import objectify
 
+from bag3d.common.utils.geodata import bbox_from_wkt
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
 from bag3d.common.utils.database import (
@@ -325,8 +326,9 @@ def load_bag_layer(
         ]
         geofilter = context.op_config.get("geofilter")
         if geofilter:
-            cmd.append("-clipsrc {wkt}")
-            kwargs["wkt"] = geofilter
+            bbox = bbox_from_wkt(geofilter)
+            cmd.append("-spat {bbox}")
+            kwargs["bbox"] = " ".join(map(str, bbox))
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")

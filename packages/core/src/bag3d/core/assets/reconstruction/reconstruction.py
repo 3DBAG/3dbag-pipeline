@@ -68,6 +68,18 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     },
     code_version=resource_defs["roofer"].app.version("roofer"),
     config_schema={
+        "drop_views": Field(
+            bool,
+            description="Drop the tile view after reconstruction",
+            is_required=False,
+            default_value=True,
+        ),
+        "loglevel": Field(
+            str,
+            description="Roofer --loglevel.",
+            is_required=False,
+            default_value="info",
+        ),
         "dir_tiles_200m_ahn3": Field(
             str,
             description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
@@ -109,7 +121,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir}",
+            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']}",
             local_path=roofer_toml,
             silent=False,
         )
@@ -118,9 +130,10 @@ def reconstructed_building_models_nl(
             context.log.error(output)
             raise Failure
     finally:
-        context.resources.db_connection.connect.send_query(
-            SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
-        )
+        if context.op_config["drop_views"]:
+            context.resources.db_connection.connect.send_query(
+                SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
+            )
 
 
 def create_roofer_config(
@@ -138,10 +151,9 @@ def create_roofer_config(
     id-attribute = "identificatie"
     force-lod11-attribute = "kas_warenhuis"
     
-    cellsize = 0.5
-    lod = 22
-    
     split-cjseq = true
+    omit-metadata = true
+    cj-translate = [171800.0,472700.0,0.0]
     output-directory = "{output_path}"
     
     [[pointclouds]]
@@ -153,6 +165,34 @@ def create_roofer_config(
     name = "AHN4"
     quality = 0
     source = {ahn4_files}
+
+    [output-attributes]
+    status = "b3_status"
+    reconstruction_time = "b3_t_run"
+    val3dity_lod12 = "b3_val3dity_lod12"
+    val3dity_lod13 = "b3_val3dity_lod13"
+    val3dity_lod22 = "b3_val3dity_lod22"
+    is_glass_roof = "b3_is_glas_dak"
+    nodata_frac = "b3_nodata_fractie"
+    nodata_r = "b3_nodata_radius"
+    pt_density = "b3_puntdichtheid"
+    is_mutated = "b3_mutatie"
+    pc_select = "b3_pw_selectie_reden"
+    pc_source = "b3_pw_bron"
+    pc_year = "b3_pw_datum"
+    force_lod11 = "b3_reconstructie_onvolledig"
+    roof_type = "b3_dak_type"
+    h_roof_50p = "b3_h_dak_50p"
+    h_roof_70p = "b3_h_dak_70p"
+    h_roof_min = "b3_h_dak_min"
+    h_roof_max = "b3_h_dak_max"
+    roof_n_planes = "b3_n_vlakken"
+    rmse_lod12 = "b3_rmse_lod12"
+    rmse_lod13 = "b3_rmse_lod13"
+    rmse_lod22 = "b3_rmse_lod22"
+    h_ground = "b3_h_maaiveld"
+    slope = "b3_hellingshoek"
+    azimuth = "b3_azimut"
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""    
