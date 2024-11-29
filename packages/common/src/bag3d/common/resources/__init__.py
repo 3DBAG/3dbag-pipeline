@@ -12,9 +12,9 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import VersionResource
 
-from dagster import EnvVar
+from dagster import EnvVar, get_dagster_logger
 
-# The 'mount_point' is the directory in the container that is bind-mounted on the host
+logger = get_dagster_logger()
 
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
@@ -113,12 +113,29 @@ RESOURCES_PROD = {
     "version": version,
 }
 
-# Resource definitions for import
+RESOURCES_DEFAULT = {
+    "gdal": GDALResource(),
+    "file_store": FileStoreResource(),
+    "file_store_fastssd": FileStoreResource(),
+    "db_connection": DatabaseResource(),
+    "pdal": PDALResource(),
+    "lastools": LASToolsResource(),
+    "tyler": TylerResource(),
+    "geoflow": GeoflowResource(),
+    "roofer": RooferResource(),
+    "version": VersionResource(),
+}
 
-resource_defs_by_deployment_name = {
+
+resource_defs_by_env_name = {
     "prod": RESOURCES_PROD,
     "local": RESOURCES_LOCAL,
-    "pytest": RESOURCES_PYTEST,
-}
-deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
-resource_defs = resource_defs_by_deployment_name[deployment_name]
+    "test": RESOURCES_PYTEST,
+    "default": RESOURCES_DEFAULT,
+    }
+env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
+if env_name not in resource_defs_by_env_name.keys():
+    logger.warning(f"Invalid environment: {env_name}, setting to default")
+    env_name = "default"
+
+resource_defs = resource_defs_by_env_name[env_name]
