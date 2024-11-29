@@ -87,7 +87,7 @@ RESOURCES_LOCAL = {
 }
 
 
-RESOURCES_PYTEST = {
+RESOURCES_TEST = {
     "gdal": gdal_local,
     "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
@@ -130,7 +130,7 @@ RESOURCES_DEFAULT = {
 resource_defs_by_env_name = {
     "prod": RESOURCES_PROD,
     "local": RESOURCES_LOCAL,
-    "test": RESOURCES_PYTEST,
+    "test": RESOURCES_TEST,
     "default": RESOURCES_DEFAULT,
 }
 env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
