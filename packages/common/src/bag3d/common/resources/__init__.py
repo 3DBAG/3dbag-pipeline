@@ -19,14 +19,14 @@ logger = get_dagster_logger()
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 
-gdal_local = GDALResource(
+gdal = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
     exe_sozip=os.getenv("EXE_PATH_SOZIP"),
 )
 
 
-pdal_local = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 db_connection = DatabaseResource(
@@ -74,11 +74,11 @@ geoflow = GeoflowResource(
 
 
 RESOURCES_LOCAL = {
-    "gdal": gdal_local,
+    "gdal": gdal,
     "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -88,11 +88,11 @@ RESOURCES_LOCAL = {
 
 
 RESOURCES_TEST = {
-    "gdal": gdal_local,
+    "gdal": gdal,
     "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -101,11 +101,11 @@ RESOURCES_TEST = {
 }
 
 RESOURCES_PROD = {
-    "gdal": gdal_local,
+    "gdal": gdal,
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
