@@ -132,7 +132,7 @@ resource_defs_by_env_name = {
     "local": RESOURCES_LOCAL,
     "test": RESOURCES_PYTEST,
     "default": RESOURCES_DEFAULT,
-    }
+}
 env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
 if env_name not in resource_defs_by_env_name.keys():
     logger.warning(f"Invalid environment: {env_name}, setting to default")
