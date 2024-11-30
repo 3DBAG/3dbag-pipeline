@@ -150,6 +150,7 @@ def create_roofer_config(
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
     force-lod11-attribute = "kas_warenhuis"
+    lod11-fallback-area = 20000
     
     split-cjseq = true
     omit-metadata = true
