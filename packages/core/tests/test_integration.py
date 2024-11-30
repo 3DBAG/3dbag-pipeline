@@ -71,7 +71,6 @@ def test_integration_reconstruction_and_export(
         for asset in all_reconstruction_assets
         if asset.key
         in {
-            AssetKey(["reconstruction", "cropped_input_and_config_nl"]),
             AssetKey(["reconstruction", "reconstructed_building_models_nl"]),
         }
     ]
