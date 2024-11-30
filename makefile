@@ -52,7 +52,7 @@ docker_watch:
 docker_build:
 	docker compose -p bag3d-dev -f docker/compose.yaml build --no-cache
 
-docker_restart: docker_down_rm docker_volume_rm docker_volume_create docker_up
+docker_restart: docker_down docker_volume_recreate docker_up
 
 docker_down:
 	docker compose -p bag3d-dev down --remove-orphans
