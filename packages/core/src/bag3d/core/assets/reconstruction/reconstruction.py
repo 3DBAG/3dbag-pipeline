@@ -150,6 +150,7 @@ def create_roofer_config(
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
     force-lod11-attribute = "kas_warenhuis"
+    lod11-fallback-area = 20000
     
     split-cjseq = true
     omit-metadata = true
@@ -165,6 +166,11 @@ def create_roofer_config(
     name = "AHN4"
     quality = 0
     source = {ahn4_files}
+    
+    [[pointclouds]]
+    name = "AHN5"
+    quality = 2
+    source = {ahn5_files}
 
     [output-attributes]
     status = "b3_status"
@@ -231,9 +237,12 @@ def create_roofer_config(
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
-    out_dir_ahn5 = ahn_dir(
-        context.resources.file_store.file_store.data_dir, ahn_version=5
-    ).joinpath("tiles_200m")
+    if dir_tiles_200m_ahn5 is not None:
+        out_dir_ahn5 = Path(dir_tiles_200m_ahn5)
+    else:
+        out_dir_ahn5 = ahn_dir(
+            context.resources.file_store.file_store.data_dir, ahn_version=5
+        ).joinpath("tiles_200m")
     laz_files_ahn5 = [
         str(out_dir_ahn5 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]

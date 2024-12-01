@@ -10,7 +10,6 @@ SELECT ogc_fid                                            AS fid
      , bronnauwkeurigheid::float4
      , mutatietype
      , typegebouw::text[]
-     , fysiekvoorkomen::text
      , hoogteklasse::text
      , hoogteniveau::int2
      , status::text

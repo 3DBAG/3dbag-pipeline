@@ -1,3 +1,13 @@
+"""Extract the reconstruction step timings from the roofer logs that are recorded by
+dagster.
+
+Queries the successful reconstructions through the dagster graphql API.
+
+Get the logs from the dagster storage.
+
+Parse the `[reconstructor t]` log records of roofer and write the values to a CSV.
+"""
+
 import argparse
 import csv
 import re
