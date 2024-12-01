@@ -88,6 +88,12 @@ def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
             description="WKT of the polygonal extent. Will be converted to a BBOX.",
             is_required=False,
         ),
+        "with_parallel": Field(
+            bool,
+            default_value=True,
+            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
+            is_required=False,
+        ),
     },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
@@ -112,6 +118,12 @@ def stage_bag_woonplaats(context, extract_bag) -> Output[PostgresTableIdentifier
         "geofilter": Field(
             str,
             description="WKT of the polygonal extent. Will be converted to a BBOX.",
+            is_required=False,
+        ),
+        "with_parallel": Field(
+            bool,
+            default_value=True,
+            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
             is_required=False,
         ),
     },
@@ -142,7 +154,7 @@ def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdent
         ),
         "with_parallel": Field(
             bool,
-            default_value=False,
+            default_value=True,
             description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
             is_required=False,
         ),
@@ -172,6 +184,12 @@ def stage_bag_pand(context, extract_bag) -> Output[PostgresTableIdentifier]:
             description="WKT of the polygonal extent. Will be converted to a BBOX.",
             is_required=False,
         ),
+        "with_parallel": Field(
+            bool,
+            default_value=True,
+            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
+            is_required=False,
+        ),
     },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
@@ -196,6 +214,12 @@ def stage_bag_openbareruimte(context, extract_bag) -> Output[PostgresTableIdenti
         "geofilter": Field(
             str,
             description="WKT of the polygonal extent. Will be converted to a BBOX.",
+            is_required=False,
+        ),
+        "with_parallel": Field(
+            bool,
+            default_value=True,
+            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
             is_required=False,
         ),
     },
