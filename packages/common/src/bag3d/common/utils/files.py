@@ -98,10 +98,10 @@ def get_export_tile_ids() -> Sequence[str]:
         List of tile IDs
     """
     tileids = []
-    
+
     env = os.getenv("DAGSTER_ENVIRONMENT", "test")
     if env == "test":
-        root_dir = Path(os.getenv("BAG3D_FILESTORE"))/ "reconstruction_input"
+        root_dir = Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input"
         version = "test_version"
     else:
         root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
@@ -113,8 +113,7 @@ def get_export_tile_ids() -> Sequence[str]:
     path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
     if path_quadtree_tsv.exists():
         tileids = [
-            er.tile_id
-            for er in check_export_results(path_quadtree_tsv, path_tiles_dir)
+            er.tile_id for er in check_export_results(path_quadtree_tsv, path_tiles_dir)
         ]
     else:
         raise FileNotFoundError(f"File not found: {path_quadtree_tsv}")
