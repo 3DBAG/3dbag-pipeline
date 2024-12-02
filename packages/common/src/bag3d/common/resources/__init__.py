@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -47,6 +48,14 @@ file_store_fastssd = FileStoreResource(
     dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
 )
 
+file_store_test = FileStoreResource(
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input"),
+    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+)
+file_store_fastssd_test = FileStoreResource(
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core"),
+    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+)
 
 # Configure for gilfoyle
 file_store_gilfoyle = FileStoreResource(data_dir="/data")
@@ -89,8 +98,8 @@ RESOURCES_LOCAL = {
 
 RESOURCES_TEST = {
     "gdal": gdal,
-    "file_store": file_store,
-    "file_store_fastssd": file_store_fastssd,
+    "file_store": file_store_test,
+    "file_store_fastssd": file_store_fastssd_test,
     "db_connection": db_connection,
     "pdal": pdal,
     "lastools": lastools,

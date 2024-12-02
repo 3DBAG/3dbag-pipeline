@@ -15,11 +15,12 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
-VERSION = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
+VERSION = "test_version"
 
 # update quadtree
 og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
 export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
+export_dir.mkdir(exist_ok=True, parents=True)
 os.system(f"cp {og_quadtree} {export_dir}")
 
 
