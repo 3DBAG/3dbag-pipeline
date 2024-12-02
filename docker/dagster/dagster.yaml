@@ -1,7 +1,3 @@
-scheduler:
-  module: dagster.core.scheduler
-  class: DagsterDaemonScheduler
-
 run_coordinator:
   module: dagster.core.run_coordinator
   class: QueuedRunCoordinator
@@ -10,10 +6,8 @@ run_launcher:
   module: dagster.core.launcher
   class: DefaultRunLauncher
 
-run_storage:
-  module: dagster_postgres.run_storage
-  class: PostgresRunStorage
-  config:
+storage:
+  postgres:
     postgres_db:
       hostname: dagster-postgresql
       username:
@@ -24,30 +18,16 @@ run_storage:
         env: DAGSTER_POSTGRES_DB
       port: 5432
 
-schedule_storage:
-  module: dagster_postgres.schedule_storage
-  class: PostgresScheduleStorage
+compute_logs:
+  module: dagster.core.storage.local_compute_log_manager
+  class: LocalComputeLogManager
   config:
-    postgres_db:
-      hostname: dagster-postgresql
-      username:
-        env: DAGSTER_POSTGRES_USER
-      password:
-        env: DAGSTER_POSTGRES_PASSWORD
-      db_name:
-        env: DAGSTER_POSTGRES_DB
-      port: 5432
+    base_dir:
+      env: DAGSTER_HOME
 
-event_log_storage:
-  module: dagster_postgres.event_log
-  class: PostgresEventLogStorage
+local_artifact_storage:
+  module: dagster.core.storage.root
+  class: LocalArtifactStorage
   config:
-    postgres_db:
-      hostname: dagster-postgresql
-      username:
-        env: DAGSTER_POSTGRES_USER
-      password:
-        env: DAGSTER_POSTGRES_PASSWORD
-      db_name:
-        env: DAGSTER_POSTGRES_DB
-      port: 5432
+    base_dir:
+      env: DAGSTER_HOME

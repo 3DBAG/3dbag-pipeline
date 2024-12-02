@@ -94,18 +94,13 @@ def get_export_tile_ids() -> Sequence[str]:
     It reads the `quadtree.tsv` output from *tyler* and extracts the IDs of the
     leaf tiles.
 
-    Fixme:
-        * Currently we read the root data dir from the BAG3D_EXPORT_DIR environment
-        variable, or use /data/3DBAG/export_{version} as default. Maybe we could consolidate all resource
-        configurations to .env files and load from there in all places. But need to be
-        able to load different .env files and production and dev setup.
-
     Returns:
         List of tile IDs
     """
     tileids = []
+    root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
     version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
-    export_dir = Path(os.getenv("BAG3D_EXPORT_DIR", f"/data/3DBAG/export_{version}"))
+    export_dir = bag3d_export_dir(root_dir=root_dir, version=version)
     if export_dir.exists():
         path_tiles_dir = export_dir.joinpath("tiles")
         path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")

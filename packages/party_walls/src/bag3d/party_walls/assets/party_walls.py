@@ -107,15 +107,18 @@ def party_walls_nl(
 
 
 def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
-    for x_level in z_level.iterdir():
-        for y_level in x_level.iterdir():
-            for identificatie in y_level.joinpath("objects").iterdir():
-                # cannot use Path methods here, because we have '.' in the file name
-                feature_path = Path(
-                    f"{identificatie / 'reconstruct'}/{identificatie.name}.city.jsonl"
-                )
-                if feature_path.exists():
-                    yield identificatie.name, feature_path
+    if z_level.is_dir():
+        for x_level in z_level.iterdir():
+            if x_level.is_dir():
+                for y_level in x_level.iterdir():
+                    if y_level.joinpath("objects").is_dir():
+                        for identificatie in y_level.joinpath("objects").iterdir():
+                            # cannot use Path methods here, because we have '.' in the file name
+                            feature_path = Path(
+                                f"{identificatie / 'reconstruct'}/{identificatie.name}.city.jsonl"
+                            )
+                            if feature_path.exists():
+                                yield identificatie.name, feature_path
 
 
 def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
