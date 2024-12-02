@@ -341,7 +341,7 @@ def load_bag_layer(
             return False
         # Parallel insert
         cmd = [
-            'parallel "{exe}',
+            'parallel --jobs 50% "{exe}',
             "--config PG_USE_COPY=YES",
             "-append",
             "-nln {new_table}",
