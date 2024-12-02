@@ -12,29 +12,29 @@ class DatabaseResource(ConfigurableResource):
     Database connection.
     """
 
-    host: str
-    user: str
-    password: str
-    dbname: str
-    port: str
-    other_params: Permissive()
+    host: Optional[str] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+    dbname: Optional[str] = None
+    port: Optional[str] = None
+    other_params: Optional[Permissive()] = None
 
     def __init__(
         self,
-        host: str,
-        user: str,
-        password: str,
-        dbname: str,
-        port: str,
+        host: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        dbname: Optional[str] = None,
+        port: Optional[str] = None,
         other_params: Optional[Permissive()] = None,
     ):
         super().__init__(
-            host=host,
-            user=user,
-            password=password,
-            dbname=dbname,
-            port=port,
-            other_params=other_params or {},
+            host=host or "data-postgresql",
+            user=user or "baseregisters_test_user",
+            password=password or "baseregisters_test_pswd",
+            dbname=dbname or "baseregisters_test",
+            port=port or "5432",
+            other_params=other_params or {"sslmode": "allow"},
         )
         conn = DatabaseConnection(
             user=self.user,

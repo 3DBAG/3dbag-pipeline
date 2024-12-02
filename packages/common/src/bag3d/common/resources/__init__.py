@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -12,21 +13,21 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import VersionResource
 
-from dagster import EnvVar
+from dagster import EnvVar, get_dagster_logger
 
-# The 'mount_point' is the directory in the container that is bind-mounted on the host
+logger = get_dagster_logger()
 
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 
-gdal_local = GDALResource(
+gdal = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
     exe_sozip=os.getenv("EXE_PATH_SOZIP"),
 )
 
 
-pdal_local = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 db_connection = DatabaseResource(
@@ -47,6 +48,14 @@ file_store_fastssd = FileStoreResource(
     dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
 )
 
+file_store_test = FileStoreResource(
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input"),
+    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+)
+file_store_fastssd_test = FileStoreResource(
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core"),
+    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+)
 
 # Configure for gilfoyle
 file_store_gilfoyle = FileStoreResource(data_dir="/data")
@@ -74,11 +83,11 @@ geoflow = GeoflowResource(
 
 
 RESOURCES_LOCAL = {
-    "gdal": gdal_local,
+    "gdal": gdal,
     "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -87,12 +96,12 @@ RESOURCES_LOCAL = {
 }
 
 
-RESOURCES_PYTEST = {
-    "gdal": gdal_local,
-    "file_store": file_store,
-    "file_store_fastssd": file_store_fastssd,
+RESOURCES_TEST = {
+    "gdal": gdal,
+    "file_store": file_store_test,
+    "file_store_fastssd": file_store_fastssd_test,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -101,11 +110,11 @@ RESOURCES_PYTEST = {
 }
 
 RESOURCES_PROD = {
-    "gdal": gdal_local,
+    "gdal": gdal,
     "file_store": file_store_gilfoyle,
     "file_store_fastssd": file_store_gilfoyle_fastssd,
     "db_connection": db_connection,
-    "pdal": pdal_local,
+    "pdal": pdal,
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
@@ -113,12 +122,29 @@ RESOURCES_PROD = {
     "version": version,
 }
 
-# Resource definitions for import
+RESOURCES_DEFAULT = {
+    "gdal": GDALResource(),
+    "file_store": FileStoreResource(),
+    "file_store_fastssd": FileStoreResource(),
+    "db_connection": DatabaseResource(),
+    "pdal": PDALResource(),
+    "lastools": LASToolsResource(),
+    "tyler": TylerResource(),
+    "geoflow": GeoflowResource(),
+    "roofer": RooferResource(),
+    "version": VersionResource(),
+}
 
-resource_defs_by_deployment_name = {
+
+resource_defs_by_env_name = {
     "prod": RESOURCES_PROD,
     "local": RESOURCES_LOCAL,
-    "pytest": RESOURCES_PYTEST,
+    "test": RESOURCES_TEST,
+    "default": RESOURCES_DEFAULT,
 }
-deployment_name = os.environ.get("DAGSTER_DEPLOYMENT", "local")
-resource_defs = resource_defs_by_deployment_name[deployment_name]
+env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
+if env_name not in resource_defs_by_env_name.keys():
+    logger.warning(f"Invalid environment: {env_name}, setting to default")
+    env_name = "default"
+
+resource_defs = resource_defs_by_env_name[env_name]

@@ -15,11 +15,12 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
-VERSION = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
+VERSION = "test_version"
 
 # update quadtree
 og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
 export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
+export_dir.mkdir(exist_ok=True, parents=True)
 os.system(f"cp {og_quadtree} {export_dir}")
 
 
@@ -60,8 +61,12 @@ def context(database, input_data_dir, fastssd_data_dir):
         partition_key="10/564/624",
         resources={
             "db_connection": database,
-            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
-            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "file_store": FileStoreResource(
+                data_dir=str(input_data_dir), dir_id=VERSION
+            ),
+            "file_store_fastssd": FileStoreResource(
+                data_dir=str(fastssd_data_dir), dir_id=VERSION
+            ),
             "version": VersionResource(VERSION),
         },
     )
