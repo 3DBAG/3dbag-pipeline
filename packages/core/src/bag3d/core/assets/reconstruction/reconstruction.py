@@ -110,9 +110,15 @@ def reconstructed_building_models_nl(
         reconstruction_input,
         regular_grid_200m,
         tiles,
-        dir_tiles_200m_ahn3=context.op_execution_context.op_config.get("dir_tiles_200m_ahn3"),
-        dir_tiles_200m_ahn4=context.op_execution_context.op_config.get("dir_tiles_200m_ahn4"),
-        dir_tiles_200m_ahn5=context.op_execution_context.op_config.get("dir_tiles_200m_ahn5"),
+        dir_tiles_200m_ahn3=context.op_execution_context.op_config.get(
+            "dir_tiles_200m_ahn3"
+        ),
+        dir_tiles_200m_ahn4=context.op_execution_context.op_config.get(
+            "dir_tiles_200m_ahn4"
+        ),
+        dir_tiles_200m_ahn5=context.op_execution_context.op_config.get(
+            "dir_tiles_200m_ahn5"
+        ),
     )
 
     context.log.info(f"{roofer_toml=}")
