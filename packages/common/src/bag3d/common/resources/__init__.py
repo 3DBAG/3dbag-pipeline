@@ -40,12 +40,8 @@ db_connection = DatabaseResource(
 )
 
 
-file_store = FileStoreResource(
-    data_dir=os.getenv("BAG3D_FILESTORE")
-)
-file_store_fastssd = FileStoreResource(
-    data_dir=os.getenv("BAG3D_FILESTORE")
-)
+file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
+file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 
 file_store_test = FileStoreResource(
     data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input")
