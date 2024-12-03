@@ -121,7 +121,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']}",
+            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']} --skip-pc-check",
             local_path=roofer_toml,
             silent=False,
         )
