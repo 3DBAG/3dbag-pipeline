@@ -26,9 +26,9 @@ def extract_top10nl(context) -> Output[Path]:
     metadata = download_extract(
         dataset="top10nl",
         url_api="https://api.pdok.nl/brt/top10nl/download/v1_0",
-        featuretypes=context.op_config["featuretypes"],
+        featuretypes=context.op_execution_context.op_config["featuretypes"],
         data_format="gml",
-        geofilter=context.op_config.get("geofilter"),
+        geofilter=context.op_execution_context.op_config.get("geofilter"),
         download_dir=context.resources.file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
@@ -40,7 +40,7 @@ def extract_top10nl(context) -> Output[Path]:
         context,
         dataset="top10nl",
         extract_path=extract_path,
-        feature_types=context.op_config["featuretypes"],
+        feature_types=context.op_execution_context.op_config["featuretypes"],
         xsd=metadata["XSD"],
     )
     add_info(metadata, info)

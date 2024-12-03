@@ -49,9 +49,9 @@ def lasindex_ahn3(context, laz_files_ahn3):
         "-i {local_path}",
         "-append",
         "-tile_size",
-        str(context.op_config["tile_size"]),
+        str(context.op_execution_context.op_config["tile_size"]),
     ]
-    if context.op_config["force"] is False:
+    if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn3.path
@@ -84,9 +84,9 @@ def lasindex_ahn4(context, laz_files_ahn4):
         "-i {local_path}",
         "-append",
         "-tile_size",
-        str(context.op_config["tile_size"]),
+        str(context.op_execution_context.op_config["tile_size"]),
     ]
-    if context.op_config["force"] is False:
+    if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn4.path
@@ -119,9 +119,9 @@ def lasindex_ahn5(context, laz_files_ahn5):
         "-i {local_path}",
         "-append",
         "-tile_size",
-        str(context.op_config["tile_size"]),
+        str(context.op_execution_context.op_config["tile_size"]),
     ]
-    if context.op_config["force"] is False:
+    if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
         "lasindex", " ".join(cmd_list), local_path=laz_files_ahn5.path
@@ -200,7 +200,7 @@ def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
         regular_grid_200m,
         ahn_version=3,
         cellsize=200,
-        max_workers=context.op_config["max_workers"],
+        max_workers=context.op_execution_context.op_config["max_workers"],
     )
 
 
@@ -224,7 +224,7 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
         regular_grid_200m,
         ahn_version=4,
         cellsize=200,
-        max_workers=context.op_config["max_workers"],
+        max_workers=context.op_execution_context.op_config["max_workers"],
     )
 
 
@@ -248,7 +248,7 @@ def laz_tiles_ahn5_200m(context, regular_grid_200m, metadata_table_ahn5):
         regular_grid_200m,
         ahn_version=5,
         cellsize=200,
-        max_workers=context.op_config["max_workers"],
+        max_workers=context.op_execution_context.op_config["max_workers"],
     )
 
 
