@@ -149,7 +149,7 @@ def create_roofer_config(
     toml_template = """
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
-    force-lod11-attribute = "kas_warenhuis"
+    force-lod11-attribute = "b3_kas_warenhuis"
     lod11-fallback-area = 20000
     
     split-cjseq = true
