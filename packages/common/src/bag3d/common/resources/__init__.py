@@ -41,20 +41,17 @@ db_connection = DatabaseResource(
 
 
 file_store = FileStoreResource(
-    data_dir=os.getenv("BAG3D_FILESTORE"), dir_id=os.getenv("BAG3D_RELEASE_VERSION")
+    data_dir=os.getenv("BAG3D_FILESTORE")
 )
 file_store_fastssd = FileStoreResource(
-    data_dir=os.getenv("BAG3D_FILESTORE"),
-    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+    data_dir=os.getenv("BAG3D_FILESTORE")
 )
 
 file_store_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input"),
-    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input")
 )
 file_store_fastssd_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core"),
-    dir_id=os.getenv("BAG3D_RELEASE_VERSION"),
+    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core")
 )
 
 # Configure for gilfoyle
