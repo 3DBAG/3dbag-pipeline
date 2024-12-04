@@ -19,7 +19,7 @@ jobs:
       - name: Intall uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Install dependencies
-        run: uv pip install ruff
+        run: uv pip install ruff --system
       - name: Lint
         run: ruff check
       - name: Format
