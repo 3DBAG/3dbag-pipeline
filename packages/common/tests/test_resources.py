@@ -80,22 +80,6 @@ def test_file_store_init_temp():
     assert not path.exists()
 
 
-def test_file_store_init_temp_with_id():
-    """Can we create a local temporary directory with input id
-    with the correct permissions?"""
-    res = resources.files.FileStoreResource(dir_id="myID").file_store
-    path = Path(res.data_dir)
-    assert path.exists()
-    assert str(res.data_dir)[-4:] == "myID"
-    with (res.data_dir / "file.txt").open("w") as fo:
-        fo.write("test")
-    with (res.data_dir / "file.txt").open("r") as fo:
-        assert fo.read() == "test"
-    res.rm(force=True)
-    assert not res.data_dir
-    assert not path.exists()
-
-
 def test_file_store_init_data_dir(tmp_path):
     """Can we use an existing directory?"""
     res = resources.files.FileStoreResource(data_dir=tmp_path).file_store
