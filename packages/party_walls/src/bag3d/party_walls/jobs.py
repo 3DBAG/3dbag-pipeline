@@ -1,5 +1,11 @@
 from dagster import define_asset_job, AssetSelection
 
+job_nl_party_walls_index = define_asset_job(
+    name="nl_party_walls_index",
+    description="Generate the indices that are required for running the party_walls job",
+    selection=AssetSelection.assets(["party_walls", "distribution_tiles_files_index"])
+    | AssetSelection.assets(["party_walls", "features_file_index"]),
+)
 
 job_nl_party_walls = define_asset_job(
     name="nl_party_walls",
