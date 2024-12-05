@@ -30,7 +30,9 @@ def test_integration_reconstruction_and_export(
 ):
     # update quadtree
     og_quadtree = test_data_dir / "quadtree.tsv"
-    export_dir = test_data_dir / "reconstruction_input" / "3DBAG" / "export"
+    export_dir = (
+        test_data_dir / "reconstruction_input" / "3DBAG" / "export_test_version"
+    )
     export_dir.mkdir(exist_ok=True)
     os.system(f"cp {og_quadtree} {export_dir}")
 

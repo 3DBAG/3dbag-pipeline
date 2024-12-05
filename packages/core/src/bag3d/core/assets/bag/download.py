@@ -317,7 +317,7 @@ def load_bag_layer(
     }
 
     # Create the ogr2ogr command. The order of parameters is important!
-    if context.op_config.get("with_parallel"):
+    if context.op_execution_context.op_config.get("with_parallel"):
         # Decompress the layer archive
         layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
         layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
@@ -348,7 +348,7 @@ def load_bag_layer(
             "-lco UNLOGGED=ON",
             "-lco SPATIAL_INDEX=NONE",
         ]
-        geofilter = context.op_config.get("geofilter")
+        geofilter = context.op_execution_context.op_config.get("geofilter")
         if geofilter:
             bbox = bbox_from_wkt(geofilter)
             cmd.append("-spat {bbox}")
@@ -358,7 +358,7 @@ def load_bag_layer(
         cmd.append(f"::: {layer_dir}/*.xml")
         cmd = " ".join(cmd)
     else:
-        if context.op_config.get("geofilter") is not None:
+        if context.op_execution_context.op_config.get("geofilter") is not None:
             logger.error(
                 "Must use parallel if geofilter is set for loading a BAG layer."
             )
