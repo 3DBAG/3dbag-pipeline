@@ -50,7 +50,7 @@ file_store_fastssd_test = FileStoreResource(
     data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core")
 )
 
-# Configure for gilfoyle
+# Configure for  gilfoyle
 file_store_gilfoyle = FileStoreResource(data_dir="/data")
 file_store_gilfoyle_fastssd = FileStoreResource(data_dir="/fastssd/data")
 
