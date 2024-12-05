@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS ${new_table} CASCADE;
 
 CREATE TABLE ${new_table} AS
 WITH extra_attributes AS (SELECT bag.*
-                               , bkw.kas_warenhuis as b3_kas_warenhuis,
+                               , bkw.kas_warenhuis as b3_kas_warenhuis
                                , bbo.b3_bag_bag_overlap
                           FROM ${bag_cleaned} bag
                                    LEFT JOIN ${bag_kas_warenhuis} bkw USING (fid)

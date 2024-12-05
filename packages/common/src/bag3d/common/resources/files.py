@@ -93,40 +93,23 @@ class FileStore:
 
 class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline.
-    Either local directory or a docker volume.
-    If neither `data_dir` nor `docker_volume` is given, a local
-    temporary directory is created.
-    If both `data_dir` and `dir_id` are input then a new folder is created within
-    the `data_dir`, with the name "release_<dir_id>"
+    data_dir: The directory where the files are stored.
+    If None, the resource is initialized with a temporary directory.
 
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
     data_dir: Optional[str] = None
-    docker_volume_id: Optional[str] = None
-    dir_id: Optional[str] = None
 
     def __init__(
         self,
         data_dir: Optional[Union[Path, str]] = None,
-        docker_volume_id: Optional[str] = None,
-        dir_id: Optional[str] = None,
     ):
-        super().__init__(
-            data_dir=str(data_dir) if data_dir else None,
-            docker_volume_id=docker_volume_id,
-            dir_id=dir_id,
-        )
+        super().__init__(data_dir=str(data_dir) if data_dir else None)
 
     @property
     def file_store(self) -> FileStore:
-        if self.data_dir and self.dir_id:
-            return FileStore(data_dir=self.data_dir, dir_id=self.dir_id)
-        elif self.data_dir:
+        if self.data_dir:
             return FileStore(data_dir=self.data_dir)
-        elif self.docker_volume_id:
-            return FileStore(docker_volume_id=self.docker_volume_id)
-        elif self.dir_id:
-            return FileStore(dir_id=self.dir_id)
         else:
             return FileStore()

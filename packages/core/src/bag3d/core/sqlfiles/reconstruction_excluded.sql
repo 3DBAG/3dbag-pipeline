@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS ${new_table} CASCADE;
 CREATE TABLE ${new_table} AS
 SELECT fid
      , identificatie
-     , kas_warenhuis
+     , b3_kas_warenhuis
      , geometrie
 FROM (SELECT bag.fid
            , bag.identificatie
