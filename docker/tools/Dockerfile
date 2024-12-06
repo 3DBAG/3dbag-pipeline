@@ -60,12 +60,12 @@ FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /usr/local/share/proj /usr/local/share/proj
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /lib/ /tyler/lib/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /lib64/ /tyler/lib64/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /usr/ /tyler/usr/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha7 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/share/proj /usr/local/share/proj
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib/ /tyler/lib/
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib64/ /tyler/lib64/
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/ /tyler/usr/
+COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
 
 COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib/ /tyler/lib/
 COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib64/ /tyler/lib64/
