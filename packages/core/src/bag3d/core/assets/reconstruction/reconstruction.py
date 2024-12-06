@@ -127,7 +127,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']} --skip-pc-check",
+            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']} --skip-pc-check --no-tiling",
             local_path=roofer_toml,
             silent=False,
         )
@@ -156,7 +156,7 @@ def create_roofer_config(
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
     force-lod11-attribute = "b3_kas_warenhuis"
-    lod11-fallback-area = 20000
+    lod11-fallback-area = 30000
     
     split-cjseq = true
     omit-metadata = true
@@ -179,8 +179,7 @@ def create_roofer_config(
     source = {ahn5_files}
 
     [output-attributes]
-    success = "b3_status"
-    extrusion_mode = "b3_extrusiemodus"
+    success = "b3_succes"
     reconstruction_time = "b3_t_run"
     val3dity_lod12 = "b3_val3dity_lod12"
     val3dity_lod13 = "b3_val3dity_lod13"
@@ -193,7 +192,7 @@ def create_roofer_config(
     pc_select = "b3_pw_selectie_reden"
     pc_source = "b3_pw_bron"
     pc_year = "b3_pw_datum"
-    force_lod11 = "b3_reconstructie_onvolledig"
+    force_lod11 = ""
     roof_type = "b3_dak_type"
     h_roof_50p = "b3_h_dak_50p"
     h_roof_70p = "b3_h_dak_70p"
@@ -209,6 +208,8 @@ def create_roofer_config(
     h_ground = "b3_h_maaiveld"
     slope = "b3_hellingshoek"
     azimuth = "b3_azimut"
+    extrusion_mode = "b3_extrusie"
+    pointcloud_unusable = "b3_pw_onvoldoende"
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""    
