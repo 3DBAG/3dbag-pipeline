@@ -33,6 +33,9 @@ jobs:
     - name: Run unit tests
       run: make test
     - name: Recreate volumes
-      run: make docker_restart
+      run: |
+        make docker_down
+        make docker_volume_recreate
+        make docker_up_nobuild
     - name: Run integration tests
       run: make test_integration

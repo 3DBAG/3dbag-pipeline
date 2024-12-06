@@ -27,10 +27,10 @@ services:
     container_name: bag3d-data-postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE}"]
-      interval: 20s
+      interval: 40s
       retries: 4
-      start_period: 60s
-      timeout: 60s
+      start_period: 80s
+      timeout: 120s
     shm_size: '1gb' 
     ports:
       - "${BAG3D_PG_PORT_ON_HOST}:5432"
