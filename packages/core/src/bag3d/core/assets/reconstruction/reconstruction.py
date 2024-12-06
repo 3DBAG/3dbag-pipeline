@@ -179,7 +179,8 @@ def create_roofer_config(
     source = {ahn5_files}
 
     [output-attributes]
-    status = "b3_status"
+    success = "b3_status"
+    extrusion_mode = "b3_extrusiemodus"
     reconstruction_time = "b3_t_run"
     val3dity_lod12 = "b3_val3dity_lod12"
     val3dity_lod13 = "b3_val3dity_lod13"
