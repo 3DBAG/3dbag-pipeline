@@ -22,15 +22,15 @@ services:
         - pg_user=$BAG3D_PG_USER
         - pg_pswd=$BAG3D_PG_PASSWORD
         - pg_db=$BAG3D_PG_DATABASE
-    command: ["-c", "shared_buffers=8GB", "-c", "max_connections=50", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
+    command: ["-c", "shared_buffers=8GB", "-c", "max_connections=200", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
     container_name: bag3d-data-postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE}"]
-      interval: 40s
+      interval: 20s
       retries: 4
-      start_period: 80s
-      timeout: 120s
+      start_period: 60s
+      timeout: 60s
     shm_size: '1gb' 
     ports:
       - "${BAG3D_PG_PORT_ON_HOST}:5432"
