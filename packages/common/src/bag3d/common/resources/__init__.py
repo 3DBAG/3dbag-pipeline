@@ -75,7 +75,7 @@ geoflow = GeoflowResource(
 )
 
 
-resource_defs = {
+RESOURCES_LOCAL = {
     "gdal": gdal,
     "file_store": file_store,
     "file_store_fastssd": file_store_fastssd,
@@ -89,57 +89,57 @@ resource_defs = {
 }
 
 
-# RESOURCES_TEST = {
-#     "gdal": gdal,
-#     "file_store": file_store_test,
-#     "file_store_fastssd": file_store_fastssd_test,
-#     "db_connection": db_connection,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "roofer": roofer,
-#     "version": version,
-# }
-#
-# RESOURCES_PROD = {
-#     "gdal": gdal,
-#     "file_store": file_store_gilfoyle,
-#     "file_store_fastssd": file_store_gilfoyle_fastssd,
-#     "db_connection": db_connection,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "roofer": roofer,
-#     "version": version,
-# }
-#
-# RESOURCES_DEFAULT = {
-#     "gdal": GDALResource(),
-#     "file_store": FileStoreResource(),
-#     "file_store_fastssd": FileStoreResource(),
-#     "db_connection": DatabaseResource(),
-#     "pdal": PDALResource(),
-#     "lastools": LASToolsResource(),
-#     "tyler": TylerResource(),
-#     "geoflow": GeoflowResource(),
-#     "roofer": RooferResource(),
-#     "version": VersionResource(),
-# }
-#
-#
-# resource_defs_by_env_name = {
-#     "prod": RESOURCES_PROD,
-#     "local": RESOURCES_LOCAL,
-#     "test": RESOURCES_TEST,
-#     "default": RESOURCES_DEFAULT,
-# }
-#
-# env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
-# print(f"env_name={env_name}")
-# if env_name not in resource_defs_by_env_name:
-#     logger.warning(f"Invalid environment: {env_name}, setting to default")
-#     env_name = "default"
-#
-# resource_defs = resource_defs_by_env_name[env_name]
+RESOURCES_TEST = {
+    "gdal": gdal,
+    "file_store": file_store_test,
+    "file_store_fastssd": file_store_fastssd_test,
+    "db_connection": db_connection,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer,
+    "version": version,
+}
+
+RESOURCES_PROD = {
+    "gdal": gdal,
+    "file_store": file_store_gilfoyle,
+    "file_store_fastssd": file_store_gilfoyle_fastssd,
+    "db_connection": db_connection,
+    "pdal": pdal,
+    "lastools": lastools,
+    "tyler": tyler,
+    "geoflow": geoflow,
+    "roofer": roofer,
+    "version": version,
+}
+
+RESOURCES_DEFAULT = {
+    "gdal": GDALResource(),
+    "file_store": FileStoreResource(),
+    "file_store_fastssd": FileStoreResource(),
+    "db_connection": DatabaseResource(),
+    "pdal": PDALResource(),
+    "lastools": LASToolsResource(),
+    "tyler": TylerResource(),
+    "geoflow": GeoflowResource(),
+    "roofer": RooferResource(),
+    "version": VersionResource(),
+}
+
+
+resource_defs_by_env_name = {
+    "prod": RESOURCES_PROD,
+    "local": RESOURCES_LOCAL,
+    "test": RESOURCES_TEST,
+    "default": RESOURCES_DEFAULT,
+}
+
+env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
+print(f"env_name={env_name}")
+if env_name not in resource_defs_by_env_name:
+    logger.warning(f"Invalid environment: {env_name}, setting to default")
+    env_name = "default"
+
+resource_defs = resource_defs_by_env_name[env_name]
