@@ -137,7 +137,6 @@ resource_defs_by_env_name = {
 }
 
 env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
-print(f"env_name={env_name}")
 if env_name not in resource_defs_by_env_name:
     logger.warning(f"Invalid environment: {env_name}, setting to default")
     env_name = "default"
