@@ -24,6 +24,9 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
+COPY . $BAG3D_PIPELINE_LOCATION
+COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
+
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/party_walls/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/pyproject.toml \
@@ -32,8 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
     --python $VIRTUAL_ENV/bin/python
 
-COPY . $BAG3D_PIPELINE_LOCATION
-COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
+
 
 # Install the workflow package
 RUN --mount=type=cache,target=/root/.cache/uv \
