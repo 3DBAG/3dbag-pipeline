@@ -290,6 +290,7 @@ def create_roofer_config(
         ).joinpath("as_downloaded/LAZ")],
         output_path=output_dir,
     )
+    context.log.info(output_toml)
     path_toml = output_dir / "roofer.toml"
     with path_toml.open("w") as of:
         of.write(output_toml)
