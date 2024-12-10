@@ -48,5 +48,5 @@ docstring-code-format = false
 
 
 [tool.uv.sources]
-bag3d-common = { path = "../common"}
+bag3d-common = { path = "../common/"}
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
