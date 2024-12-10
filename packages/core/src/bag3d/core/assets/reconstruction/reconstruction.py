@@ -285,9 +285,9 @@ def create_roofer_config(
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
-        ahn5_files=[ahn_dir(
+        ahn5_files=[str(ahn_dir(
             context.resources.file_store.file_store.data_dir, ahn_version=5
-        ).joinpath("as_downloaded/LAZ")],
+        ).joinpath("as_downloaded/LAZ"))],
         output_path=output_dir,
     )
     context.log.info(output_toml)
