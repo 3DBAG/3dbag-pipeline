@@ -90,6 +90,10 @@ download:
 	mkdir -p $(BAG3D_TEST_DATA)
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v6.zip ; unzip -q test_data_v6.zip ; rm test_data_v6.zip
 
+
+install_uv:
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+
 format:
 	uv tool run ruff format ./packages
 	uv tool run ruff check ./packages
