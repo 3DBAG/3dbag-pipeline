@@ -9,6 +9,8 @@ description = "Workflow for predicting the number of floors, based on Ellie Roy'
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
+    { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
+    { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
     { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
@@ -18,26 +20,28 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
-    "sklearn-pandas",
-    "scikit-learn==1.4",
-    "pandas",
-    "dagster",
-    "dagster-postgres",
+    "bag3d-common",
+    "dagster>=1.9.3",
+    "dagster-postgres>=0.25.3",
+    "pandas>=2.2.3",
+    "scikit-learn>=1.4.0",
+    "sklearn-pandas>=2.2.0",
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage", "ruff"] }
 
-[tool.bumpver]
-current_version = "2024.1003"
-version_pattern = "YYYY.BUILD"
-commit_message = "bump version {old_version} -> {new_version}"
-commit = true
-tag = true
-push = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'version = "{version}"',
+[project.optional-dependencies] 
+dev = [
+    "coverage>=7.6.8",
+    "pytest>=8.3.4",
+    "pytest-dotenv>=0.5.2",
+    "ruff>=0.8.1",
+]
+docs = [
+    "markdown-include>=0.8.1",
+    "mkdocs-material>=9.5.48",
+    "mkdocs>=1.6.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-section-index>=0.3.9",
 ]
 
 [tool.ruff]
@@ -47,3 +51,6 @@ line-length = 88
 quote-style = "double"
 indent-style = "space"
 docstring-code-format = false
+
+[tool.uv.sources]
+bag3d-common = { path = "../common"}
