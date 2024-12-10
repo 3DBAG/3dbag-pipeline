@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-common"
-version = "2024.1004"
+version = "0.1.1"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
+    { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
     { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
@@ -19,45 +20,29 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster",
-    "dagster-shell",
-    "docker",
-    "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2024.1013#egg=pgutils",
-    "psycopg[binary]",
-    "requests",
-    "certifi"
+    "dagster-shell>=0.25.3",
+    "dagster>=1.9.3",
+    "certifi>=2024.8.30",
+    "docker>=7.1.0",
+    "requests>=2.32.3",
+    "pgutils",
+    "psycopg[binary]>=3.2.3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "bumpver",
-    "tox",
-    "pytest",
-    "pytest-dotenv",
-    "coverage",
-    "ruff"
+    "coverage>=7.6.9",
+    "ruff>=0.1.0",
+    "pytest>=8.3.4",
+    "pytest-dotenv>=0.5.2",
 ]
 docs = [
-    "mkdocs",
-    "mkdocstrings[python]",
-    "mkdocs-gen-files",
-    "mkdocs-literate-nav",
-    "mkdocs-section-index",
-    "mkdocs-material",
-    "markdown-include",
-]
-
-[tool.bumpver]
-current_version = "2024.1004"
-version_pattern = "YYYY.BUILD"
-commit_message = "bump version {old_version} -> {new_version}"
-commit = true
-tag = true
-push = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'version = "{version}"',
+    "markdown-include>=0.8.1",
+    "mkdocs-material>=9.5.48",
+    "mkdocs>=1.6.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-section-index>=0.3.9",
 ]
 
 [tool.ruff]
@@ -67,3 +52,6 @@ line-length = 88
 quote-style = "double"
 indent-style = "space"
 docstring-code-format = false
+
+[tool.uv.sources]
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
