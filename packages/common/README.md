@@ -5,18 +5,17 @@ Therefore, this package is meant to be a dependency of the workflow packages and
 
 ## Install and use in dependent workflow package
 
-Install this `bag3d-common` package manually in the virtual environment of the workflow package:
+Install this `bag3d-common` package manually in the virtual environment of the workflow package using its relative path:
 
 ```shell
-pip install 3dbag-pipeline/packages/common
+uv add packages/common --editable
 ```
 
-`pyproject.toml` of the workflow package:
+It will appear in the `pyproject.toml` file of the workflow package as:
 
 ```toml
-dependencies = [
-    "bag3d-common",
-]
+[tool.uv.sources]
+bag3d-common = { path = "packages/common", editable = true }
 ```
 
 For example use the resources in some `module.py` in the workflow package:
@@ -35,9 +34,7 @@ The documentation is built with [mkdocs](https://www.mkdocs.org/).
 Install the documentation dependencies and view the docs locally:
 
 ```shell
-cd 3dbag-pipeline/packages/common
-pip install -e ".[docs]"
-mkdocs serve
+uv run mkdocs serve
 ```
 
 Go to `http://127.0.0.1:8000/` in your browser.
@@ -54,24 +51,6 @@ Go to `http://127.0.0.1:8000/` in your browser.
     docs/
         index.md  # The documentation homepage.
         ...       # Other markdown pages, images and other files.
-
-## Development and testing
-
-Install for development with the dev dependencies into its own virtual environment.
-
-```shell
-cd 3dbag-pipeline/packages/common
-pip install -e ".[dev]"
-```
-
-Test with [tox](https://tox.wiki/en/latest/).
-
-```shell
-tox
-```
-
-But you can also run individual tests in `/tests` with `pytest`.
-
 
 ## License
 

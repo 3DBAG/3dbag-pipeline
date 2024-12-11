@@ -1,4 +1,6 @@
-# bag3d-floors-estimation - Workflow for predicting the number of floors, based on Ellie Roy's thesis.
+# bag3d-floors-estimation
+
+Workflow for predicting the number of floors, based on Ellie Roy's thesis.
 
 ## License
 

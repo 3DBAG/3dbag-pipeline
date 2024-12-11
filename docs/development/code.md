@@ -94,17 +94,9 @@ To run a specific test, set up a run configuration with the python interpreter i
 
 For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
-### Local setup
+### Code formatting
 
-For development purposes, you should also create a local virtual environment and install the required packages from `requirements-dev.txt`.
-
-You can do this in one step with:
-
-```bash
-make local_venv
-```
-
-Then you can format you code with:
+In you have a local installation of `uv`, you can format you code with:
 
 ```
 make format

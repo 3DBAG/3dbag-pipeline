@@ -1,4 +1,6 @@
-# bag3d-core – workflow for producing the core 3D BAG data
+# bag3d-core
+
+Workflow for producing the core 3D BAG data
 
 ## License
 
