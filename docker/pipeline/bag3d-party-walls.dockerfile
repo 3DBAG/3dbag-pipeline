@@ -31,6 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/party_walls/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/pyproject.toml \
     uv sync \
     --frozen \
+    --all-extras \
     --no-install-project \
     --no-install-package bag3d-common\
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
@@ -43,6 +44,7 @@ COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync \
     --frozen \
+    --all-extras \
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
     --python $VIRTUAL_ENV/bin/python
 
