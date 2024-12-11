@@ -44,4 +44,4 @@ indent-style = "space"
 docstring-code-format = false
 
 [tool.uv.sources]
-bag3d-common = { path = "../common"}
+bag3d-common = { path = "../common", editable = true}

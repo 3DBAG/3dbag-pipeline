@@ -46,4 +46,4 @@ docstring-code-format = false
 
 [tool.uv.sources]
 urban-morphology-3d = { git = "https://github.com/3DGI/urban-morphology-3d.git", rev = "onlysharedwalls" }
-bag3d-common = { path = "../common"}
+bag3d-common = { path = "../common", editable = true}
