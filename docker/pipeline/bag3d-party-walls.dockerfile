@@ -24,16 +24,27 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
-COPY . $BAG3D_PIPELINE_LOCATION
-COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 
-# Install dependencies
+# Install only dependencies except the bag3d-common package
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=./packages/party_walls/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/uv.lock \
     --mount=type=bind,source=./packages/party_walls/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/pyproject.toml \
     uv sync \
+    --frozen \
+    --no-install-project \
+    --no-install-package bag3d-common\
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
     --python $VIRTUAL_ENV/bin/python
 
+COPY . $BAG3D_PIPELINE_LOCATION
+COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
+
+# Install the workflow package and the bag3d-common package in editable mode
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+    --frozen \
+    --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
+    --python $VIRTUAL_ENV/bin/python
 
 # Run dagster gRPC server on port 4002
 EXPOSE 4002

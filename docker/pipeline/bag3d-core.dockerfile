@@ -11,12 +11,25 @@ LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
-COPY . $BAG3D_PIPELINE_LOCATION
-COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
-# Install dependencies
+
+# Install only dependencies except the bag3d-common package
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=./packages/core/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/core/uv.lock \
     --mount=type=bind,source=./packages/core/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/core/pyproject.toml \
     uv sync \
+    --frozen \
+    --no-install-project \
+    --no-install-package bag3d-common\
+    --project $BAG3D_PIPELINE_LOCATION/packages/core \
+    --python $VIRTUAL_ENV/bin/python
+
+COPY . $BAG3D_PIPELINE_LOCATION
+COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
+
+# Install the workflow package and the bag3d-common package in editable mode
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+    --frozen \
     --project $BAG3D_PIPELINE_LOCATION/packages/core \
     --python $VIRTUAL_ENV/bin/python
 
