@@ -31,16 +31,9 @@ COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/party_walls/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/pyproject.toml \
     uv sync \
-    --no-install-project \
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
     --python $VIRTUAL_ENV/bin/python
 
-
-
-# Install the workflow package
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install -e $BAG3D_PIPELINE_LOCATION/packages/party_walls/.[dev] && \
-    uv pip install -e $BAG3D_PIPELINE_LOCATION/packages/common/.[dev]
 
 # Run dagster gRPC server on port 4002
 EXPOSE 4002
