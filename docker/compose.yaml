@@ -4,7 +4,7 @@ services:
   # and event log storage.
   dagster-postgresql:
     image: postgres:16
-    container_name: bag3d-dagster-postgresql
+    container_name: bag3d-dagster-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
     environment:
       POSTGRES_USER: $DAGSTER_POSTGRES_USER
       POSTGRES_PASSWORD: $DAGSTER_POSTGRES_PASSWORD
@@ -24,7 +24,7 @@ services:
         - pg_db=$BAG3D_PG_DATABASE
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=200", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     platform: linux/amd64
-    container_name: bag3d-data-postgresql
+    container_name: bag3d-data-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE}"]
       interval: 3s
@@ -62,9 +62,9 @@ services:
       dockerfile: docker/pipeline/bag3d-core.dockerfile
       args:
         - VERSION=develop
-    container_name: 3dbag-pipeline-core
     image: 3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
+    container_name: 3dbag-pipeline-core-${BAG3D_DOCKER_IMAGE_TAG}
     restart: always
     environment:
       DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}"
@@ -106,9 +106,9 @@ services:
       dockerfile: docker/pipeline/bag3d-floors-estimation.dockerfile
       args:
         - VERSION=develop
-    container_name: 3dbag-pipeline-floors-estimation
     image: 3dbag-pipeline-floors-estimation:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
+    container_name: 3dbag-pipeline-floors-estimation-${BAG3D_DOCKER_IMAGE_TAG}
     restart: always
     environment:
       DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-floors-estimation:${BAG3D_DOCKER_IMAGE_TAG}"
@@ -137,15 +137,16 @@ services:
         - action: rebuild
           path: ../packages/floors_estimation/pyproject.toml
           target: /opt/3dbag-pipeline/packages/floors_estimation/pyproject.toml
+
   bag3d-party-walls:
     build:
       context: ../
       dockerfile: docker/pipeline/bag3d-party-walls.dockerfile
       args:
         - VERSION=develop
-    container_name: 3dbag-pipeline-party-walls
     image: 3dbag-pipeline-party-walls:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
+    container_name: 3dbag-pipeline-party-walls-${BAG3D_DOCKER_IMAGE_TAG}
     restart: always
     environment:
       DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-party-walls:${BAG3D_DOCKER_IMAGE_TAG}"
@@ -183,6 +184,7 @@ services:
       context: ./dagster
     image: 3dgi/3dbag-pipeline-dagster:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
+    container_name: bag3d-dagster-webserver-${BAG3D_DOCKER_IMAGE_TAG}
     entrypoint:
       - dagster-webserver
       - -h
@@ -191,7 +193,6 @@ services:
       - "3000"
       - -w
       - workspace.yaml
-    container_name: bag3d-dagster-webserver
     expose:
       - "3000"
     ports:
@@ -216,10 +217,10 @@ services:
       context: ./dagster
     image: 3dgi/3dbag-pipeline-dagster:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
+    container_name: bag3d-dagster-daemon-${BAG3D_DOCKER_IMAGE_TAG}
     entrypoint:
       - dagster-daemon
       - run
-    container_name: bag3d-dagster-daemon
     restart: on-failure
     env_file:
       - ./.env
