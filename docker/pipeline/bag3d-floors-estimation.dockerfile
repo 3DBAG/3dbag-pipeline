@@ -20,7 +20,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --python $VIRTUAL_ENV/bin/python
 
 COPY . $BAG3D_PIPELINE_LOCATION
-COPY ./docker/.env $BAG3D_PIPELINE_LOCATION/.env
 
 # Install the workflow package
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -32,4 +31,4 @@ EXPOSE 4001
 
 # CMD allows this to be overridden from run launchers or executors that want
 # to run other commands against your repository
-CMD ["dagster", "code-server", "start", "-h", "0.0.0.0", "-p", "4001", "-m", "bag3d.floors_estimation.code_location", "--inject-env-vars-from-instance"]
+CMD ["dagster", "code-server", "start", "-h", "0.0.0.0", "-p", "4001", "-m", "bag3d.floors_estimation.code_location"]
