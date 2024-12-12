@@ -23,7 +23,6 @@ services:
         - pg_pswd=$BAG3D_PG_PASSWORD
         - pg_db=$BAG3D_PG_DATABASE
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=200", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
-    platform: linux/amd64
     container_name: bag3d-data-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE}"]
