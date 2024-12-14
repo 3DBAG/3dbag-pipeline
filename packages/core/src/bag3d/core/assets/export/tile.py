@@ -44,7 +44,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     )
     # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
     # num_threads = context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
-    num_threads = 4
+    num_threads = 40
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
