@@ -564,7 +564,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
                     "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "/opt/bin/ogrinfo",
                     sql_buildingpart_count,
-                    f"/vsigzip/{inputzipfile}",
+                    f"/vsigzip//{inputzipfile}",
                 ]
             )
             output, returncode = execute_shell_command_silent(
@@ -585,7 +585,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
                     "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "/opt/bin/ogrinfo",
                     sql_building_count,
-                    f"/vsigzip/{inputzipfile}",
+                    f"/vsigzip//{inputzipfile}",
                 ]
             )
             output, returncode = execute_shell_command_silent(
