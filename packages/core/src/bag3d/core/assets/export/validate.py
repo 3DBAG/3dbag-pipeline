@@ -570,14 +570,13 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             output, returncode = execute_shell_command_silent(
                 shell_command=cmd, cwd=str(dirpath)
             )
+            get_dagster_logger().info(f"{output=}")
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
             )
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
+            
             try:
-                if returncode != 0:
-                    get_dagster_logger().error(f"Ogrinfo failed: {output}")
-                    raise Exception("ogrinfo failed")
                 n = int(re.search(re_buildingpart_count, output).group(0))
                 nr_buildingpart_all.append(n)
 
@@ -595,13 +594,11 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             output, returncode = execute_shell_command_silent(
                 shell_command=cmd, cwd=str(dirpath)
             )
+            get_dagster_logger().info(f"{output=}")
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
             try:
-                if returncode != 0:
-                    get_dagster_logger().error(f"ogrinfo failed: {output}")
-                    raise Exception("ogrinfo failed")
                 n = int(re.search(re_building_count, output).group(0))
                 nr_building_all.append(n)
             except Exception:
