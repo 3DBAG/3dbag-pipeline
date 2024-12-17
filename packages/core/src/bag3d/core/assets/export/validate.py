@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
 
-from dagster import asset, AssetIn, AssetKey, get_dagster_logger
+from dagster import asset, AssetIn, AssetKey, OpExecutionContext
 
 from bag3d.common.resources.executables import execute_shell_command_silent
 from bag3d.common.utils.files import bag3d_export_dir
@@ -502,7 +502,13 @@ def obj(
     return results
 
 
-def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileResults:
+def gpkg(
+    context: OpExecutionContext,
+    dirpath: Path,
+    file_id: str,
+    url_root: str,
+    version: str,
+) -> GPKGFileResults:
     results = {
         "gpkg_zip_ok": None,
         "gpkg_ok": None,
@@ -552,6 +558,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
     # ogrinfo
     nr_building_all = []
     nr_buildingpart_all = []
+    gdal = context.resources.gdal.app
     for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
         try:
             sql_buildingpart_count = f"-sql 'select count(identificatie) from {layer}'"
@@ -562,7 +569,7 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             cmd = " ".join(
                 [
                     "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                    "/opt/bin/ogrinfo",
+                    "{exe}",
                     sql_buildingpart_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
@@ -570,12 +577,15 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             output, returncode = execute_shell_command_silent(
                 shell_command=cmd, cwd=str(dirpath)
             )
-            get_dagster_logger().info(f"{output=}")
+            returncode, output = gdal.execute(
+                "ogrinfo", command=cmd, local_path=str(dirpath)
+            )
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
             )
+            context.log.debug(f"{results.file_ok=}")
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
-            
+
             try:
                 n = int(re.search(re_buildingpart_count, output).group(0))
                 nr_buildingpart_all.append(n)
@@ -586,15 +596,14 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             cmd = " ".join(
                 [
                     "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                    "/opt/bin/ogrinfo",
+                    "{exe}",
                     sql_building_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            output, returncode = execute_shell_command_silent(
-                shell_command=cmd, cwd=str(dirpath)
+            returncode, output = gdal.execute(
+                "ogrinfo", command=cmd, local_path=str(dirpath)
             )
-            get_dagster_logger().info(f"{output=}")
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
@@ -628,7 +637,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     return link
 
 
-def check_formats(input) -> TileResults:
+def check_formats(context: OpExecutionContext, input) -> TileResults:
     dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
@@ -649,7 +658,7 @@ def check_formats(input) -> TileResults:
         url_root=url_root,
         version=version,
     )
-    gpkg_results = gpkg(dirpath, file_id, url_root=url_root, version=version)
+    gpkg_results = gpkg(context, dirpath, file_id, url_root=url_root, version=version)
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
 
@@ -659,7 +668,7 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store", "version"},
+    required_resource_keys={"file_store", "version", "gdal"},
 )
 def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
     """Validates the compressed distribution tiles, for each format.
@@ -694,7 +703,13 @@ def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> 
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
         tileids = [
-            (path_export_dir.joinpath("tiles", row[0]), row[0], url_root, version)
+            (
+                context,
+                path_export_dir.joinpath("tiles", row[0]),
+                row[0],
+                url_root,
+                version,
+            )
             for row in csvreader
         ]
 
