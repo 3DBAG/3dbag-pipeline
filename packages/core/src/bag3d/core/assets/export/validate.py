@@ -582,7 +582,6 @@ def gpkg(
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
             )
-            context.log.debug(f"{results.file_ok=}")
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
 
             try:
@@ -669,7 +668,7 @@ def check_formats(input) -> TileResults:
     deps=[AssetKey(("export", "compressed_tiles"))],
     required_resource_keys={"file_store", "version", "gdal"},
 )
-def compressed_tiles_validation(context, export_index: Path, metadata: Path) -> Path:
+def compressed_tiles_validation(context: OpExecutionContext, export_index: Path, metadata: Path) -> Path:
     """Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
     Validation is done concurrently per tile.
