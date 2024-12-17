@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
 
-from dagster import asset, AssetIn, AssetKey
+from dagster import asset, AssetIn, AssetKey, get_dagster_logger
 
 from bag3d.common.resources.executables import execute_shell_command_silent
 from bag3d.common.utils.files import bag3d_export_dir
@@ -575,8 +575,12 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
             )
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
             try:
+                if returncode != 0:
+                    get_dagster_logger().error(f"Ogrinfo failed: {output}")
+                    raise Exception("ogrinfo failed")
                 n = int(re.search(re_buildingpart_count, output).group(0))
                 nr_buildingpart_all.append(n)
+
             except Exception:
                 n = None
 
@@ -595,6 +599,9 @@ def gpkg(dirpath: Path, file_id: str, url_root: str, version: str) -> GPKGFileRe
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
             try:
+                if returncode != 0:
+                    get_dagster_logger().error(f"ogrinfo failed: {output}")
+                    raise Exception("ogrinfo failed")
                 n = int(re.search(re_building_count, output).group(0))
                 nr_building_all.append(n)
             except Exception:
