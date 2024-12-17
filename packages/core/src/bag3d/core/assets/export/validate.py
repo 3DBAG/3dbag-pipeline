@@ -636,8 +636,8 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     return link
 
 
-def check_formats(gdal: AppImage, input) -> TileResults:
-    dirpath, tile_id, url_root, version = input
+def check_formats(input) -> TileResults:
+    gdal, dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
