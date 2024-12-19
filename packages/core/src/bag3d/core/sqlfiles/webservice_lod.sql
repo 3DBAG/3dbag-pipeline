@@ -18,7 +18,7 @@ SELECT
     p.b3_pw_onvoldoende,
     p.b3_t_run,
     p.b3_succes,
-    p.b3_extrusie
+    p.b3_extrusie,
     p.b3_is_glas_dak,
     p.b3_dak_type,
     p.b3_h_maaiveld,
@@ -84,7 +84,7 @@ SELECT
     p.b3_pw_onvoldoende,
     p.b3_t_run,
     p.b3_succes,
-    p.b3_extrusie
+    p.b3_extrusie,
     p.b3_is_glas_dak,
     p.b3_dak_type,
     p.b3_h_maaiveld,
@@ -150,7 +150,7 @@ SELECT
     p.b3_pw_onvoldoende,
     p.b3_t_run,
     p.b3_succes,
-    p.b3_extrusie
+    p.b3_extrusie,
     p.b3_is_glas_dak,
     p.b3_dak_type,
     p.b3_h_maaiveld,
