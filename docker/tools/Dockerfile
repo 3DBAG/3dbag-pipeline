@@ -100,13 +100,13 @@ FROM roofer AS geoflow-old
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /export /export
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/lib/LASlib /export/usr/local/lib/
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/lib/gdalplugins /export/usr/local/lib/
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.04 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /export /export
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/LASlib /export/usr/local/lib/
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/gdalplugins /export/usr/local/lib/
+COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 
 RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \

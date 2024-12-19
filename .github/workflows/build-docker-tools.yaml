@@ -1,0 +1,39 @@
+name: Build and Publish The Tools Docker Image
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - "develop"
+      - "pc-*"
+    paths:
+      - docker/tools/Dockerfile
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set docker image tag
+        run: echo "DOCKER_TAG=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push tools image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./docker/tools/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          build-args: |
+            JOBS=2
+            VERSION=${{ env.DOCKER_TAG }}
+          push: true
+          tags: 3dgi/3dbag-pipeline-tools:${{ env.DOCKER_TAG }}
+

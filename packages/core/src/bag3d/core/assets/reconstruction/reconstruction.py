@@ -162,6 +162,7 @@ def create_roofer_config(
     split-cjseq = true
     omit-metadata = true
     cj-translate = [171800.0,472700.0,0.0]
+    cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
     
     [[pointclouds]]
