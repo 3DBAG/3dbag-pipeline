@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-core"
-version = "2024.1005"
+version = "2024.1006"
 description = "Workflow for producing the 3D BAG core data set"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -20,7 +20,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git#egg=bag3d-common-2024.1004&subdirectory=packages/common",
+    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
     "dagster",
     "dagster-postgres",
     "dagster-shell",
@@ -30,10 +30,10 @@ dependencies = [
     "lxml>=4.6",
     "fabric"
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-dotenv", "coverage"] }
+optional-dependencies = { dev = ["pytest", "bumpver", "tox", "dagster-webserver", "pytest-dotenv", "coverage", "ruff"] }
 
 [tool.bumpver]
-current_version = "2024.1005"
+current_version = "2024.1006"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -44,3 +44,11 @@ push = false
 "pyproject.toml" = [
     'version = "{version}"',
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = false

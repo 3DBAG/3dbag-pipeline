@@ -1,8 +1,13 @@
 import pytest
-from bag3d.common.utils.database import (create_schema, drop_table, load_sql,
-                                         postgrestable_from_query,
-                                         postgrestable_metadata, summary_md,
-                                         table_exists)
+from bag3d.common.utils.database import (
+    create_schema,
+    drop_table,
+    load_sql,
+    postgrestable_from_query,
+    postgrestable_metadata,
+    summary_md,
+    table_exists,
+)
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL, Identifier
 
@@ -18,11 +23,13 @@ def test_table_exists(context):
 
 def test_drop_table(context):
     query = SQL(
-                """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
+        """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
                    INSERT INTO {table} VALUES (1, 'bla');
                    INSERT INTO {table} VALUES (2, 'foo');"""
-    ).format(table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str))
-    context.resources.db_connection.send_query(query)
+    ).format(
+        table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
+    )
+    context.resources.db_connection.connect.send_query(query)
     assert table_exists(context, NON_EXISTING_TABLE) is True
     drop_table(context, NON_EXISTING_TABLE)
     assert table_exists(context, NON_EXISTING_TABLE) is False
@@ -36,16 +43,16 @@ def test_create_schema(context):
                 FROM information_schema.schemata 
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
-    res = context.resources.db_connection.get_dict(query)
+    res = context.resources.db_connection.connect.get_dict(query)
     assert res[0]["count"] == 1
 
 
 def test_summary_md(database):
-    null_count = database.count_nulls(EXISTING_TABLE)
-    fields = database.get_fields(EXISTING_TABLE)
+    null_count = database.connect.count_nulls(EXISTING_TABLE)
+    fields = database.connect.get_fields(EXISTING_TABLE)
 
     res = summary_md(fields, null_count)
-    assert type(res) == str
+    assert isinstance(res, str)
     lines = res.splitlines()
     assert lines[0] == "| column | type | NULLs |"
 
@@ -53,7 +60,9 @@ def test_summary_md(database):
 def test_postgrestable_metadata(context):
     res = postgrestable_metadata(context, EXISTING_TABLE)
 
-    assert res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+    assert (
+        res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
+    )
     assert res["Rows"] == 414
 
 
@@ -76,7 +85,7 @@ def test_postgrestable_from_query(context):
 
 
 @pytest.mark.skip(reason="Cannot find module.")
-def test_load_sql():
+def test_load_sql():  # pragma: no cover
     query_params = {
         "tbl": PostgresTableIdentifier("myschema", "mytable"),
     }

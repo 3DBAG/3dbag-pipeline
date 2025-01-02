@@ -1,0 +1,12 @@
+dagster
+dagster-webserver
+dagster-postgres
+pytest-dotenv
+mkdocs
+mkdocstrings[python]
+mkdocs-gen-files
+mkdocs-literate-nav
+mkdocs-section-index
+mkdocs-material
+markdown-include
+ruff

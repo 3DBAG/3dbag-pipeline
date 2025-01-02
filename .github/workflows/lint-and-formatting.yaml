@@ -1,0 +1,26 @@
+name: Lint & Format
+
+on:
+  pull_request:
+    branches: ["develop", "master"]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Intall uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install dependencies
+        run: uv pip install ruff --system
+      - name: Lint
+        run: ruff check
+      - name: Format
+        run: ruff format --check

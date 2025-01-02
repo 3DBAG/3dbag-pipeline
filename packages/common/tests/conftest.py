@@ -2,28 +2,35 @@ import os
 from pathlib import Path
 
 import pytest
-from bag3d.common.resources import gdal
-from bag3d.common.resources.files import file_store
-from bag3d.common.resources.database import DatabaseConnection
-from bag3d.common.resources.executables import DOCKER_GDAL_IMAGE
-from dagster import build_op_context
-from pgutils.connection import PostgresFunctions, PostgresTableIdentifier
-from psycopg.sql import SQL, Identifier
 
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import (
+    GDALResource,
+    PDALResource,
+)
+from bag3d.common.resources.files import FileStoreResource
+from dagster import build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
-HOST = "localhost"
+HOST = os.getenv("BAG3D_PG_HOST")
 PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
+@pytest.fixture(scope="session")
+def gdal():
+    yield GDALResource(
+        exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
+        exe_sozip=os.getenv("EXE_PATH_SOZIP"),
+    )
 
-@pytest.fixture(scope="function")
-def docker_gdal_image():
-    """The GDAL docker image to use for the tests"""
-    return DOCKER_GDAL_IMAGE
+
+@pytest.fixture(scope="session")
+def pdal():
+    yield PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
 
 @pytest.fixture(scope="function")
@@ -34,56 +41,73 @@ def wkt_testarea():
 
 @pytest.fixture
 def database():
-    db = DatabaseConnection(
+    db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
     )
     yield db
 
 
 @pytest.fixture
-def context(database, docker_gdal_image, wkt_testarea, tmp_path):
+def file_store(tmp_path):
+    yield FileStoreResource(data_dir=str(tmp_path))
+
+
+@pytest.fixture
+def context(database, wkt_testarea, file_store, gdal):
     yield build_op_context(
         op_config={
             "geofilter": wkt_testarea,
-            "featuretypes": ["gebouw", ]
+            "featuretypes": [
+                "gebouw",
+            ],
         },
         resources={
-            "gdal": gdal.configured({"docker": {"image": docker_gdal_image}}),
+            "gdal": gdal,
             "db_connection": database,
-            "file_store": file_store.configured(
-                {"data_dir": str(tmp_path), }),
-        }
+            "file_store": file_store,
+            "version": "test_version",
+        },
     )
 
-# Setup to add a CLI option to run tests that are marked "slow"
-# Ref: https://docs.pytest.org/en/latest/example/simple.html#control-skipping-of-tests-according-to-command-line-option
+
 def pytest_addoption(parser):
     parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
+        "--run-slow", action="store_true", default=False, help="run slow tests"
+    )
+    parser.addoption(
+        "--run-all",
+        action="store_true",
+        default=False,
+        help="run all tests, including the ones that needs local builds of tools",
     )
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow to run")
+    config.addinivalue_line(
+        "markers", "needs_tools: mark test as needing local builds of tools"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    else: # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    if not config.getoption("--run-slow"):  # pragma: no cover
+        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
 
-
-@pytest.fixture(scope="session", autouse=True)
-def setenv():
-    os.environ["DAGSTER_DEPLOYMENT"] = "pytest"
+    if not config.getoption("--run-all"):  # pragma: no cover
+        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
+        for item in items:
+            if "needs_tools" in item.keywords:
+                item.add_marker(skip_needs_tools)
 
 
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
 
+
+@pytest.fixture(scope="session")
+def laz_files_ahn3_dir(test_data_dir):
+    yield test_data_dir / "reconstruction_input/pointcloud/AHN3/tiles_200m/"

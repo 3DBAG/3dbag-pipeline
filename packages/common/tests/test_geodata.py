@@ -1,24 +1,18 @@
 from pathlib import Path
-from pprint import pprint
 
 import pytest
-from bag3d.common.resources import gdal
-from bag3d.common.utils.geodata import (add_info, geojson_poly_to_wkt,
-                                        ogr2postgres, ogrinfo, parse_ogrinfo)
-from dagster import build_op_context
+from bag3d.common.utils.geodata import (
+    add_info,
+    geojson_poly_to_wkt,
+    ogr2postgres,
+    ogrinfo,
+    parse_ogrinfo,
+)
 from pgutils import PostgresTableIdentifier
 
 
-@pytest.mark.parametrize(
-    "config",
-    ({"exes": {"ogrinfo": "ogrinfo"}}, {"docker": {"image": ""}}),
-    ids=["exes", "docker"],
-)
-def test_info_exes(config, docker_gdal_image, test_data_dir):
+def test_info_exes(context, test_data_dir):
     """Run ogrinfo with local exe and with docker"""
-    if "docker" in config:
-        config["docker"]["image"] = docker_gdal_image
-    context = build_op_context(resources={"gdal": gdal.configured(config)})
     p = Path(f"{test_data_dir}/top10nl.zip")
     res = dict(
         ogrinfo(
@@ -34,7 +28,6 @@ def test_info_exes(config, docker_gdal_image, test_data_dir):
     assert "gebouw" in res
 
 
-@pytest.mark.skip(reason="Fails for BGT")
 @pytest.mark.parametrize(
     "data",
     (
@@ -45,12 +38,6 @@ def test_info_exes(config, docker_gdal_image, test_data_dir):
                 "gebouw",
             ],
             "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
-        ),
-        (
-            "bgt.zip",
-            "bgt",
-            ["pand", "wegdeel"],
-            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
         ),
     ),
     ids=lambda val: val[1],
@@ -179,16 +166,11 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
             ],
             "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
         ),
-        (
-            "bgt.zip",
-            "bgt",
-            ["pand", "wegdeel"],
-            "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
-        ),
     ),
     ids=lambda val: val[1],
 )
 def test_ogr2postgres(data, context, test_data_dir):
+    """Testing only for top10NL since we no longer use bgt"""
     path, dataset, feature_types, xsd = data
     res = ogr2postgres(
         context=context,

@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2024.1003"
+version = "2024.1004"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
     { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -19,7 +20,7 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3BAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git#egg=bag3d-common-2024.1004&subdirectory=packages/common",
+    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
     "urban-morphology-3d @ git+https://github.com/3DGI/urban-morphology-3d.git@onlysharedwalls#egg=urban-morphology-3d",
     "shapely",
     "numpy",
@@ -29,10 +30,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies] 
-dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage"] 
+dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage", "ruff"]
 
 [tool.bumpver]
-current_version = "2024.1003"
+current_version = "2024.1004"
 version_pattern = "YYYY.BUILD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -44,3 +45,10 @@ push = false
     'version = "{version}"',
 ]
 
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = false

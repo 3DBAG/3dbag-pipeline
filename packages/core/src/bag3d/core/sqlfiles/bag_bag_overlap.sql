@@ -18,10 +18,5 @@ SELECT d.fid
                THEN 0.0
            ELSE overlap_area
     END AS b3_bag_bag_overlap
---      , CASE
---            WHEN overlap_area IS NULL OR overlap_area < 1.0
---                THEN 0.0
---            ELSE (overlap_area / st_area(b.geometrie)) * 100.0
---     END AS b3_bag_bag_overlap_pct
 FROM dissolve d
          JOIN ${bag_cleaned} b ON d.fid = b.fid;

@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -24,6 +25,7 @@ dependencies = [
     "pgutils @ git+https://github.com/balazsdukai/pgutils.git@2024.1013#egg=pgutils",
     "psycopg[binary]",
     "requests",
+    "certifi"
 ]
 
 [project.optional-dependencies]
@@ -32,7 +34,8 @@ dev = [
     "tox",
     "pytest",
     "pytest-dotenv",
-    "coverage"
+    "coverage",
+    "ruff"
 ]
 docs = [
     "mkdocs",
@@ -56,3 +59,11 @@ push = false
 "pyproject.toml" = [
     'version = "{version}"',
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = false

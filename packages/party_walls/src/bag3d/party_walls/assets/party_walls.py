@@ -12,8 +12,11 @@ from pandas import DataFrame
 from urban_morphology_3d.cityStats import city_stats
 
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
-from bag3d.common.utils.files import check_export_results, geoflow_crop_dir, \
-    bag3d_export_dir
+from bag3d.common.utils.files import (
+    check_export_results,
+    geoflow_crop_dir,
+    bag3d_export_dir,
+)
 from bag3d.common.types import ExportResult
 
 
@@ -21,14 +24,13 @@ from bag3d.common.types import ExportResult
 class TilesFilesIndex:
     """A collection type, storing the ExportResults per tile, the R-Tree of the tiles
     and a path-array of the CityJSON files."""
+
     export_results: dict[str, ExportResult]
     tree: STRtree
     paths_array: NDArray
 
 
-@asset(
-    required_resource_keys={"file_store"}
-)
+@asset(required_resource_keys={"file_store", "version"})
 def distribution_tiles_files_index(context) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
     that has an existing CityJSON file.
@@ -42,32 +44,34 @@ def distribution_tiles_files_index(context) -> TilesFilesIndex:
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
     path_quadtree_tsv = bag3d_export_dir(
-        context.resources.file_store.data_dir).joinpath("quadtree.tsv")
-    path_tiles_dir = bag3d_export_dir(context.resources.file_store.data_dir).joinpath(
-        "tiles")
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
+    ).joinpath("quadtree.tsv")
+    path_tiles_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
+    ).joinpath("tiles")
     export_results_gen = filter(
         lambda t: t.has_cityjson,
         check_export_results(
-            path_quadtree_tsv=path_quadtree_tsv,
-            path_tiles_dir=path_tiles_dir
-        )
+            path_quadtree_tsv=path_quadtree_tsv, path_tiles_dir=path_tiles_dir
+        ),
     )
     export_results = dict((t.tile_id, t) for t in export_results_gen)
     tree = STRtree(tuple(from_wkt(t.wkt) for t in export_results.values()))
     paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
     return TilesFilesIndex(
-        export_results=export_results,
-        tree=tree,
-        paths_array=paths_array
+        export_results=export_results, tree=tree, paths_array=paths_array
     )
 
 
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
-    required_resource_keys={"db_connection"}
+    required_resource_keys={"db_connection"},
 )
-def party_walls_nl(context,
-                   distribution_tiles_files_index: TilesFilesIndex) -> DataFrame:
+def party_walls_nl(
+    context, distribution_tiles_files_index: TilesFilesIndex
+) -> DataFrame:
     """Party walls calculation from the exported CityJSON tiles.
 
     Computes a DataFrame of statistics for a given tile. The tile-boundary problem is
@@ -85,11 +89,13 @@ def party_walls_nl(context,
         if neighbour_path != export_result.cityjson_path:
             paths_neighbours.append(neighbour_path)
 
-    paths_inputs = [export_result.cityjson_path, ] + paths_neighbours
+    paths_inputs = [
+        export_result.cityjson_path,
+    ] + paths_neighbours
     df = city_stats(
         inputs=paths_inputs,
-        dsn=context.resources.db_connection.dsn,
-        break_on_error=True
+        dsn=context.resources.db_connection.connect.dsn,
+        break_on_error=True,
     )
     context.add_output_metadata(
         metadata={
@@ -101,14 +107,18 @@ def party_walls_nl(context,
 
 
 def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
-    for x_level in z_level.iterdir():
-        for y_level in x_level.iterdir():
-            for identificatie in y_level.joinpath("objects").iterdir():
-                # cannot use Path methods here, because we have '.' in the file name
-                feature_path = Path(
-                    f"{identificatie / 'reconstruct'}/{identificatie.name}.city.jsonl")
-                if feature_path.exists():
-                    yield identificatie.name, feature_path
+    if z_level.is_dir():
+        for x_level in z_level.iterdir():
+            if x_level.is_dir():
+                for y_level in x_level.iterdir():
+                    if y_level.joinpath("objects").is_dir():
+                        for identificatie in y_level.joinpath("objects").iterdir():
+                            # cannot use Path methods here, because we have '.' in the file name
+                            feature_path = Path(
+                                f"{identificatie / 'reconstruct'}/{identificatie.name}.city.jsonl"
+                            )
+                            if feature_path.exists():
+                                yield identificatie.name, feature_path
 
 
 def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
@@ -122,9 +132,7 @@ def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Pa
                 yield identificatie, path
 
 
-@asset(
-    required_resource_keys={"file_store_fastssd"}
-)
+@asset(required_resource_keys={"file_store_fastssd"})
 def features_file_index(context) -> dict[str, Path]:
     """A mapping of {feature ID: feature file path} for the reconstructed features in
     the geoflow output directory.
@@ -136,22 +144,24 @@ def features_file_index(context) -> dict[str, Path]:
     Returns a dict of {feature ID: feature file path}.
     """
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir)
+        context.resources.file_store_fastssd.file_store.data_dir
+    )
     return dict(features_file_index_generator(reconstructed_root_dir))
 
 
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
-    required_resource_keys={"file_store_fastssd"}
+    required_resource_keys={"file_store_fastssd"},
 )
-def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
-                                         features_file_index: dict[str, Path]) -> list[
-    Path]:
+def cityjsonfeatures_with_party_walls_nl(
+    context, party_walls_nl: DataFrame, features_file_index: dict[str, Path]
+) -> list[Path]:
     """Writes the content of the party walls DataFrame back to the reconstructed
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
     CityJSON tiles that is created with *tyler*."""
     reconstructed_features_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.data_dir)
+        context.resources.file_store_fastssd.file_store.data_dir
+    )
     # For now, we do not overwrite the reconstructed features with the part walls
     # attributes, but save a new file
     output_dir = reconstructed_features_dir.parent.joinpath("party_walls_features")
@@ -181,9 +191,10 @@ def cityjsonfeatures_with_party_walls_nl(context, party_walls_nl: DataFrame,
 
         output_dir_tile = output_dir.joinpath(row.tile)
         feature_party_wall_path = Path(
-            f"{output_dir_tile}/{identificatie_bag}.city.jsonl")
+            f"{output_dir_tile}/{identificatie_bag}.city.jsonl"
+        )
         with feature_party_wall_path.open("w") as fo:
-            json.dump(feature_json, fo, separators=(',', ':'))
+            json.dump(feature_json, fo, separators=(",", ":"))
         files_written.append(feature_party_wall_path)
 
     context.add_output_metadata(

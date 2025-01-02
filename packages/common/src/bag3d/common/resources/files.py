@@ -4,11 +4,10 @@ from shutil import rmtree
 import random
 import string
 
-from dagster import resource, get_dagster_logger, Field
+from dagster import get_dagster_logger, ConfigurableResource
 import docker
 from docker.errors import NotFound
-
-from bag3d.common.utils.dagster import get_run_id
+from typing import Optional
 
 logger = get_dagster_logger("resources.file_store")
 
@@ -19,13 +18,17 @@ def make_temp_path(run_id):
 
 class FileStore:
     # TODO: should have a unified interface regardless if we use a volume or local dir
-    def __init__(self, data_dir: Union[str, Path, None] = None,
-                 docker_volume_id: Union[str, None] = None,
-                 temp_dir_id: Union[str, None] = None):
+    def __init__(
+        self,
+        data_dir: Union[str, Path, None] = None,
+        docker_volume_id: Union[str, None] = None,
+        dir_id: Union[str, None] = None,
+    ):
         self.data_dir = None
         self.docker_volume = None
         if data_dir:
-            p = Path(data_dir).resolve()
+            directory = Path(data_dir)
+            p = directory.resolve()
             if p.is_dir():
                 pass
                 # # Need r+w for others, so that docker containers can write to the
@@ -46,11 +49,12 @@ class FileStore:
                 logger.info(f"Using existing docker volume: {docker_volume_id}")
             except NotFound:
                 self.docker_volume = docker_client.volumes.create(
-                    name=docker_volume_id, driver="local")
+                    name=docker_volume_id, driver="local"
+                )
                 logger.info(f"Created docker volume: {docker_volume_id}")
         else:
-            # In case temp_dir_id is also None, we create a temp dir with a random ID.
-            tmp = self.mkdir_temp(temp_dir_id)
+            # In case dir_id is also None, we create a temp dir with a random ID.
+            tmp = self.mkdir_temp(dir_id)
             self.data_dir = tmp
             logger.info(f"Created local temporary directory {self.data_dir}")
 
@@ -80,39 +84,32 @@ class FileStore:
         if temp_dir_id:
             dir_id = temp_dir_id
         else:
-            dir_id = ''.join(random.choice(string.ascii_letters) for _ in range(8))
+            dir_id = "".join(random.choice(string.ascii_letters) for _ in range(8))
         tmp = Path(make_temp_path(dir_id))
         tmp.mkdir(exist_ok=True)
         tmp.chmod(mode=0o777)
         return tmp
 
 
-@resource(
-    config_schema={
-        "data_dir": Field(
-            str, is_required=False,
-            description="Local directory with permission mode 777. It is created if "
-                        "does not exist."),
-        "docker_volume": Field(
-            str, is_required=False),
-    }
-)
-def file_store(context):
+class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline.
-    Either local directory or a docker volume.
-    If neither `data_dir` nor `docker_volume` is given, a local temporary directory is
-    created.
+    data_dir: The directory where the files are stored.
+    If None, the resource is initialized with a temporary directory.
 
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
-    run_id = get_run_id(context, short=True)
-    context.log.debug(f'file_store:config: {context.resource_config}\nrun_id:{run_id}')
 
-    if (not context.resource_config.get("data_dir") and
-            not context.resource_config.get("docker_volume")):
-        context.log.debug(f"file_store temp init with run_id {run_id}")
-        return FileStore(temp_dir_id=run_id)
-    else:
-        return FileStore(
-            data_dir=context.resource_config.get("data_dir"),
-            docker_volume_id=context.resource_config.get("docker_volume"))
+    data_dir: Optional[str] = None
+
+    def __init__(
+        self,
+        data_dir: Optional[Union[Path, str]] = None,
+    ):
+        super().__init__(data_dir=str(data_dir) if data_dir else None)
+
+    @property
+    def file_store(self) -> FileStore:
+        if self.data_dir:
+            return FileStore(data_dir=self.data_dir)
+        else:
+            return FileStore()

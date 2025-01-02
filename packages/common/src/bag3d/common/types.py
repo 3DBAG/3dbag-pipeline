@@ -1,22 +1,25 @@
 """Custom types, custom Dagster types"""
+
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Sequence
 
-from dagster import (PythonObjectDagsterType, make_python_type_usable_as_dagster_type)
+from dagster import PythonObjectDagsterType, make_python_type_usable_as_dagster_type
 from pgutils import PostgresTableIdentifier
 
 LocalPath = PythonObjectDagsterType(
-    python_type=Path, name="LocalPath",
-    description="A path in the local filesystem."
+    python_type=Path, name="LocalPath", description="A path in the local filesystem."
 )
 make_python_type_usable_as_dagster_type(Path, LocalPath)
 
 PostgresTable = PythonObjectDagsterType(
-    python_type=PostgresTableIdentifier, name="PostgresTable",
-    description="PostgreSQL database table.")
-make_python_type_usable_as_dagster_type(python_type=PostgresTableIdentifier,
-                                        dagster_type=PostgresTable)
+    python_type=PostgresTableIdentifier,
+    name="PostgresTable",
+    description="PostgreSQL database table.",
+)
+make_python_type_usable_as_dagster_type(
+    python_type=PostgresTableIdentifier, dagster_type=PostgresTable
+)
 
 
 @dataclass
@@ -30,6 +33,7 @@ class ExportResult:
         obj_paths (Sequence[Path]): Paths to the OBJ files
         wkt (str): Tile WKT
     """
+
     tile_id: str
     cityjson_path: Path
     gpkg_path: Path
