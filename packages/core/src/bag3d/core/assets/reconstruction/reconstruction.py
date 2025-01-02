@@ -156,11 +156,13 @@ def create_roofer_config(
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
     force-lod11-attribute = "b3_kas_warenhuis"
+    yoc-attribute = "oorspronkelijkbouwjaar"
     lod11-fallback-area = 30000
     
     split-cjseq = true
     omit-metadata = true
     cj-translate = [171800.0,472700.0,0.0]
+    cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
     
     [[pointclouds]]
@@ -248,15 +250,6 @@ def create_roofer_config(
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
-    if dir_tiles_200m_ahn5 is not None:
-        out_dir_ahn5 = Path(dir_tiles_200m_ahn5)
-    else:
-        out_dir_ahn5 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=5
-        ).joinpath("tiles_200m")
-    laz_files_ahn5 = [
-        str(out_dir_ahn5 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
     # Would be neater if we could use -sql in the OGR connection to do this query,
     # instead of creating a view.
     tile_view = PostgresTableIdentifier(tiles.schema, f"t_{tile_id}")
@@ -284,7 +277,13 @@ def create_roofer_config(
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
-        ahn5_files=laz_files_ahn5,
+        ahn5_files=[
+            str(
+                ahn_dir(
+                    context.resources.file_store.file_store.data_dir, ahn_version=5
+                ).joinpath("as_downloaded/LAZ")
+            )
+        ],
         output_path=output_dir,
     )
     path_toml = output_dir / "roofer.toml"

@@ -99,13 +99,17 @@ def feature_evaluation(context):
     attributes_to_include = (
         "b3_pw_selectie_reden",
         "b3_pw_bron",
-        "b3_puntdichtheid_ahn3",
-        "b3_puntdichtheid_ahn4",
-        "b3_mutatie_ahn3_ahn4",
-        "b3_nodata_fractie_ahn3",
-        "b3_nodata_fractie_ahn4",
-        "b3_nodata_radius_ahn3",
-        "b3_nodata_radius_ahn4",
+        "b3_puntdichtheid_AHN3",
+        "b3_puntdichtheid_AHN4",
+        "b3_puntdichtheid_AHN5",
+        "b3_mutatie_AHN3_AHN4",
+        "b3_mutatie_AHN4_AHN5",
+        "b3_nodata_fractie_AHN3",
+        "b3_nodata_fractie_AHN4",
+        "b3_nodata_fractie_AHN5",
+        "b3_nodata_radius_AHN3",
+        "b3_nodata_radius_AHN4",
+        "b3_nodata_radius_AHN5",
     )
     cityobject_info = {lod: 0 for lod in lods}
     cityobject_info["has_geometry"] = False
