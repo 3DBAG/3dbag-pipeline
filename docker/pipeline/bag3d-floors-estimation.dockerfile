@@ -1,4 +1,5 @@
 FROM 3dgi/3dbag-pipeline-tools:2024.12.14 AS develop
+ARG VERSION=develop
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 LABEL org.opencontainers.image.authors="Balázs Dukai <balazs.dukai@3dgi.nl>"

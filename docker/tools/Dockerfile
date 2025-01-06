@@ -17,7 +17,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get -y update && \
     apt-get -y install \
-      make ninja-build gcc g++ cmake git wget \
+      bash make ninja-build gcc g++ cmake git wget \
       libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config \
       autoconf-archive autoconf libtool curl unzip zip bzip2 tar
 
