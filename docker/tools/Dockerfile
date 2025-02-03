@@ -1,3 +1,5 @@
+RUN groupadd -r systemd-network && useradd -r -g systemd-network systemd-network
+
 FROM ubuntu:24.04 AS dependencies
 ARG VERSION=latest
 ARG JOBS=2
