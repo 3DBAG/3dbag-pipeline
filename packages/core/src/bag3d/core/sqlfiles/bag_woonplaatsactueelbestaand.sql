@@ -20,7 +20,7 @@ SELECT ogc_fid      AS fid
      , tijdstipnietbaglv
      , wkb_geometry AS geometrie
 FROM ${wpl_tbl}
-WHERE begingeldigheid <= NOW()
-  AND (eindgeldigheid ISNULL OR eindgeldigheid >= NOW())
-  AND (tijdstipinactief ISNULL OR tijdstipinactief <= NOW())
+WHERE begingeldigheid <= ${pelidatum}
+  AND (eindgeldigheid ISNULL OR eindgeldigheid >= ${pelidatum})
+  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${pelidatum})
   AND status <> 'Woonplaats ingetrokken';

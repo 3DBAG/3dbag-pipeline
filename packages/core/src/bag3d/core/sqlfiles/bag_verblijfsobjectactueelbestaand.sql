@@ -24,9 +24,9 @@ SELECT ogc_fid      AS fid
      , tijdstipnietbaglv
      , wkb_geometry AS geometrie
 FROM ${vbo_tbl}
-WHERE begingeldigheid <= NOW()
-  AND (eindgeldigheid ISNULL OR eindgeldigheid >= NOW())
-  AND (tijdstipinactief ISNULL OR tijdstipinactief <= NOW())
+WHERE begingeldigheid <= ${pelidatum}
+  AND (eindgeldigheid ISNULL OR eindgeldigheid >= ${pelidatum})
+  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${pelidatum})
   AND (status <> 'Niet gerealiseerd verblijfsobject'
     AND status <> 'Verblijfsobject ingetrokkent'
     AND status <> 'Verblijfsobject buiten gebruik'
