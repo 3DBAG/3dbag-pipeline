@@ -28,10 +28,10 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libxml++2.6-dev parallel
 
 ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH="/root/.local/bin/:$PATH"
+RUN sh /uv-installer.sh && rm /uv-installer.sh && \
+    source $HOME/.local/bin/env
 # Python 3.11 is currently required by the party_walls package
-RUN /bin/sh uv python install 3.11 3.12
+RUN uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
 COPY --link ./tools-build.sh $BAG3D_PIPELINE_LOCATION
