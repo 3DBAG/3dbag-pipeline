@@ -29,7 +29,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 
 ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh && \
-    source $HOME/.local/bin/env
+    . $HOME/.local/bin/env
 # Python 3.11 is currently required by the party_walls package
 RUN uv python install 3.11 3.12
 
