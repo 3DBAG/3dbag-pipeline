@@ -10,6 +10,8 @@ LABEL org.opencontainers.image.description="Builder image for building the 3dbag
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
+RUN groupadd -r systemd-network && useradd -r -g systemd-network systemd-network
+
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
