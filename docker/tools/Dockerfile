@@ -28,6 +28,8 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libxml++2.6-dev parallel
 
 COPY --link --from=ghcr.io/astral-sh/uv:0.5.26 /uv /uvx /bin/
+RUN ldconfig
+RUN ls -la /bin
 # Python 3.11 is currently required by the party_walls package
 RUN /bin/sh uv python install 3.11 3.12
 
