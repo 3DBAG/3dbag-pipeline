@@ -1,5 +1,3 @@
-RUN groupadd -r systemd-network && useradd -r -g systemd-network systemd-network
-
 FROM ubuntu:24.04 AS dependencies
 ARG VERSION=latest
 ARG JOBS=2
@@ -11,6 +9,8 @@ LABEL org.opencontainers.image.title="3dbag-pipeline-tools"
 LABEL org.opencontainers.image.description="Builder image for building the 3dbag-pipeline workflow images, also containing all the external tools that are required by the pipeline (roofer, GDAL etc.). Plus, it contains the dagster packages and the virtual environment for running a dagster grpc server for the workflow packages."
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
+
+RUN groupadd -r systemd-network && useradd -r -g systemd-network systemd-network
 
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
