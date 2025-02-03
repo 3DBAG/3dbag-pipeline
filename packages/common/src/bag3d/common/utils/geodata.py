@@ -84,7 +84,7 @@ def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> (str, dict):
     layername = inf.split("\n")[0].lower()
     if layername != feature_type:
         raise ValueError(
-            f"Encountered a {layername} layer, " f"but expected {feature_type}"
+            f"Encountered a {layername} layer, but expected {feature_type}"
         )
 
     re_feature_count = re.compile(r"(?<=Feature Count: )\d+")

@@ -25,8 +25,7 @@ def download_as_str(url: str, parameters: Mapping = None) -> str:
         return resp.text
     else:  # pragma: no cover
         raise ValueError(
-            f"Failed to download JSON. HTTP Status {resp.status_code} "
-            f"for {resp.url}"
+            f"Failed to download JSON. HTTP Status {resp.status_code} for {resp.url}"
         )
 
 
