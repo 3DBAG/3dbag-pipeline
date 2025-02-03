@@ -10,8 +10,6 @@ LABEL org.opencontainers.image.description="Builder image for building the 3dbag
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
-RUN groupadd -r systemd-network && useradd -r -g systemd-network systemd-network
-
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
@@ -29,9 +27,9 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev parallel
 
-COPY --link --from=ghcr.io/astral-sh/uv:0.5.26 /uv /uvx /bin/
-RUN ldconfig
-RUN ls -la /bin
+ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
 # Python 3.11 is currently required by the party_walls package
 RUN /bin/sh uv python install 3.11 3.12
 
