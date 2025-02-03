@@ -34,8 +34,9 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh && \
 ENV PATH="${PATH}:${HOME}/.local/bin"
 RUN ls -la $HOME/.local/bin
 RUN ls -la /root/.local/bin
+RUN cat $HOME/.local/bin/env
 # Python 3.11 is currently required by the party_walls package
-RUN uv python install 3.11 3.12
+RUN $HOME/.local/bin/uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
 COPY --link ./tools-build.sh $BAG3D_PIPELINE_LOCATION
