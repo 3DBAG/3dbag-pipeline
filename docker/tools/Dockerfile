@@ -27,8 +27,6 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev parallel
 
-RUN which -a uv
-RUN which -a uvx
 ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 RUN which -a uv
