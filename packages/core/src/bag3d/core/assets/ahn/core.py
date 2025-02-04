@@ -111,8 +111,8 @@ def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cove
             miny = y if y < miny else miny
             maxx = x if x > maxx else maxx
             maxy = y if y > maxy else maxy
-    # 13000 306250 279000 616250
-    return minx, miny, maxx, maxy
+    # Dunno why, but need to swap x-y here to get the correct coordinates
+    return miny, minx, maxy, maxx
 
 
 def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
