@@ -27,8 +27,12 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev parallel
 
+RUN which --all uv
+RUN which --all uvx
 ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
+RUN which --all uv
+RUN which --all uvx
 ENV PATH="${HOME}/.local/bin:${PATH}"
 RUN which uv
 # Python 3.11 is currently required by the party_walls package
