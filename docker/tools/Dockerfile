@@ -39,8 +39,8 @@ RUN cat $HOME/.local/bin/env
 RUN $HOME/.local/bin/uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
-COPY --link ./tools-build.sh $BAG3D_PIPELINE_LOCATION
-COPY --link ./tools-test.sh $BAG3D_PIPELINE_LOCATION
+COPY ./tools-build.sh $BAG3D_PIPELINE_LOCATION
+COPY ./tools-test.sh $BAG3D_PIPELINE_LOCATION
 
 
 FROM dependencies AS tools
@@ -65,17 +65,17 @@ FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/share/proj /usr/local/share/proj
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib/ /tyler/lib/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib64/ /tyler/lib64/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/ /tyler/usr/
-COPY --link --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/share/proj /usr/local/share/proj
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
 
-COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib/ /tyler/lib/
-COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib64/ /tyler/lib64/
-COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /usr/ /tyler/usr/
-COPY --link --from=3dgi/tyler-db:0.3.4-db-alpha5 /usr/local/bin/tyler-db $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-db
+COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /usr/local/bin/tyler-db $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-db
 
 RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     echo /tyler/lib >> /etc/ld.so.conf.d/tyler.conf; \
@@ -94,9 +94,9 @@ FROM tyler AS roofer
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --link --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --link --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
-COPY --link --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+COPY --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
+COPY --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+COPY --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
 ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
@@ -105,13 +105,13 @@ FROM roofer AS geoflow-old
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /export /export
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/LASlib /export/usr/local/lib/
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/gdalplugins /export/usr/local/lib/
-COPY --link --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /export /export
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/LASlib /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/gdalplugins /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 
 RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \
@@ -141,7 +141,7 @@ RUN mkdir -p $DAGSTER_HOME && \
 # Create a virtual environment, otherwise python complains
 RUN uv venv --python 3.12 $VIRTUAL_ENV
 # Install packages into the virtual environment
-COPY --link docker/tools/requirements.txt .
+COPY docker/tools/requirements.txt .
 RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
 
 
