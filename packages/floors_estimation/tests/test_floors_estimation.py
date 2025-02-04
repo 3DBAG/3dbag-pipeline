@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists

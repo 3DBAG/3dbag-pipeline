@@ -69,7 +69,8 @@ def context(database, wkt_testarea, file_store, gdal):
             "version": "test_version",
         },
     )
-    
+
+
 @pytest.fixture
 def context_top10nl(database, wkt_testarea, file_store, gdal):
     yield build_op_context(
