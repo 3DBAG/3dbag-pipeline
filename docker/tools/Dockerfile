@@ -27,11 +27,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev parallel
 
-ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH=$HOME/.local/bin:$PATH
-RUN which -a uv
-RUN which -a uvx
+COPY --from=ghcr.io/astral-sh/uv:0.5.27 /uv /bin/uv
 # Python 3.11 is currently required by the party_walls package
 RUN uv python install 3.11 3.12
 
