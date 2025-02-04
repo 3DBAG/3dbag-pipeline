@@ -21,10 +21,17 @@ We use `make` for managing many commands that we use in development.
 
 ### Test data & Docker Volumes
 
+The Makefile uses two different .env files for controlling the local environment and the environment in the Docker containers.
+The `.env` file in the root directory is used for the local environment and the `docker/.env` file is used for the Docker environment.
+The values in the root `.env` file are specific to your local environment and you need to set them up yourself.
+
+```shell
+echo "BAG3D_TEST_DATA=${PWD}/tests/test_data" > .env
+```
+
 Download test data:
 
 ```shell
-export BAG3D_TEST_DATA=${PWD}/tests/test_data
 make download
 ```
 
