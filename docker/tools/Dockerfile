@@ -31,12 +31,10 @@ ADD https://astral.sh/uv/0.5.26/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh && \
     export PATH=$PATH:$HOME/.local/bin && \
     . $HOME/.local/bin/env \
-ENV PATH="${PATH}:${HOME}/.local/bin"
-RUN ls -la $HOME/.local/bin
-RUN ls -la /root/.local/bin
-RUN cat $HOME/.local/bin/env
+ENV PATH="${HOME}/.local/bin:${PATH}"
+RUN which uv
 # Python 3.11 is currently required by the party_walls package
-RUN $HOME/.local/bin/uv python install 3.11 3.12
+RUN uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
 COPY ./tools-build.sh $BAG3D_PIPELINE_LOCATION
