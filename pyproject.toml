@@ -4,21 +4,30 @@ version = "0.1.0"
 description = "Development requirements of the 3DBAG pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "markdown-include>=0.8.1",
-    "mkdocs-material>=9.5.48",
-    "mkdocs>=1.6.1",
-    "mkdocs-gen-files>=0.5.0",
-    "mkdocs-literate-nav>=0.6.1",
-    "mkdocs-section-index>=0.3.9",
-    "mkdocstrings[python]>=0.27.0",
-    "ruff>=0.8.2",
-    "dagster>=1.9.4",
-    "dagster-webserver>=1.9.4",
-    "dagster-postgres>=0.25.4",
-    "pytest-dotenv>=0.5.2",
+
+[dependency-groups]
+docs = [
+    "markdown-include~=0.8.1",
+    "mkdocs-material~=9.5.48",
+    "mkdocs~=1.6.1",
+    "mkdocs-gen-files~=0.5.0",
+    "mkdocs-literate-nav~=0.6.1",
+    "mkdocs-section-index~=0.3.9",
+    "mkdocstrings[python]~=0.27.0",
     "bag3d-common",
 ]
+lint = [
+    "ruff~=0.8.2",
+]
+dev = [
+    "dagster~=1.9.4",
+    "dagster-webserver~=1.9.4",
+    "dagster-postgres~=0.25.4",
+    "pytest-dotenv~=0.5.2",
+]
+
+[tool.uv]
+default-groups = ["dev", "docs", "lint"]
 
 [tool.uv.sources]
 bag3d-common = { path = "packages/common" }
