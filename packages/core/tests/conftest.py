@@ -71,6 +71,25 @@ def context(database, wkt_testarea, file_store, gdal):
     )
 
 
+@pytest.fixture
+def context_top10nl(database, wkt_testarea, file_store, gdal):
+    yield build_op_context(
+        partition_key="01cz1",
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": [
+                "gebouw",
+            ],
+        },
+        resources={
+            "gdal": gdal,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": "test_version",
+        },
+    )
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--run-slow", action="store_true", default=False, help="run slow tests"
