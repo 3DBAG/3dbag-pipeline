@@ -13,7 +13,7 @@ RUN rm -rf $VIRTUAL_ENV
 RUN uv venv --python 3.11 $VIRTUAL_ENV
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
 # Install packages into the virtual environment
-COPY --link docker/tools/requirements.txt .
+COPY docker/tools/requirements.txt .
 RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
