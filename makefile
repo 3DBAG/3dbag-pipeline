@@ -88,7 +88,7 @@ include .env
 download:
 	rm -rf $(BAG3D_TEST_DATA)
 	mkdir -p $(BAG3D_TEST_DATA)
-	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v6.zip ; unzip -q test_data_v6.zip ; rm test_data_v6.zip
+	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v7.zip ; unzip -q test_data_v7.zip ; rm test_data_v7.zip
 
 local_venv:
 	python3.11 -m venv .venv ; . .venv/bin/activate ; pip install -r $(PWD)/requirements-dev.txt
