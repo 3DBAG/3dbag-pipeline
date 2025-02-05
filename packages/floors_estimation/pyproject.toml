@@ -21,18 +21,18 @@ classifiers = [
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "bag3d-common",
-    "dagster>=1.9.3",
-    "dagster-postgres>=0.25.3",
-    "pandas>=2.2.3",
-    "scikit-learn>=1.4.0",
-    "sklearn-pandas>=2.2.0",
+    "dagster~=1.9.3",
+    "dagster-postgres~=0.25.3",
+    "pandas~=2.2.3",
+    "scikit-learn~=1.4.0",
+    "sklearn-pandas~=2.2.0",
 ]
 
 [project.optional-dependencies] 
 dev = [
-    "coverage>=7.6.8",
-    "pytest>=8.3.4",
-    "pytest-dotenv>=0.5.2",
+    "coverage~=7.6.8",
+    "pytest~=8.3.4",
+    "pytest-dotenv~=0.5.2",
 ]
 
 [tool.ruff]

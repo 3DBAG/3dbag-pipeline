@@ -20,20 +20,20 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster>=1.9.4",
-    "dagster-postgres>=0.25.4",
-    "numpy>=1.24.4",
-    "pandas>=2.1.0",
-    "shapely>=2.0.1",
+    "dagster~=1.9.4",
+    "dagster-postgres~=0.25.4",
+    "numpy~=1.24.4",
+    "pandas~=2.1.0",
+    "shapely~=2.0.1",
     "urban-morphology-3d",
     "bag3d-common",
 ]
 
 [project.optional-dependencies] 
 dev = [
-    "coverage>=7.6.8",
-    "pytest>=8.3.4",
-    "pytest-dotenv>=0.5.2",
+    "coverage~=7.6.8",
+    "pytest~=8.3.4",
+    "pytest-dotenv~=0.5.2",
 ]
 
 [tool.ruff]
