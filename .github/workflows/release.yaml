@@ -4,6 +4,8 @@ description: Create a new release for the 3dbag-pipeline with the specified vers
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
+  checks: write
 
 on:
   workflow_dispatch:
