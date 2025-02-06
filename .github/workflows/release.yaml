@@ -6,6 +6,8 @@ permissions:
 
 on:
   workflow_dispatch:
+    branches:
+      - master
     inputs:
       version:
         description: '3dbag-pipeline release version (YYYY.MM.DD)'
@@ -14,6 +16,7 @@ on:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

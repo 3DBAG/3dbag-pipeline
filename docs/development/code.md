@@ -218,6 +218,16 @@ For example `Returns a collection type, storing the...`
 Assets are usually some results of computations, therefore their names are nouns, not verbs.
 
 
+## Release process
+
+Release always happens from the `master` branch, after merging the successful production candidate branch into `master`.
+See the [branches](#branches) section for more information.
+
+1. Update the CHANGELOG.md file with the new version and the changes. It must include the new version number that you are releasing, e.g. `## [2024.10.24]`.
+2. On GitHub, create a new pull request from the current production candidate branch to the `master` branch and merge it.
+3. Manually trigger the release workflow on GitHub Actions. You'll need to input the new version number that you added to the CHANGELOG, e.g. `2024.10.24`. This will create a new release on GitHub and add the contents of the CHANGELOG to the release notes.
+
+
 ## Dagster
 
 #### Terminate all in the queue
