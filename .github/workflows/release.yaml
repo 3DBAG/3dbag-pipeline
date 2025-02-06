@@ -4,8 +4,6 @@ description: Create a new release for the 3dbag-pipeline with the specified vers
 permissions:
   contents: write
   pull-requests: write
-  id-token: write
-  checks: write
 
 on:
   workflow_dispatch:
@@ -25,6 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
