@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-core"
-version = "2024.12.15"
+version = "2024.12.16"
 description = "Workflow for producing the 3D BAG core data set"
 readme = "README.md"
 requires-python = ">=3.11"
