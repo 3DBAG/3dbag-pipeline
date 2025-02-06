@@ -24,6 +24,7 @@ dev = [
     "dagster-webserver~=1.9.4",
     "dagster-postgres~=0.25.4",
     "pytest-dotenv~=0.5.2",
+    "bumpver~=2024.1130",
 ]
 
 [tool.uv]
@@ -47,7 +48,7 @@ version_pattern = "YYYY.MM.DD"
 commit_message = "bump version {old_version} -> {new_version}"
 tag_message = "{new_version}"
 tag_scope = "default"
-pre_commit_hook = ""
+pre_commit_hook = ".github/hooks/pre-commit"
 post_commit_hook = ""
 commit = true
 tag = true

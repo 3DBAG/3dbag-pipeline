@@ -1,6 +1,9 @@
 name: Release
 description: Create a new draft release for the 3dbag-pipeline with the specified version
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -34,10 +37,15 @@ jobs:
         run: |
           bumpver update --set-version=${{ github.event.inputs.version }} --no-fetch
 
+      - name: Parse Changelog
+        run: |
+          python .github/scripts/parse_changelog.py ${{ github.event.inputs.version }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: 3DBAG ${{ github.event.inputs.version }}
-          draft: true
+          body_path: RELEASE_NOTES.md
+          draft: false
           prerelease: false
