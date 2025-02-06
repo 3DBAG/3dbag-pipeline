@@ -29,8 +29,8 @@ services:
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=200", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
     container_name: bag3d-data-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE} -U {BAG3D_PG_USER} -p 5432"]
-      interval: 3s
+      test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE} -U {BAG3D_PG_USER} -p ${BAG3D_PG_PORT_ON_HOST}"]
+      interval: 5s
       retries: 20
     shm_size: '1gb' 
     ports:
