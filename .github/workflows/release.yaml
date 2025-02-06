@@ -1,8 +1,9 @@
 name: Release
-description: Create a new draft release for the 3dbag-pipeline with the specified version
+description: Create a new release for the 3dbag-pipeline with the specified version, use the release notes from the CHANGELOG.md file and create a pull request to merge the changes back to the develop branch.
 
 permissions:
   contents: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -52,3 +53,22 @@ jobs:
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false
+
+      - name: Create Pull Request to develop
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: merge-release-back-to-develop
+          base: develop
+          title: 'Merge release ${{ github.event.inputs.version }} back to develop'
+          body: |
+            This PR merges the changes from release ${{ github.event.inputs.version }} back to the develop branch.
+
+            Changes included in this release:
+
+            ```
+            $(cat RELEASE_NOTES.md)
+            ```
+          labels: |
+            release
+            automated pr
+          delete-branch: true

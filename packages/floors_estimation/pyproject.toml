@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-floors-estimation"
-version = "2024.12.16"
+version = "2024.12.15"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.11"

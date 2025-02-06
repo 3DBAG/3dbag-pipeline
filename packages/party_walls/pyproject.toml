@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2024.12.16"
+version = "2024.12.15"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
 requires-python = ">=3.11"
