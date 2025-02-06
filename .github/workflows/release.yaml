@@ -1,0 +1,43 @@
+name: Release
+description: Create a new draft release for the 3dbag-pipeline with the specified version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '3dbag-pipeline release version (YYYY.MM.DD)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install bumpver
+        run: pip install bumpver
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Update version
+        run: |
+          bumpver update --set-version=${{ github.event.inputs.version }} --no-fetch
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: 3DBAG ${{ github.event.inputs.version }}
+          draft: true
+          prerelease: false
