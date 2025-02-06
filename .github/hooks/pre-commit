@@ -1,0 +1,7 @@
+#!/bin/bash
+
+version=$(bumpver show --no-fetch | cut -d' ' -f3)
+if ! grep -q "\[${version}\]" CHANGELOG.md; then
+    echo "Error: CHANGELOG.md has not been updated for version ${version}"
+    exit 1
+fi

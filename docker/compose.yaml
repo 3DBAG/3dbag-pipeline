@@ -62,7 +62,7 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-core.dockerfile
       args:
-        - VERSION=develop
+        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
     image: 3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
     container_name: 3dbag-pipeline-core-${BAG3D_DOCKER_IMAGE_TAG}
@@ -89,7 +89,7 @@ services:
     # dagster's DockerRunLauncher, it always starts a new container from the image, for
     # each run. While, watch:action:sync (or sync+restart)copies the changed local code into the
     # 3dbag-pipeline-core-develop container (not the image). But since DockerRunLauncher
-    # doesn't actaully use this container, but always starts a new one, we have to build
+    # doesn't actually use this container, but always starts a new one, we have to build
     # a new image on each change.
     develop:
       watch:
@@ -111,7 +111,7 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-floors-estimation.dockerfile
       args:
-        - VERSION=develop
+        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
     image: 3dbag-pipeline-floors-estimation:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
     container_name: 3dbag-pipeline-floors-estimation-${BAG3D_DOCKER_IMAGE_TAG}
@@ -154,7 +154,7 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-party-walls.dockerfile
       args:
-        - VERSION=develop
+        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
     image: 3dbag-pipeline-party-walls:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
     container_name: 3dbag-pipeline-party-walls-${BAG3D_DOCKER_IMAGE_TAG}

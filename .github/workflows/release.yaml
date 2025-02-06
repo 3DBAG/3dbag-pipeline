@@ -1,0 +1,74 @@
+name: Release
+description: Create a new release for the 3dbag-pipeline with the specified version, use the release notes from the CHANGELOG.md file and create a pull request to merge the changes back to the develop branch.
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+    branches:
+      - master
+    inputs:
+      version:
+        description: '3dbag-pipeline release version (YYYY.MM.DD)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install bumpver
+        run: pip install bumpver
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Update version
+        run: |
+          bumpver update --set-version=${{ github.event.inputs.version }} --no-fetch
+
+      - name: Parse Changelog
+        run: |
+          python .github/scripts/parse_changelog.py ${{ github.event.inputs.version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: 3DBAG ${{ github.event.inputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+
+      - name: Create Pull Request to develop
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: merge-release-back-to-develop
+          base: develop
+          title: 'Merge release ${{ github.event.inputs.version }} back to develop'
+          body: |
+            This PR merges the changes from release ${{ github.event.inputs.version }} back to the develop branch.
+
+            Changes included in this release:
+
+            ```
+            $(cat RELEASE_NOTES.md)
+            ```
+          labels: |
+            release
+            automated pr
+          delete-branch: true
