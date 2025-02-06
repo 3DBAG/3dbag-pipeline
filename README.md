@@ -43,6 +43,19 @@ You can read about the details on how can you deploy it in the [deployment secti
 
 ## Production
 
+## Integration as a library
+
+The 3dbag-pipeline can be used as a library in other projects.
+The packages can be installed directly from GitHub using specific release versions:
+
+```bash
+# Install specific release version of the common package
+pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@v2024.12.16#egg=bag3d-common&subdirectory=packages/common"
+
+# Install specific commit of the common package
+pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@<commit-hash>#egg=bag3d-common&subdirectory=packages/common"
+```
+
 ## License
 
 Licensed under either of

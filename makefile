@@ -90,11 +90,13 @@ download:
 	mkdir -p $(BAG3D_TEST_DATA)
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v7.zip ; unzip -q test_data_v7.zip ; rm test_data_v7.zip
 
-local_venv:
-	python3.11 -m venv .venv ; . .venv/bin/activate ; pip install -r $(PWD)/requirements-dev.txt
+
+install_uv:
+	curl -LsSf https://astral.sh/uv/install.sh | sh
 
 format:
-	. .venv/bin/activate ; ruff format $(PWD)/packages ; ruff check $(PWD)/packages
+	uv tool run ruff format ./packages
+	uv tool run ruff check ./packages
 
 docker_build_tools:
 	rm docker_build_tools.log || true

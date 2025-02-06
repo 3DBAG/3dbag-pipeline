@@ -35,3 +35,4 @@ docs/reference
 .tox
 .coverage
 *.ruff_cache
+*.python-version
