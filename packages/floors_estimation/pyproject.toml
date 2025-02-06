@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-floors-estimation"
-version = "2024.1003"
+version = "2024.12.16"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,12 +36,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 88
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-docstring-code-format = false
+# Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
 bag3d-common = { path = "../common", editable = true}
