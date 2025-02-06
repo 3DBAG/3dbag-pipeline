@@ -226,7 +226,7 @@ See the [branches](#branches) section for more information.
 1. Update the CHANGELOG.md file with the new version and the changes. It must include the new version number that you are releasing, e.g. `## [2024.10.24]`.
 2. On GitHub, create a new pull request from the current production candidate branch to the `master` branch and merge it.
 3. Manually trigger the release workflow on GitHub Actions. You'll need to input the new version number that you added to the CHANGELOG, e.g. `2024.10.24`. This will create a new release on GitHub and add the contents of the CHANGELOG to the release notes.
-
+4. The workflow will automatically open a pull request from `master` to `develop` to merge back the changes from the release. This is done to keep the `develop` branch up to date with the latest changes from the `master` branch. You can merge this pull request after the release is done.
 
 ## Dagster
 
