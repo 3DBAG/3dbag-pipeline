@@ -97,7 +97,6 @@ def test_all_features(context):
     assert table_exists(context, all_features_table) is True
 
 
-@pytest.mark.skip(reason="Needs fixing")
 def test_preprocessed_features(context):
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
