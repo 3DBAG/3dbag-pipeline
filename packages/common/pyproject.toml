@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-common"
-version = "2024.12.15"
+version = "2024.12.16"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
 requires-python = ">=3.11"
