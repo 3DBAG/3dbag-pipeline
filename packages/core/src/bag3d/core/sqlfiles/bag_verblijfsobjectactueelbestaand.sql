@@ -24,10 +24,15 @@ SELECT ogc_fid      AS fid
      , tijdstipnietbaglv
      , wkb_geometry AS geometrie
 FROM ${vbo_tbl}
-WHERE begingeldigheid <= NOW()
-  AND (eindgeldigheid ISNULL OR eindgeldigheid >= NOW())
-  AND (tijdstipinactief ISNULL OR tijdstipinactief <= NOW())
-  AND (status <> 'Niet gerealiseerd verblijfsobject'
-    AND status <> 'Verblijfsobject ingetrokkent'
-    AND status <> 'Verblijfsobject buiten gebruik'
-    AND status <> 'Verblijfsobject ten onrechte opgevoerd');
+WHERE (tijdstipinactieflv > ${reference_date} OR tijdstipinactieflv ISNULL)
+  AND (tijdstipnietbaglv > ${reference_date} OR tijdstipnietbaglv ISNULL)
+  AND (tijdstipregistratielv <= ${reference_date} AND
+       (tijdstipeindregistratielv > ${reference_date} OR
+        tijdstipeindregistratielv ISNULL))
+  AND (begingeldigheid <= ${reference_date} AND
+       (eidgeldigheid = begingelidgheid OR eidgeldigheid > ${reference_date} OR
+        eindgeldigheid ISNULL))
+  AND (status <> 'Niet gerealiseerd verblijfsobject' AND
+       status <> 'Verblijfsobject ingetrokkent' AND
+       status <> 'Verblijfsobject buiten gebruik' AND
+       status <> 'Verblijfsobject ten onrechte opgevoerd');
