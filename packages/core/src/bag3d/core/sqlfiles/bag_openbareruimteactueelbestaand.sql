@@ -22,7 +22,12 @@ SELECT ogc_fid      AS fid
      , tijdstipnietbaglv
      , wkb_geometry AS geometrie
 FROM ${opr_tbl}
-WHERE begingeldigheid <= ${reference_date}
-  AND (eindgeldigheid ISNULL OR eindgeldigheid >= ${reference_date})
-  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${reference_date})
+WHERE (tijdstipinactieflv > ${reference_date} OR tijdstipinactieflv ISNULL)
+  AND (tijdstipnietbaglv > ${reference_date} OR tijdstipnietbaglv ISNULL)
+  AND (tijdstipregistratielv <= ${reference_date} AND
+       (tijdstipeindregistratielv > ${reference_date} OR
+        tijdstipeindregistratielv ISNULL))
+  AND (begingeldigheid <= ${reference_date} AND
+       (eidgeldigheid = begingelidgheid OR eidgeldigheid > ${reference_date} OR
+        eindgeldigheid ISNULL))
   AND status <> 'Naamgeving ingetrokken';
