@@ -25,7 +25,7 @@ SELECT ogc_fid      AS fid
      , tijdstipnietbaglv
      , wkb_geometry AS geometrie
 FROM ${num_tbl}
-WHERE begingeldigheid <= ${pelidatum}
-  AND (eindgeldigheid ISNULL OR eindgeldigheid >= ${pelidatum})
-  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${pelidatum})
+WHERE begingeldigheid <= ${reference_date}
+  AND (eindgeldigheid ISNULL OR eindgeldigheid >= ${reference_date})
+  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${reference_date})
   AND status <> 'Naamgeving ingetrokken';

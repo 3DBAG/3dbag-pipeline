@@ -20,9 +20,9 @@ WITH repair AS (SELECT ogc_fid                                                AS
                      , tijdstipnietbaglv
                      , st_makevalid((st_dump(st_force2d(wkb_geometry))).geom) AS geometrie
                 FROM ${pand_tbl}
-                WHERE begingeldigheid <= ${pelidatum}
-                  AND (eindgeldigheid IS NULL OR eindgeldigheid >= ${pelidatum})
-                  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${pelidatum})
+                WHERE begingeldigheid <= ${reference_date}
+                  AND (eindgeldigheid IS NULL OR eindgeldigheid >= ${reference_date})
+                  AND (tijdstipinactief ISNULL OR tijdstipinactief <= ${reference_date})
                   AND (status <> 'Niet gerealiseerd pand'
                     AND status <> 'Pand gesloopt'
                     AND status <> 'Bouwvergunning verleend'))

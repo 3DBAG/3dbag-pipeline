@@ -15,7 +15,7 @@ NEW_SCHEMA = "lvbag"
     required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
     config_schema={
-        "pelidatum": Field(
+        "reference_date": Field(
             str, description="Reference date in format YYYY-MM-DD.", is_required=False
         ),
     },
@@ -25,15 +25,15 @@ def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
     existing objects."""
     create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
-    if (p := context.op_execution_context.op_config.get("pelidatum")) is not None:
-        pelidatum = datetime.strptime(p, "%Y-%m-%d")
+    if (p := context.op_execution_context.op_config.get("reference_date")) is not None:
+        reference_date = datetime.strptime(p, "%Y-%m-%d")
     else:
-        pelidatum = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
         query_params={
             "wpl_tbl": stage_bag_woonplaats,
             "new_table": new_table,
-            "pelidatum": pelidatum,
+            "reference_date": reference_date,
         },
     )
     metadata = postgrestable_from_query(context, query, new_table)
@@ -44,7 +44,7 @@ def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
     required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
     config_schema={
-        "pelidatum": Field(
+        "reference_date": Field(
             str, description="Reference date in format YYYY-MM-DD.", is_required=False
         ),
     },
@@ -52,19 +52,19 @@ def bag_woonplaatsactueelbestaand(context, stage_bag_woonplaats):
 def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings. The data can be limited to a specific reference date by setting
-    the *pelidatum* parameter."""
+    the *reference_date* parameter."""
     create_schema(context, NEW_SCHEMA)
     table_name = "verblijfsobjectactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
-    if (p := context.op_execution_context.op_config.get("pelidatum")) is not None:
-        pelidatum = datetime.strptime(p, "%Y-%m-%d")
+    if (p := context.op_execution_context.op_config.get("reference_date")) is not None:
+        reference_date = datetime.strptime(p, "%Y-%m-%d")
     else:
-        pelidatum = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
         query_params={
             "vbo_tbl": stage_bag_verblijfsobject,
             "new_table": new_table,
-            "pelidatum": pelidatum,
+            "reference_date": reference_date,
         }
     )
     metadata = postgrestable_from_query(context, query, new_table)
@@ -84,7 +84,7 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
     required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
     config_schema={
-        "pelidatum": Field(
+        "reference_date": Field(
             str, description="Reference date in format YYYY-MM-DD.", is_required=False
         ),
     },
@@ -92,19 +92,19 @@ def bag_verblijfsobjectactueelbestaand(context, stage_bag_verblijfsobject):
 def bag_pandactueelbestaand(context, stage_bag_pand):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings. The data can be limited to a specific reference date by setting
-    the *pelidatum* parameter."""
+    the *reference_date* parameter."""
     create_schema(context, NEW_SCHEMA)
     table_name = "pandactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
-    if (p := context.op_execution_context.op_config.get("pelidatum")) is not None:
-        pelidatum = datetime.strptime(p, "%Y-%m-%d")
+    if (p := context.op_execution_context.op_config.get("reference_date")) is not None:
+        reference_date = datetime.strptime(p, "%Y-%m-%d")
     else:
-        pelidatum = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
         query_params={
             "pand_tbl": stage_bag_pand,
             "new_table": new_table,
-            "pelidatum": pelidatum,
+            "reference_date": reference_date,
         }
     )
     metadata = postgrestable_from_query(context, query, new_table)
@@ -128,7 +128,7 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
     required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
     config_schema={
-        "pelidatum": Field(
+        "reference_date": Field(
             str, description="Reference date in format YYYY-MM-DD.", is_required=False
         ),
     },
@@ -136,18 +136,18 @@ def bag_pandactueelbestaand(context, stage_bag_pand):
 def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects. The data can be limited to a specific reference date by setting
-    the *pelidatum* parameter."""
+    the *reference_date* parameter."""
     create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
-    if (p := context.op_execution_context.op_config.get("pelidatum")) is not None:
-        pelidatum = datetime.strptime(p, "%Y-%m-%d")
+    if (p := context.op_execution_context.op_config.get("reference_date")) is not None:
+        reference_date = datetime.strptime(p, "%Y-%m-%d")
     else:
-        pelidatum = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
         query_params={
             "opr_tbl": stage_bag_openbareruimte,
             "new_table": new_table,
-            "pelidatum": pelidatum,
+            "reference_date": reference_date,
         },
     )
     metadata = postgrestable_from_query(context, query, new_table)
@@ -158,7 +158,7 @@ def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
     required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
     config_schema={
-        "pelidatum": Field(
+        "reference_date": Field(
             str, description="Reference date in format YYYY-MM-DD.", is_required=False
         ),
     },
@@ -166,18 +166,18 @@ def bag_openbareruimteactueelbestaand(context, stage_bag_openbareruimte):
 def bag_nummeraanduidingactueelbestaand(context, stage_bag_nummeraanduiding):
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects. The data can be limited to a specific reference date by setting
-    the *pelidatum* parameter."""
+    the *reference_date* parameter."""
     create_schema(context, NEW_SCHEMA)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
-    if (p := context.op_execution_context.op_config.get("pelidatum")) is not None:
-        pelidatum = datetime.strptime(p, "%Y-%m-%d")
+    if (p := context.op_execution_context.op_config.get("reference_date")) is not None:
+        reference_date = datetime.strptime(p, "%Y-%m-%d")
     else:
-        pelidatum = datetime.now(tz=datetime.now().astimezone().tzinfo)
+        reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
         query_params={
             "num_tbl": stage_bag_nummeraanduiding,
             "new_table": new_table,
-            "pelidatum": pelidatum,
+            "reference_date": reference_date,
         }
     )
     metadata = postgrestable_from_query(context, query, new_table)
