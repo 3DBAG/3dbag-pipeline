@@ -21,10 +21,17 @@ We use `make` for managing many commands that we use in development.
 
 ### Test data & Docker Volumes
 
+The Makefile uses two different .env files for controlling the local environment and the environment in the Docker containers.
+The `.env` file in the root directory is used for the local environment and the `docker/.env` file is used for the Docker environment.
+The values in the root `.env` file are specific to your local environment and you need to set them up yourself.
+
+```shell
+echo "BAG3D_TEST_DATA=${PWD}/tests/test_data" > .env
+```
+
 Download test data:
 
 ```shell
-export BAG3D_TEST_DATA=${PWD}/tests/test_data
 make download
 ```
 
@@ -94,17 +101,9 @@ To run a specific test, set up a run configuration with the python interpreter i
 
 For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
-### Local setup
+### Code formatting
 
-For development purposes, you should also create a local virtual environment and install the required packages from `requirements-dev.txt`.
-
-You can do this in one step with:
-
-```bash
-make local_venv
-```
-
-Then you can format you code with:
+In you have a local installation of `uv`, you can format you code with:
 
 ```
 make format
@@ -218,6 +217,16 @@ For example `Returns a collection type, storing the...`
 
 Assets are usually some results of computations, therefore their names are nouns, not verbs.
 
+
+## Release process
+
+Release always happens from the `master` branch, after merging the successful production candidate branch into `master`.
+See the [branches](#branches) section for more information.
+
+1. Update the CHANGELOG.md file with the new version and the changes. It must include the new version number that you are releasing, e.g. `## [2024.10.24]`.
+2. On GitHub, create a new pull request from the current production candidate branch to the `master` branch and merge it.
+3. Manually trigger the release workflow on GitHub Actions. You'll need to input the new version number that you added to the CHANGELOG, e.g. `2024.10.24`. This will create a new release on GitHub and add the contents of the CHANGELOG to the release notes.
+4. The workflow will automatically open a pull request from `master` to `develop` to merge back the changes from the release. This is done to keep the `develop` branch up to date with the latest changes from the `master` branch. You can merge this pull request after the release is done.
 
 ## Dagster
 

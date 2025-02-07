@@ -36,4 +36,6 @@ jobs:
             VERSION=${{ env.DOCKER_TAG }}
           push: true
           tags: 3dgi/3dbag-pipeline-tools:${{ env.DOCKER_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 

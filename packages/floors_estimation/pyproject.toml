@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-floors-estimation"
-version = "2024.1003"
+version = "2024.12.16"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
+    { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
+    { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
     { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" },
 ]
 classifiers = [
@@ -18,32 +20,23 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
-    "sklearn-pandas",
-    "scikit-learn==1.4",
-    "pandas",
-    "dagster",
-    "dagster-postgres",
+    "bag3d-common",
+    "dagster~=1.9.3",
+    "dagster-postgres~=0.25.3",
+    "pandas~=2.2.3",
+    "scikit-learn~=1.4.0",
+    "sklearn-pandas~=2.2.0",
 ]
-optional-dependencies = { dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage", "ruff"] }
 
-[tool.bumpver]
-current_version = "2024.1003"
-version_pattern = "YYYY.BUILD"
-commit_message = "bump version {old_version} -> {new_version}"
-commit = true
-tag = true
-push = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'version = "{version}"',
+[project.optional-dependencies] 
+dev = [
+    "coverage~=7.6.8",
+    "pytest~=8.3.4",
+    "pytest-dotenv~=0.5.2",
 ]
 
 [tool.ruff]
-line-length = 88
+# Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-docstring-code-format = false
+[tool.uv.sources]
+bag3d-common = { path = "../common", editable = true}

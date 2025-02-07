@@ -46,7 +46,7 @@ class HashChunkwise:
             self._method = value
         else:  # pragma: no cover
             raise ValueError(
-                f"The hashing algorithm {value} is not available in " f"hashlib."
+                f"The hashing algorithm {value} is not available in hashlib."
             )
 
     def compute(self, fpath: Path):

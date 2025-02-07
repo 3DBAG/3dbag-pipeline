@@ -9,16 +9,11 @@ Clone the repository from [https://github.com/3DBAG/3dbag-pipeline](https://gith
 
 The documentation is built with [mkdocs](https://www.mkdocs.org/) and several plugins.
 
-We recommend you install the documentation dependencies in a virtual environment. You can do this with
+
+With a local installation of `uv`, start the *mkdocs* server with:
 
 ```shell
-make local_venv
-```
-
-Start the *mkdocs* server.
-
-```shell
-mkdocs serve
+uv run mkdocs serve
 ```
 
 Verify that you can see the local documentation on `http://127.0.0.1:8000/` in your browser.

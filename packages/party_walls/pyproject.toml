@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2024.1004"
+version = "2024.12.16"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,37 +18,27 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS",
     "License :: OSI Approved :: Apache Software License"
 ]
-urls = { github = "https://github.com/3BAG/3dbag-pipeline" }
+urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@develop#egg=bag3d-common&subdirectory=packages/common",
-    "urban-morphology-3d @ git+https://github.com/3DGI/urban-morphology-3d.git@onlysharedwalls#egg=urban-morphology-3d",
-    "shapely",
-    "numpy",
-    "pandas",
-    "dagster",
-    "dagster-postgres", # always need dagster-postgres, because we are using Postgres as the dagster run storage
+    "dagster~=1.9.4",
+    "dagster-postgres~=0.25.4",
+    "numpy~=1.24.4",
+    "pandas~=2.1.0",
+    "shapely~=2.0.1",
+    "urban-morphology-3d",
+    "bag3d-common",
 ]
 
 [project.optional-dependencies] 
-dev = ["pytest", "bumpver", "tox", "pytest-dotenv", "coverage", "ruff"]
-
-[tool.bumpver]
-current_version = "2024.1004"
-version_pattern = "YYYY.BUILD"
-commit_message = "bump version {old_version} -> {new_version}"
-commit = true
-tag = true
-push = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'version = "{version}"',
+dev = [
+    "coverage~=7.6.8",
+    "pytest~=8.3.4",
+    "pytest-dotenv~=0.5.2",
 ]
 
 [tool.ruff]
-line-length = 88
+# Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-docstring-code-format = false
+[tool.uv.sources]
+urban-morphology-3d = { git = "https://github.com/3DGI/urban-morphology-3d.git", rev = "onlysharedwalls" }
+bag3d-common = { path = "../common", editable = true}

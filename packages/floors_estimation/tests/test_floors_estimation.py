@@ -18,7 +18,7 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 def test_features_file_index(context):
     """"""
     result = features_file_index(context=context)
-    assert len(result) == 412
+    assert len(result) == 419
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
 

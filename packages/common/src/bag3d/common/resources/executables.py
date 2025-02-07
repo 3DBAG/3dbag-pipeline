@@ -241,7 +241,7 @@ class AppImage:
             return stdout.decode("utf-8")
         else:
             raise RuntimeError(
-                "executable resource was not initialized with a " "docker image"
+                "executable resource was not initialized with a docker image"
             )
 
     def version(self, exe: str):
