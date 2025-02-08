@@ -27,7 +27,7 @@ logger = get_dagster_logger("ahn.tile")
     config_schema={
         "tile_size": Field(
             int,
-            default_value=100,
+            default_value=250,
             description="Set smallest spatial area indexed to tile_size by tile_size units.",
         ),
         "force": Field(
@@ -62,7 +62,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
     config_schema={
         "tile_size": Field(
             int,
-            default_value=100,
+            default_value=250,
             description="Set smallest spatial area indexed to tile_size by tile_size units.",
         ),
         "force": Field(
@@ -97,7 +97,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
     config_schema={
         "tile_size": Field(
             int,
-            default_value=100,
+            default_value=250,
             description="Set smallest spatial area indexed to tile_size by tile_size units.",
         ),
         "force": Field(
