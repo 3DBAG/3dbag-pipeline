@@ -322,12 +322,14 @@ def get_checksums(url: str) -> Mapping[str, str]:
 
 
 def download_ahn_laz(
-    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False
+    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False,
+    nr_retries: int = 5
 ) -> LAZDownload:
     """Download an AHN LAZ file from the input url to the given path,
     if the file does not exists.
 
     Args:
+        nr_retries: The number of retries to download the file.
         fpath: Path to the LAZ file that may exist locally. If not it will be downloaded.
         url_laz: Complete URL of the file to download. If provided, 'url_base' is
             ignored.
@@ -340,36 +342,47 @@ def download_ahn_laz(
 
     url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
 
+    success = False
+    file_size = 0.0
+    is_new = False
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        fpath = download_file(
-            url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
-        )
-        if fpath is None:
-            # Download failed
-            logger.warning(format_laz_log(fpath, "Downloading failed!"))
-            return LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
-            )
-        else:
-            is_new = True
+        for i in range(nr_retries):
+            try:
+                fpath = download_file(
+                    url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
+                )
+                if fpath is None:
+                    # Download failed
+                    logger.warning(format_laz_log(fpath, "Downloading failed!"))
+                    url_laz = None
+                    fpath = Path()
+                    success = False
+                    is_new = False
+                    file_size = 0.0
+                else:
+                    success = True
+                    is_new = True
+                    file_size = round(fpath.stat().st_size / 1e6, 2)
+                    break
+            except ConnectionError as e:
+                if i==4:
+                    raise e
+                else:
+                    logger.warning(f"Retrying ({i+1}/5) due to {e}")
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, "File already downloaded"))
+        success = True
+        file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
     return LAZDownload(
         url=url_laz,
         path=fpath,
-        success=True,
+        success=success,
         hash_name=None,
         hash_hexdigest=None,
         new=is_new,
-        size=round(fpath.stat().st_size / 1e6, 2),
+        size=file_size,
     )
 
 

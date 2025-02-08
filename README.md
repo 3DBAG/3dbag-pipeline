@@ -46,14 +46,15 @@ You can read about the details on how can you deploy it in the [deployment secti
 ## Integration as a library
 
 The 3dbag-pipeline can be used as a library in other projects.
-The packages can be installed directly from GitHub using specific release versions:
+The packages can be installed directly from GitHub using specific release versions.
+Note that you must use the [uv](https://docs.astral.sh/uv/) package manager to install the packages, because *pip* cannot resolve the relative package paths within this repository.
 
 ```bash
 # Install specific release version of the common package
-pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@v2024.12.16#egg=bag3d-common&subdirectory=packages/common"
+uv pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@v2024.12.16#egg=bag3d-common&subdirectory=packages/common"
 
 # Install specific commit of the common package
-pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@<commit-hash>#egg=bag3d-common&subdirectory=packages/common"
+uv pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@<commit-hash>#egg=bag3d-common&subdirectory=packages/common"
 ```
 
 ## License
