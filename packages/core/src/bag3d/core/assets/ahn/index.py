@@ -1,8 +1,10 @@
 from dagster import asset, Field, get_dagster_logger
 
-from bag3d.core.assets.ahn.core import PartitionDefinitionAHN
+from bag3d.core.assets.ahn.core import partition_definition_ahn
+
 
 logger = get_dagster_logger("ahn.index")
+
 
 @asset(
     config_schema={
@@ -18,7 +20,7 @@ logger = get_dagster_logger("ahn.index")
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn3(context, laz_files_ahn3):
     """Append a spatial index to the AHN3 LAZ file, using LASTools's `lasindex`.
@@ -53,7 +55,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn4(context, laz_files_ahn4):
     """Append a spatial index to the AHN4 LAZ file, using LASTools's `lasindex`.
@@ -88,7 +90,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
         ),
     },
     required_resource_keys={"lastools"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn5(context, laz_files_ahn5):
     """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.

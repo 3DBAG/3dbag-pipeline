@@ -7,10 +7,10 @@ from dagster import asset, Output, get_dagster_logger
 
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
-    PartitionDefinitionAHN,
     format_laz_log,
     download_ahn_index,
     ahn_laz_dir,
+    partition_definition_ahn,
 )
 
 logger = get_dagster_logger("ahn.download")
@@ -141,7 +141,7 @@ def tile_index_ahn(context):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -196,7 +196,7 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -254,7 +254,7 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def laz_files_ahn5(context, sha256_ahn5, tile_index_ahn):
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -322,8 +322,11 @@ def get_checksums(url: str) -> Mapping[str, str]:
 
 
 def download_ahn_laz(
-    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False,
-    nr_retries: int = 5
+    fpath: Path,
+    url_laz: str = None,
+    url_base: str = None,
+    verify_ssl: bool = False,
+    nr_retries: int = 5,
 ) -> LAZDownload:
     """Download an AHN LAZ file from the input url to the given path,
     if the file does not exists.
@@ -350,7 +353,10 @@ def download_ahn_laz(
         for i in range(nr_retries):
             try:
                 fpath = download_file(
-                    url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
+                    url=url,
+                    target_path=fpath,
+                    chunk_size=1024 * 1024,
+                    verify=verify_ssl,
                 )
                 if fpath is None:
                     # Download failed
@@ -366,10 +372,10 @@ def download_ahn_laz(
                     file_size = round(fpath.stat().st_size / 1e6, 2)
                     break
             except ConnectionError as e:
-                if i==4:
+                if i == 4:
                     raise e
                 else:
-                    logger.warning(f"Retrying ({i+1}/5) due to {e}")
+                    logger.warning(f"Retrying ({i + 1}/5) due to {e}")
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, "File already downloaded"))
         success = True
