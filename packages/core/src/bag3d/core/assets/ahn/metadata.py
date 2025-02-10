@@ -8,7 +8,7 @@ from psycopg.sql import Literal, SQL
 
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
-from bag3d.core.assets.ahn.core import PartitionDefinitionAHN
+from bag3d.core.assets.ahn.core import partition_definition_ahn
 
 
 @asset(required_resource_keys={"db_connection"})
@@ -41,7 +41,7 @@ def metadata_table_ahn5(context):
         ),
     },
     required_resource_keys={"pdal", "db_connection"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
@@ -64,7 +64,7 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
         ),
     },
     required_resource_keys={"pdal", "db_connection"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
@@ -87,7 +87,7 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
         ),
     },
     required_resource_keys={"pdal", "db_connection"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
 )
 def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and

@@ -8,10 +8,7 @@ from bag3d.core import AHN_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
-
-class PartitionDefinitionAHN(StaticPartitionsDefinition):
-    def __init__(self):
-        super().__init__(partition_keys=sorted(list(AHN_TILE_IDS)))
+partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
