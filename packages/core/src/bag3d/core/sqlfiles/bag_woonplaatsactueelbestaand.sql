@@ -26,6 +26,6 @@ WHERE (tijdstipinactieflv > ${reference_date} OR tijdstipinactieflv ISNULL)
        (tijdstipeindregistratielv > ${reference_date} OR
         tijdstipeindregistratielv ISNULL))
   AND (begingeldigheid <= ${reference_date} AND
-       (eindgeldigheid = begingelidgheid OR eindgeldigheid > ${reference_date} OR
+       (eindgeldigheid = begingeldigheid OR eindgeldigheid > ${reference_date} OR
         eindgeldigheid ISNULL))
   AND status <> 'Woonplaats ingetrokken';
