@@ -30,7 +30,7 @@ WHERE (tijdstipinactieflv > ${reference_date} OR tijdstipinactieflv ISNULL)
        (tijdstipeindregistratielv > ${reference_date} OR
         tijdstipeindregistratielv ISNULL))
   AND (begingeldigheid <= ${reference_date} AND
-       (eidgeldigheid = begingelidgheid OR eidgeldigheid > ${reference_date} OR
+       (eindgeldigheid = begingelidgheid OR eindgeldigheid > ${reference_date} OR
         eindgeldigheid ISNULL))
   AND (status <> 'Niet gerealiseerd verblijfsobject' AND
        status <> 'Verblijfsobject ingetrokkent' AND

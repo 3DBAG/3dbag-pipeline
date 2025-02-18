@@ -28,8 +28,8 @@ WITH repair AS (SELECT ogc_fid                                                AS
                        (tijdstipeindregistratielv > ${reference_date} OR
                         tijdstipeindregistratielv ISNULL))
                   AND (begingeldigheid <= ${reference_date} AND
-                       (eidgeldigheid = begingelidgheid OR
-                        eidgeldigheid > ${reference_date} OR eindgeldigheid ISNULL))
+                       (eindgeldigheid = begingelidgheid OR
+                        eindgeldigheid > ${reference_date} OR eindgeldigheid ISNULL))
                   AND (status <> 'Niet gerealiseerd pand' AND
                        status <> 'Pand gesloopt' AND
                        status <> 'Bouwvergunning verleend'))
