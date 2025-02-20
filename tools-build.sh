@@ -337,16 +337,16 @@ fi
 if [ "$build_val3dity" = true ] ; then
   printf "\n\nInstalling Val3dity...\n\n"
   cd $root_dir || exit
-  apt install libeigen3-dev libgeos++-dev  libcgal-dev
+  apt install libeigen3-dev libgeos++-dev  libcgal-dev -y
   wget --no-verbose https://github.com/tudelft3d/val3dity/archive/refs/tags/${val3dity_version}.zip -O ${val3dity_version}.zip
   unzip -q ${val3dity_version}.zip
   mkdir val3dity-${val3dity_version}/build
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -S val3dity-{val3dity_version} \
-    -B val3dity-{val3dity_version}/build
-  cmake --build val3dity-{val3dity_version}/build -j $jobs --target install --config Release
+    -S val3dity-${val3dity_version} \
+    -B val3dity-${val3dity_version}/build
+  cmake --build val3dity-${val3dity_version}/build -j $jobs --target install --config Release
   rm -rf val3dity-${val3dity_version}
   rm ${val3dity_version}.zip
 fi
