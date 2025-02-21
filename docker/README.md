@@ -21,6 +21,14 @@ The 3dbag-pipeline calls several tools in a subprocess, e.g. roofer, tyler, gdal
 We maintain a builder image in `docker/tools/Dockerfile` with all of these tools installed,
 and use it as a base image for building the images of the workflow packages (`core`, `floors_estimation`, `party_walls`).
 
+If you need to add a new tool to be used in the pipeline you can one of the following : 
+
+1. If there is a image available for the tool you can make sure it is used when building the `3dbag-pipeline-tools` image by making the necessary modifications in the `docker/tools/Dockerfile` (as it is done for example for tyler)
+2. If no image is available, you should update the `tools-build.sh` and `tools-test.sh` files which are used when building the `3dbag-pipeline-tools` image. You should also modify the command in `docker/tools/Dockerfile` to ensure the new tools are installed.
+
+After you test locally that the image can be build successfully you can merge to `develop`. Then a gh action will triggered and a new `3dbag-pipeline-tools` image with today's date will be pushed to Dockerhub. Once that's done, you can update the tools image version in the workflow images and push those changes.
+
+
 [`3dgi/3dbag-pipeline-core`](https://hub.docker.com/r/3dgi/3dbag-pipeline-core) 
 
 Contains the `core` package, based on `3dgi/3dbag-pipeline-tools`. 

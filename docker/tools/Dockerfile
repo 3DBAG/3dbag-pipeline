@@ -46,6 +46,8 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-gdal \
     --build-lastools \
     --build-pdal \
+    --build-val3dity \
+    --build-cjval \
     --jobs $JOBS \
     --clean
 
