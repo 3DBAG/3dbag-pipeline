@@ -156,6 +156,13 @@ handle_options() {
 handle_options "$@"
 cd $root_dir || exit
 
+# Install Rust and Cargo
+if ! command -v cargo &> /dev/null; then
+  printf "\n\nInstalling Rust and Cargo...\n\n"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  source $HOME/.cargo/env
+fi
+
 if [ "$build_tyler" = true ] ; then
   printf "\n\nInstalling Tyler...\n\n"
   cd $root_dir || exit
