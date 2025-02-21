@@ -337,7 +337,8 @@ fi
 if [ "$build_val3dity" = true ] ; then
   printf "\n\nInstalling Val3dity...\n\n"
   cd $root_dir || exit
-  apt install libeigen3-dev libgeos++-dev  libcgal-dev -y
+  apt update -y
+  apt install libeigen3-dev libgeos++-dev  libcgal-dev  build-essential libboost-all-dev -y
   wget --no-verbose https://github.com/tudelft3d/val3dity/archive/refs/tags/${val3dity_version}.zip -O ${val3dity_version}.zip
   unzip -q ${val3dity_version}.zip
   mkdir val3dity-${val3dity_version}/build
@@ -354,7 +355,7 @@ fi
 if [ "$build_cjval" = true ] ; then
   printf "\n\nInstalling cjval...\n\n"
   cd $root_dir || exit
-  cargo install  \
+  cargo install \
     --root . \
     cjval \
     --features build-binary
