@@ -344,6 +344,7 @@ def cityjson(
 
 
 def obj(
+    validation: AppImage,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -437,7 +438,8 @@ def obj(
             try:
                 cmd = " ".join(
                     [
-                        "/opt/bin/val3dity",
+                        "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
+                        "{exe}",
                         "--planarity_n_tol",
                         str(planarity_n_tol),
                         "--planarity_d2p_tol",
@@ -447,7 +449,13 @@ def obj(
                         str(inputfile),
                     ]
                 )
-                execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+
+                returncode, output = validation.execute(
+                    "val3dity", command=cmd, local_path=str(dirpath)
+                )
+                results.file_ok = (
+                    False if returncode != 0 or "error" in output.lower() else True
+                )
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
 
@@ -573,9 +581,6 @@ def gpkg(
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            output, returncode = execute_shell_command_silent(
-                shell_command=cmd, cwd=str(dirpath)
-            )
             returncode, output = gdal.execute(
                 "ogrinfo", command=cmd, local_path=str(dirpath)
             )
@@ -636,7 +641,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, dirpath, tile_id, url_root, version = input
+    gdal, validation, dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -649,6 +654,7 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     obj_results = obj(
+        validation,
         dirpath,
         file_id,
         planarity_n_tol=planarity_n_tol,
@@ -666,7 +672,7 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store", "version", "gdal"},
+    required_resource_keys={"file_store", "version", "gdal", "validation"},
 )
 def compressed_tiles_validation(
     context: OpExecutionContext, export_index: Path, metadata: Path
@@ -700,12 +706,14 @@ def compressed_tiles_validation(
         version = metadata_json["identificationInfo"]["citation"]["edition"]
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
+    validation = context.resources.validation.app
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
         tileids = [
             (
                 gdal,
+                validation,
                 path_export_dir.joinpath("tiles", row[0]),
                 row[0],
                 url_root,
