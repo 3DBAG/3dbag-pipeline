@@ -22,6 +22,7 @@ build_geotiff=false
 build_pdal=false
 build_val3dity=false
 build_cjval=false
+build_cjio=false
 
 geos_version="3.12.1"
 geotiff_version="1.7.3"
@@ -57,6 +58,7 @@ usage() {
  echo " --build-pdal              Build PDAL"
  echo " --build-val3dity          Build Val3dity"
  echo " --build-cjval             Build cjval"
+ echo " --build-cjio              Build cjio"
 }
 
 has_argument() {
@@ -108,6 +110,7 @@ handle_options() {
         build_pdal=true
         build_val3dity=true
         build_cjval=true
+        build_cjio=true
         ;;
       --build-tyler)
         build_tyler=true
@@ -141,6 +144,9 @@ handle_options() {
         ;;
       --build-cjval)
         build_cjval=true
+        ;;
+      --build-cjio)
+        build_cjio=true
         ;;
       *)
         echo "Invalid option: $1" >&2
@@ -344,8 +350,6 @@ fi
 if [ "$build_val3dity" = true ] ; then
   printf "\n\nInstalling Val3dity...\n\n"
   cd $root_dir || exit
-  apt update -y
-  apt install libeigen3-dev libgeos++-dev  libcgal-dev  build-essential libboost-all-dev -y
   wget --no-verbose https://github.com/tudelft3d/val3dity/archive/refs/tags/${val3dity_version}.zip -O ${val3dity_version}.zip
   unzip -q ${val3dity_version}.zip
   mkdir val3dity-${val3dity_version}/build
@@ -366,6 +370,12 @@ if [ "$build_cjval" = true ] ; then
     --root . \
     cjval \
     --features build-binary
+fi
+
+if [ "$build_cjio" = true ] ; then
+  printf "\n\nInstalling cjio...\n\n"
+  pipx install cjio
+  pipx ensurepath
 fi
 
 if [ "$clean_up" = true ] ; then
