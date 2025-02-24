@@ -73,6 +73,7 @@ class OBJFileResults:
 
     Attributes:
         zip_ok (bool): Whether the file is successfully compressed.
+        file_ok (bool): Whether the OBJ file itself is valid.
         nr_building (int): Number of building features.
         nr_buildingpart (int): Number of building part features.
         nr_invalid_building (int): Number of invalid building features. If any of the
@@ -88,6 +89,7 @@ class OBJFileResults:
     """
 
     zip_ok: bool = None
+    file_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_building: int = None
@@ -162,6 +164,7 @@ class TileResults:
 
 
 def cityjson(
+    validation: AppImage,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -254,7 +257,7 @@ def cityjson(
     try:
         cmd = " ".join(
             [
-                "/opt/bin/val3dity",
+                "{exe}",
                 "--planarity_n_tol",
                 str(planarity_n_tol),
                 "--planarity_d2p_tol",
@@ -264,7 +267,13 @@ def cityjson(
                 str(inputfile),
             ]
         )
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+
+        returncode, output = validation.execute(
+            "val3dity", command=cmd, local_path=str(dirpath)
+        )
+        results.file_ok = (
+            False if returncode != 0 or "error" in output.lower() else True
+        )
         with reportfile.open("r") as fo:
             report = json.load(fo)
             nr_invalid_building = 0
@@ -438,7 +447,6 @@ def obj(
             try:
                 cmd = " ".join(
                     [
-                        "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                         "{exe}",
                         "--planarity_n_tol",
                         str(planarity_n_tol),
@@ -517,13 +525,6 @@ def gpkg(
     url_root: str,
     version: str,
 ) -> GPKGFileResults:
-    results = {
-        "gpkg_zip_ok": None,
-        "gpkg_ok": None,
-        "gpkg_nr_features": None,
-        "gpkg_sha256": None,
-        "gpkg_download": None,
-    }
     results = GPKGFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
     inputfile = dirpath.joinpath(file_id).with_suffix(".gpkg")
