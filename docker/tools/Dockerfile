@@ -25,7 +25,8 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     apt-get -y install libgeos-dev libgeos++-dev sqlite3 \
     libsqlite3-dev libtiff-dev libproj-dev libproj25 libpq5 libpq-dev libpqxx-dev \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
-    libxml++2.6-dev parallel
+    libxml++2.6-dev parallel libeigen3-dev libcgal-dev build-essential libboost-all-dev\
+    pipx
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.27 /uv /bin/uv
 # Python 3.11 is currently required by the party_walls package
@@ -48,6 +49,7 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-pdal \
     --build-val3dity \
     --build-cjval \
+    --build-cjio \
     --jobs $JOBS \
     --clean
 
