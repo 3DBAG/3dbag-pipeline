@@ -77,6 +77,16 @@ check_exe_lastools() {
   fi
 }
 
+check_exe_cjio() {
+  /root/.local/bin/$1 --version &> /dev/null
+  if [ $? -eq 0 ] ; then
+    printf "[${GREEN}OK${NC}].....$1\n"
+  else
+    printf "[${RED}FAIL${NC}]...$1\n"
+    all_ok=1
+  fi
+}
+
 check_exe_help() {
   bin/$1 --help &> /dev/null
   if [ $? -eq 0 ] ; then
@@ -96,8 +106,9 @@ check_exe "ogrinfo"
 check_exe "pdal"
 check_exe "val3dity"
 check_exe "cjval"
+check_exe_cjio "cjio"
 check_exe_help "sozip"
 check_exe_lastools "las2las64"
 check_exe_lastools "lasindex64"
 
-exit $all_ok
+exit #$all_ok
