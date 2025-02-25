@@ -5,7 +5,7 @@ def test_obj(context, test_data_dir):
     res = validate.obj(
         context.resources.validation.app,
         test_data_dir
-        / "reconstruction_input/3DBAG/export_test_version/tiles/10/564/624/",
+        / "validation_input/",
         "10-564-624",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
@@ -20,7 +20,7 @@ def test_gpkg(context, test_data_dir):
     res = validate.gpkg(
         context.resources.gdal.app,
         test_data_dir
-        / "reconstruction_input/3DBAG/export_test_version/tiles/10/564/624/",
+        / "validation_input/",
         "10-564-624",
         "https://data.3dbag.nl",
         "test",
@@ -33,7 +33,7 @@ def test_cityjson(context, test_data_dir):
     res = validate.cityjson(
         context.resources.validation.app,
         test_data_dir
-        / "reconstruction_input/3DBAG/export_test_version/tiles/10/564/624/",
+        / "validation_input/",
         "10-564-624",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
