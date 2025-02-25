@@ -429,12 +429,13 @@ class TylerResource(ConfigurableResource):
 class ValidationResource(ConfigurableResource):
     """
     A ValidationResource can be configured by providing the paths to
-    the val3dity and cjval executables on the local system.
+    the val3dity, cjval and cjio executables on the local system.
 
     For the local exes you can use:
 
         validation_resource = ValidationResource(exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
-                                               exe_cjval=os.getenv("EXE_PATH_CJVAL"))
+                                                 exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+                                                 exe_cjio=os.getenv("EXE_PATH_CJIO"))
 
     After the resource has been instantiated, val3dity (AppImage) can
     be acquired with the `app` property:
@@ -444,10 +445,15 @@ class ValidationResource(ConfigurableResource):
 
     exe_val3dity: Optional[str] = None
     exe_cjval: Optional[str] = None
+    exe_cjio: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {"val3dity": self.exe_val3dity, "cjval": self.exe_cjval}
+        return {
+            "val3dity": self.exe_val3dity,
+            "cjval": self.exe_cjval,
+            "cjio": self.exe_cjio,
+        }
 
     @property
     def with_docker(self) -> bool:

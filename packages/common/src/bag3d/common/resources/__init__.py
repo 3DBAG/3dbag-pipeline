@@ -78,6 +78,7 @@ geoflow = GeoflowResource(
 validation = ValidationResource(
     exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
     exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+    exe_cjio=os.getenv("EXE_PATH_CJIO"),
 )
 
 

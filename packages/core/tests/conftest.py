@@ -37,9 +37,11 @@ def gdal():
 def validation():
     exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
     exe_cjval = os.getenv("EXE_PATH_CJVAL")
+    exe_cjio = os.getenv("EXE_PATH_CJIO")
     yield ValidationResource(
         exe_val3dity=exe_val3dity,
         exe_cjval=exe_cjval,
+        exe_cjio=exe_cjio,
     )
 
 

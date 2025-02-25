@@ -217,14 +217,14 @@ def cityjson(
     try:
         cmd = " ".join(
             [
-                "/root/.local/bin/cjio",
+                "{exe}",
                 str(inputfile),
                 "info",
                 "--long",
             ]
         )
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
+        output, returncode = validation.execture(
+            "cjio", command=cmd, local_path=str(dirpath)
         )
         try:
             results.nr_building = int(
