@@ -18,6 +18,7 @@ class CityJSONFileResults:
 
     Attributes:
         zip_ok (bool): Whether the file is successfully compressed.
+        file_ok (bool): Whether the CityJSON file itself is valid.
         nr_building (int): Number of building features.
         nr_buildingpart (int): Number of building part features.
         nr_invalid_building (int): Number of invalid building features. If any of the
@@ -45,6 +46,7 @@ class CityJSONFileResults:
     """
 
     zip_ok: bool = None
+    file_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_building: int = None
@@ -215,7 +217,7 @@ def cityjson(
     try:
         cmd = " ".join(
             [
-                "/home/bdukai/software/3dbag-pipeline/venvs/venv_core/bin/cjio",
+                "/root/.local/bin/cjio",
                 str(inputfile),
                 "info",
                 "--long",
@@ -326,7 +328,7 @@ def cityjson(
             results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
             results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
         reportfile.unlink()
-        logfile.unlink()
+        logfile.unlink(missing_ok=True)
     except Exception:
         reportfile.unlink(missing_ok=True)
         logfile.unlink(missing_ok=True)
@@ -335,9 +337,9 @@ def cityjson(
 
     # cjval
     try:
-        cmd = " ".join(["/opt/bin/cjval", str(inputfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
+        cmd = " ".join(["{exe}", str(inputfile)])
+        returncode, output = validation.execute(
+            "cjval", command=cmd, local_path=str(dirpath)
         )
         pos = output.find("SUMMARY")
         summary = output[pos:]
@@ -503,7 +505,7 @@ def obj(
                     results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
                     results.errors_lod22 = list(errors_lod22)
                 reportfile.unlink()
-                logfile.unlink()
+                logfile.unlink(missing_ok=True)
             except Exception:
                 reportfile.unlink(missing_ok=True)
                 logfile.unlink(missing_ok=True)

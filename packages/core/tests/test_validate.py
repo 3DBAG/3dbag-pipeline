@@ -29,18 +29,17 @@ def test_gpkg(context, test_data_dir):
     assert res.file_ok
 
 
-# def test_cityjson(context, test_data_dir):
-#     res = validate.cityjson(
-#         context.resources.validation.app,
-#         test_data_dir
-#         / "reconstruction_input/3DBAG/export_test_version/tiles/10/564/624/",
-#         "10-564-624",
-#         planarity_n_tol=20.0,
-#         planarity_d2p_tol=0.001,
-#         url_root="https://data.3dbag.nl",
-#         version="test",
-#     )
-#     print(res)
-#     assert res.zip_ok
-#     assert res.sha256 is not None
-#     assert 1 == 0
+def test_cityjson(context, test_data_dir):
+    res = validate.cityjson(
+        context.resources.validation.app,
+        test_data_dir
+        / "reconstruction_input/3DBAG/export_test_version/tiles/10/564/624/",
+        "10-564-624",
+        planarity_n_tol=20.0,
+        planarity_d2p_tol=0.001,
+        url_root="https://data.3dbag.nl",
+        version="test",
+    )
+    assert res.zip_ok
+    assert res.sha256 is not None
+    assert not res.file_ok
