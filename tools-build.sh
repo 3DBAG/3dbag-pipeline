@@ -31,7 +31,7 @@ lastools_version="2.0.3"
 gdal_version="3.8.5"
 pdal_version="2.8.0"
 geoflow_bundle_version="2024.08.09"
-val3dity_version="2.5.1"
+val3dity_version="2.4.0"
 
 jobs=8
 root_dir=$PWD
