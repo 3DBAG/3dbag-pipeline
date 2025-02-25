@@ -4,8 +4,10 @@ For the changes in the 3DBAG data set, see the [3DBAG release notes](https://doc
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2025.02.14]
-Install cjval, val3dity & cjio in tools images
+## [2025.02.24]
+    - Install cjval, val3dity & cjio in tools image (2025.02.24)
+    - Validation resource
+    - test data v9
 
 ## [2024.12.16]
 
