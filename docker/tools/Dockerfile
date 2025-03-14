@@ -135,6 +135,7 @@ RUN uv venv --python 3.12 $VIRTUAL_ENV
 COPY docker/tools/requirements.txt .
 RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
 
+
 FROM dagster AS cjval
 
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
