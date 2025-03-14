@@ -129,10 +129,6 @@ ENV DAGSTER_HOME=/opt/dagster/dagster_home/
 
 RUN mkdir -p $DAGSTER_HOME && \
     touch $DAGSTER_HOME/dagster.yaml
-#RUN useradd -ms /bin/sh -u 1001 bag3d && \
-#    chown -R bag3d /opt/3dbag-pipeline && \
-#    chown -R bag3d $DAGSTER_HOME
-#USER bag3d
 
 # Create a virtual environment, otherwise python complains
 RUN uv venv --python 3.12 $VIRTUAL_ENV
