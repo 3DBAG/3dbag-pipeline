@@ -48,7 +48,6 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-lastools \
     --build-pdal \
     --build-val3dity \
-    --build-cjval \
     --build-cjio \
     --jobs $JOBS \
     --clean
@@ -142,7 +141,13 @@ COPY docker/tools/requirements.txt .
 RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
 
 
-FROM dagster AS test-tools
+FROM dagster AS cjval
+
+ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
+
+COPY --from=tudelft3d/cjval:0.8.2 /usr/local/bin/cjval $BAG3D_PIPELINE_LOCATION/tools/bin/cjval
+
+FROM cjval AS test-tools
 # Clean up the image
 RUN rm -rf $HOME/.cache/*; \
     apt-get -y remove \
