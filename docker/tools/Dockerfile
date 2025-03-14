@@ -56,7 +56,6 @@ ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
 ENV PROJ_DATA=/usr/share/proj
 RUN echo $BAG3D_PIPELINE_LOCATION/tools/lib >> /etc/ld.so.conf.d/3dbag-pipeline-tools.conf
 
-
 FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
