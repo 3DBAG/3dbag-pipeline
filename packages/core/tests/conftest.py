@@ -5,6 +5,7 @@ import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
+    ValidationResource,
 )
 
 from bag3d.common.resources.files import FileStoreResource
@@ -32,6 +33,18 @@ def gdal():
     )
 
 
+@pytest.fixture(scope="session")
+def validation():
+    exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
+    exe_cjval = os.getenv("EXE_PATH_CJVAL")
+    exe_cjio = os.getenv("EXE_PATH_CJIO")
+    yield ValidationResource(
+        exe_val3dity=exe_val3dity,
+        exe_cjval=exe_cjval,
+        exe_cjio=exe_cjio,
+    )
+
+
 @pytest.fixture(scope="function")
 def wkt_testarea():
     """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
@@ -52,7 +65,7 @@ def file_store(tmp_path):
 
 
 @pytest.fixture
-def context(database, wkt_testarea, file_store, gdal):
+def context(database, wkt_testarea, file_store, gdal, validation):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -64,6 +77,7 @@ def context(database, wkt_testarea, file_store, gdal):
         },
         resources={
             "gdal": gdal,
+            "validation": validation,
             "db_connection": database,
             "file_store": file_store,
             "version": "test_version",

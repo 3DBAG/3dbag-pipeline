@@ -6,6 +6,7 @@ from bag3d.common.resources.executables import (
     GDALResource,
     TylerResource,
     RooferResource,
+    ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
@@ -62,6 +63,11 @@ def test_integration_reconstruction_and_export(
             data_dir=str(test_data_dir / "integration_core")
         ),
         "version": VersionResource("test_version"),
+        "validation": ValidationResource(
+            exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
+            exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+            exe_cjio=os.getenv("EXE_PATH_CJIO"),
+        ),
     }
 
     all_reconstruction_assets = load_assets_from_package_module(

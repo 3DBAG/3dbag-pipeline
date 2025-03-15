@@ -18,6 +18,7 @@ class CityJSONFileResults:
 
     Attributes:
         zip_ok (bool): Whether the file is successfully compressed.
+        file_ok (bool): Whether the CityJSON file itself is valid.
         nr_building (int): Number of building features.
         nr_buildingpart (int): Number of building part features.
         nr_invalid_building (int): Number of invalid building features. If any of the
@@ -45,6 +46,7 @@ class CityJSONFileResults:
     """
 
     zip_ok: bool = None
+    file_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_building: int = None
@@ -73,6 +75,7 @@ class OBJFileResults:
 
     Attributes:
         zip_ok (bool): Whether the file is successfully compressed.
+        file_ok (bool): Whether the OBJ file itself is valid.
         nr_building (int): Number of building features.
         nr_buildingpart (int): Number of building part features.
         nr_invalid_building (int): Number of invalid building features. If any of the
@@ -88,6 +91,7 @@ class OBJFileResults:
     """
 
     zip_ok: bool = None
+    file_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_building: int = None
@@ -162,6 +166,7 @@ class TileResults:
 
 
 def cityjson(
+    validation: AppImage,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -212,14 +217,14 @@ def cityjson(
     try:
         cmd = " ".join(
             [
-                "/home/bdukai/software/3dbag-pipeline/venvs/venv_core/bin/cjio",
+                "{exe}",
                 str(inputfile),
                 "info",
                 "--long",
             ]
         )
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
+        output, returncode = validation.execture(
+            "cjio", command=cmd, local_path=str(dirpath)
         )
         try:
             results.nr_building = int(
@@ -254,7 +259,7 @@ def cityjson(
     try:
         cmd = " ".join(
             [
-                "/opt/bin/val3dity",
+                "{exe}",
                 "--planarity_n_tol",
                 str(planarity_n_tol),
                 "--planarity_d2p_tol",
@@ -264,7 +269,13 @@ def cityjson(
                 str(inputfile),
             ]
         )
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+
+        returncode, output = validation.execute(
+            "val3dity", command=cmd, local_path=str(dirpath)
+        )
+        results.file_ok = (
+            False if returncode != 0 or "error" in output.lower() else True
+        )
         with reportfile.open("r") as fo:
             report = json.load(fo)
             nr_invalid_building = 0
@@ -317,7 +328,7 @@ def cityjson(
             results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
             results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
         reportfile.unlink()
-        logfile.unlink()
+        logfile.unlink(missing_ok=True)
     except Exception:
         reportfile.unlink(missing_ok=True)
         logfile.unlink(missing_ok=True)
@@ -326,9 +337,9 @@ def cityjson(
 
     # cjval
     try:
-        cmd = " ".join(["/opt/bin/cjval", str(inputfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
+        cmd = " ".join(["{exe}", str(inputfile)])
+        returncode, output = validation.execute(
+            "cjval", command=cmd, local_path=str(dirpath)
         )
         pos = output.find("SUMMARY")
         summary = output[pos:]
@@ -344,6 +355,7 @@ def cityjson(
 
 
 def obj(
+    validation: AppImage,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -437,7 +449,7 @@ def obj(
             try:
                 cmd = " ".join(
                     [
-                        "/opt/bin/val3dity",
+                        "{exe}",
                         "--planarity_n_tol",
                         str(planarity_n_tol),
                         "--planarity_d2p_tol",
@@ -447,7 +459,13 @@ def obj(
                         str(inputfile),
                     ]
                 )
-                execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+
+                returncode, output = validation.execute(
+                    "val3dity", command=cmd, local_path=str(dirpath)
+                )
+                results.file_ok = (
+                    False if returncode != 0 or "error" in output.lower() else True
+                )
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
 
@@ -487,7 +505,7 @@ def obj(
                     results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
                     results.errors_lod22 = list(errors_lod22)
                 reportfile.unlink()
-                logfile.unlink()
+                logfile.unlink(missing_ok=True)
             except Exception:
                 reportfile.unlink(missing_ok=True)
                 logfile.unlink(missing_ok=True)
@@ -509,13 +527,6 @@ def gpkg(
     url_root: str,
     version: str,
 ) -> GPKGFileResults:
-    results = {
-        "gpkg_zip_ok": None,
-        "gpkg_ok": None,
-        "gpkg_nr_features": None,
-        "gpkg_sha256": None,
-        "gpkg_download": None,
-    }
     results = GPKGFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
     inputfile = dirpath.joinpath(file_id).with_suffix(".gpkg")
@@ -572,9 +583,6 @@ def gpkg(
                     sql_buildingpart_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
-            )
-            output, returncode = execute_shell_command_silent(
-                shell_command=cmd, cwd=str(dirpath)
             )
             returncode, output = gdal.execute(
                 "ogrinfo", command=cmd, local_path=str(dirpath)
@@ -636,7 +644,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, dirpath, tile_id, url_root, version = input
+    gdal, validation, dirpath, tile_id, url_root, version = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -649,6 +657,7 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     obj_results = obj(
+        validation,
         dirpath,
         file_id,
         planarity_n_tol=planarity_n_tol,
@@ -666,7 +675,7 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store", "version", "gdal"},
+    required_resource_keys={"file_store", "version", "gdal", "validation"},
 )
 def compressed_tiles_validation(
     context: OpExecutionContext, export_index: Path, metadata: Path
@@ -700,12 +709,14 @@ def compressed_tiles_validation(
         version = metadata_json["identificationInfo"]["citation"]["edition"]
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
+    validation = context.resources.validation.app
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
         tileids = [
             (
                 gdal,
+                validation,
                 path_export_dir.joinpath("tiles", row[0]),
                 row[0],
                 url_root,

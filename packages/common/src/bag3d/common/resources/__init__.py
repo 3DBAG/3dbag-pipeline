@@ -8,6 +8,7 @@ from bag3d.common.resources.executables import (
     TylerResource,
     RooferResource,
     GeoflowResource,
+    ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
@@ -74,6 +75,12 @@ geoflow = GeoflowResource(
     flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
 )
 
+validation = ValidationResource(
+    exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
+    exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+    exe_cjio=os.getenv("EXE_PATH_CJIO"),
+)
+
 
 resource_defs = {
     "gdal": gdal,
@@ -84,6 +91,7 @@ resource_defs = {
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
+    "validation": validation,
     "roofer": roofer,
     "version": version,
 }
@@ -98,6 +106,7 @@ resource_defs = {
 #     "lastools": lastools,
 #     "tyler": tyler,
 #     "geoflow": geoflow,
+#     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
 # }
@@ -111,6 +120,7 @@ resource_defs = {
 #     "lastools": lastools,
 #     "tyler": tyler,
 #     "geoflow": geoflow,
+#     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
 # }
@@ -124,6 +134,7 @@ resource_defs = {
 #     "lastools": LASToolsResource(),
 #     "tyler": TylerResource(),
 #     "geoflow": GeoflowResource(),
+#     "validation": ValidationResource(),
 #     "roofer": RooferResource(),
 #     "version": VersionResource(),
 # }
