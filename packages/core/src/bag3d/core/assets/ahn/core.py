@@ -61,7 +61,7 @@ def download_ahn_index(
         "requestedEpsg": "28992",
         "outputFormat": "application/json",
         "CountDefault": "2000",
-        "typeName": "layerId_1e56b6d6-3802-4246-a7ed-8f49824b85db",
+        "typeName": "layerId_05931403-2510-43af-9cc3-f60a066d4482",
     }
     logger.info(f"Downloading the AHN tile boundaries from {service_url}")
 
