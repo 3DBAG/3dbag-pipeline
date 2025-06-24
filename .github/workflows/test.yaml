@@ -31,7 +31,7 @@ jobs:
         make docker_volume_create
         make docker_up
     - name: Run unit tests
-      run: make test
+      run: make test_slow
     - name: Recreate volumes
       run: |
         make docker_down
