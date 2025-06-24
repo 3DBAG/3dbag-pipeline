@@ -118,6 +118,7 @@ RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts && \
 
 
 FROM geoflow-old AS dagster
+
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 # Activate the virtual environment
