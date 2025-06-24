@@ -20,13 +20,15 @@ from bag3d.common.types import PostgresTableIdentifier
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
     ],
+    required_resource_keys={"version"},
 )
 def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
-    output_tarfile = export_dir.parent / "export.tar.gz"
+    version = context.resources.version.version
+    output_tarfile = export_dir.parent / f"export_{version}.tar.gz"
     with tarfile.open(output_tarfile, "w:gz") as tar:
-        tar.add(export_dir, arcname="export")
+        tar.add(export_dir, arcname=f"export_{version}")
     metadata_output = {
         "size [Gb]": output_tarfile.stat().st_size * 1e-9,
         "path": str(output_tarfile),

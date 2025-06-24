@@ -7,6 +7,8 @@ from bag3d.common.resources.executables import (
     GDALResource,
     ValidationResource,
 )
+from bag3d.common.resources.version import VersionResource
+
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -80,7 +82,7 @@ def context(database, wkt_testarea, file_store, gdal, validation):
             "validation": validation,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
         },
     )
 
@@ -99,7 +101,7 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
         },
     )
 

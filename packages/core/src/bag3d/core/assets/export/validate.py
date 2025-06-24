@@ -223,7 +223,7 @@ def cityjson(
                 "--long",
             ]
         )
-        output, returncode = validation.execture(
+        output, returncode = validation.execute(
             "cjio", command=cmd, local_path=str(dirpath)
         )
         try:
