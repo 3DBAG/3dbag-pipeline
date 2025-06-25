@@ -64,7 +64,8 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-core.dockerfile
       args:
-        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
+        VERSION: ${BAG3D_DOCKER_IMAGE_TAG}
+        SSH_KEY: ${SSH_KEY}
     image: 3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
     container_name: 3dbag-pipeline-core-${BAG3D_DOCKER_IMAGE_TAG}
