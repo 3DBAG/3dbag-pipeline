@@ -47,7 +47,7 @@ docker_up_nobuild:
 	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
 
 docker_watch:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
+	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
 
 docker_build:
 	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
