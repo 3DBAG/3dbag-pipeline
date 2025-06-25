@@ -50,7 +50,6 @@ class Attributes:
     geconstateerd: bool
     identificatie: str
     oorspronkelijkbouwjaar: int
-    rf_force_lod11: bool
     status: str
     tijdstipeindregistratielv: str
     tijdstipinactief: str
