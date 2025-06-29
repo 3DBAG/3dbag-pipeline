@@ -1,17 +1,41 @@
-from bag3d.core.assets.deploy.godzilla import compressed_export_nl
+from bag3d.core.assets.deploy.godzilla import (
+    compressed_export_nl,
+    downloadable_godzilla,
+)
 from pathlib import Path
-import pytest
 
 
-@pytest.mark.slow
-def test_compressed_export_nl(context, test_data_dir):
-    export_dir = (
-        test_data_dir / "reconstruction_input" / "3DBAG" / "export_test_version"
-    )
+def test_downloadable_godzilla(context, test_data_dir):
+    # Create deployment dir
+    export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create an empty file within the directory
+    empty_file = export_dir / "dummy.txt"
+    empty_file.touch()
+
+    # compress the export dir
     res = compressed_export_nl(context, export_dir)
 
-    path = Path(res.metadata["path"].text)
-    assert path.exists()  # Check that the file was created
+    compressed_file = Path(res.metadata["path"].text)
+    assert compressed_file.exists()  # Check that the file was created
+
+    # Create a mock metadata file
+    metadata_file = test_data_dir / "deployment" / "3DBAG" / "metadata.json"
+    metadata_file.touch()
+    metadata_file.write_text(
+        '{"identificationInfo": {"citation": {"edition": "test_version"}}}'
+    )
+
+    # Test the transfer to godzilla
+    res = downloadable_godzilla(
+        context,
+        compressed_file,
+        metadata_file,
+        data_dir="/tmp",
+        public_dir="/tmp/gina_public",
+    )
+    assert res == "/tmp/test_version"  # Check that the function returns a value
 
     # Remove the file after the test
-    path.unlink()
+    # path.unlink()
