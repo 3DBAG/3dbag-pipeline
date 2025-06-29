@@ -34,6 +34,7 @@ def gdal():
         exe_sozip=exe_sozip,
     )
 
+
 @pytest.fixture(scope="session")
 def gdal_missing():
     exe_ogr2ogr = "/does/not/exist/ogr2ogr"
@@ -111,7 +112,9 @@ def context(database, wkt_testarea, file_store, gdal, validation):
 
 
 @pytest.fixture
-def context_missing(database, wkt_testarea, file_store, gdal_missing, validation_missing):
+def context_missing(
+    database, wkt_testarea, file_store, gdal_missing, validation_missing
+):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
