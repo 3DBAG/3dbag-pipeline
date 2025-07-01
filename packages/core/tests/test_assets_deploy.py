@@ -4,8 +4,10 @@ from bag3d.core.assets.deploy.godzilla import (
 )
 from pathlib import Path
 from fabric import Connection
+import pytest
 
 
+@pytest.mark.needs_tools
 def test_downloadable_godzilla(context, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
@@ -47,5 +49,3 @@ def test_downloadable_godzilla(context, test_data_dir):
             c.run("rm -rf /tmp/test_version", warn=True)
             c.run("rm -rf /tmp/gina_public", warn=True)
             c.run("rm -f /tmp/export_test_version.tar.gz", warn=True)
-
-
