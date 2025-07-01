@@ -36,7 +36,7 @@ def test_downloadable_godzilla(context, test_data_dir):
             compressed_file,
             metadata_file,
             data_dir="/tmp",
-            public_dir="/tmp/gina_public",
+            public_dir="/tmp/3dbag_public",
         )
         assert res == "/tmp/test_version"  # Check that the function returns a value
     finally:
@@ -47,5 +47,5 @@ def test_downloadable_godzilla(context, test_data_dir):
         export_dir.rmdir()
         with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
             c.run("rm -rf /tmp/test_version", warn=True)
-            c.run("rm -rf /tmp/gina_public", warn=True)
+            c.run("rm -rf /tmp/3dbag_public", warn=True)
             c.run("rm -f /tmp/export_test_version.tar.gz", warn=True)
