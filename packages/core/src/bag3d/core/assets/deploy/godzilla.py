@@ -9,6 +9,9 @@ from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
+from dagster import get_dagster_logger
+
+logger = get_dagster_logger("deploy")
 
 
 @asset(
@@ -63,17 +66,17 @@ def downloadable_godzilla(
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
-            print("SSH connection successful!")
+            logger.debug("SSH connection successful")
 
             print(f"Transferring {compressed_export_nl} to {data_dir}")
             result = c.put(compressed_export_nl, remote=data_dir)
-            print(f"Transferred: {result}")
+            logger.debug(f"Transferred: {result}")
 
-            print(f"Creating deploy_dir {deploy_dir}")
+            logger.debug(f"Creating deploy_dir {deploy_dir}")
             result = c.run(f"mkdir -p {deploy_dir}")
             assert result.ok, "Creating deploy_dir failed"
 
-            print(f"Decompressing {compressed_file} to {deploy_dir}")
+            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
             result = c.run(
                 f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
             )
@@ -82,21 +85,24 @@ def downloadable_godzilla(
             # symlink to latest version so the fileserver picks up the data
             version_nopoints = version.replace(".", "")
 
-            print(f"Creating public_dir {public_dir}")
+            logger.debug(f"Creating public_dir {public_dir}")
             result = c.run(f"mkdir -p {public_dir}")
             assert result.ok, "Creating public_dir failed"
 
-            print(
+            logger.debug(
                 f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
             )
             result = c.run(f"ln -s {deploy_dir} {data_dir}/public/{version_nopoints}")
             assert result.ok, "Creating symlink failed"
 
-            print(f"Removing compressed file {compressed_file}")
+            logger.debug(f"Removing compressed file {compressed_file}")
             result = c.run(f"rm {compressed_file}")
             assert result.ok, "Removing compressed file failed"
+
+            logger.info(
+                f"Deployment successful: Files trasnferred to {public_dir}/{version_nopoints} on godzilla")
     except Exception as e:
-        print(f"SSH connection failed: {e}")
+        logger.error(f"SSH connection failed: {e}")
         raise
     return deploy_dir
 
