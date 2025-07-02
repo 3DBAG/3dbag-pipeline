@@ -204,7 +204,7 @@ def preprocessed_features(
     query = inject_parameters(query, query_params)
     res = context.resources.db_connection.connect.get_dict(query)
     data = pd.DataFrame.from_records(res)
-    context.log.info(len(data))
+    context.log.info(f"Retrieved {len(data)} buildings.")
     data.set_index("identificatie", inplace=True, drop=True)
     # rejecting all buildings with missing 70th percentile roof height
     data.dropna(subset=["h_roof_70p"], inplace=True)
