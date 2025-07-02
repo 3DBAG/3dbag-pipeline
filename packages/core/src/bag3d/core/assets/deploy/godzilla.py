@@ -100,7 +100,8 @@ def downloadable_godzilla(
             assert result.ok, "Removing compressed file failed"
 
             logger.info(
-                f"Deployment successful: Files trasnferred to {public_dir}/{version_nopoints} on godzilla")
+                f"Deployment successful: Files transferred to {public_dir}/{version_nopoints} on godzilla"
+            )
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
         raise
