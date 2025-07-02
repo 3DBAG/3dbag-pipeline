@@ -67,7 +67,6 @@ services:
       dockerfile: docker/pipeline/bag3d-core.dockerfile
       args:
         VERSION: ${BAG3D_DOCKER_IMAGE_TAG}
-        SSH_KEY: ${SSH_KEY}
     image: 3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}
     pull_policy: build
     container_name: 3dbag-pipeline-core-${BAG3D_DOCKER_IMAGE_TAG}
@@ -84,6 +83,7 @@ services:
     volumes:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ~/.ssh:/root/.ssh:ro
     networks:
       - bag3d-network
     depends_on:
