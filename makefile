@@ -37,20 +37,20 @@ docker_volume_rm:
 docker_volume_recreate: docker_volume_rm docker_volume_create
 
 docker_up_postgres:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d data-postgresql
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d data-postgresql
 	sleep 5
 
 docker_up:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d
 
 docker_up_nobuild:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
 
 docker_watch:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
 
 docker_build:
-	export SSH_KEY="$$(cat ~/.ssh/id_rsa)" ; BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
 
 docker_restart: docker_down docker_volume_recreate docker_up
 

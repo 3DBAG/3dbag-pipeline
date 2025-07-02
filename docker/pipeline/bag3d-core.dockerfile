@@ -13,11 +13,6 @@ WORKDIR $BAG3D_PIPELINE_LOCATION
 
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
 
-ARG SSH_KEY
-RUN mkdir -p /root/.ssh && \
-    echo "$SSH_KEY" > /root/.ssh/id_rsa && \
-    chmod 600 /root/.ssh/id_rsa
-
 # Install only dependencies except the bag3d-common package
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/core/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/core/uv.lock \
