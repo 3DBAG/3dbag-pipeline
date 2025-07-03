@@ -29,7 +29,9 @@ jobs:
       run: |
         make download
         make docker_volume_create
-        make docker_up
+    - name: Start containers
+      run: make docker_up
+      continue-on-error: true
     - name: Print PostgreSQL logs if unhealthy
       if: failure()
       run: |
