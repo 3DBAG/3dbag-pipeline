@@ -31,11 +31,7 @@ jobs:
         make docker_volume_create
     - name: Start containers
       run: make docker_up
-    - name: Print PostgreSQL logs if unhealthy
-      if: failure()
-      run: |
-        docker compose -p $COMPOSE_PROJECT_NAME logs data-postgresql || true
-        docker compose -p $COMPOSE_PROJECT_NAME logs dagster-postgresql || true
+
     - name: Run unit tests
       run: make test
     - name: Recreate volumes
