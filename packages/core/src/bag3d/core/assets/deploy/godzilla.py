@@ -68,7 +68,7 @@ def downloadable_godzilla(
             assert result.ok, "Connection command failed"
             logger.debug("SSH connection successful")
 
-            print(f"Transferring {compressed_export_nl} to {data_dir}")
+            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
             result = c.put(compressed_export_nl, remote=data_dir)
             logger.debug(f"Transferred: {result}")
 
