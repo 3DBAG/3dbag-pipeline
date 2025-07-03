@@ -31,7 +31,6 @@ jobs:
         make docker_volume_create
     - name: Start containers
       run: make docker_up
-      continue-on-error: true
     - name: Print PostgreSQL logs if unhealthy
       if: failure()
       run: |
