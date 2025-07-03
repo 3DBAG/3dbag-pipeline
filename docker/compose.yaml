@@ -33,7 +33,7 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${BAG3D_PG_DATABASE} -U ${BAG3D_PG_USER}"]
-      interval: 3s
+      interval: 4s
       retries: 20
     shm_size: '1gb' 
     ports:
@@ -45,11 +45,12 @@ services:
         target: /var/lib/postgresql/data
         volume:
           subpath: pgdata
-      - type: volume
-        source: bag3d-data-postgresql
-        target: /var/log/postgresql
-        volume:
-          subpath: pglog
+      - ~/postgreslogs:/var/log/postgresql
+      # - type: volume
+      #   source: bag3d-data-postgresql
+      #   target: /var/log/postgresql
+      #   volume:
+      #     subpath: pglog
     restart: always
     networks:
       - bag3d-network
