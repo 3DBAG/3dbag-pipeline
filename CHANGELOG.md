@@ -4,6 +4,11 @@ For the changes in the 3DBAG data set, see the [3DBAG release notes](https://doc
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2025.07.03]
+
+Validation error handling
+removed rf_force_lod11
+
 ## [2025.03.14]
 
 Install cjval, val3dity (2.4.0) & cjio in tools image.
