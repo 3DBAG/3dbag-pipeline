@@ -39,7 +39,7 @@ Additionally, this organization makes it easier to install and test the workflow
 ## Deployment
 
 Deploying the 3dbag-pipeline is complex, because of its many components and dependencies.
-You can read about the details on how can you deploy it in the [deployment section](deployment/index.md).
+You can read about the details on how can you deploy it in the [deployment section](docs/deployment/index.md).
 
 ## Production
 

@@ -29,7 +29,9 @@ jobs:
       run: |
         make download
         make docker_volume_create
-        make docker_up
+    - name: Start containers
+      run: make docker_up
+
     - name: Run unit tests
       run: make test
     - name: Recreate volumes

@@ -1,6 +1,6 @@
 # Dagster libraries to run both dagster-webserver and the dagster-daemon. Does not
 # need to have access to any pipeline code.
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
