@@ -32,7 +32,8 @@ WITH repair AS (SELECT ogc_fid                                                AS
                         eindgeldigheid > ${reference_date} OR eindgeldigheid ISNULL))
                   AND (status <> 'Niet gerealiseerd pand' AND
                        status <> 'Pand gesloopt' AND
-                       status <> 'Bouwvergunning verleend'))
+                       status <> 'Bouwvergunning verleend' AND
+                       status <> 'Pand ten onrechte opgevoerd'))
    , duplicates AS (SELECT fid
                          , oorspronkelijkbouwjaar
                          , identificatie
