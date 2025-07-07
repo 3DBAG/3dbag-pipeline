@@ -9,6 +9,9 @@ from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
+from dagster import get_dagster_logger
+
+logger = get_dagster_logger("deploy")
 
 
 @asset(
@@ -20,13 +23,15 @@ from bag3d.common.types import PostgresTableIdentifier
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
     ],
+    required_resource_keys={"version"},
 )
 def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     """A .tar.gz compressed full directory tree of the exports"""
     export_dir = reconstruction_output_multitiles_nl
-    output_tarfile = export_dir.parent / "export.tar.gz"
+    version = context.resources.version.version
+    output_tarfile = export_dir.parent / f"export_{version}.tar.gz"
     with tarfile.open(output_tarfile, "w:gz") as tar:
-        tar.add(export_dir, arcname="export")
+        tar.add(export_dir, arcname=f"export_{version}")
     metadata_output = {
         "size [Gb]": output_tarfile.stat().st_size * 1e-9,
         "path": str(output_tarfile),
@@ -34,34 +39,72 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     return Output(output_tarfile, metadata=metadata_output)
 
 
-@asset(ins={"metadata": AssetIn(key_prefix="export")})
-def downloadable_godzilla(context, compressed_export_nl: Path, metadata: Path):
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
+)
+def downloadable_godzilla(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+    data_dir: str = "/data/3DBAG",
+    public_dir: str = "/data/3DBAG/public",
+):
     """Downloadable files hosted on godzilla.
-    - Transfer the export.tar.gz archive to `godzilla:/data/3DBAG`
+    - Transfer the export_<version>.tar.gz archive to `godzilla:/data/3DBAG`
     - Uncompress the archive and add the current version to the directory name
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
-    data_dir = "/data/3DBAG"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
         deploy_dir = f"{data_dir}/{version}"
-    with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
-        c.put(compressed_export_nl, remote=data_dir)
-        # delete symlink here, because the uncompressed tar archive is also 'export',
-        # so we have a bit of downtime here, but that's ok
-        c.run(f"mkdir {deploy_dir}")
-        c.run(
-            f"tar --strip-components=1 -C {deploy_dir} -xzvf {data_dir}/export.tar.gz"
-        )
-        # symlink to latest version so the fileserver picks up the data
-        version_nopoints = version.replace(".", "")
-        c.run(f"ln -s {deploy_dir} {data_dir}/public/{version_nopoints}")
-        # add version to the tar so that we can archive the data
-        # c.run(f"mv {data_dir}/export.tar.gz {data_dir}/export_{version}.tar.gz")
-        # remove archive
-        c.run(f"rm {data_dir}/export.tar.gz")
+        compressed_file = Path(data_dir) / compressed_export_nl.name
+
+    try:
+        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+            # test connection
+            result = c.run("echo connected", hide=True)
+            assert result.ok, "Connection command failed"
+            logger.debug("SSH connection successful")
+
+            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
+            result = c.put(compressed_export_nl, remote=data_dir)
+            logger.debug(f"Transferred: {result}")
+
+            logger.debug(f"Creating deploy_dir {deploy_dir}")
+            result = c.run(f"mkdir -p {deploy_dir}")
+            assert result.ok, "Creating deploy_dir failed"
+
+            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
+            result = c.run(
+                f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
+            )
+            assert result.ok, "Decompressing failed"
+
+            # symlink to latest version so the fileserver picks up the data
+            version_nopoints = version.replace(".", "")
+
+            logger.debug(f"Creating public_dir {public_dir}")
+            result = c.run(f"mkdir -p {public_dir}")
+            assert result.ok, "Creating public_dir failed"
+
+            logger.debug(
+                f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
+            )
+            result = c.run(f"ln -s {deploy_dir} {data_dir}/public/{version_nopoints}")
+            assert result.ok, "Creating symlink failed"
+
+            logger.debug(f"Removing compressed file {compressed_file}")
+            result = c.run(f"rm {compressed_file}")
+            assert result.ok, "Removing compressed file failed"
+
+            logger.info(
+                f"Deployment successful: Files transferred to {public_dir}/{version_nopoints} on godzilla"
+            )
+    except Exception as e:
+        logger.error(f"SSH connection failed: {e}")
+        raise
     return deploy_dir
 
 

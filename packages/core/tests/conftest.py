@@ -7,6 +7,8 @@ from bag3d.common.resources.executables import (
     GDALResource,
     ValidationResource,
 )
+from bag3d.common.resources.version import VersionResource
+
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -34,10 +36,34 @@ def gdal():
 
 
 @pytest.fixture(scope="session")
+def gdal_missing():
+    exe_ogr2ogr = "/does/not/exist/ogr2ogr"
+    exe_ogrinfo = "/does/not/exist/ogrinfo"
+    exe_sozip = "/does/not/exist/sozip"
+    yield GDALResource(
+        exe_ogr2ogr=exe_ogr2ogr,
+        exe_ogrinfo=exe_ogrinfo,
+        exe_sozip=exe_sozip,
+    )
+
+
+@pytest.fixture(scope="session")
 def validation():
     exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
     exe_cjval = os.getenv("EXE_PATH_CJVAL")
     exe_cjio = os.getenv("EXE_PATH_CJIO")
+    yield ValidationResource(
+        exe_val3dity=exe_val3dity,
+        exe_cjval=exe_cjval,
+        exe_cjio=exe_cjio,
+    )
+
+
+@pytest.fixture(scope="session")
+def validation_missing():
+    exe_val3dity = "/does/not/exist/val3dity"
+    exe_cjval = "/does/not/exist/cjval"
+    exe_cjio = "/does/not/exist/cjio"
     yield ValidationResource(
         exe_val3dity=exe_val3dity,
         exe_cjval=exe_cjval,
@@ -80,7 +106,30 @@ def context(database, wkt_testarea, file_store, gdal, validation):
             "validation": validation,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
+        },
+    )
+
+
+@pytest.fixture
+def context_missing(
+    database, wkt_testarea, file_store, gdal_missing, validation_missing
+):
+    yield build_op_context(
+        partition_key="01cz1",
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": [
+                "gebouw",
+            ],
+            "parallel": True,
+        },
+        resources={
+            "gdal": gdal_missing,
+            "validation": validation_missing,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
         },
     )
 
@@ -99,7 +148,7 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
         },
     )
 
@@ -163,9 +212,9 @@ def sha256_ahn5_fix():
 def tile_index_ahn_fix():
     yield {
         "01cz1": {
-            "AHN3_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
-            "AHN4_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
-            "AHN5_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
+            "AHN3_LAZ": "https://basisdata.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
+            "AHN4_LAZ": "https://basisdata.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ//2023_C_01CZ1.LAZ",
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [

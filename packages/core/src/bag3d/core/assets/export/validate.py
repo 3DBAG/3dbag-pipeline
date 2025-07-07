@@ -6,10 +6,12 @@ from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
 
-from dagster import asset, AssetIn, AssetKey, OpExecutionContext
+from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
 from bag3d.common.utils.files import bag3d_export_dir
+
+logger = get_dagster_logger("validate")
 
 
 @dataclass
@@ -187,6 +189,7 @@ def cityjson(
         )
         results.zip_ok = True if len(output) == 0 else False
     except Exception:
+        logger.error(f"Failed to test zip with file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -195,6 +198,7 @@ def cityjson(
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
+        logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -210,6 +214,7 @@ def cityjson(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
         )
     except Exception:
+        logger.error("Failed to compute sha256 or create download link")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -223,7 +228,7 @@ def cityjson(
                 "--long",
             ]
         )
-        output, returncode = validation.execture(
+        output, returncode = validation.execute(
             "cjio", command=cmd, local_path=str(dirpath)
         )
         try:
@@ -231,20 +236,24 @@ def cityjson(
                 re.search(r"(?<=Building \()\d+", output).group(0)
             )
         except Exception:
+            logger.warning("Failed to extract number of buildings from output")
             results.nr_building = -1
         try:
             results.nr_buildingpart = int(
                 re.search(r"(?<=BuildingPart \()\d+", output).group(0)
             )
         except Exception:
+            logger.warning("Failed to extract number of building parts from output")
             results.nr_buildingpart = -1
         try:
             results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
         except Exception:
+            logger.warning("Failed to extract LoD from output")
             results.lod = ""
-    except Exception:
+    except Exception as e:
+        logger.error("Failed to run cjio info command.")
         inputfile.unlink(missing_ok=True)
-        return results
+        raise e
 
     # Read the whole CityJSON again, so that we can match the val3dity errors to the
     # errors in the b3_val3dity attributes. It would be better to combine this with the
@@ -329,11 +338,12 @@ def cityjson(
             results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
         reportfile.unlink()
         logfile.unlink(missing_ok=True)
-    except Exception:
+    except Exception as e:
+        logger.error("Failed to run val3dity command.")
         reportfile.unlink(missing_ok=True)
         logfile.unlink(missing_ok=True)
         inputfile.unlink(missing_ok=True)
-        return results
+        raise e
 
     # cjval
     try:
@@ -345,9 +355,10 @@ def cityjson(
         summary = output[pos:]
         results.schema_valid = True if summary.find("valid") > 0 else False
         results.schema_warnings = True if summary.find("warnings") > 0 else False
-    except Exception:
+    except Exception as e:
+        logger.error("Failed to run cjval command.")
         inputfile.unlink(missing_ok=True)
-        return results
+        raise e
 
     # clean up
     inputfile.unlink()
@@ -384,6 +395,7 @@ def obj(
         )
         results.zip_ok = True if output.count("OK") == 6 else False
     except Exception:
+        logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
         return results
@@ -400,6 +412,7 @@ def obj(
             url_root=url_root, format="obj", file_id=file_id, version=version
         )
     except Exception:
+        logger.error("Failed to compute sha256 or create download link")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
         return results
@@ -409,6 +422,7 @@ def obj(
         cmd = " ".join(["unzip", "-o", str(inputzipfile)])
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
+        logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
         return results
@@ -444,6 +458,9 @@ def obj(
                 nr_building_all.append(len(building_ids))
                 nr_buildingpart_all.append(len(buildingpart_ids_temp_until_obj_fix))
             except Exception:
+                logger.error(
+                    f"Failed to read building and building part IDs from {inputfile}"
+                )
                 inputfile.unlink(missing_ok=True)
                 return results
             try:
@@ -506,11 +523,12 @@ def obj(
                     results.errors_lod22 = list(errors_lod22)
                 reportfile.unlink()
                 logfile.unlink(missing_ok=True)
-            except Exception:
+            except Exception as e:
+                logger.error("Failed to run val3dity command.")
                 reportfile.unlink(missing_ok=True)
                 logfile.unlink(missing_ok=True)
                 inputfile.unlink(missing_ok=True)
-                return results
+                raise e
     results.nr_building = min(nr_building_all)
     results.nr_buildingpart = min(nr_buildingpart_all)
     results.nr_invalid_building = max(nr_invalid_building_all)
@@ -540,6 +558,7 @@ def gpkg(
         )
         results.zip_ok = True if len(output) == 0 else False
     except Exception:
+        logger.error(f"Failed to test zip with file {inputzipfile}")
         return results
 
     # unzip
@@ -547,6 +566,7 @@ def gpkg(
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
+        logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -562,6 +582,7 @@ def gpkg(
             url_root=url_root, format="gpkg", file_id=file_id, version=version
         )
     except Exception:
+        logger.error("Failed to compute sha256 or create download link")
         return results
     finally:
         inputfile.unlink(missing_ok=True)
@@ -597,6 +618,9 @@ def gpkg(
                 nr_buildingpart_all.append(n)
 
             except Exception:
+                logger.warning(
+                    f"Failed to extract number of building parts from output for layer {layer}"
+                )
                 n = None
 
             cmd = " ".join(
@@ -617,9 +641,14 @@ def gpkg(
                 n = int(re.search(re_building_count, output).group(0))
                 nr_building_all.append(n)
             except Exception:
+                logger.warning(
+                    f"Failed to extract number of buildings from output for layer {layer}"
+                )
                 n = None
-        except Exception:
-            return results
+
+        except Exception as e:
+            logger.error(f"Failed to run ogrinfo command for layer {layer}")
+            raise e
     results.nr_building = min(nr_building_all)
     results.nr_buildingpart = min(nr_buildingpart_all)
     propertiesfile.unlink(missing_ok=True)

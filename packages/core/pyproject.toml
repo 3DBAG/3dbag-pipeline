@@ -44,3 +44,9 @@ dev = [
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
 bag3d-common = { path = "../common", editable = true }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*is not a Python type.*:UserWarning",
+    "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+]
