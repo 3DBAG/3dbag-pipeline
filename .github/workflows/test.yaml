@@ -30,10 +30,16 @@ jobs:
         make download
         make docker_volume_create
     - name: Start containers
+      continue-on-error: true
+      run: make docker_up
+    - if: failure()
+      run: make docker_up
+    - if: failure()
       run: make docker_up
 
     - name: Run unit tests
       run: make test
+
     - name: Recreate volumes
       run: |
         make docker_down
@@ -46,5 +52,6 @@ jobs:
       run: make docker_restart_containers
     - if: failure()
       run: make docker_restart_containers
+
     - name: Run integration tests
       run: make test_integration
