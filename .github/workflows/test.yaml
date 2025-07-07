@@ -38,6 +38,9 @@ jobs:
       run: |
         make docker_down
         make docker_volume_recreate
+    - name: Recreate services
+      continue-on-error: true
+      run: |
         make docker_up_nobuild
     - if: failure()
       run: make docker_restart_containers
