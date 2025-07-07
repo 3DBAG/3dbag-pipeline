@@ -54,6 +54,10 @@ docker_build:
 
 docker_restart: docker_down docker_volume_recreate docker_up
 
+docker_restart_containers:
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml restart
+
+
 docker_down:
 	docker compose -p $(COMPOSE_PROJECT_NAME) down --remove-orphans
 

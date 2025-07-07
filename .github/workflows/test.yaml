@@ -39,5 +39,9 @@ jobs:
         make docker_down
         make docker_volume_recreate
         make docker_up_nobuild
+    - if: failure()
+      run: make docker_restart_containers
+    - if: failure()
+      run: make docker_restart_containers
     - name: Run integration tests
       run: make test_integration
