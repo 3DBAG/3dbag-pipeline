@@ -1,4 +1,5 @@
-from dagster import define_asset_job, AssetSelection
+from os import getenv
+from dagster import define_asset_job, AssetSelection, multiprocess_executor
 
 
 job_ahn_tile_index = define_asset_job(
@@ -20,6 +21,9 @@ job_ahn3 = define_asset_job(
     name="ahn3",
     description="Make sure that the available AHN 3 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN3", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_ahn3"])
     | AssetSelection.assets(["ahn", "lasindex_ahn3"]),
@@ -29,6 +33,9 @@ job_ahn4 = define_asset_job(
     name="ahn4",
     description="Make sure that the available AHN 4 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN4", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_ahn4"])
     | AssetSelection.assets(["ahn", "lasindex_ahn4"]),
@@ -38,6 +45,9 @@ job_ahn5 = define_asset_job(
     name="ahn5",
     description="Make sure that the available AHN 5 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN5", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
@@ -67,6 +77,9 @@ job_source_input = define_asset_job(
 job_nl_reconstruct = define_asset_job(
     name="nl_reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_NL_RECONSTRUCT", 1))}
+    ),
     selection=AssetSelection.assets(
         ["reconstruction", "reconstructed_building_models_nl"]
     ),
@@ -95,6 +108,15 @@ job_nl_export = define_asset_job(
     | AssetSelection.assets(["export", "metadata"])
     | AssetSelection.assets(["export", "geopackage_nl"])
     | AssetSelection.assets(["export", "reconstruction_output_multitiles_nl"]),
+    config={
+        "ops": {
+            "reconstruction_output_multitiles_nl": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                }
+            }
+        }
+    },
 )
 
 job_nl_deploy = define_asset_job(
