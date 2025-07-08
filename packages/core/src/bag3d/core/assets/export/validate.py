@@ -127,6 +127,7 @@ class GPKGFileResults:
     file_ok: bool = None
     nr_building: int = None
     nr_buildingpart: int = None
+    nr_invalid_2d_geom: int = None
     download: str = None
     sha256: str = None
 
@@ -590,8 +591,10 @@ def gpkg(
     # ogrinfo
     nr_building_all = []
     nr_buildingpart_all = []
-    for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
-        try:
+    nr_invalid_2d_geom_all = []
+
+    try:
+        for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
             sql_buildingpart_count = f"-sql 'select count(identificatie) from {layer}'"
             sql_building_count = (
                 f"-sql 'select count(distinct identificatie) from {layer}'"
@@ -645,12 +648,37 @@ def gpkg(
                     f"Failed to extract number of buildings from output for layer {layer}"
                 )
                 n = None
+        for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
+            sql_invalid_geom_count = f'''-sql "SELECT COUNT(*) as invalid_count from {layer} WHERE ST_IsValid(geom) = false;"'''
 
-        except Exception as e:
-            logger.error(f"Failed to run ogrinfo command for layer {layer}")
-            raise e
+            cmd = " ".join(
+                [
+                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
+                    "{exe}",
+                    "-dialect", "OGRSQL", 
+                    sql_invalid_geom_count,
+                    f"/vsigzip//{inputzipfile}",
+                ]
+            )
+            returncode, output = gdal.execute(
+                "ogrinfo", command=cmd, local_path=str(dirpath)
+            )
+            re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
+            try:
+                n = int(re.search(re_invalid_count, output).group(0))
+                nr_invalid_2d_geom_all.append(n)
+            except Exception:
+                logger.warning(
+                    f"Failed to extract number of valid geometries from output for layer {layer}"
+                )
+                n = None
+
+    except Exception as e:
+        logger.error("Failed to run validation for gpkg")
+        raise e
     results.nr_building = min(nr_building_all)
     results.nr_buildingpart = min(nr_buildingpart_all)
+    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all)
     propertiesfile.unlink(missing_ok=True)
     return results
 
