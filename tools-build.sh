@@ -279,6 +279,7 @@ if [ "$build_gdal" = true ] ; then
     -DCMAKE_INSTALL_PREFIX=$root_dir \
     -DCMAKE_PREFIX_PATH=$root_dir \
     -DGDAL_USE_SQLITE3=ON \
+    -DGDAL_USE_GEOS=ON \
     -DSQLITE_ENABLE_LOAD_EXTENSION=ON \
     -S gdal-${gdal_version} \
     -B gdal-${gdal_version}/build
