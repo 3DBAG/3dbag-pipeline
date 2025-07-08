@@ -3,6 +3,7 @@ import os
 
 from dagster import AssetKey, asset
 
+from bag3d.common.resources import resource_defs
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 
 
@@ -94,6 +95,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    code_version=resource_defs["tyler"].app.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",

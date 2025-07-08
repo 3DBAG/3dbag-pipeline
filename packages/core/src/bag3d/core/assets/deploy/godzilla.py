@@ -46,8 +46,6 @@ def downloadable_godzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
-    data_dir: str = "/data/3DBAG",
-    public_dir: str = "/data/3DBAG/public",
 ):
     """Downloadable files hosted on godzilla.
     - Transfer the export_<version>.tar.gz archive to `godzilla:/data/3DBAG`
@@ -55,6 +53,8 @@ def downloadable_godzilla(
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
+    data_dir: str = "/data/3DBAG"
+    public_dir: str = "/data/3DBAG/public"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
