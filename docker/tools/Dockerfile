@@ -26,6 +26,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libsqlite3-dev libtiff-dev libproj-dev libproj25 libpq5 libpq-dev libpqxx-dev \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
     libxml++2.6-dev parallel libeigen3-dev libcgal-dev build-essential libboost-all-dev\
+    libspatialite-dev libspatialite7 spatialite-bin \
     pipx
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.27 /uv /bin/uv
