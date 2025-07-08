@@ -212,6 +212,8 @@ def create_roofer_config(
     azimuth = "b3_azimut"
     extrusion_mode = "b3_extrusie"
     pointcloud_unusable = "b3_pw_onvoldoende"
+    h_roof_ridge = "b3_h_nok"
+    roof_n_ridgelines = "b3_n_nok"
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""
