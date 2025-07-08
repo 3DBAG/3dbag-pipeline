@@ -14,18 +14,18 @@ class Attributes:
     b3_h_maaiveld: float
     b3_is_glas_dak: bool
     b3_kas_warenhuis: bool
-    b3_mutatie_AHN3_AHN4: bool
-    b3_mutatie_AHN4_AHN5: bool
+    b3_mutatie_ahn3_ahn4: bool
+    b3_mutatie_ahn4_ahn5: bool
     b3_n_vlakken: int
-    b3_nodata_fractie_AHN3: float
-    b3_nodata_fractie_AHN4: float
-    b3_nodata_fractie_AHN5: float
-    b3_nodata_radius_AHN3: float
-    b3_nodata_radius_AHN4: float
-    b3_nodata_radius_AHN5: float
-    b3_puntdichtheid_AHN3: float
-    b3_puntdichtheid_AHN4: float
-    b3_puntdichtheid_AHN5: float
+    b3_nodata_fractie_ahn3: float
+    b3_nodata_fractie_ahn4: float
+    b3_nodata_fractie_ahn5: float
+    b3_nodata_radius_ahn3: float
+    b3_nodata_radius_ahn4: float
+    b3_nodata_radius_ahn5: float
+    b3_puntdichtheid_ahn3: float
+    b3_puntdichtheid_ahn4: float
+    b3_puntdichtheid_ahn5: float
     b3_pw_bron: str
     b3_pw_datum: int
     b3_pw_onvoldoende: bool

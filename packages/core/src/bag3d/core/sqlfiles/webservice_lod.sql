@@ -23,22 +23,22 @@ SELECT
     p.b3_dak_type,
     p.b3_h_maaiveld,
     p.b3_kas_warenhuis,
-    p.b3_mutatie_AHN3_AHN4,
-    p.b3_mutatie_AHN4_AHN5,
-    p.b3_nodata_fractie_AHN3,
-    p.b3_nodata_fractie_AHN4,
-    p.b3_nodata_fractie_AHN5,
-    p.b3_nodata_radius_AHN3,
-    p.b3_nodata_radius_AHN4,
-    p.b3_nodata_radius_AHN5,
+    p.b3_mutatie_ahn3_ahn4,
+    p.b3_mutatie_ahn4_ahn5,
+    p.b3_nodata_fractie_ahn3,
+    p.b3_nodata_fractie_ahn4,
+    p.b3_nodata_fractie_ahn5,
+    p.b3_nodata_radius_ahn3,
+    p.b3_nodata_radius_ahn4,
+    p.b3_nodata_radius_ahn5,
     p.b3_opp_buitenmuur,
     p.b3_opp_dak_plat,
     p.b3_opp_dak_schuin,
     p.b3_opp_grond,
     p.b3_opp_scheidingsmuur,
-    p.b3_puntdichtheid_AHN3,
-    p.b3_puntdichtheid_AHN4,
-    p.b3_puntdichtheid_AHN5,
+    p.b3_puntdichtheid_ahn3,
+    p.b3_puntdichtheid_ahn4,
+    p.b3_puntdichtheid_ahn5,
     p.b3_pw_bron,
     p.b3_pw_datum,
     p.b3_pw_selectie_reden,
@@ -70,7 +70,7 @@ SELECT
     p.voorkomenidentificatie
 FROM
     ${lod12_2d_tmp} ld
-    JOIN ${pand_table} p 
+    JOIN ${pand_table} p
     ON p.identificatie = ld.identificatie;
 
 ALTER TABLE ${lod12_2d} ADD PRIMARY KEY (fid);
@@ -89,22 +89,22 @@ SELECT
     p.b3_dak_type,
     p.b3_h_maaiveld,
     p.b3_kas_warenhuis,
-    p.b3_mutatie_AHN3_AHN4,
-    p.b3_mutatie_AHN4_AHN5,
-    p.b3_nodata_fractie_AHN3,
-    p.b3_nodata_fractie_AHN4,
-    p.b3_nodata_fractie_AHN5,
-    p.b3_nodata_radius_AHN3,
-    p.b3_nodata_radius_AHN4,
-    p.b3_nodata_radius_AHN5,
+    p.b3_mutatie_ahn3_ahn4,
+    p.b3_mutatie_ahn4_ahn5,
+    p.b3_nodata_fractie_ahn3,
+    p.b3_nodata_fractie_ahn4,
+    p.b3_nodata_fractie_ahn5,
+    p.b3_nodata_radius_ahn3,
+    p.b3_nodata_radius_ahn4,
+    p.b3_nodata_radius_ahn5,
     p.b3_opp_buitenmuur,
     p.b3_opp_dak_plat,
     p.b3_opp_dak_schuin,
     p.b3_opp_grond,
     p.b3_opp_scheidingsmuur,
-    p.b3_puntdichtheid_AHN3,
-    p.b3_puntdichtheid_AHN4,
-    p.b3_puntdichtheid_AHN5,
+    p.b3_puntdichtheid_ahn3,
+    p.b3_puntdichtheid_ahn4,
+    p.b3_puntdichtheid_ahn5,
     p.b3_pw_bron,
     p.b3_pw_datum,
     p.b3_pw_selectie_reden,
@@ -136,7 +136,7 @@ SELECT
     p.voorkomenidentificatie
 FROM
     ${lod13_2d_tmp} ld
-    JOIN ${pand_table} p 
+    JOIN ${pand_table} p
     ON p.identificatie = ld.identificatie;
 
 ALTER TABLE ${lod13_2d} ADD PRIMARY KEY (fid);
@@ -155,22 +155,22 @@ SELECT
     p.b3_dak_type,
     p.b3_h_maaiveld,
     p.b3_kas_warenhuis,
-    p.b3_mutatie_AHN3_AHN4,
-    p.b3_mutatie_AHN4_AHN5,
-    p.b3_nodata_fractie_AHN3,
-    p.b3_nodata_fractie_AHN4,
-    p.b3_nodata_fractie_AHN5,
-    p.b3_nodata_radius_AHN3,
-    p.b3_nodata_radius_AHN4,
-    p.b3_nodata_radius_AHN5,
+    p.b3_mutatie_ahn3_ahn4,
+    p.b3_mutatie_ahn4_ahn5,
+    p.b3_nodata_fractie_ahn3,
+    p.b3_nodata_fractie_ahn4,
+    p.b3_nodata_fractie_ahn5,
+    p.b3_nodata_radius_ahn3,
+    p.b3_nodata_radius_ahn4,
+    p.b3_nodata_radius_ahn5,
     p.b3_opp_buitenmuur,
     p.b3_opp_dak_plat,
     p.b3_opp_dak_schuin,
     p.b3_opp_grond,
     p.b3_opp_scheidingsmuur,
-    p.b3_puntdichtheid_AHN3,
-    p.b3_puntdichtheid_AHN4,
-    p.b3_puntdichtheid_AHN5,
+    p.b3_puntdichtheid_ahn3,
+    p.b3_puntdichtheid_ahn4,
+    p.b3_puntdichtheid_ahn5,
     p.b3_pw_bron,
     p.b3_pw_datum,
     p.b3_pw_selectie_reden,
@@ -202,7 +202,7 @@ SELECT
     p.voorkomenidentificatie
 FROM
     ${lod22_2d_tmp} ld
-    JOIN ${pand_table} p 
+    JOIN ${pand_table} p
     ON p.identificatie = ld.identificatie;
 
 ALTER TABLE ${lod22_2d} ADD PRIMARY KEY (fid);
