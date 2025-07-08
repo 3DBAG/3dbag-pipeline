@@ -245,7 +245,8 @@ class AppImage:
             )
 
     def version(self, exe: str):
-        version, returncode = execute_shell_command_silent(f"{exe} --version")
+        exe_path = self.exes[exe]
+        version, returncode = execute_shell_command_silent(f"{exe_path} --version")
         return format_version_stdout(version)
 
 
