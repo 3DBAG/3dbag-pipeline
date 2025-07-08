@@ -85,6 +85,14 @@ The `docker_watch` and `docker_up` targets will set the docker compose project n
 ### Docker setup in PyCharm (professional)
 
 Create run configuration that uses the docker compose file.
+You need to set the `docker/.env` environment variables file and set two environment variables manually.
+These two environment variables are the same that the `makefile` sets, when using the make-based setup:
+
+```shell
+COMPOSE_PROJECT_NAME=bag3d-dev
+BAG3D_DOCKER_IMAGE_TAG=develop
+```
+
 For example, see the screenshot below. 
 ![](../images/docker_compose_run_config.png)
 
