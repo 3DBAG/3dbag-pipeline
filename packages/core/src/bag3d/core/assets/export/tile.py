@@ -1,7 +1,7 @@
 import json
 import os
 
-from dagster import AssetKey, asset
+from dagster import AssetKey, asset, Config
 
 from bag3d.common.resources import resource_defs
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
@@ -43,9 +43,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     create_sequence_header_file(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
     )
-    # # Set the parallelism in tyler from the dagster instance configuration (the dagster.yaml in $DAGSTER_HOME)
-    # num_threads = context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
-    num_threads = 40
+    num_threads = kwargs["rayon_num_threads"]
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
         "RUST_LOG=info",
@@ -93,6 +91,10 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
     return output_dir
 
 
+class TylerConfig(Config):
+    concurrency: int
+
+
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
     code_version=resource_defs["tyler"].app.version("tyler"),
@@ -104,12 +106,15 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         "version",
     },
 )
-def reconstruction_output_multitiles_nl(context, metadata):
+def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context, format="multi", version_3dbag=version_3dbag
+        context,
+        format="multi",
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
     )
