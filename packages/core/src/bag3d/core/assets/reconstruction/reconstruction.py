@@ -158,25 +158,25 @@ def create_roofer_config(
     force-lod11-attribute = "b3_kas_warenhuis"
     yoc-attribute = "oorspronkelijkbouwjaar"
     lod11-fallback-area = 30000
-    
+
     split-cjseq = true
     omit-metadata = true
     cj-translate = [171800.0,472700.0,0.0]
     cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
-    
+
     [[pointclouds]]
-    name = "AHN3"
+    name = "ahn3"
     quality = 2
     source = {ahn3_files}
-    
+
     [[pointclouds]]
-    name = "AHN4"
+    name = "ahn4"
     quality = 1
     source = {ahn4_files}
-    
+
     [[pointclouds]]
-    name = "AHN5"
+    name = "ahn5"
     quality = 0
     source = {ahn5_files}
 
@@ -212,9 +212,11 @@ def create_roofer_config(
     azimuth = "b3_azimut"
     extrusion_mode = "b3_extrusie"
     pointcloud_unusable = "b3_pw_onvoldoende"
+    h_roof_ridge = "b3_h_nok"
+    roof_n_ridgelines = "b3_n_nok"
     """
     tile_id = context.partition_key
-    query_laz_tiles = SQL("""    
+    query_laz_tiles = SQL("""
     SELECT DISTINCT g.id
     FROM {tile_index} AS i
              JOIN {reconstruction_input} USING (fid)
