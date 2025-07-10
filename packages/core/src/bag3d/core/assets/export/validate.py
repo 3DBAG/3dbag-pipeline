@@ -649,7 +649,13 @@ def gpkg(
                 )
                 n = None
         for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
-            sql_invalid_geom_count = f'''-sql "SELECT COUNT(*) as invalid_count from {layer} WHERE ST_IsValid(geom) = false;"'''
+            sql_invalid_geom_count = f'''-sql "SELECT COUNT(DISTINCT identificatie) as invalid_count 
+                                               FROM {layer} 
+                                               WHERE identificatie IN (
+                                                    SELECT identificatie 
+                                                    FROM {layer} 
+                                                    WHERE ST_IsValid(geom) = false
+                                                );"'''
 
             cmd = " ".join(
                 [
