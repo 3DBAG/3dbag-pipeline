@@ -44,6 +44,7 @@ CREATE TABLE ${validate_compressed_files}
     gpkg_file_ok                      text,
     gpkg_nr_building                  text,
     gpkg_nr_buildingpart              text,
+    gpkg_nr_invalid_2d_geom           text,
     gpkg_download                     text,
     gpkg_sha256                       text
 );

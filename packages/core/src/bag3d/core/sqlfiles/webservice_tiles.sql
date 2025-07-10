@@ -185,6 +185,11 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                                         length(gpkg_nr_buildingpart) = 0
                                                        THEN NULL::int
                                                    ELSE gpkg_nr_buildingpart::int END              AS gpkg_nr_buildingpart
+                                             , CASE
+                                                   WHEN gpkg_nr_invalid_2d_geom ISNULL OR
+                                                        length(gpkg_nr_invalid_2d_geom) = 0
+                                                       THEN NULL::int
+                                                   ELSE gpkg_nr_invalid_2d_geom::int END           AS gpkg_nr_invalid_2d_geom
                                              , gpkg_download::text
                                              , gpkg_sha256::text
                                         FROM ${validate_compressed_files})
