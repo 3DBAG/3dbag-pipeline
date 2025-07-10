@@ -13,7 +13,6 @@ from bag3d.common.utils.database import (
     postgrestable_from_query,
 )
 from bag3d.common.utils.files import geoflow_crop_dir
-from bag3d.floors_estimation.assets.Attributes import Attributes
 from dagster import Output, asset
 from joblib import load
 from pgutils import inject_parameters
@@ -35,27 +34,50 @@ def process_chunk(
     conn, chunk_files: List[str], chunk_id: int, table: PostgresTableIdentifier, logger
 ):
     chunk_features = [
-        Attributes(**extract_attributes_from_path(path, ex_id))
-        for ex_id, path in chunk_files.items()
+        extract_attributes_from_path(path, ex_id) for ex_id, path in chunk_files.items()
     ]
-    data = [
-        (
-            attr.identificatie,
-            attr.oorspronkelijkbouwjaar,
-            attr.b3_dak_type,
-            attr.b3_h_dak_50p,
-            attr.b3_h_dak_70p,
-            attr.b3_h_dak_max,
-            attr.b3_h_dak_min,
-            attr.b3_opp_dak_plat + attr.b3_opp_dak_schuin,
-            attr.b3_opp_buitenmuur,
-            attr.b3_opp_scheidingsmuur,
-            attr.b3_opp_grond,
-            attr.b3_volume_lod22,
-            attr.b3_volume_lod12,
+    required_attributes = [
+        "identificatie",
+        "oorspronkelijkbouwjaar",
+        "b3_dak_type",
+        "b3_h_dak_50p",
+        "b3_h_dak_70p",
+        "b3_h_dak_max",
+        "b3_h_dak_min",
+        "b3_opp_dak_plat",
+        "b3_opp_dak_schuin",
+        "b3_opp_buitenmuur",
+        "b3_opp_scheidingsmuur",
+        "b3_opp_grond",
+        "b3_volume_lod22",
+        "b3_volume_lod12",
+    ]
+
+    data = []
+    for attr_dict in chunk_features:
+        # Check for missing attributes
+        missing_attrs = [attr for attr in required_attributes if attr not in attr_dict]
+        if missing_attrs:
+            raise KeyError(f"Missing required attributes: {missing_attrs}")
+
+        opp_dak_plat = attr_dict.get("b3_opp_dak_plat")
+        opp_dak_schuin = attr_dict.get("b3_opp_dak_schuin")
+        row = (
+            attr_dict["identificatie"],
+            attr_dict["oorspronkelijkbouwjaar"],
+            attr_dict["b3_dak_type"],
+            attr_dict["b3_h_dak_50p"],
+            attr_dict["b3_h_dak_70p"],
+            attr_dict["b3_h_dak_max"],
+            attr_dict["b3_h_dak_min"],
+            opp_dak_plat + opp_dak_schuin,
+            attr_dict["b3_opp_buitenmuur"],
+            attr_dict["b3_opp_scheidingsmuur"],
+            attr_dict["b3_opp_grond"],
+            attr_dict["b3_volume_lod22"],
+            attr_dict["b3_volume_lod12"],
         )
-        for attr in chunk_features
-    ]
+        data.append(row)
 
     query = f"""
         INSERT INTO {table}

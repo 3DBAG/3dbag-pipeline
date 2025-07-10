@@ -24,7 +24,7 @@ dependencies = [
     "dagster~=1.9.3",
     "dagster-postgres~=0.25.3",
     "pandas~=2.2.3",
-    "scikit-learn~=1.4.0",
+    "scikit-learn==1.4.0",
     "sklearn-pandas~=2.2.0",
 ]
 
