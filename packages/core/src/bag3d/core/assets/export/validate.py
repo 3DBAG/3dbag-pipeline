@@ -649,15 +649,18 @@ def gpkg(
                 )
                 n = None
         for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
-            sql_invalid_geom_count = f'''-sql "SELECT COUNT(DISTINCT identificatie) as invalid_count 
-                                               FROM {layer} 
-                                               WHERE identificatie IN (SELECT identificatie FROM {layer} WHERE ST_IsValid(geom) = false);"'''
+            sql_invalid_geom_count = f"""-sql "SELECT COUNT(DISTINCT identificatie) as invalid_count 
+                                               FROM {layer}
+                                               WHERE identificatie IN (
+                                                    SELECT identificatie FROM {layer}
+                                                    WHERE ST_IsValid(geom) = false
+                                                    );"
+                                        """
 
             cmd = " ".join(
                 [
                     "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "{exe}",
-                    "-dialect", "OGRSQL", 
                     sql_invalid_geom_count,
                     f"/vsigzip//{inputzipfile}",
                 ]

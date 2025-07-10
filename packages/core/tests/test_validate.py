@@ -26,6 +26,9 @@ def test_gpkg(context, test_data_dir):
     )
     assert res.zip_ok
     assert res.file_ok
+    assert res.nr_building == 419
+    assert res.nr_buildingpart == 422
+    assert res.nr_invalid_2d_geom == 0
 
 
 def test_cityjson(context, test_data_dir):
