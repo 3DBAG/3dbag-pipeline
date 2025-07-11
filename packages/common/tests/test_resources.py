@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common import resources
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.schema import Schema3DBAGResource
 from dagster import EnvVar
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -9,6 +10,12 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
 )
 from bag3d.common.utils.geodata import pdal_info
+
+
+def test_schema_3dbag():
+    """Can we load the 3DBAG attributes schema?"""
+    schema = Schema3DBAGResource()
+    assert len(schema.attributes.keys()) > 0
 
 
 def test_gdal_local(test_data_dir):
@@ -68,7 +75,7 @@ def test_lastools(laz_files_ahn3_dir):
 def test_file_store_init_temp():
     """Can we create a local temporary directory with random id
     with the correct permissions?"""
-    res = resources.files.FileStoreResource().file_store
+    res = FileStoreResource().file_store
     path = Path(res.data_dir)
     assert path.exists()
     with (res.data_dir / "file.txt").open("w") as fo:
@@ -82,7 +89,7 @@ def test_file_store_init_temp():
 
 def test_file_store_init_data_dir(tmp_path):
     """Can we use an existing directory?"""
-    res = resources.files.FileStoreResource(data_dir=tmp_path).file_store
+    res = FileStoreResource(data_dir=tmp_path).file_store
     path = Path(res.data_dir)
     assert path.exists()
     assert path == tmp_path
