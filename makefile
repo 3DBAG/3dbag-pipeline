@@ -92,7 +92,7 @@ include .env
 download:
 	rm -rf $(BAG3D_TEST_DATA)
 	mkdir -p $(BAG3D_TEST_DATA)
-	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v10.zip ; unzip -q test_data_v10.zip ; rm test_data_v10.zip
+	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v11.zip ; unzip -q test_data_v11.zip ; rm test_data_v11.zip
 
 
 install_uv:
