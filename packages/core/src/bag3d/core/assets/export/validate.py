@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
+from bag3d.common.resources.schema import Schema3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger("validate")
@@ -229,9 +230,7 @@ def cityjson(
                 "--long",
             ]
         )
-        returncode, output = validation.execute(
-            "cjio", command=cmd, local_path=dirpath
-        )
+        returncode, output = validation.execute("cjio", command=cmd, local_path=dirpath)
         try:
             results.nr_building = int(
                 re.search(r"(?<=Building \()\d+", output).group(0)
@@ -250,7 +249,9 @@ def cityjson(
             results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
         except Exception:
             logger.warning("Failed to extract LoD from output")
-            results.lod = ["",]
+            results.lod = [
+                "",
+            ]
     except Exception as e:
         logger.error("Failed to run cjio info command.")
         inputfile.unlink(missing_ok=True)
@@ -321,11 +322,12 @@ def cityjson(
                 errors_lod22.update(e22)
                 cj_co = cityobjects.get(feature["id"])
                 if cj_co:
-                    if e12 != set(eval(cj_co["attributes"]["b3_val3dity_lod12"])):
+                    attributes = cj_co["attributes"]
+                    if e12 != set(eval(attributes["b3_val3dity_lod12"])):
                         nr_mismatch_errors_lod12 += 1
-                    if e13 != set(eval(cj_co["attributes"]["b3_val3dity_lod13"])):
+                    if e13 != set(eval(attributes["b3_val3dity_lod13"])):
                         nr_mismatch_errors_lod13 += 1
-                    if e22 != set(eval(cj_co["attributes"]["b3_val3dity_lod22"])):
+                    if e22 != set(eval(attributes["b3_val3dity_lod22"])):
                         nr_mismatch_errors_lod22 += 1
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
@@ -364,6 +366,12 @@ def cityjson(
     # clean up
     inputfile.unlink()
     return results
+
+
+def cityobject_validate_attributes(schema: Schema3DBAGResource):
+    """Validate the attributes of a CityObject against the 3DBAG attributes schema."""
+    # CityObject attributes
+    # Semantic attributes
 
 
 def obj(
