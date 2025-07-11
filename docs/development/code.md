@@ -119,6 +119,15 @@ To run a specific test, set up a run configuration with the python interpreter i
 
 For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
+#### Python interpreter in a container
+
+To set up a Python interpreter for getting correct code analysis in the editor and being able to run a python console, you need to add a new interpreter in a docker container.
+
+1. Build the docker images from the local source code with `make docker_up`.
+2. Add a new python interpreter with `Add New Interpreter` > `On Docker...` (instead of `On Docker Compose...`).
+3. Set `Pull or use existing` image (instead of `Build`).
+4. Set image to `3dbag-pipeline-core:develop`. This image should have been built by the `make docker_up` step.
+
 ### Code formatting
 
 In you have a local installation of `uv`, you can format you code with:
