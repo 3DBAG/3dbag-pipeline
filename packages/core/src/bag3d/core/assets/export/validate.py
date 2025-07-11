@@ -229,8 +229,8 @@ def cityjson(
                 "--long",
             ]
         )
-        output, returncode = validation.execute(
-            "cjio", command=cmd, local_path=str(dirpath)
+        returncode, output = validation.execute(
+            "cjio", command=cmd, local_path=dirpath
         )
         try:
             results.nr_building = int(
@@ -250,7 +250,7 @@ def cityjson(
             results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
         except Exception:
             logger.warning("Failed to extract LoD from output")
-            results.lod = ""
+            results.lod = ["",]
     except Exception as e:
         logger.error("Failed to run cjio info command.")
         inputfile.unlink(missing_ok=True)
@@ -281,7 +281,7 @@ def cityjson(
         )
 
         returncode, output = validation.execute(
-            "val3dity", command=cmd, local_path=str(dirpath)
+            "val3dity", command=cmd, local_path=dirpath
         )
         results.file_ok = (
             False if returncode != 0 or "error" in output.lower() else True
@@ -350,7 +350,7 @@ def cityjson(
     try:
         cmd = " ".join(["{exe}", str(inputfile)])
         returncode, output = validation.execute(
-            "cjval", command=cmd, local_path=str(dirpath)
+            "cjval", command=cmd, local_path=dirpath
         )
         pos = output.find("SUMMARY")
         summary = output[pos:]
@@ -479,7 +479,7 @@ def obj(
                 )
 
                 returncode, output = validation.execute(
-                    "val3dity", command=cmd, local_path=str(dirpath)
+                    "val3dity", command=cmd, local_path=dirpath
                 )
                 results.file_ok = (
                     False if returncode != 0 or "error" in output.lower() else True
@@ -609,7 +609,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=str(dirpath)
+                "ogrinfo", command=cmd, local_path=dirpath
             )
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
@@ -635,7 +635,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=str(dirpath)
+                "ogrinfo", command=cmd, local_path=dirpath
             )
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
@@ -660,7 +660,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=str(dirpath)
+                "ogrinfo", command=cmd, local_path=dirpath
             )
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
@@ -705,8 +705,9 @@ def check_formats(input) -> TileResults:
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
     cj_results = cityjson(
-        dirpath,
-        file_id,
+        validation=validation,
+        dirpath=dirpath,
+        file_id=file_id,
         planarity_n_tol=planarity_n_tol,
         planarity_d2p_tol=planarity_d2p_tol,
         url_root=url_root,

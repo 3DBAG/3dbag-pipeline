@@ -151,7 +151,7 @@ class AppImage:
             silent: If False, send execution messages to the logger, else do not log.
 
         Returns:
-             The STDOUT and return code from the command execution.
+             The return code and STDOUT from the command execution.
 
         Examples:
 
