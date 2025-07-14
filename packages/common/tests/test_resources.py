@@ -2,7 +2,7 @@ from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.schema import Schema3DBAGResource
+from bag3d.common.resources.specs import Specs3DBAGResource
 from dagster import EnvVar
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -12,10 +12,10 @@ from bag3d.common.resources.executables import (
 from bag3d.common.utils.geodata import pdal_info
 
 
-def test_schema_3dbag():
-    """Can we load the 3DBAG attributes schema?"""
-    schema = Schema3DBAGResource()
-    assert len(schema.attributes.keys()) > 0
+def test_specs_3dbag():
+    """Can we load the 3DBAG attributes specs?"""
+    specs = Specs3DBAGResource()
+    assert len(specs.attributes.keys()) > 0
 
 
 def test_gdal_local(test_data_dir):

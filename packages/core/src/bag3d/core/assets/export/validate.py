@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
-from bag3d.common.resources.schema import Schema3DBAGResource
+from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger("validate")
@@ -368,8 +368,8 @@ def cityjson(
     return results
 
 
-def cityobject_validate_attributes(schema: Schema3DBAGResource):
-    """Validate the attributes of a CityObject against the 3DBAG attributes schema."""
+def cityobject_validate_attributes(specs: Specs3DBAGResource):
+    """Validate the attributes of a CityObject against the 3DBAG attributes specs."""
     # CityObject attributes
     # Semantic attributes
 
