@@ -368,10 +368,35 @@ def cityjson(
     return results
 
 
-def cityobject_validate_attributes(specs: Specs3DBAGResource):
+def cityobject_validate_attributes(specs: Specs3DBAGResource, co: dict):
     """Validate the attributes of a CityObject against the 3DBAG attributes specs."""
     # CityObject attributes
+    if attributes := co.get("attributes"):
+        for specs_attr_name, specs_attr in specs.application_target.Building:
+            if co_attr := attributes.get(specs_attr_name):
+                pass
+            else:
+                # MISSING ATTRIBUTE
+                pass
     # Semantic attributes
+    if geometries := co.get("geometry"):
+        for geometry in geometries:
+            if semantics := geometry.get("semantics"):
+                for semantic_surface in semantics["surfaces"]:
+                    semantic_type = semantic_surface["type"]
+                    semantic_surface_attributes = {
+                        k: v
+                        for k, v in semantic_surface
+                        if k != "type" and k != "children" and k != "parent"
+                    }
+                    for specs_attr_name, specs_attr in specs.application_target[
+                        semantic_type
+                    ]:
+                        if sem_attr := semantic_surface_attributes.get(specs_attr_name):
+                            pass
+                        else:
+                            # MISSING ATTRIBUTE
+                            pass
 
 
 def obj(
