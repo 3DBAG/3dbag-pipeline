@@ -1,6 +1,7 @@
 from dagster import ConfigurableResource
-import urllib.request
-import json
+from typing import Dict
+
+from bag3d.specs.core import load_attributes_spec, Attribute
 
 
 class Specs3DBAGResource(ConfigurableResource):
@@ -10,13 +11,9 @@ class Specs3DBAGResource(ConfigurableResource):
     Source: https://github.com/3DBAG/3dbag-specs
     """
 
-    attributes: dict
+    attributes: Dict[str, Attribute]
 
     def __init__(
         self,
     ):
-        with urllib.request.urlopen(
-            "https://raw.githubusercontent.com/3DBAG/3dbag-specs/refs/heads/master/attributes.json"
-        ) as url:
-            data = json.load(url)
-        super().__init__(attributes=data)
+        super().__init__(attributes=load_attributes_spec())
