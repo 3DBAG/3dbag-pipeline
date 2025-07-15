@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 
 import pytest
+
+from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -107,6 +109,7 @@ def context(database, wkt_testarea, file_store, gdal, validation):
             "db_connection": database,
             "file_store": file_store,
             "version": VersionResource("test_version"),
+            "specs": Specs3DBAGResource(),
         },
     )
 

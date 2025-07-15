@@ -40,6 +40,7 @@ def test_cityjson(context, test_data_dir):
         planarity_d2p_tol=0.001,
         url_root="https://data.3dbag.nl",
         version="test",
+        specs=context.resources.specs,
     )
     assert res.zip_ok
     assert res.sha256 is not None

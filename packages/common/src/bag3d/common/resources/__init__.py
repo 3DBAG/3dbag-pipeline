@@ -13,6 +13,7 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.specs import Specs3DBAGResource
 
 from dagster import EnvVar, get_dagster_logger
 
@@ -20,6 +21,7 @@ logger = get_dagster_logger()
 
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
+specs = Specs3DBAGResource()
 
 gdal = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
@@ -94,6 +96,7 @@ resource_defs = {
     "validation": validation,
     "roofer": roofer,
     "version": version,
+    "specs": specs,
 }
 
 

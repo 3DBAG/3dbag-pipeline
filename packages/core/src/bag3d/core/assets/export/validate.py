@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from pathlib import Path
 import json
 import re
@@ -177,6 +178,7 @@ def cityjson(
     planarity_d2p_tol: float,
     url_root: str,
     version: str,
+    specs: Specs3DBAGResource,
 ) -> CityJSONFileResults:
     results = CityJSONFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
@@ -329,6 +331,9 @@ def cityjson(
                         nr_mismatch_errors_lod13 += 1
                     if e22 != set(eval(attributes["b3_val3dity_lod22"])):
                         nr_mismatch_errors_lod22 += 1
+                    _attribute_validation_results = cityobject_validate_attributes(
+                        specs=specs, co=cj_co
+                    )
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
             results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
@@ -368,35 +373,103 @@ def cityjson(
     return results
 
 
-def cityobject_validate_attributes(specs: Specs3DBAGResource, co: dict):
-    """Validate the attributes of a CityObject against the 3DBAG attributes specs."""
+class AttributeValidationError(Enum):
+    """Types of outcomes that can happen during attribute validation."""
+
+    NO_ERROR = auto()
+    CITYOBJECT_EXTRA_ATTRIBUTES = auto()
+    CITYOBJECT_MISSING_ATTRIBUTES = auto()
+    SURFACE_EXTRA_ATTRIBUTES = auto()
+    SURFACE_MISSING_ATTRIBUTES = auto()
+    INCORRECT_DATA_TYPE = auto()
+
+
+@dataclass
+class AttributeValidationResult:
+    """The result of the attribute validation.
+    Includes the attribute name and the error.
+    """
+
+    attribute_name: str
+    error: AttributeValidationError
+
+
+def cityobject_validate_attributes(
+    specs: Specs3DBAGResource, co: dict
+) -> list[AttributeValidationResult]:
+    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
+
+    Returns:
+        A list of `AttributeValidationResult`.
+    """
+    results = []
     # CityObject attributes
-    if attributes := co.get("attributes"):
-        for specs_attr_name, specs_attr in specs.application_target.Building:
-            if co_attr := attributes.get(specs_attr_name):
-                pass
-            else:
-                # MISSING ATTRIBUTE
-                pass
+    if co_attributes := co.get("attributes"):
+        co_diff_specs = set(co_attributes).difference(specs.feature_attributes)
+        if len(co_diff_specs) > 0:
+            results.append(
+                AttributeValidationResult(
+                    attribute_name=",".join(co_diff_specs),
+                    error=AttributeValidationError.CITYOBJECT_EXTRA_ATTRIBUTES,
+                )
+            )
+        specs_diff_co = set(specs.feature_attributes).difference(co_attributes)
+        if len(specs_diff_co) > 0:
+            results.append(
+                AttributeValidationResult(
+                    attribute_name=",".join(specs_diff_co),
+                    error=AttributeValidationError.CITYOBJECT_MISSING_ATTRIBUTES,
+                )
+            )
+        for specs_attr in specs.feature_attributes.values():
+            if co_attr := co_attributes.get(specs_attr.name):
+                if type(co_attr).__name__ != specs_attr.type.as_python():
+                    results.append(
+                        AttributeValidationResult(
+                            attribute_name=specs_attr.name,
+                            error=AttributeValidationError.INCORRECT_DATA_TYPE,
+                        )
+                    )
+
     # Semantic attributes
     if geometries := co.get("geometry"):
         for geometry in geometries:
             if semantics := geometry.get("semantics"):
                 for semantic_surface in semantics["surfaces"]:
-                    semantic_type = semantic_surface["type"]
                     semantic_surface_attributes = {
                         k: v
                         for k, v in semantic_surface
                         if k != "type" and k != "children" and k != "parent"
                     }
-                    for specs_attr_name, specs_attr in specs.application_target[
-                        semantic_type
-                    ]:
-                        if sem_attr := semantic_surface_attributes.get(specs_attr_name):
-                            pass
-                        else:
-                            # MISSING ATTRIBUTE
-                            pass
+                    surface_diff_specs = set(semantic_surface_attributes).difference(
+                        specs.surface_attributes
+                    )
+                    if len(surface_diff_specs) > 0:
+                        results.append(
+                            AttributeValidationResult(
+                                attribute_name=",".join(surface_diff_specs),
+                                error=AttributeValidationError.SURFACE_EXTRA_ATTRIBUTES,
+                            )
+                        )
+                    specs_diff_surface = set(specs.surface_attributes).difference(
+                        semantic_surface_attributes
+                    )
+                    if len(specs_diff_surface) > 0:
+                        AttributeValidationResult(
+                            attribute_name=",".join(specs_diff_surface),
+                            error=AttributeValidationError.SURFACE_MISSING_ATTRIBUTES,
+                        )
+                    for specs_attr in specs.semantic_attributes.values():
+                        if sem_attr := semantic_surface_attributes.get(specs_attr.name):
+                            if type(sem_attr).__name__ != specs_attr.type.as_python():
+                                results.append(
+                                    AttributeValidationResult(
+                                        attribute_name=specs_attr.name,
+                                        error=AttributeValidationError.INCORRECT_DATA_TYPE,
+                                    )
+                                )
+
+    return results
 
 
 def obj(
@@ -733,7 +806,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version = input
+    gdal, validation, dirpath, tile_id, url_root, version, specs = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -745,6 +818,7 @@ def check_formats(input) -> TileResults:
         planarity_d2p_tol=planarity_d2p_tol,
         url_root=url_root,
         version=version,
+        specs=specs,
     )
     obj_results = obj(
         validation,
@@ -765,7 +839,7 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store", "version", "gdal", "validation"},
+    required_resource_keys={"file_store", "version", "gdal", "validation", "specs"},
 )
 def compressed_tiles_validation(
     context: OpExecutionContext, export_index: Path, metadata: Path
@@ -800,6 +874,7 @@ def compressed_tiles_validation(
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
     validation = context.resources.validation.app
+    specs = context.resources.specs
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
@@ -811,6 +886,7 @@ def compressed_tiles_validation(
                 row[0],
                 url_root,
                 version,
+                specs,
             )
             for row in csvreader
         ]
