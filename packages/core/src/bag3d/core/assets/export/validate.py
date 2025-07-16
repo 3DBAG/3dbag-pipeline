@@ -45,6 +45,8 @@ class CityJSONFileResults:
         lod (list[str]): List of LoDs in the CityJSON file.
         schema_valid (bool): Whether or not the schema of the CityJSON is valid.
         schema_warnings (bool): Whether or not the schema of the CityJSON has warnings.
+        errors_attributes (list[int]): List of attribute validation error codes.
+        attributes_with_errors (list[str]): List of attribute names with errors.
         download (str): The URL of the file download.
         sha256 (str): The SHA256 of the zipfile.
     """
@@ -66,6 +68,8 @@ class CityJSONFileResults:
     lod: list[str] = None
     schema_valid: bool = None
     schema_warnings: bool = None
+    errors_attributes: list[int] = None
+    attributes_with_errors: list[str] = None
     download: str = None
     sha256: str = None
 
@@ -180,6 +184,7 @@ def cityjson(
     version: str,
     specs: Specs3DBAGResource,
 ) -> CityJSONFileResults:
+    """Validate a single CityJSON file."""
     results = CityJSONFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
@@ -266,7 +271,7 @@ def cityjson(
         cm = json.load(fo)
         cityobjects = cm["CityObjects"]
 
-    # val3dity
+    # val3dity & attribute validation
     reportfile = dirpath / "report.json"
     logfile = dirpath / "val3dity.log"
     try:
@@ -304,6 +309,7 @@ def cityjson(
             lod12_idx = 1
             lod13_idx = 2
             lod22_idx = 3
+            attribute_validation_results: list[AttributeValidationResult] = []
             for feature in report["features"]:
                 if feature["validity"] is False:
                     nr_invalid_building += 1
@@ -324,16 +330,19 @@ def cityjson(
                 errors_lod22.update(e22)
                 cj_co = cityobjects.get(feature["id"])
                 if cj_co:
-                    attributes = cj_co["attributes"]
-                    if e12 != set(eval(attributes["b3_val3dity_lod12"])):
-                        nr_mismatch_errors_lod12 += 1
-                    if e13 != set(eval(attributes["b3_val3dity_lod13"])):
-                        nr_mismatch_errors_lod13 += 1
-                    if e22 != set(eval(attributes["b3_val3dity_lod22"])):
-                        nr_mismatch_errors_lod22 += 1
-                    _attribute_validation_results = cityobject_validate_attributes(
-                        specs=specs, co=cj_co
-                    )
+                    if attributes := cj_co.get("attributes"):
+                        if e12 != set(eval(attributes["b3_val3dity_lod12"])):
+                            nr_mismatch_errors_lod12 += 1
+                        if e13 != set(eval(attributes["b3_val3dity_lod13"])):
+                            nr_mismatch_errors_lod13 += 1
+                        if e22 != set(eval(attributes["b3_val3dity_lod22"])):
+                            nr_mismatch_errors_lod22 += 1
+                        attribute_validation_results.extend(cityobject_validate_attributes(
+                            specs=specs, co=cj_co
+                        ))
+            results.errors_attributes = list(set(i.error.value for i in attribute_validation_results))
+            results.attributes_with_errors = list(
+                set(i.attribute_name for i in attribute_validation_results))
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
             results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
@@ -374,14 +383,23 @@ def cityjson(
 
 
 class AttributeValidationError(Enum):
-    """Types of outcomes that can happen during attribute validation."""
+    """Types of outcomes that can happen during attribute validation.
 
-    NO_ERROR = auto()
-    CITYOBJECT_EXTRA_ATTRIBUTES = auto()
-    CITYOBJECT_MISSING_ATTRIBUTES = auto()
-    SURFACE_EXTRA_ATTRIBUTES = auto()
-    SURFACE_MISSING_ATTRIBUTES = auto()
-    INCORRECT_DATA_TYPE = auto()
+    Error codes:
+        NO_ERROR = 0
+        CITYOBJECT_EXTRA_ATTRIBUTES = 1
+        CITYOBJECT_MISSING_ATTRIBUTES = 2
+        SURFACE_EXTRA_ATTRIBUTES = 3
+        SURFACE_MISSING_ATTRIBUTES = 4
+        INCORRECT_DATA_TYPE = 5
+    """
+
+    NO_ERROR = 0
+    CITYOBJECT_EXTRA_ATTRIBUTES = 1
+    CITYOBJECT_MISSING_ATTRIBUTES = 2
+    SURFACE_EXTRA_ATTRIBUTES = 3
+    SURFACE_MISSING_ATTRIBUTES = 4
+    INCORRECT_DATA_TYPE = 5
 
 
 @dataclass
