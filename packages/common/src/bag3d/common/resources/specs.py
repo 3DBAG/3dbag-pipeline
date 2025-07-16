@@ -18,20 +18,17 @@ class Specs3DBAGResource(ConfigurableResource):
     feature_attributes: Dict[str, Attribute]
     surface_attributes: Dict[str, Attribute]
 
-    def __init__(
-        self,
-    ):
+    def __init__(self, **data):
+        super().__init__(**data)
         attributes = load_attributes_spec()
 
-        super().__init__(
-            cityobject_attributes={
-                a_name: a_spec
-                for a_name, a_spec in attributes
-                if a_spec.applies_to == AttributeAppliesTo.Building
-            },
-            surface_attributes={
-                a_name: a_spec
-                for a_name, a_spec in attributes
-                if a_spec.applies_to != AttributeAppliesTo.Building
-            },
-        )
+        self.cityobject_attributes={
+            a_name: a_spec
+            for a_name, a_spec in attributes.items()
+            if a_spec.applies_to == AttributeAppliesTo.Building
+        }
+        self.surface_attributes={
+            a_name: a_spec
+            for a_name, a_spec in attributes.items()
+            if a_spec.applies_to != AttributeAppliesTo.Building
+        }
