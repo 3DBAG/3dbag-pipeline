@@ -1,34 +1,31 @@
-from dagster import ConfigurableResource
-from typing import Dict
+from dagster import ConfigurableResource, InitResourceContext
+from typing import Dict, Optional
+from pydantic import PrivateAttr
 
 from bag3d.specs.core import load_attributes_spec, Attribute, AttributeAppliesTo
 
 
 class Specs3DBAGResource(ConfigurableResource):
     """
-    The 3DBAG attributes specifications.
-
-    Attributes:
-        feature_attributes: Attributes that apply to a whole feature
-        surface_attributes: Attributes that apply to semantic surfaces
+    The 3DBAG specifications.
 
     Source: https://github.com/3DBAG/3dbag-specs
     """
 
-    feature_attributes: Dict[str, Attribute]
-    surface_attributes: Dict[str, Attribute]
+    _attributes_specs: Optional[Dict[str, Attribute]] = PrivateAttr(default=None)
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        attributes = load_attributes_spec()
+    @property
+    def attributes(self) -> Dict[str, Attribute]:
+        """Returns the complete attributes specification."""
+        # Lazy load the attributes
+        if self._attributes_specs is None:
+            self._attributes_specs = load_attributes_spec()
+        return self._attributes_specs
 
-        self.cityobject_attributes={
+    def applies_to(self, level: AttributeAppliesTo) -> Dict[str, Attribute]:
+        """Filter the attributes spec for the specified `level`."""
+        return {
             a_name: a_spec
-            for a_name, a_spec in attributes.items()
-            if a_spec.applies_to == AttributeAppliesTo.Building
-        }
-        self.surface_attributes={
-            a_name: a_spec
-            for a_name, a_spec in attributes.items()
-            if a_spec.applies_to != AttributeAppliesTo.Building
+            for a_name, a_spec in self.attributes.items()
+            if a_spec.applies_to == level
         }
