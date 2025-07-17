@@ -698,6 +698,20 @@ def obj(
     return results
 
 
+def gpgk_validate_attributes(specs: Specs3DBAGResource, gpkg_info: dict) -> list[AttributeValidationResultOne]:
+    """Validate the attributes of a GPKG against the 3DBAG attributes specs.
+
+    Returns:
+        A list of `AttributeValidationResultOne`.
+    """
+    for layer in gpkg_info["layers"]:
+        specs_attributes = None
+        if layer["name"] == "pand":
+            specs_attributes = specs.applies_to(AttributeAppliesTo.Building)
+        elif layer["name"] == "pand":
+            pass
+
+
 def gpkg(
     gdal: AppImage,
     dirpath: Path,
@@ -830,7 +844,24 @@ def gpkg(
                     f"Failed to extract number of valid geometries from output for layer {layer}"
                 )
                 n = None
+        # Attribute validation
+        cmd = " ".join(
+            [
+                "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
+                "{exe}",
+                "-so",
+                "-json",
+                f"/vsigzip//{inputzipfile}",
+            ]
+        )
+        returncode, output = gdal.execute(
+            "ogrinfo", command=cmd, local_path=dirpath
+        )
+        try:
+            gpkg_info = json.loads(output)
 
+        except Exception:
+            logger.warning(f"Failed to get the json ogrinfo for file")
     except Exception as e:
         logger.error("Failed to run validation for gpkg")
         raise e
