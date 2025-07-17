@@ -1,4 +1,4 @@
-from dagster import ConfigurableResource, InitResourceContext
+from dagster import ConfigurableResource
 from typing import Dict, Optional
 from pydantic import PrivateAttr
 

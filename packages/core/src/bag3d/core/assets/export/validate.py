@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 import json
 import re
@@ -9,11 +9,77 @@ from dataclasses import dataclass, field
 
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
+from bag3d.specs.core import AttributeAppliesTo
 from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger("validate")
+
+
+class AttributeValidationOutcome(Enum):
+    """Types of outcomes that can happen during attribute validation.
+
+    Possible outcomes:
+        NO_ERROR = 0
+        CITYOBJECT_EXTRA_ATTRIBUTES = 1
+        CITYOBJECT_MISSING_ATTRIBUTES = 2
+        SURFACE_EXTRA_ATTRIBUTES = 3
+        SURFACE_MISSING_ATTRIBUTES = 4
+        INCORRECT_DATA_TYPE = 5
+    """
+
+    OK = 0
+    CITYOBJECT_EXTRA_ATTRIBUTES = 1
+    CITYOBJECT_MISSING_ATTRIBUTES = 2
+    SURFACE_EXTRA_ATTRIBUTES = 3
+    SURFACE_MISSING_ATTRIBUTES = 4
+    INCORRECT_DATA_TYPE = 5
+
+    @classmethod
+    def is_error(cls, outcome: "AttributeValidationOutcome") -> bool:
+        """Whether the AttributeValidationError represents an error or not."""
+        return outcome != cls.OK
+
+
+@dataclass
+class AttributeValidationResultOne:
+    """The result of the attribute validation for one attribute.
+    Includes the attribute name and the error.
+    """
+
+    attribute_name: str
+    outcome: AttributeValidationOutcome
+
+
+class AttributeValidationResults:
+    """The aggregated result of attribute validations for many attributes."""
+
+    results: dict[str, set[AttributeValidationResultOne]] = {}
+
+    def all_ok(self):
+        """Are there any errors in the results?"""
+        return len(self.results) == 0
+
+    def add_error(self, result: list[AttributeValidationResultOne]) -> None:
+        """Add the attribute validation result of a single CityObject or feature,
+        if the result is an error.
+        Adds the output of `cityobject_validate_attributes`.
+        """
+        for r in filter(AttributeValidationOutcome.is_error, result):
+            # The attribute name can be a comma-separated list of attribute names in
+            # case of many missing attributes
+            for a_name in r.attribute_name.split(","):
+                if validation_res := self.results.get(a_name):
+                    validation_res.add(r.outcome)
+                else:
+                    self.results[a_name] = {r.outcome}
+
+    def __repr__(self):
+        def get_value(x) -> int:
+            return x.value
+
+        return f"{dict((k, list(map(get_value, v))) for k, v in self.results.items())}"
 
 
 @dataclass
@@ -45,8 +111,7 @@ class CityJSONFileResults:
         lod (list[str]): List of LoDs in the CityJSON file.
         schema_valid (bool): Whether or not the schema of the CityJSON is valid.
         schema_warnings (bool): Whether or not the schema of the CityJSON has warnings.
-        errors_attributes (list[int]): List of attribute validation error codes.
-        attributes_with_errors (list[str]): List of attribute names with errors.
+        attributes_with_errors (AttributeValidationResults): List of attribute names with the error codes that they have.
         download (str): The URL of the file download.
         sha256 (str): The SHA256 of the zipfile.
     """
@@ -68,8 +133,7 @@ class CityJSONFileResults:
     lod: list[str] = None
     schema_valid: bool = None
     schema_warnings: bool = None
-    errors_attributes: list[int] = None
-    attributes_with_errors: list[str] = None
+    attributes_with_errors: AttributeValidationResults = AttributeValidationResults()
     download: str = None
     sha256: str = None
 
@@ -174,6 +238,90 @@ class TileResults:
         }
 
 
+def cityobject_validate_attributes(
+    specs: Specs3DBAGResource, co: dict
+) -> list[AttributeValidationResultOne]:
+    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
+
+    Returns:
+        A list of `AttributeValidationResultOne`.
+    """
+    results = []
+    # CityObject attributes
+    if co_attributes := co.get("attributes"):
+        building_attributes = specs.applies_to(
+            AttributeAppliesTo.from_string("Building")
+        )
+        co_diff_specs = set(co_attributes).difference(building_attributes)
+        if len(co_diff_specs) > 0:
+            results.append(
+                AttributeValidationResultOne(
+                    attribute_name=",".join(co_diff_specs),
+                    outcome=AttributeValidationOutcome.CITYOBJECT_EXTRA_ATTRIBUTES,
+                )
+            )
+        specs_diff_co = set(building_attributes).difference(co_attributes)
+        if len(specs_diff_co) > 0:
+            results.append(
+                AttributeValidationResultOne(
+                    attribute_name=",".join(specs_diff_co),
+                    outcome=AttributeValidationOutcome.CITYOBJECT_MISSING_ATTRIBUTES,
+                )
+            )
+        for specs_attr in building_attributes.values():
+            if co_attr := co_attributes.get(specs_attr.name):
+                if type(co_attr).__name__ != specs_attr.type.as_python():
+                    results.append(
+                        AttributeValidationResultOne(
+                            attribute_name=specs_attr.name,
+                            outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                        )
+                    )
+
+    # Semantic attributes
+    if geometries := co.get("geometry"):
+        for geometry in geometries:
+            if semantics := geometry.get("semantics"):
+                for semantic_surface in semantics["surfaces"]:
+                    specs_surface_attributes = specs.applies_to(
+                        AttributeAppliesTo.from_string(semantic_surface["type"])
+                    )
+                    semantic_surface_attributes = {
+                        k: v
+                        for k, v in semantic_surface
+                        if k != "type" and k != "children" and k != "parent"
+                    }
+                    surface_diff_specs = set(semantic_surface_attributes).difference(
+                        specs_surface_attributes
+                    )
+                    if len(surface_diff_specs) > 0:
+                        results.append(
+                            AttributeValidationResultOne(
+                                attribute_name=",".join(surface_diff_specs),
+                                outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
+                            )
+                        )
+                    specs_diff_surface = set(specs_surface_attributes).difference(
+                        semantic_surface_attributes
+                    )
+                    if len(specs_diff_surface) > 0:
+                        AttributeValidationResultOne(
+                            attribute_name=",".join(specs_diff_surface),
+                            outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
+                        )
+                    for specs_attr in specs_surface_attributes.values():
+                        if sem_attr := semantic_surface_attributes.get(specs_attr.name):
+                            if type(sem_attr).__name__ != specs_attr.type.as_python():
+                                results.append(
+                                    AttributeValidationResultOne(
+                                        attribute_name=specs_attr.name,
+                                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                                    )
+                                )
+
+    return results
+
+
 def cityjson(
     validation: AppImage,
     dirpath: Path,
@@ -198,7 +346,7 @@ def cityjson(
         )
         results.zip_ok = True if len(output) == 0 else False
     except Exception:
-        logger.error(f"Failed to test zip with file {inputzipfile}")
+        logger.outcome(f"Failed to test zip with file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -207,7 +355,7 @@ def cityjson(
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
-        logger.error(f"Failed to unzip file {inputzipfile}")
+        logger.outcome(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -223,7 +371,7 @@ def cityjson(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
         )
     except Exception:
-        logger.error("Failed to compute sha256 or create download link")
+        logger.outcome("Failed to compute sha256 or create download link")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -260,7 +408,7 @@ def cityjson(
                 "",
             ]
     except Exception as e:
-        logger.error("Failed to run cjio info command.")
+        logger.outcome("Failed to run cjio info command.")
         inputfile.unlink(missing_ok=True)
         raise e
 
@@ -309,7 +457,6 @@ def cityjson(
             lod12_idx = 1
             lod13_idx = 2
             lod22_idx = 3
-            attribute_validation_results: list[AttributeValidationResult] = []
             for feature in report["features"]:
                 if feature["validity"] is False:
                     nr_invalid_building += 1
@@ -337,12 +484,8 @@ def cityjson(
                             nr_mismatch_errors_lod13 += 1
                         if e22 != set(eval(attributes["b3_val3dity_lod22"])):
                             nr_mismatch_errors_lod22 += 1
-                        attribute_validation_results.extend(cityobject_validate_attributes(
-                            specs=specs, co=cj_co
-                        ))
-            results.errors_attributes = list(set(i.error.value for i in attribute_validation_results))
-            results.attributes_with_errors = list(
-                set(i.attribute_name for i in attribute_validation_results))
+                        res = cityobject_validate_attributes(specs=specs, co=cj_co)
+                        results.attributes_with_errors.add_error(res)
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
             results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
@@ -379,114 +522,6 @@ def cityjson(
 
     # clean up
     inputfile.unlink()
-    return results
-
-
-class AttributeValidationError(Enum):
-    """Types of outcomes that can happen during attribute validation.
-
-    Error codes:
-        NO_ERROR = 0
-        CITYOBJECT_EXTRA_ATTRIBUTES = 1
-        CITYOBJECT_MISSING_ATTRIBUTES = 2
-        SURFACE_EXTRA_ATTRIBUTES = 3
-        SURFACE_MISSING_ATTRIBUTES = 4
-        INCORRECT_DATA_TYPE = 5
-    """
-
-    NO_ERROR = 0
-    CITYOBJECT_EXTRA_ATTRIBUTES = 1
-    CITYOBJECT_MISSING_ATTRIBUTES = 2
-    SURFACE_EXTRA_ATTRIBUTES = 3
-    SURFACE_MISSING_ATTRIBUTES = 4
-    INCORRECT_DATA_TYPE = 5
-
-
-@dataclass
-class AttributeValidationResult:
-    """The result of the attribute validation.
-    Includes the attribute name and the error.
-    """
-
-    attribute_name: str
-    error: AttributeValidationError
-
-
-def cityobject_validate_attributes(
-    specs: Specs3DBAGResource, co: dict
-) -> list[AttributeValidationResult]:
-    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
-
-    Returns:
-        A list of `AttributeValidationResult`.
-    """
-    results = []
-    # CityObject attributes
-    if co_attributes := co.get("attributes"):
-        co_diff_specs = set(co_attributes).difference(specs.feature_attributes)
-        if len(co_diff_specs) > 0:
-            results.append(
-                AttributeValidationResult(
-                    attribute_name=",".join(co_diff_specs),
-                    error=AttributeValidationError.CITYOBJECT_EXTRA_ATTRIBUTES,
-                )
-            )
-        specs_diff_co = set(specs.feature_attributes).difference(co_attributes)
-        if len(specs_diff_co) > 0:
-            results.append(
-                AttributeValidationResult(
-                    attribute_name=",".join(specs_diff_co),
-                    error=AttributeValidationError.CITYOBJECT_MISSING_ATTRIBUTES,
-                )
-            )
-        for specs_attr in specs.feature_attributes.values():
-            if co_attr := co_attributes.get(specs_attr.name):
-                if type(co_attr).__name__ != specs_attr.type.as_python():
-                    results.append(
-                        AttributeValidationResult(
-                            attribute_name=specs_attr.name,
-                            error=AttributeValidationError.INCORRECT_DATA_TYPE,
-                        )
-                    )
-
-    # Semantic attributes
-    if geometries := co.get("geometry"):
-        for geometry in geometries:
-            if semantics := geometry.get("semantics"):
-                for semantic_surface in semantics["surfaces"]:
-                    semantic_surface_attributes = {
-                        k: v
-                        for k, v in semantic_surface
-                        if k != "type" and k != "children" and k != "parent"
-                    }
-                    surface_diff_specs = set(semantic_surface_attributes).difference(
-                        specs.surface_attributes
-                    )
-                    if len(surface_diff_specs) > 0:
-                        results.append(
-                            AttributeValidationResult(
-                                attribute_name=",".join(surface_diff_specs),
-                                error=AttributeValidationError.SURFACE_EXTRA_ATTRIBUTES,
-                            )
-                        )
-                    specs_diff_surface = set(specs.surface_attributes).difference(
-                        semantic_surface_attributes
-                    )
-                    if len(specs_diff_surface) > 0:
-                        AttributeValidationResult(
-                            attribute_name=",".join(specs_diff_surface),
-                            error=AttributeValidationError.SURFACE_MISSING_ATTRIBUTES,
-                        )
-                    for specs_attr in specs.semantic_attributes.values():
-                        if sem_attr := semantic_surface_attributes.get(specs_attr.name):
-                            if type(sem_attr).__name__ != specs_attr.type.as_python():
-                                results.append(
-                                    AttributeValidationResult(
-                                        attribute_name=specs_attr.name,
-                                        error=AttributeValidationError.INCORRECT_DATA_TYPE,
-                                    )
-                                )
-
     return results
 
 

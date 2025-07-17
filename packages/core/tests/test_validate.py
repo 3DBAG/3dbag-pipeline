@@ -81,4 +81,5 @@ def test_cityjson_missing(context_missing, test_data_dir):
             planarity_d2p_tol=0.001,
             url_root="https://data.3dbag.nl",
             version="test",
+            specs=context_missing.resources.specs,
         )
