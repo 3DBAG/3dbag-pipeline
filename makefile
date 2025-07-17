@@ -65,27 +65,39 @@ docker_down_rm:
 	docker compose -p $(COMPOSE_PROJECT_NAME) down --volumes --remove-orphans --rmi local
 
 test:
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v
+	@set -e; \
+	FAILED=0; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v || FAILED=1; \
+	exit $$FAILED
 
 test_slow:
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow
+	@set -e; \
+	FAILED=0; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow || FAILED=1; \
+    exit $$FAILED
 
 test_integration:
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all
+	@set -e; \
+	FAILED=0; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all || FAILED=1; \
+    exit $$FAILED
 
 test_all:
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all
+	@set -e; \
+	FAILED=0; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all || FAILED=1; \
+    exit $$FAILED
 
 include .env
 
