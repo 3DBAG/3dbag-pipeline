@@ -243,10 +243,13 @@ def cityobject_validate_attributes(
 ) -> list[AttributeValidationResultOne]:
     """Validate the attributes of a CityObject against the 3DBAG attributes specs.
 
+    Args:
+        specs (Specs3DBAGResource): The 3DBAG specifications
+        co (dict): A single CityObject
     Returns:
         A list of `AttributeValidationResultOne`.
     """
-    results = []
+    results: list[AttributeValidationResultOne] = []
     # CityObject attributes
     if co_attributes := co.get("attributes"):
         building_attributes = specs.applies_to(
@@ -701,15 +704,43 @@ def obj(
 def gpgk_validate_attributes(specs: Specs3DBAGResource, gpkg_info: dict) -> list[AttributeValidationResultOne]:
     """Validate the attributes of a GPKG against the 3DBAG attributes specs.
 
+    Args:
+        specs (Specs3DBAGResource): 3DBAG specifications
+        gpkg_info (dict): The output of OGRInfo in JSON format, deserialized to python
+
     Returns:
         A list of `AttributeValidationResultOne`.
     """
+    results: list[AttributeValidationResultOne] = []
     for layer in gpkg_info["layers"]:
         specs_attributes = None
         if layer["name"] == "pand":
             specs_attributes = specs.applies_to(AttributeAppliesTo.Building)
-        elif layer["name"] == "pand":
+        elif layer["name"] != "pand":
             pass
+
+        layer_fields = layer["fields"]
+        gpkg_field_names = set(f["name"] for f in layer_fields)
+        gpkg_diff_specs = gpkg_field_names.difference(specs_attributes)
+        if len(gpkg_diff_specs) > 0:
+            results.append(
+                AttributeValidationResultOne(
+                    attribute_name=",".join(gpkg_diff_specs),
+                    outcome=AttributeValidationOutcome.CITYOBJECT_EXTRA_ATTRIBUTES,
+                )
+            )
+        specs_diff_gpkg = set(specs_attributes).difference(gpkg_field_names)
+        if len(specs_diff_gpkg) > 0:
+            results.append(
+                AttributeValidationResultOne(
+                    attribute_name=",".join(specs_diff_gpkg),
+                    outcome=AttributeValidationOutcome.CITYOBJECT_MISSING_ATTRIBUTES,
+                )
+            )
+
+
+    return results
+
 
 
 def gpkg(
