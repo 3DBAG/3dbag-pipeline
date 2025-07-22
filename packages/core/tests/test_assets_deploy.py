@@ -6,6 +6,7 @@ from bag3d.core.assets.deploy.servers import (
 from pathlib import Path
 import pytest
 
+
 @pytest.mark.needs_tools
 def test_downloadable_podzilla(context, test_data_dir):
     # Create deployment dir
@@ -53,6 +54,7 @@ def test_downloadable_podzilla(context, test_data_dir):
                 f"rm -f {context.resources.godzilla_server.dir}/export_test_version.tar.gz",
                 warn=True,
             )
+
 
 @pytest.mark.needs_tools
 def test_downloadable_godzilla(context, test_data_dir):
