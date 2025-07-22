@@ -37,7 +37,7 @@ def test_downloadable_podzilla(context, test_data_dir):
             metadata_file,
         )
         assert (
-            res == f"{context.resources.godzilla_server.dir}/test_version"
+            res == f"{context.resources.podzilla_server.dir}/test_version"
         )  # Check that the function returns a value
     finally:
         # Clean up the test files
@@ -45,13 +45,13 @@ def test_downloadable_podzilla(context, test_data_dir):
         metadata_file.unlink(missing_ok=True)
         empty_file.unlink(missing_ok=True)
         export_dir.rmdir()
-        with context.resources.godzilla_server.connect as c:
+        with context.resources.podzilla_server.connect as c:
             c.run(
-                f"rm -rf {context.resources.godzilla_server.dir}/test_version",
+                f"rm -rf {context.resources.podzilla_server.dir}/test_version",
                 warn=True,
             )
             c.run(
-                f"rm -f {context.resources.godzilla_server.dir}/export_test_version.tar.gz",
+                f"rm -f {context.resources.podzilla_server.dir}/export_test_version.tar.gz",
                 warn=True,
             )
 
