@@ -5,7 +5,6 @@ from pathlib import Path
 import json
 
 from dagster import AssetIn, Output, asset, AssetKey
-from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
@@ -38,6 +37,52 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     }
     return Output(output_tarfile, metadata=metadata_output)
 
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
+)
+def downloadable_podzilla(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+):
+    """Downloadable files hosted on podzilla, for the 3DBAG API.
+    Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the archive
+    """
+    data_dir: str = context.resources.podzilla_server.dir
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
+        deploy_dir = f"{data_dir}/{version}"
+        compressed_file = Path(data_dir) / compressed_export_nl.name
+
+    try:
+        with context.resources.podzilla_server.connect as c:
+            # test connection
+            result = c.run("echo connected", hide=True)
+            assert result.ok, "Connection command failed"
+            logger.debug("SSH connection successful")
+
+            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
+            result = c.put(compressed_export_nl, remote=data_dir)
+            logger.debug(f"Transferred: {result}")
+
+            logger.debug(f"Creating deploy_dir {deploy_dir}")
+            result = c.run(f"mkdir -p {deploy_dir}")
+            assert result.ok, "Creating deploy_dir failed"
+
+            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
+            result = c.run(
+                f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
+            )
+            assert result.ok, "Decompressing failed"
+
+            logger.info(
+                f"Deployment successful: Files transferred to {deploy_dir} on podzilla"
+            )
+    except Exception as e:
+        logger.error(f"SSH connection failed: {e}")
+        raise
+    return deploy_dir
 
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
@@ -53,8 +98,8 @@ def downloadable_godzilla(
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
-    data_dir: str = "/data/3DBAG"
-    public_dir: str = "/data/3DBAG/public"
+    data_dir: str = context.resources.godzilla_server.dir
+    public_dir: str = context.resources.godzilla_server.public_dir
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
@@ -62,7 +107,7 @@ def downloadable_godzilla(
         compressed_file = Path(data_dir) / compressed_export_nl.name
 
     try:
-        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        with context.resources.godzilla_server.connect as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -92,7 +137,7 @@ def downloadable_godzilla(
             logger.debug(
                 f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
             )
-            result = c.run(f"ln -s {deploy_dir} {data_dir}/public/{version_nopoints}")
+            result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
             assert result.ok, "Creating symlink failed"
 
             logger.debug(f"Removing compressed file {compressed_file}")
@@ -111,11 +156,9 @@ def downloadable_godzilla(
 @asset(required_resource_keys={"db_connection"})
 def webservice_godzilla(context, downloadable_godzilla):
     """Load the layers for WFS, WMS that are served from godzilla"""
-    host_godzilla = "godzilla.bk.tudelft.nl"
-    user_godzilla = "dagster"
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with Connection(host="godzilla.bk.tudelft.nl", user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
@@ -142,7 +185,7 @@ def webservice_godzilla(context, downloadable_godzilla):
                 layer + "_tmp",
             ]
         )
-        with Connection(host=host_godzilla, user=user_godzilla) as c:
+        with context.resources.godzilla_server.connect as c:
             context.log.debug(cmd)
             r = c.run(cmd)
             context.log.debug(r.stdout)
@@ -169,7 +212,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
@@ -188,14 +231,14 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
     # Load the CSV files into the intermediary tables
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
             "\copy "
@@ -232,7 +275,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
@@ -244,7 +287,7 @@ def webservice_godzilla(context, downloadable_godzilla):
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         # context.log.debug(alter_to_archive)
         # c.run(
         #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")

@@ -126,5 +126,6 @@ job_nl_deploy = define_asset_job(
     | AssetSelection.assets(["export", "compressed_tiles_validation"])
     | AssetSelection.assets(["deploy", "compressed_export_nl"])
     | AssetSelection.assets(["deploy", "downloadable_godzilla"])
+    | AssetSelection.assets(["deploy", "downloadable_podzilla"])
     | AssetSelection.assets(["deploy", "webservice_godzilla"]),
 )
