@@ -135,5 +135,5 @@ job_nl_release = define_asset_job(
     name="nl_release",
     description="Perform the final steps for the 3DBAG release.",
     selection=AssetSelection.assets(["deploy", "publish_data"])
-    #| AssetSelection.assets(["deploy", "publish_webservices"]),
+    | AssetSelection.assets(["deploy", "publish_webservices"]),
 )

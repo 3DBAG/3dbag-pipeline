@@ -9,6 +9,8 @@ from dagster import AssetIn, Output, asset, AssetKey
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
 from dagster import get_dagster_logger
+from datetime import datetime
+
 
 logger = get_dagster_logger("deploy")
 
@@ -346,5 +348,32 @@ def publish_data(
                 f"Data Release successful: Link made to {public_dir}/{version_nopoints} on godzilla"
             )
     except Exception as e:
-        logger.error(f"SSH connection failed: {e}")
+        logger.error(f"Data release failed: {e}")
+        raise
+
+
+@asset(required_resource_keys={"godzilla_server"})
+def publish_webservices(context):
+    """ """
+    latest_schema = "webservice"
+    dev_schema = "webservice_dev"
+
+    extension = str(datetime.now().date())
+    alter_latest_to_archive = (
+        f"ALTER SCHEMA {latest_schema} RENAME TO bag3d_{extension};"
+    )
+    alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
+
+    try:
+        with context.resources.godzilla_server.connect as c:
+            context.log.debug(alter_latest_to_archive)
+            c.run(
+                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
+            )
+            context.log.debug(alter_dev_to_latest)
+            c.run(
+                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_dev_to_latest}'"
+            )
+    except Exception as e:
+        logger.error(f"Publishing Webservices on Godzilla failed: {e}")
         raise
