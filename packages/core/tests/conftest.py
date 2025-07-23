@@ -8,6 +8,7 @@ from bag3d.common.resources.executables import (
     ValidationResource,
 )
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
 
 
 from bag3d.common.resources.files import FileStoreResource
@@ -21,6 +22,25 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+
+
+@pytest.fixture(scope="session")
+def godzilla_server():
+    yield ServerTransferResource(
+        host="godzilla",
+        user="",
+        target_dir="/tmp",
+        public_dir="/tmp/3dbag_public",
+    )
+
+
+@pytest.fixture(scope="session")
+def podzilla_server():
+    yield ServerTransferResource(
+        host="podzilla",
+        user="gstavropoulou",
+        target_dir="/tmp",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -91,7 +111,15 @@ def file_store(tmp_path):
 
 
 @pytest.fixture
-def context(database, wkt_testarea, file_store, gdal, validation):
+def context(
+    database,
+    wkt_testarea,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -107,6 +135,8 @@ def context(database, wkt_testarea, file_store, gdal, validation):
             "db_connection": database,
             "file_store": file_store,
             "version": VersionResource("test_version"),
+            "godzilla_server": godzilla_server,
+            "podzilla_server": podzilla_server,
         },
     )
 

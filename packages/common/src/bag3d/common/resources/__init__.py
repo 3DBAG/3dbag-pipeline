@@ -13,6 +13,7 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
 
 from dagster import EnvVar, get_dagster_logger
 
@@ -40,6 +41,19 @@ db_connection = DatabaseResource(
     other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value()},
 )
 
+
+godzilla_server = ServerTransferResource(
+    host=EnvVar("BAG3D_GODZILLA_HOST").get_value(),
+    user=EnvVar("BAG3D_GODZILLA_USER").get_value(),
+    target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value(),
+    public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
+)
+
+podzilla_server = ServerTransferResource(
+    host=EnvVar("BAG3D_PODZILLA_HOST").get_value(),
+    user=EnvVar("BAG3D_PODZILLA_USER").get_value(),
+    target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value(),
+)
 
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD"))
@@ -94,6 +108,8 @@ resource_defs = {
     "validation": validation,
     "roofer": roofer,
     "version": version,
+    "godzilla_server": godzilla_server,
+    "podzilla_server": podzilla_server,
 }
 
 
@@ -109,6 +125,8 @@ resource_defs = {
 #     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
+#     "godzilla_server": godzilla_server,
+#     "podzilla_server": podzilla_server,
 # }
 #
 # RESOURCES_PROD = {
@@ -123,6 +141,8 @@ resource_defs = {
 #     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
+#     "godzilla_server": godzilla_server,
+#     "podzilla_server": podzilla_server,
 # }
 #
 # RESOURCES_DEFAULT = {
@@ -137,6 +157,8 @@ resource_defs = {
 #     "validation": ValidationResource(),
 #     "roofer": RooferResource(),
 #     "version": VersionResource(),
+#     "godzilla_server": ServerTransferResource(),
+#     "podzilla_server": ServerTransferResource(),
 # }
 #
 #

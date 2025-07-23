@@ -1,15 +1,16 @@
-"""Deploy 3D BAG to godzilla"""
+"""Deploy 3D BAG to godzilla and podzilla servers and perform the final steps of the release"""
 
 import tarfile
 from pathlib import Path
 import json
 
 from dagster import AssetIn, Output, asset, AssetKey
-from fabric import Connection
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
 from dagster import get_dagster_logger
+from datetime import datetime
+
 
 logger = get_dagster_logger("deploy")
 
@@ -40,21 +41,22 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
 
 
 @asset(
-    ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"podzilla_server"},
 )
-def downloadable_godzilla(
+def transfer_to_podzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
 ):
-    """Downloadable files hosted on godzilla.
-    - Transfer the export_<version>.tar.gz archive to `godzilla:/data/3DBAG`
-    - Uncompress the archive and add the current version to the directory name
-    - Symlink to the 'export' to the current version
-    - Add the current version to the tar.gz archive
+    """Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the files
+    in the target directory.
+    The target directory is set to the `BAG3D_PODZILLA_TARGET_DIR` environment variable.
+    The version is extracted from the metadata file and used to create a subdirectory
+    in the target directory.
+    The files on `podzilla` will be used for the 3DBAG API.
     """
-    data_dir: str = "/data/3DBAG"
-    public_dir: str = "/data/3DBAG/public"
+    data_dir: str = context.resources.podzilla_server.target_dir
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
@@ -62,7 +64,7 @@ def downloadable_godzilla(
         compressed_file = Path(data_dir) / compressed_export_nl.name
 
     try:
-        with Connection(host="godzilla.bk.tudelft.nl", user="dagster") as c:
+        with context.resources.podzilla_server.connect as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -82,25 +84,8 @@ def downloadable_godzilla(
             )
             assert result.ok, "Decompressing failed"
 
-            # symlink to latest version so the fileserver picks up the data
-            version_nopoints = version.replace(".", "")
-
-            logger.debug(f"Creating public_dir {public_dir}")
-            result = c.run(f"mkdir -p {public_dir}")
-            assert result.ok, "Creating public_dir failed"
-
-            logger.debug(
-                f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
-            )
-            result = c.run(f"ln -s {deploy_dir} {data_dir}/public/{version_nopoints}")
-            assert result.ok, "Creating symlink failed"
-
-            logger.debug(f"Removing compressed file {compressed_file}")
-            result = c.run(f"rm {compressed_file}")
-            assert result.ok, "Removing compressed file failed"
-
             logger.info(
-                f"Deployment successful: Files transferred to {public_dir}/{version_nopoints} on godzilla"
+                f"Deployment successful: Files transferred to {deploy_dir} on podzilla"
             )
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
@@ -108,20 +93,76 @@ def downloadable_godzilla(
     return deploy_dir
 
 
-@asset(required_resource_keys={"db_connection"})
-def webservice_godzilla(context, downloadable_godzilla):
-    """Load the layers for WFS, WMS that are served from godzilla"""
-    host_godzilla = "godzilla.bk.tudelft.nl"
-    user_godzilla = "dagster"
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"godzilla_server"},
+)
+def transfer_to_godzilla(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+):
+    """Transfer the export_<version>.tar.gz archive to `godzilla` and decompress the files
+    in the target directory.
+    The target directory is set to the `BAG3D_GODZILLA_TARGET_DIR` environment variable.
+    The version is extracted from the metadata file and used to create a subdirectory
+    in the target directory.
+    The files on `godzilla` will be made available for direct download and will be used by the webservices.
+    """
+    data_dir: str = context.resources.godzilla_server.target_dir
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
+        deploy_dir = f"{data_dir}/{version}"
+        compressed_file = Path(data_dir) / compressed_export_nl.name
+
+    try:
+        with context.resources.godzilla_server.connect as c:
+            # test connection
+            result = c.run("echo connected", hide=True)
+            assert result.ok, "Connection command failed"
+            logger.debug("SSH connection successful")
+
+            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
+            result = c.put(compressed_export_nl, remote=data_dir)
+            logger.debug(f"Transferred: {result}")
+
+            logger.debug(f"Creating deploy_dir {deploy_dir}")
+            result = c.run(f"mkdir -p {deploy_dir}")
+            assert result.ok, "Creating deploy_dir failed"
+
+            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
+            result = c.run(
+                f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
+            )
+            assert result.ok, "Decompressing failed"
+
+            logger.info(
+                f"Deployment successful: Files transferred to {deploy_dir} on godzilla"
+            )
+    except Exception as e:
+        logger.error(f"SSH connection failed: {e}")
+        raise
+    return deploy_dir
+
+
+@asset(required_resource_keys={"db_connection", "godzilla_server"})
+def webservice_godzilla(context, transfer_to_godzilla):
+    """
+    Load the layers for WFS, WMS to the database on Godzilla.
+    The layers will be loaded into the schema `webservice_dev` and
+    will not be published yet by the geoserver. The publication will
+    be done in the `nl_release` job.
+    """
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with Connection(host="godzilla.bk.tudelft.nl", user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
-    deploy_dir = downloadable_godzilla
+    deploy_dir = transfer_to_godzilla
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join(
@@ -142,7 +183,7 @@ def webservice_godzilla(context, downloadable_godzilla):
                 layer + "_tmp",
             ]
         )
-        with Connection(host=host_godzilla, user=user_godzilla) as c:
+        with context.resources.godzilla_server.connect as c:
             context.log.debug(cmd)
             r = c.run(cmd)
             context.log.debug(r.stdout)
@@ -169,7 +210,7 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
@@ -188,14 +229,14 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
     # Load the CSV files into the intermediary tables
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
             "\copy "
@@ -232,25 +273,16 @@ def webservice_godzilla(context, downloadable_godzilla):
         },
     )
     sql = context.resources.db_connection.connect.print_query(sql)
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
-    # extension = str(datetime.now().date())
-    # alter_to_archive = f"ALTER SCHEMA {old_schema} RENAME TO bag3d_{extension};"
-    # alter_to_old = f"ALTER SCHEMA {schema} RENAME TO {old_schema};"
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with Connection(host=host_godzilla, user=user_godzilla) as c:
-        # context.log.debug(alter_to_archive)
-        # c.run(
-        #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
-        # context.log.debug(alter_to_old)
-        # c.run(
-        #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_old}'")
+    with context.resources.godzilla_server.connect as c:
         context.log.debug(grant_usage)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'"
@@ -266,3 +298,82 @@ def webservice_godzilla(context, downloadable_godzilla):
         f"{schema}.lod22_2d",
         f"{schema}.tiles",
     )
+
+
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"godzilla_server"},
+)
+def publish_data(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+):
+    """On godzilla, create symlink to the 'export' to the current version
+    and add the current version to the tar.gz archive.
+    """
+    data_dir: str = context.resources.godzilla_server.target_dir
+    public_dir: str = context.resources.godzilla_server.target_dir
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
+        deploy_dir = f"{data_dir}/{version}"
+        compressed_file = Path(data_dir) / compressed_export_nl.name
+
+    try:
+        with context.resources.godzilla_server.connect as c:
+            # test connection
+            result = c.run("echo connected", hide=True)
+            assert result.ok, "Connection command failed"
+            logger.debug("SSH connection successful")
+
+            # symlink to latest version so the fileserver picks up the data
+            version_nopoints = version.replace(".", "")
+
+            logger.debug(f"Creating public_dir {public_dir}")
+            result = c.run(f"mkdir -p {public_dir}")
+            assert result.ok, "Creating public_dir failed"
+
+            logger.debug(
+                f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
+            )
+            result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
+            assert result.ok, "Creating symlink failed"
+
+            logger.debug(f"Removing compressed file {compressed_file}")
+            result = c.run(f"rm {compressed_file}")
+            assert result.ok, "Removing compressed file failed"
+
+            logger.info(
+                f"Data Release successful: Link made to {public_dir}/{version_nopoints} on godzilla"
+            )
+    except Exception as e:
+        logger.error(f"Data release failed: {e}")
+        raise
+
+
+@asset(required_resource_keys={"godzilla_server"})
+def publish_webservices(context):
+    """ """
+    latest_schema = "webservice"
+    dev_schema = "webservice_dev"
+
+    extension = str(datetime.now().date())
+    alter_latest_to_archive = (
+        f"ALTER SCHEMA {latest_schema} RENAME TO bag3d_{extension};"
+    )
+    alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
+
+    try:
+        with context.resources.godzilla_server.connect as c:
+            context.log.debug(alter_latest_to_archive)
+            c.run(
+                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
+            )
+            context.log.debug(alter_dev_to_latest)
+            c.run(
+                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_dev_to_latest}'"
+            )
+    except Exception as e:
+        logger.error(f"Publishing Webservices on Godzilla failed: {e}")
+        raise
