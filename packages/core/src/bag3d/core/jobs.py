@@ -129,3 +129,11 @@ job_nl_deploy = define_asset_job(
     | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
     | AssetSelection.assets(["deploy", "webservice_godzilla"]),
 )
+
+
+job_nl_release = define_asset_job(
+    name="nl_release",
+    description="Perform the final steps for the 3DBAG release.",
+    selection=AssetSelection.assets(["deploy", "publish_data"])
+    #| AssetSelection.assets(["deploy", "publish_webservices"]),
+)
