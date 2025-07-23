@@ -49,7 +49,7 @@ def downloadable_podzilla(
     """Downloadable files hosted on podzilla, for the 3DBAG API.
     Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the archive
     """
-    data_dir: str = context.resources.podzilla_server.dir
+    data_dir: str = context.resources.podzilla_server.target_dir
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
@@ -100,7 +100,7 @@ def downloadable_godzilla(
     - Symlink to the 'export' to the current version
     - Add the current version to the tar.gz archive
     """
-    data_dir: str = context.resources.godzilla_server.dir
+    data_dir: str = context.resources.godzilla_server.target_dir
     public_dir: str = context.resources.godzilla_server.public_dir
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
