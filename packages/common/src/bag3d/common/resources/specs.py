@@ -1,5 +1,5 @@
 from dagster import ConfigurableResource
-from typing import Dict, Optional, Union, Generator
+from typing import Dict, Optional, Union, Generator, Tuple
 from pydantic import PrivateAttr
 
 from bag3d.specs.core import (
@@ -31,7 +31,7 @@ class Specs3DBAGResource(ConfigurableResource):
         self,
         data_format: str,
         locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation]],
-    ) -> Generator[tuple[str, Attribute], None]:
+    ) -> Generator[Tuple[str, Attribute], None, None]:
         """Filter the attributes spec for the specified `level`."""
         allowed_formats = ["cityjson", "gpkg"]
         requested_locations = set(locations)

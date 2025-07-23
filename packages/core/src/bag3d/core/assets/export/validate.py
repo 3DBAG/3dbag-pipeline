@@ -45,7 +45,7 @@ class AttributeValidationOutcome(Enum):
         return outcome != cls.OK
 
 
-@dataclass
+@dataclass(frozen=True)
 class AttributeValidationResultOne:
     """The result of the attribute validation for one attribute.
     Includes the attribute name and the error.
@@ -245,7 +245,7 @@ class TileResults:
 
 def cityobject_validate_attributes(
     specs: Specs3DBAGResource, co: dict
-) -> Generator[AttributeValidationResultOne]:
+) -> Generator[AttributeValidationResultOne, None, None]:
     """Validate the attributes of a CityObject against the 3DBAG attributes specs.
 
     Args:
@@ -707,7 +707,7 @@ def obj(
 
 def gpkg_validate_attributes(
     specs: Specs3DBAGResource, gpkg_info: dict
-) -> Generator[AttributeValidationResultOne]:
+) -> Generator[AttributeValidationResultOne, None, None]:
     """Validate the attributes of a GPKG against the 3DBAG attributes specs.
 
     Args:

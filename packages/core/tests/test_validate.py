@@ -23,6 +23,7 @@ def test_gpkg(context, test_data_dir):
         "10-564-624",
         "https://data.3dbag.nl",
         "test",
+        specs=context.resources.specs,
     )
     assert res.zip_ok
     assert res.file_ok
@@ -68,6 +69,7 @@ def test_gpkg_missing(context_missing, test_data_dir):
             "10-564-624",
             "https://data.3dbag.nl",
             "test",
+            specs=context_missing.resources.specs,
         )
 
 
