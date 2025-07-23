@@ -99,6 +99,7 @@ def test_transfer_to_godzilla(context, test_data_dir):
                 f"rm -rf {context.resources.godzilla_server.target_dir}/test_version",
                 warn=True,
             )
+            c.run(f"rm -rf {context.resources.godzilla_server.public_dir}", warn=True)
             c.run(
                 f"rm -f {context.resources.godzilla_server.target_dir}/export_test_version.tar.gz",
                 warn=True,

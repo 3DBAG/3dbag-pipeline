@@ -13,6 +13,7 @@ class ServerTransferResource(ConfigurableResource):
     host: Optional[str] = None
     user: Optional[str] = None
     target_dir: Optional[str] = None
+    public_dir: Optional[str] = None
 
     @property
     def connect(self):

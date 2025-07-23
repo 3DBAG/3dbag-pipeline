@@ -1,4 +1,4 @@
-"""Deploy 3D BAG to godzilla"""
+"""Deploy 3D BAG to godzilla and podzilla servers and perform the final steps of the release"""
 
 import tarfile
 from pathlib import Path
@@ -39,15 +39,20 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
 
 
 @asset(
-    ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"podzilla_server"},
 )
 def transfer_to_podzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
 ):
-    """Downloadable files hosted on podzilla, for the 3DBAG API.
-    Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the archive
+    """Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the files
+    in the target directory.
+    The target directory is set to the `BAG3D_PODZILLA_TARGET_DIR` environment variable.
+    The version is extracted from the metadata file and used to create a subdirectory
+    in the target directory.
+    The files on `podzilla` will be used for the 3DBAG API.
     """
     data_dir: str = context.resources.podzilla_server.target_dir
     with metadata.open("r") as fo:
@@ -87,18 +92,20 @@ def transfer_to_podzilla(
 
 
 @asset(
-    ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"godzilla_server"},
 )
 def transfer_to_godzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
 ):
-    """Downloadable files hosted on godzilla.
-    - Transfer the export_<version>.tar.gz archive to `godzilla:/data/3DBAG`
-    - Uncompress the archive and add the current version to the directory name
-    - Symlink to the 'export' to the current version
-    - Add the current version to the tar.gz archive
+    """Transfer the export_<version>.tar.gz archive to `godzilla` and decompress the files
+    in the target directory.
+    The target directory is set to the `BAG3D_GODZILLA_TARGET_DIR` environment variable.
+    The version is extracted from the metadata file and used to create a subdirectory
+    in the target directory.
+    The files on `godzilla` will be made available for direct download and will be used by the webservices.
     """
     data_dir: str = context.resources.godzilla_server.target_dir
     with metadata.open("r") as fo:
@@ -128,23 +135,6 @@ def transfer_to_godzilla(
             )
             assert result.ok, "Decompressing failed"
 
-            # # symlink to latest version so the fileserver picks up the data
-            # version_nopoints = version.replace(".", "")
-
-            # logger.debug(f"Creating public_dir {public_dir}")
-            # result = c.run(f"mkdir -p {public_dir}")
-            # assert result.ok, "Creating public_dir failed"
-
-            # logger.debug(
-            #     f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
-            # )
-            # result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
-            # assert result.ok, "Creating symlink failed"
-
-            # logger.debug(f"Removing compressed file {compressed_file}")
-            # result = c.run(f"rm {compressed_file}")
-            # assert result.ok, "Removing compressed file failed"
-
             logger.info(
                 f"Deployment successful: Files transferred to {deploy_dir} on godzilla"
             )
@@ -154,7 +144,7 @@ def transfer_to_godzilla(
     return deploy_dir
 
 
-@asset(required_resource_keys={"db_connection"})
+@asset(required_resource_keys={"db_connection", "godzilla_server"})
 def webservice_godzilla(context, transfer_to_godzilla):
     """
     Load the layers for WFS, WMS to the database on Godzilla.
@@ -306,3 +296,55 @@ def webservice_godzilla(context, transfer_to_godzilla):
         f"{schema}.lod22_2d",
         f"{schema}.tiles",
     )
+
+
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"godzilla_server"},
+)
+def publish_data(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+):
+    """On godzilla, create symlink to the 'export' to the current version
+    and add the current version to the tar.gz archive.
+    """
+    data_dir: str = context.resources.godzilla_server.target_dir
+    public_dir: str = context.resources.godzilla_server.target_dir
+    with metadata.open("r") as fo:
+        metadata_json = json.load(fo)
+        version = metadata_json["identificationInfo"]["citation"]["edition"]
+        deploy_dir = f"{data_dir}/{version}"
+        compressed_file = Path(data_dir) / compressed_export_nl.name
+
+    try:
+        with context.resources.godzilla_server.connect as c:
+            # test connection
+            result = c.run("echo connected", hide=True)
+            assert result.ok, "Connection command failed"
+            logger.debug("SSH connection successful")
+
+            # symlink to latest version so the fileserver picks up the data
+            version_nopoints = version.replace(".", "")
+
+            logger.debug(f"Creating public_dir {public_dir}")
+            result = c.run(f"mkdir -p {public_dir}")
+            assert result.ok, "Creating public_dir failed"
+
+            logger.debug(
+                f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
+            )
+            result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
+            assert result.ok, "Creating symlink failed"
+
+            logger.debug(f"Removing compressed file {compressed_file}")
+            result = c.run(f"rm {compressed_file}")
+            assert result.ok, "Removing compressed file failed"
+
+            logger.info(
+                f"Data Release successful: Link made to {public_dir}/{version_nopoints} on godzilla"
+            )
+    except Exception as e:
+        logger.error(f"SSH connection failed: {e}")
+        raise
