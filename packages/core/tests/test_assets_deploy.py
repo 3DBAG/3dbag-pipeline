@@ -1,14 +1,14 @@
 from bag3d.core.assets.deploy.servers import (
     compressed_export_nl,
-    downloadable_godzilla,
-    downloadable_podzilla,
+    transfer_to_godzilla,
+    transfer_to_podzilla,
 )
 from pathlib import Path
 import pytest
 
 
 @pytest.mark.needs_tools
-def test_downloadable_podzilla(context, test_data_dir):
+def test_transfer_to_podzilla(context, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
     export_dir.mkdir(parents=True, exist_ok=True)
@@ -31,7 +31,7 @@ def test_downloadable_podzilla(context, test_data_dir):
         assert compressed_file.exists()  # Check that the file was created
 
         # Test the transfer to podzilla
-        res = downloadable_podzilla(
+        res = transfer_to_podzilla(
             context,
             compressed_file,
             metadata_file,
@@ -57,7 +57,7 @@ def test_downloadable_podzilla(context, test_data_dir):
 
 
 @pytest.mark.needs_tools
-def test_downloadable_godzilla(context, test_data_dir):
+def test_transfer_to_godzilla(context, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
     export_dir.mkdir(parents=True, exist_ok=True)
@@ -80,7 +80,7 @@ def test_downloadable_godzilla(context, test_data_dir):
         assert compressed_file.exists()  # Check that the file was created
 
         # Test the transfer to godzilla
-        res = downloadable_godzilla(
+        res = transfer_to_godzilla(
             context,
             compressed_file,
             metadata_file,

@@ -41,7 +41,7 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
 )
-def downloadable_podzilla(
+def transfer_to_podzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
@@ -89,7 +89,7 @@ def downloadable_podzilla(
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")}, required_resource_keys={"version"}
 )
-def downloadable_godzilla(
+def transfer_to_godzilla(
     context,
     compressed_export_nl: Path,
     metadata: Path,
@@ -101,7 +101,6 @@ def downloadable_godzilla(
     - Add the current version to the tar.gz archive
     """
     data_dir: str = context.resources.godzilla_server.target_dir
-    public_dir: str = context.resources.godzilla_server.public_dir
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
@@ -129,25 +128,25 @@ def downloadable_godzilla(
             )
             assert result.ok, "Decompressing failed"
 
-            # symlink to latest version so the fileserver picks up the data
-            version_nopoints = version.replace(".", "")
+            # # symlink to latest version so the fileserver picks up the data
+            # version_nopoints = version.replace(".", "")
 
-            logger.debug(f"Creating public_dir {public_dir}")
-            result = c.run(f"mkdir -p {public_dir}")
-            assert result.ok, "Creating public_dir failed"
+            # logger.debug(f"Creating public_dir {public_dir}")
+            # result = c.run(f"mkdir -p {public_dir}")
+            # assert result.ok, "Creating public_dir failed"
 
-            logger.debug(
-                f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
-            )
-            result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
-            assert result.ok, "Creating symlink failed"
+            # logger.debug(
+            #     f"Creating symlink to {deploy_dir} as {public_dir}/{version_nopoints}"
+            # )
+            # result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
+            # assert result.ok, "Creating symlink failed"
 
-            logger.debug(f"Removing compressed file {compressed_file}")
-            result = c.run(f"rm {compressed_file}")
-            assert result.ok, "Removing compressed file failed"
+            # logger.debug(f"Removing compressed file {compressed_file}")
+            # result = c.run(f"rm {compressed_file}")
+            # assert result.ok, "Removing compressed file failed"
 
             logger.info(
-                f"Deployment successful: Files transferred to {public_dir}/{version_nopoints} on godzilla"
+                f"Deployment successful: Files transferred to {deploy_dir} on godzilla"
             )
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
@@ -156,8 +155,13 @@ def downloadable_godzilla(
 
 
 @asset(required_resource_keys={"db_connection"})
-def webservice_godzilla(context, downloadable_godzilla):
-    """Load the layers for WFS, WMS that are served from godzilla"""
+def webservice_godzilla(context, transfer_to_godzilla):
+    """
+    Load the layers for WFS, WMS to the database on Godzilla.
+    The layers will be loaded into the schema `webservice_dev` and
+    will not be published yet by the geoserver. The publication will
+    be done in the `nl_release` job.
+    """
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
     with context.resources.godzilla_server.connect as c:
@@ -166,7 +170,7 @@ def webservice_godzilla(context, downloadable_godzilla):
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
-    deploy_dir = downloadable_godzilla
+    deploy_dir = transfer_to_godzilla
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join(
@@ -283,19 +287,10 @@ def webservice_godzilla(context, downloadable_godzilla):
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
-    # extension = str(datetime.now().date())
-    # alter_to_archive = f"ALTER SCHEMA {old_schema} RENAME TO bag3d_{extension};"
-    # alter_to_old = f"ALTER SCHEMA {schema} RENAME TO {old_schema};"
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
     with context.resources.godzilla_server.connect as c:
-        # context.log.debug(alter_to_archive)
-        # c.run(
-        #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_archive}'")
-        # context.log.debug(alter_to_old)
-        # c.run(
-        #     f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_to_old}'")
         context.log.debug(grant_usage)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'"
