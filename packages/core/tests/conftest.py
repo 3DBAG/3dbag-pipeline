@@ -30,7 +30,6 @@ def godzilla_server():
         host="godzilla",
         user="",
         target_dir="/tmp",
-        public_dir="/tmp/3dbag_public",
     )
 
 
