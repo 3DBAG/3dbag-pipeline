@@ -79,8 +79,8 @@ class AttributeValidationResults:
                     self.results[a_name] = {result}
 
     def __repr__(self):
-        def get_value(x: AttributeValidationOutcome) -> int:
-            return x.value
+        def get_value(x: AttributeValidationResultOne) -> int:
+            return x.outcome.value
 
         return f"{dict((k, list(map(get_value, v))) for k, v in self.results.items())}"
 
@@ -298,7 +298,7 @@ def cityobject_validate_attributes(
                     )
                     semantic_surface_attributes = {
                         k: v
-                        for k, v in semantic_surface
+                        for k, v in semantic_surface.items()
                         if k != "type" and k != "children" and k != "parent"
                     }
                     surface_diff_specs = set(semantic_surface_attributes).difference(
@@ -718,7 +718,7 @@ def gpkg_validate_attributes(
         A list of `AttributeValidationResultOne`.
     """
     for layer in gpkg_info["layers"]:
-        gpkg_location = GpkgLocation.from_string(layer)
+        gpkg_location = GpkgLocation.from_string(layer["name"])
         specs_attributes = dict(
             specs.applies_to(data_format="gpkg", locations=(gpkg_location,))
         )
