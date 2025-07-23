@@ -1,4 +1,5 @@
 FROM ubuntu:24.04 AS dependencies
+
 ARG VERSION=latest
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
