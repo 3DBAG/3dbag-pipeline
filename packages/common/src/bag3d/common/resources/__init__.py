@@ -45,14 +45,14 @@ db_connection = DatabaseResource(
 godzilla_server = ServerTransferResource(
     host=EnvVar("BAG3D_GODZILLA_HOST").get_value(),
     user=EnvVar("BAG3D_GODZILLA_USER").get_value(),
-    dir=EnvVar("BAG3D_GODZILLA_DIR").get_value(),
+    target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value(),
     public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
 )
 
 podzilla_server = ServerTransferResource(
     host=EnvVar("BAG3D_PODZILLA_HOST").get_value(),
     user=EnvVar("BAG3D_PODZILLA_USER").get_value(),
-    dir=EnvVar("BAG3D_PODZILLA_DIR").get_value(),
+    target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value(),
 )
 
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))

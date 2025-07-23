@@ -29,7 +29,7 @@ def godzilla_server():
     yield ServerTransferResource(
         host="godzilla",
         user="",
-        dir="/tmp",
+        target_dir="/tmp",
         public_dir="/tmp/3dbag_public",
     )
 
@@ -39,7 +39,7 @@ def podzilla_server():
     yield ServerTransferResource(
         host="podzilla",
         user="gstavropoulou",
-        dir="/tmp",
+        target_dir="/tmp",
     )
 
 
