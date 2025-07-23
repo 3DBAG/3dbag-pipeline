@@ -6,10 +6,11 @@ import csv
 from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
+from typing import Generator
 
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
-from bag3d.specs.core import AttributeAppliesTo
+from bag3d.specs.core import CityJSONLocation, GpkgLocation
 from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
@@ -22,19 +23,21 @@ class AttributeValidationOutcome(Enum):
 
     Possible outcomes:
         NO_ERROR = 0
-        CITYOBJECT_EXTRA_ATTRIBUTES = 1
-        CITYOBJECT_MISSING_ATTRIBUTES = 2
+        BUILDING_EXTRA_ATTRIBUTES = 1
+        BUILDING_MISSING_ATTRIBUTES = 2
         SURFACE_EXTRA_ATTRIBUTES = 3
         SURFACE_MISSING_ATTRIBUTES = 4
         INCORRECT_DATA_TYPE = 5
+        INCORRECT_NULLABLE = 6
     """
 
     OK = 0
-    CITYOBJECT_EXTRA_ATTRIBUTES = 1
-    CITYOBJECT_MISSING_ATTRIBUTES = 2
+    BUILDING_EXTRA_ATTRIBUTES = 1
+    BUILDING_MISSING_ATTRIBUTES = 2
     SURFACE_EXTRA_ATTRIBUTES = 3
     SURFACE_MISSING_ATTRIBUTES = 4
     INCORRECT_DATA_TYPE = 5
+    INCORRECT_NULLABLE = 6
 
     @classmethod
     def is_error(cls, outcome: "AttributeValidationOutcome") -> bool:
@@ -61,22 +64,22 @@ class AttributeValidationResults:
         """Are there any errors in the results?"""
         return len(self.results) == 0
 
-    def add_error(self, result: list[AttributeValidationResultOne]) -> None:
+    def add_error(self, result: AttributeValidationResultOne) -> None:
         """Add the attribute validation result of a single CityObject or feature,
         if the result is an error.
         Adds the output of `cityobject_validate_attributes`.
         """
-        for r in filter(AttributeValidationOutcome.is_error, result):
+        if AttributeValidationOutcome.is_error(result.outcome):
             # The attribute name can be a comma-separated list of attribute names in
             # case of many missing attributes
-            for a_name in r.attribute_name.split(","):
+            for a_name in result.attribute_name.split(","):
                 if validation_res := self.results.get(a_name):
-                    validation_res.add(r.outcome)
+                    validation_res.add(result)
                 else:
-                    self.results[a_name] = {r.outcome}
+                    self.results[a_name] = {result}
 
     def __repr__(self):
-        def get_value(x) -> int:
+        def get_value(x: AttributeValidationOutcome) -> int:
             return x.value
 
         return f"{dict((k, list(map(get_value, v))) for k, v in self.results.items())}"
@@ -189,6 +192,7 @@ class GPKGFileResults:
         file_ok (bool): Whether the GeoPackage file itself is valid.
         nr_building (int): Number of building features.
         nr_buildingpart (int): Number of building part features.
+        attributes_with_errors (AttributeValidationResults): List of attribute names with the error codes that they have.
         download (str): The URL of the file download.
         sha256 (str): The SHA256 of the zipfile.
     """
@@ -198,6 +202,7 @@ class GPKGFileResults:
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_2d_geom: int = None
+    attributes_with_errors: AttributeValidationResults = AttributeValidationResults()
     download: str = None
     sha256: str = None
 
@@ -240,7 +245,7 @@ class TileResults:
 
 def cityobject_validate_attributes(
     specs: Specs3DBAGResource, co: dict
-) -> list[AttributeValidationResultOne]:
+) -> Generator[AttributeValidationResultOne]:
     """Validate the attributes of a CityObject against the 3DBAG attributes specs.
 
     Args:
@@ -249,36 +254,33 @@ def cityobject_validate_attributes(
     Returns:
         A list of `AttributeValidationResultOne`.
     """
-    results: list[AttributeValidationResultOne] = []
     # CityObject attributes
     if co_attributes := co.get("attributes"):
-        building_attributes = specs.applies_to(
-            AttributeAppliesTo.from_string("Building")
+        building_attributes = dict(
+            specs.applies_to(
+                data_format="cityjson",
+                locations=(CityJSONLocation.from_string(co["type"]),),
+            )
         )
         co_diff_specs = set(co_attributes).difference(building_attributes)
         if len(co_diff_specs) > 0:
-            results.append(
-                AttributeValidationResultOne(
-                    attribute_name=",".join(co_diff_specs),
-                    outcome=AttributeValidationOutcome.CITYOBJECT_EXTRA_ATTRIBUTES,
-                )
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(co_diff_specs),
+                outcome=AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES,
             )
+
         specs_diff_co = set(building_attributes).difference(co_attributes)
         if len(specs_diff_co) > 0:
-            results.append(
-                AttributeValidationResultOne(
-                    attribute_name=",".join(specs_diff_co),
-                    outcome=AttributeValidationOutcome.CITYOBJECT_MISSING_ATTRIBUTES,
-                )
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(specs_diff_co),
+                outcome=AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES,
             )
         for specs_attr in building_attributes.values():
             if co_attr := co_attributes.get(specs_attr.name):
                 if type(co_attr).__name__ != specs_attr.type.as_python():
-                    results.append(
-                        AttributeValidationResultOne(
-                            attribute_name=specs_attr.name,
-                            outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                        )
+                    yield AttributeValidationResultOne(
+                        attribute_name=specs_attr.name,
+                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
                     )
 
     # Semantic attributes
@@ -286,8 +288,13 @@ def cityobject_validate_attributes(
         for geometry in geometries:
             if semantics := geometry.get("semantics"):
                 for semantic_surface in semantics["surfaces"]:
-                    specs_surface_attributes = specs.applies_to(
-                        AttributeAppliesTo.from_string(semantic_surface["type"])
+                    specs_surface_attributes = dict(
+                        specs.applies_to(
+                            data_format="cityjson",
+                            locations=(
+                                CityJSONLocation.from_string(semantic_surface["type"]),
+                            ),
+                        )
                     )
                     semantic_surface_attributes = {
                         k: v
@@ -298,31 +305,26 @@ def cityobject_validate_attributes(
                         specs_surface_attributes
                     )
                     if len(surface_diff_specs) > 0:
-                        results.append(
-                            AttributeValidationResultOne(
-                                attribute_name=",".join(surface_diff_specs),
-                                outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
-                            )
+                        yield AttributeValidationResultOne(
+                            attribute_name=",".join(surface_diff_specs),
+                            outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
                         )
+
                     specs_diff_surface = set(specs_surface_attributes).difference(
                         semantic_surface_attributes
                     )
                     if len(specs_diff_surface) > 0:
-                        AttributeValidationResultOne(
+                        yield AttributeValidationResultOne(
                             attribute_name=",".join(specs_diff_surface),
                             outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
                         )
                     for specs_attr in specs_surface_attributes.values():
                         if sem_attr := semantic_surface_attributes.get(specs_attr.name):
                             if type(sem_attr).__name__ != specs_attr.type.as_python():
-                                results.append(
-                                    AttributeValidationResultOne(
-                                        attribute_name=specs_attr.name,
-                                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                                    )
+                                yield AttributeValidationResultOne(
+                                    attribute_name=specs_attr.name,
+                                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
                                 )
-
-    return results
 
 
 def cityjson(
@@ -349,7 +351,7 @@ def cityjson(
         )
         results.zip_ok = True if len(output) == 0 else False
     except Exception:
-        logger.outcome(f"Failed to test zip with file {inputzipfile}")
+        logger.error(f"Failed to test zip with file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -358,7 +360,7 @@ def cityjson(
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
     except Exception:
-        logger.outcome(f"Failed to unzip file {inputzipfile}")
+        logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -374,7 +376,7 @@ def cityjson(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
         )
     except Exception:
-        logger.outcome("Failed to compute sha256 or create download link")
+        logger.error("Failed to compute sha256 or create download link")
         inputfile.unlink(missing_ok=True)
         return results
 
@@ -411,7 +413,7 @@ def cityjson(
                 "",
             ]
     except Exception as e:
-        logger.outcome("Failed to run cjio info command.")
+        logger.error("Failed to run cjio info command.")
         inputfile.unlink(missing_ok=True)
         raise e
 
@@ -487,8 +489,10 @@ def cityjson(
                             nr_mismatch_errors_lod13 += 1
                         if e22 != set(eval(attributes["b3_val3dity_lod22"])):
                             nr_mismatch_errors_lod22 += 1
-                        res = cityobject_validate_attributes(specs=specs, co=cj_co)
-                        results.attributes_with_errors.add_error(res)
+                        for res_one in cityobject_validate_attributes(
+                            specs=specs, co=cj_co
+                        ):
+                            results.attributes_with_errors.add_error(res_one)
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
             results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
@@ -701,7 +705,9 @@ def obj(
     return results
 
 
-def gpgk_validate_attributes(specs: Specs3DBAGResource, gpkg_info: dict) -> list[AttributeValidationResultOne]:
+def gpkg_validate_attributes(
+    specs: Specs3DBAGResource, gpkg_info: dict
+) -> Generator[AttributeValidationResultOne]:
     """Validate the attributes of a GPKG against the 3DBAG attributes specs.
 
     Args:
@@ -711,36 +717,56 @@ def gpgk_validate_attributes(specs: Specs3DBAGResource, gpkg_info: dict) -> list
     Returns:
         A list of `AttributeValidationResultOne`.
     """
-    results: list[AttributeValidationResultOne] = []
     for layer in gpkg_info["layers"]:
-        specs_attributes = None
-        if layer["name"] == "pand":
-            specs_attributes = specs.applies_to(AttributeAppliesTo.Building)
-        elif layer["name"] != "pand":
-            pass
+        gpkg_location = GpkgLocation.from_string(layer)
+        specs_attributes = dict(
+            specs.applies_to(data_format="gpkg", locations=(gpkg_location,))
+        )
 
         layer_fields = layer["fields"]
         gpkg_field_names = set(f["name"] for f in layer_fields)
         gpkg_diff_specs = gpkg_field_names.difference(specs_attributes)
-        if len(gpkg_diff_specs) > 0:
-            results.append(
-                AttributeValidationResultOne(
-                    attribute_name=",".join(gpkg_diff_specs),
-                    outcome=AttributeValidationOutcome.CITYOBJECT_EXTRA_ATTRIBUTES,
-                )
+        if gpkg_location in GpkgLocation.building_layers():
+            error_extra_attributes = (
+                AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES
             )
+            error_missing_attributes = (
+                AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES
+            )
+        else:
+            error_extra_attributes = AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES
+            error_missing_attributes = (
+                AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES
+            )
+        # Check for extra/missing attributes
+        if len(gpkg_diff_specs) > 0:
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(gpkg_diff_specs),
+                outcome=error_extra_attributes,
+            )
+
         specs_diff_gpkg = set(specs_attributes).difference(gpkg_field_names)
         if len(specs_diff_gpkg) > 0:
-            results.append(
-                AttributeValidationResultOne(
-                    attribute_name=",".join(specs_diff_gpkg),
-                    outcome=AttributeValidationOutcome.CITYOBJECT_MISSING_ATTRIBUTES,
-                )
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(specs_diff_gpkg),
+                outcome=error_missing_attributes,
             )
 
+        # Check attribute types
+        for gpkg_attr in layer_fields:
+            a_name = gpkg_attr["name"]
+            if spec_attr := specs_attributes.get(a_name):
+                if gpkg_attr["type"] != spec_attr.type.as_ogr():
+                    yield AttributeValidationResultOne(
+                        attribute_name=a_name,
+                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                    )
 
-    return results
-
+                if gpkg_attr["nullable"] != spec_attr.nullable:
+                    yield AttributeValidationResultOne(
+                        attribute_name=a_name,
+                        outcome=AttributeValidationOutcome.INCORRECT_NULLABLE,
+                    )
 
 
 def gpkg(
@@ -749,6 +775,7 @@ def gpkg(
     file_id: str,
     url_root: str,
     version: str,
+    specs: Specs3DBAGResource,
 ) -> GPKGFileResults:
     results = GPKGFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
@@ -885,14 +912,13 @@ def gpkg(
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        returncode, output = gdal.execute(
-            "ogrinfo", command=cmd, local_path=dirpath
-        )
+        returncode, output = gdal.execute("ogrinfo", command=cmd, local_path=dirpath)
         try:
             gpkg_info = json.loads(output)
-
+            for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
+                results.attributes_with_errors.add_error(res_one)
         except Exception:
-            logger.warning(f"Failed to get the json ogrinfo for file")
+            logger.warning("Failed to get the json ogrinfo for file")
     except Exception as e:
         logger.error("Failed to run validation for gpkg")
         raise e
@@ -944,7 +970,9 @@ def check_formats(input) -> TileResults:
         url_root=url_root,
         version=version,
     )
-    gpkg_results = gpkg(gdal, dirpath, file_id, url_root=url_root, version=version)
+    gpkg_results = gpkg(
+        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs
+    )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
 

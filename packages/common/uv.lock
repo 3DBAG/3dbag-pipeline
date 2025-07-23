@@ -71,7 +71,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.07.22" },
+    { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop" },
     { name = "certifi", specifier = "==2023.5.7" },
     { name = "coverage", marker = "extra == 'dev'", specifier = "~=7.6.9" },
     { name = "dagster", specifier = "~=1.9.3" },
@@ -88,7 +88,7 @@ provides-extras = ["dev"]
 [[package]]
 name = "bag3d-specs"
 version = "2025.7.22"
-source = { git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.07.22#b75b9cef790998921dc84c48e6c359c896108543" }
+source = { git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop#4a3a4d7703998ebc0aca48c34f1e55898180583b" }
 dependencies = [
     { name = "jsonschema" },
 ]

@@ -1,8 +1,13 @@
 from dagster import ConfigurableResource
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, Generator
 from pydantic import PrivateAttr
 
-from bag3d.specs.core import load_attributes_spec, Attribute, AttributeAppliesTo
+from bag3d.specs.core import (
+    load_attributes_spec,
+    Attribute,
+    CityJSONLocation,
+    GpkgLocation,
+)
 
 
 class Specs3DBAGResource(ConfigurableResource):
@@ -22,10 +27,20 @@ class Specs3DBAGResource(ConfigurableResource):
             self._attributes_specs = load_attributes_spec()
         return self._attributes_specs
 
-    def applies_to(self, level: AttributeAppliesTo) -> Dict[str, Attribute]:
+    def applies_to(
+        self,
+        data_format: str,
+        locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation]],
+    ) -> Generator[tuple[str, Attribute], None]:
         """Filter the attributes spec for the specified `level`."""
-        return {
-            a_name: a_spec
-            for a_name, a_spec in self.attributes.items()
-            if a_spec.applies_to == level
-        }
+        allowed_formats = ["cityjson", "gpkg"]
+        requested_locations = set(locations)
+        if data_format not in allowed_formats:
+            raise ValueError(
+                f"Unsupported data format: {data_format}. Allowed formats are: {allowed_formats}"
+            )
+        for a_name, a_spec in self.attributes.items():
+            if format_spec := getattr(a_spec.applies_to, data_format):
+                if attribute_locations := format_spec["locations"]:
+                    if len(requested_locations.intersection(attribute_locations)) > 0:
+                        yield a_name, a_spec
