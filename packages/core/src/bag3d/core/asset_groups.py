@@ -1,6 +1,15 @@
 from dagster import load_assets_from_package_module
 
-from bag3d.core.assets import ahn, bag, top10nl, input, reconstruction, export, deploy
+from bag3d.core.assets import (
+    ahn,
+    bag,
+    top10nl,
+    input,
+    reconstruction,
+    export,
+    deploy,
+    release,
+)
 
 BAG = "bag"
 TOP10NL = "top10nl"
@@ -9,6 +18,7 @@ INPUT = "input"
 RECONSTRUCTION = "reconstruction"
 EXPORT = "export"
 DEPLOY = "deploy"
+RELEASE = "release"
 
 ahn_assets = load_assets_from_package_module(
     package_module=ahn, key_prefix="ahn", group_name=AHN
@@ -40,4 +50,8 @@ export_assets = load_assets_from_package_module(
 
 deploy_assets = load_assets_from_package_module(
     package_module=deploy, key_prefix="deploy", group_name=DEPLOY
+)
+
+release_assets = load_assets_from_package_module(
+    package_module=release, key_prefix="release", group_name=RELEASE
 )
