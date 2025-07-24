@@ -146,7 +146,9 @@ def transfer_to_godzilla(
     return deploy_dir
 
 
-@asset(required_resource_keys={"db_connection", "godzilla_server"})
+@asset(
+        deps={AssetKey(("transfer_to_godzilla"))},
+        required_resource_keys={"db_connection", "godzilla_server"})
 def webservice_godzilla(context, transfer_to_godzilla):
     """
     Load the layers for WFS, WMS to the database on Godzilla.
@@ -301,6 +303,7 @@ def webservice_godzilla(context, transfer_to_godzilla):
 
 
 @asset(
+    deps={AssetKey(("transfer_to_godzilla"))},
     ins={"metadata": AssetIn(key_prefix="export")},
     required_resource_keys={"godzilla_server"},
 )
@@ -352,7 +355,8 @@ def publish_data(
         raise
 
 
-@asset(required_resource_keys={"godzilla_server"})
+@asset(deps={AssetKey(("webservice_godzilla"))},
+       required_resource_keys={"godzilla_server"})
 def publish_webservices(context):
     """ """
     latest_schema = "webservice"

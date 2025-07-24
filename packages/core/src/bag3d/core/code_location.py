@@ -19,6 +19,7 @@ from bag3d.core.jobs import (
     job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
+    job_nl_release
 )
 
 all_assets = [
@@ -40,6 +41,7 @@ all_jobs = [
     job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
+    job_nl_release
 ]
 
 defs = Definitions(resources=resource_defs, assets=all_assets, jobs=all_jobs)
