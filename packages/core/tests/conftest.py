@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 
 import pytest
+
+from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -137,6 +139,7 @@ def context(
             "version": VersionResource("test_version"),
             "godzilla_server": godzilla_server,
             "podzilla_server": podzilla_server,
+            "specs": Specs3DBAGResource(),
         },
     )
 

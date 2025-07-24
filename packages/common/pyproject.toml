@@ -27,6 +27,7 @@ dependencies = [
     "requests==2.31.0",
     "pgutils",
     "psycopg[binary]~=3.2.3",
+    "bag3d-specs",
     "fabric~=3.2.2",
 ]
 
@@ -42,6 +43,7 @@ dev = [
 
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
+bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", tag = "2025.07.24" }
 
 [tool.pytest.ini_options]
 filterwarnings = [

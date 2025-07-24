@@ -7,14 +7,13 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 docs = [
-    "markdown-include~=0.8.1",
-    "mkdocs-material~=9.5.48",
-    "mkdocs~=1.6.1",
-    "mkdocs-gen-files~=0.5.0",
-    "mkdocs-literate-nav~=0.6.1",
-    "mkdocs-section-index~=0.3.9",
-    "mkdocstrings[python]~=0.27.0",
-    "bag3d-common",
+    "markdown-include>=0.8.1",
+    "mkdocs-material>=9.5.48",
+    "mkdocs>=1.6.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-section-index>=0.3.9",
+    "mkdocstrings[python]>=0.27.0",
 ]
 lint = [
     "ruff~=0.8.2",
@@ -29,9 +28,6 @@ dev = [
 
 [tool.uv]
 default-groups = ["dev", "docs", "lint"]
-
-[tool.uv.sources]
-bag3d-common = { path = "packages/common" }
 
 [tool.ruff]
 include = ["packages/*/pyproject.toml", "scripts/*/*.py"]
