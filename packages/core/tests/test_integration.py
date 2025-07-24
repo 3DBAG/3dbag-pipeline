@@ -1,6 +1,8 @@
 import os
 
 import pytest
+
+from bag3d.common.resources import Specs3DBAGResource
 from bag3d.common.resources.executables import (
     GeoflowResource,
     GDALResource,
@@ -68,6 +70,7 @@ def test_integration_reconstruction_and_export(
             exe_cjval=os.getenv("EXE_PATH_CJVAL"),
             exe_cjio=os.getenv("EXE_PATH_CJIO"),
         ),
+        "specs": Specs3DBAGResource(),
     }
 
     all_reconstruction_assets = load_assets_from_package_module(
