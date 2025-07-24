@@ -7,6 +7,7 @@ from bag3d.core.asset_groups import (
     reconstruction_assets,
     export_assets,
     deploy_assets,
+    release_assets,
 )
 from bag3d.core.jobs import (
     job_source_input,
@@ -19,6 +20,7 @@ from bag3d.core.jobs import (
     job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
+    job_nl_release,
 )
 
 all_assets = [
@@ -27,6 +29,7 @@ all_assets = [
     *reconstruction_assets,
     *export_assets,
     *deploy_assets,
+    *release_assets,
 ]
 
 all_jobs = [
@@ -40,6 +43,7 @@ all_jobs = [
     job_nl_reconstruct_debug,
     job_nl_export,
     job_nl_deploy,
+    job_nl_release,
 ]
 
 defs = Definitions(resources=resource_defs, assets=all_assets, jobs=all_jobs)
