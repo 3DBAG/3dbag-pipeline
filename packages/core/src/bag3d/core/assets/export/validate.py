@@ -49,26 +49,32 @@ class AttributeValidationOutcome(Enum):
 class AttributeValidationResultOne:
     """The result of the attribute validation for one attribute.
     Includes the attribute name and the error.
+
+    Attributes:
+        attribute_name (str): The name of the attribute.
+        outcome (AttributeValidationOutcome): The validation outcome.
     """
 
     attribute_name: str
     outcome: AttributeValidationOutcome
 
 
+@dataclass
 class AttributeValidationResults:
-    """The aggregated result of attribute validations for many attributes."""
+    """The aggregated result of attribute validations for many attributes.
 
-    results: dict[str, set[AttributeValidationResultOne]] = {}
+    Attributes:
+        results (dict[str, set[AttributeValidationResultOne]]): Map of attribute name, validation results for the attribute.
+    """
 
-    def all_ok(self):
+    results: dict[str, set[AttributeValidationResultOne]] = field(default_factory=dict)
+
+    def all_ok(self) -> bool:
         """Are there any errors in the results?"""
         return len(self.results) == 0
 
     def add_error(self, result: AttributeValidationResultOne) -> None:
-        """Add the attribute validation result of a single CityObject or feature,
-        if the result is an error.
-        Adds the output of `cityobject_validate_attributes`.
-        """
+        """Add a single validation result, only if the result is an error."""
         if AttributeValidationOutcome.is_error(result.outcome):
             # The attribute name can be a comma-separated list of attribute names in
             # case of many missing attributes
@@ -136,7 +142,9 @@ class CityJSONFileResults:
     lod: list[str] = None
     schema_valid: bool = None
     schema_warnings: bool = None
-    attributes_with_errors: AttributeValidationResults = AttributeValidationResults()
+    attributes_with_errors: AttributeValidationResults = field(
+        default_factory=AttributeValidationResults
+    )
     download: str = None
     sha256: str = None
 
@@ -202,7 +210,9 @@ class GPKGFileResults:
     nr_building: int = None
     nr_buildingpart: int = None
     nr_invalid_2d_geom: int = None
-    attributes_with_errors: AttributeValidationResults = AttributeValidationResults()
+    attributes_with_errors: AttributeValidationResults = field(
+        default_factory=AttributeValidationResults
+    )
     download: str = None
     sha256: str = None
 

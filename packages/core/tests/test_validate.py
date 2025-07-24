@@ -1,7 +1,9 @@
-from bag3d.core.assets.export import validate
 import pytest
 
 from bag3d.core.assets.export.validate import (
+    obj,
+    gpkg,
+    cityjson,
     AttributeValidationOutcome,
     AttributeValidationResultOne,
     AttributeValidationResults,
@@ -11,7 +13,7 @@ from bag3d.core.assets.export.validate import (
 
 
 def test_obj(context, test_data_dir):
-    res = validate.obj(
+    res = obj(
         context.resources.validation.app,
         test_data_dir / "validation_input/",
         "10-564-624",
@@ -25,7 +27,7 @@ def test_obj(context, test_data_dir):
 
 
 def test_gpkg(context, test_data_dir):
-    res = validate.gpkg(
+    res = gpkg(
         context.resources.gdal.app,
         test_data_dir / "validation_input/",
         "10-564-624",
@@ -41,7 +43,7 @@ def test_gpkg(context, test_data_dir):
 
 
 def test_cityjson(context, test_data_dir):
-    res = validate.cityjson(
+    res = cityjson(
         context.resources.validation.app,
         test_data_dir / "validation_input/",
         "10-564-624",
@@ -58,7 +60,7 @@ def test_cityjson(context, test_data_dir):
 
 def test_obj_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
-        _ = validate.obj(
+        _ = obj(
             context_missing.resources.validation.app,
             test_data_dir / "validation_input/",
             "10-564-624",
@@ -71,7 +73,7 @@ def test_obj_missing(context_missing, test_data_dir):
 
 def test_gpkg_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
-        _ = validate.gpkg(
+        _ = gpkg(
             context_missing.resources.gdal.app,
             test_data_dir / "validation_input/",
             "10-564-624",
@@ -83,7 +85,7 @@ def test_gpkg_missing(context_missing, test_data_dir):
 
 def test_cityjson_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
-        _ = validate.cityjson(
+        _ = cityjson(
             context_missing.resources.validation.app,
             test_data_dir / "validation_input/",
             "10-564-624",
@@ -333,17 +335,22 @@ class TestGpkgValidateAttributes:
                     "name": "lod12_3d",
                     "fields": [
                         {
-                            "name": "fid",
-                            "type": "String",
+                            "name": "labels",
+                            "type": "StringList",
                             "nullable": False,
                         },  # Wrong type
-                        {"name": "b3_bouwlagen", "type": "Integer", "nullable": False},
-                        # Wrong nullable
+                        {
+                            "name": "b3_pand_deel_id",
+                            "type": "Integer",
+                            "nullable": False,
+                        },  # Wrong nullable
+                        {"name": "identificatie", "type": "String", "nullable": False},
                     ],
                 }
             ]
         }
         results = list(gpkg_validate_attributes(specs, gpkg_info))
+        print(str(x) for x in results)
 
         # Check for type and nullable errors
         type_errors = [
