@@ -30,7 +30,7 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libspatialite-dev libspatialite8t64 spatialite-bin \
     pipx
 
-COPY --from=ghcr.io/astral-sh/uv:0.5.27 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.8.2 /uv /bin/uv
 # Python 3.11 is currently required by the party_walls package
 RUN uv python install 3.11 3.12
 
