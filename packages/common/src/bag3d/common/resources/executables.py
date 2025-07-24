@@ -154,15 +154,12 @@ class AppImage:
              The return code and STDOUT from the command execution.
 
         Examples:
+            >>> # Pass the name of the exe first, then the command, including the
+            ... # 'exe' placeholder.
+            ... self.execute("ogrinfo", "{exe} --version")
 
-            .. code-block:: python
-
-                # Pass the name of the exe first, then the command, including the
-                # 'exe' placeholder.
-                self.execute("ogrinfo", "{exe} --version")
-
-                self.execute("ogrinfo", "{exe} -so -al {local_path}",
-                             local_path=Path("/tmp/myfile.gml"))
+            >>> self.execute("ogrinfo", "{exe} -so -al {local_path}",
+            ...              local_path=Path("/tmp/myfile.gml"))
         """
         if kwargs:
             if "exe" in kwargs:

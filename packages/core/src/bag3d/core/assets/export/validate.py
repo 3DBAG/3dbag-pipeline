@@ -21,14 +21,15 @@ logger = get_dagster_logger("validate")
 class AttributeValidationOutcome(Enum):
     """Types of outcomes that can happen during attribute validation.
 
-    Possible outcomes:
-        NO_ERROR = 0
-        BUILDING_EXTRA_ATTRIBUTES = 1
-        BUILDING_MISSING_ATTRIBUTES = 2
-        SURFACE_EXTRA_ATTRIBUTES = 3
-        SURFACE_MISSING_ATTRIBUTES = 4
-        INCORRECT_DATA_TYPE = 5
-        INCORRECT_NULLABLE = 6
+    Possible outcomes and corresponding error codes:
+
+    - NO_ERROR (0): The attribute complies with the specs.
+    - BUILDING_EXTRA_ATTRIBUTES (1): The building object has attributes that is should not have.
+    - BUILDING_MISSING_ATTRIBUTES (2): The building object is some attributes that are prescribed by the specs.
+    - SURFACE_EXTRA_ATTRIBUTES (3): The surface object has attributes that is should not have.
+    - SURFACE_MISSING_ATTRIBUTES (4): The surface object is some attributes that are prescribed by the specs.
+    - INCORRECT_DATA_TYPE (5): The data type of the attribute does not match the specs.
+    - INCORRECT_NULLABLE (6): The nullability of the attribute does not match the specs.
     """
 
     OK = 0
