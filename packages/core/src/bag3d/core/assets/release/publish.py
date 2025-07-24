@@ -13,7 +13,7 @@ logger = get_dagster_logger("publish")
 
 
 @asset(
-    deps={AssetKey(("transfer_to_godzilla"))},
+    deps={AssetKey(("deploy", "transfer_to_godzilla"))},
     ins={
         "metadata": AssetIn(key_prefix="export"),
         "compressed_export_nl": AssetIn(key_prefix="deploy"),
@@ -69,7 +69,8 @@ def publish_data(
 
 
 @asset(
-    deps={AssetKey(("webservice_godzilla"))}, required_resource_keys={"godzilla_server"}
+    deps={AssetKey(("deploy", "webservice_godzilla"))},
+    required_resource_keys={"godzilla_server"},
 )
 def publish_webservices(context):
     """ """
