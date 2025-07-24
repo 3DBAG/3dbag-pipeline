@@ -14,7 +14,10 @@ logger = get_dagster_logger("publish")
 
 @asset(
     deps={AssetKey(("transfer_to_godzilla"))},
-    ins={"metadata": AssetIn(key_prefix="export")},
+    ins={
+        "metadata": AssetIn(key_prefix="export"),
+        "compressed_export_nl": AssetIn(key_prefix="deploy"),
+    },
     required_resource_keys={"godzilla_server"},
 )
 def publish_data(
