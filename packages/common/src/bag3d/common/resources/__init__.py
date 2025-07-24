@@ -128,6 +128,7 @@ resource_defs = {
 #     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
+#     "specs": specs,
 #     "godzilla_server": godzilla_server,
 #     "podzilla_server": podzilla_server,
 # }
@@ -144,6 +145,7 @@ resource_defs = {
 #     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
+#     "specs": specs,
 #     "godzilla_server": godzilla_server,
 #     "podzilla_server": podzilla_server,
 # }
@@ -160,6 +162,7 @@ resource_defs = {
 #     "validation": ValidationResource(),
 #     "roofer": RooferResource(),
 #     "version": VersionResource(),
+#     "specs": specs,
 #     "godzilla_server": ServerTransferResource(),
 #     "podzilla_server": ServerTransferResource(),
 # }
