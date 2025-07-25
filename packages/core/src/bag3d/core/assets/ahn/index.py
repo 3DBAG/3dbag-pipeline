@@ -33,7 +33,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    silent = (not context.op_execution_context.op_config["verbose"])
+    silent = not context.op_execution_context.op_config["verbose"]
     cmd_list = [
         "{exe}",
         "-i {local_path}",
@@ -44,8 +44,7 @@ def lasindex_ahn3(context, laz_files_ahn3):
     if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
-        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn3.path,
-        silent=silent
+        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn3.path, silent=silent
     )
 
 
@@ -76,7 +75,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    silent = (not context.op_execution_context.op_config["verbose"])
+    silent = not context.op_execution_context.op_config["verbose"]
     cmd_list = [
         "{exe}",
         "-i {local_path}",
@@ -87,8 +86,7 @@ def lasindex_ahn4(context, laz_files_ahn4):
     if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
-        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn4.path,
-        silent=silent
+        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn4.path, silent=silent
     )
 
 
@@ -119,7 +117,7 @@ def lasindex_ahn5(context, laz_files_ahn5):
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    silent = (not context.op_execution_context.op_config["verbose"])
+    silent = not context.op_execution_context.op_config["verbose"]
     cmd_list = [
         "{exe}",
         "-i {local_path}",
@@ -130,6 +128,5 @@ def lasindex_ahn5(context, laz_files_ahn5):
     if context.op_execution_context.op_config["force"] is False:
         cmd_list.append("-dont_reindex")
     context.resources.lastools.app.execute(
-        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn5.path,
-        silent=silent
+        "lasindex", " ".join(cmd_list), local_path=laz_files_ahn5.path, silent=silent
     )
