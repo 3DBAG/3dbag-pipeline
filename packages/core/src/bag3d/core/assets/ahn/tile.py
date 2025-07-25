@@ -81,7 +81,13 @@ def regular_grid_200m(context):
             default_value=20,
             description="Passed on to the subprocess.ThreadPoolExecutor that calls "
             "las2las.",
-        )
+        ),
+        "verbose": Field(
+            bool,
+            default_value=False,
+            is_required=False,
+            description="Output stdout/stderr from las2las",
+        ),
     },
     deps={AssetKey(["ahn", "metadata_ahn3"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
@@ -95,6 +101,7 @@ def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
         ahn_version=3,
         cellsize=200,
         max_workers=context.op_execution_context.op_config["max_workers"],
+        verbose=context.op_execution_context.op_config["verbose"],
     )
 
 
@@ -105,7 +112,13 @@ def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
             default_value=20,
             description="Passed on to the subprocess.ThreadPoolExecutor that calls "
             "las2las.",
-        )
+        ),
+        "verbose": Field(
+            bool,
+            default_value=False,
+            is_required=False,
+            description="Output stdout/stderr from las2las",
+        ),
     },
     deps={AssetKey(["ahn", "metadata_ahn4"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
@@ -119,6 +132,7 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
         ahn_version=4,
         cellsize=200,
         max_workers=context.op_execution_context.op_config["max_workers"],
+        verbose=context.op_execution_context.op_config["verbose"],
     )
 
 
@@ -129,7 +143,13 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
             default_value=20,
             description="Passed on to the subprocess.ThreadPoolExecutor that calls "
             "las2las.",
-        )
+        ),
+        "verbose": Field(
+            bool,
+            default_value=False,
+            is_required=False,
+            description="Output stdout/stderr from las2las",
+        ),
     },
     deps={AssetKey(["ahn", "metadata_ahn5"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
@@ -143,12 +163,37 @@ def laz_tiles_ahn5_200m(context, regular_grid_200m, metadata_table_ahn5):
         ahn_version=5,
         cellsize=200,
         max_workers=context.op_execution_context.op_config["max_workers"],
+        verbose=context.op_execution_context.op_config["verbose"],
     )
 
 
 def partition_laz_with_grid(
-    context, metadata_table_ahn, regular_grid_200m, ahn_version, cellsize, max_workers
+    context,
+    metadata_table_ahn,
+    regular_grid_200m,
+    ahn_version,
+    cellsize,
+    max_workers,
+    verbose: bool = False,
 ):
+    """
+    Partitions LAZ files into tiles based on a regular grid.
+    Queries the PostgreSQL database to find the grid cells that overlap the AHN tile.
+    Calls `las2las` with ThreadPoolExecutor for cropping the AHN LAZ file with each
+    grid cell.
+
+    Args:
+        context: Dagster context object.
+        metadata_table_ahn: Metadata table for the AHN version.
+        regular_grid_200m: The 200m grid created by the `regular_grid_200m` asset.
+        ahn_version: The AHN version (e.g., 3, 4, or 5).
+        cellsize: The size of each grid cell in meters.
+        max_workers: Maximum number of threads for parallel processing.
+        verbose: Whether to suppress output from the subprocesses.
+
+    Returns:
+        None
+    """
     conn = context.resources.db_connection.connect
     query_params = {
         "grid_200m": regular_grid_200m,
@@ -201,7 +246,7 @@ def partition_laz_with_grid(
                     "las2las",
                     " ".join(cmd),
                     local_path=out_file,
-                    silent=True,
+                    silent=(not verbose),
                 )
             ] = tile
 

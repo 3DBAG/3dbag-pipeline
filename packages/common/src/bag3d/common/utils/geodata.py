@@ -237,7 +237,7 @@ def ogr2postgres(
 
 
 def pdal_info(
-    pdal: AppImage, file_path: Path, with_all: bool = False
+    pdal: AppImage, file_path: Path, with_all: bool = False, verbose: bool = False
 ) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
@@ -256,7 +256,7 @@ def pdal_info(
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
     return_code, output = pdal.execute(
-        "pdal", command=" ".join(cmd_list), local_path=file_path
+        "pdal", command=" ".join(cmd_list), local_path=file_path, silent=(not verbose)
     )
 
     return return_code, json.loads(output)
