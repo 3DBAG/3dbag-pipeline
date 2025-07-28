@@ -151,9 +151,7 @@ job_nl_export_after_floors = define_asset_job(
 job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
-    selection=AssetSelection.assets(["export", "compressed_tiles"])
-    | AssetSelection.assets(["export", "compressed_tiles_validation"])
-    | AssetSelection.assets(["deploy", "compressed_export_nl"])
+    selection=AssetSelection.assets(["deploy", "compressed_export_nl"])
     | AssetSelection.assets(["deploy", "transfer_to_godzilla"])
     | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
     | AssetSelection.assets(["deploy", "webservice_godzilla"]),
