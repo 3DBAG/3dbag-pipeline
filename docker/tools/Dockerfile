@@ -62,6 +62,13 @@ FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
+COPY --from=3dgi/tyler:0.3.12 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler:0.3.12 /usr/local/share/proj /usr/local/share/proj
+COPY --from=3dgi/tyler:0.3.12 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler:0.3.12 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler:0.3.12 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler:0.3.12 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/local/share/proj /usr/local/share/proj
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /lib/ /tyler/lib/

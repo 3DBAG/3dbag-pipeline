@@ -414,7 +414,11 @@ class TylerResource(ConfigurableResource):
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {"tyler": self.exe_tyler, "tyler-db": self.exe_tyler_db, "tyler-multiformat": self.exe_tyler_multiformat}
+        return {
+            "tyler": self.exe_tyler,
+            "tyler-db": self.exe_tyler_db,
+            "tyler-multiformat": self.exe_tyler_multiformat,
+        }
 
     @property
     def with_docker(self) -> bool:
