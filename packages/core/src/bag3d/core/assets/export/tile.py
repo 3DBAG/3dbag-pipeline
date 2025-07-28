@@ -172,3 +172,84 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
         rayon_num_threads=config.concurrency,
         locations=tuple(),
     )
+
+
+@asset(
+    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    code_version=resource_defs["tyler"].app.version("tyler"),
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+        "specs",
+    },
+)
+def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadata):
+    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.2 buildings.
+    Generated with tyler."""
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(
+        context,
+        data_format="cesium3dtiles",
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
+        locations=tuple(Cesium3dTilesLocation.lod12),
+    )
+
+
+@asset(
+    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    code_version=resource_defs["tyler"].app.version("tyler"),
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+        "specs",
+    },
+)
+def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadata):
+    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.3 buildings.
+    Generated with tyler."""
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(
+        context,
+        data_format="cesium3dtiles",
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
+        locations=tuple(Cesium3dTilesLocation.lod13),
+    )
+
+
+@asset(
+    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    code_version=resource_defs["tyler"].app.version("tyler"),
+    required_resource_keys={
+        "tyler",
+        "geoflow",
+        "file_store",
+        "file_store_fastssd",
+        "version",
+        "specs",
+    },
+)
+def reconstruction_output_3dtiles_lod22_nl(context, config: TylerConfig, metadata):
+    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 2.2 buildings.
+    Generated with tyler."""
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(
+        context,
+        data_format="cesium3dtiles",
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
+        locations=tuple(Cesium3dTilesLocation.lod22),
+    )
