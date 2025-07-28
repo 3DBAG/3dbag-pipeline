@@ -240,6 +240,9 @@ def partition_laz_with_grid(
                 "-o",
                 "{local_path}",
             ]
+            if verbose:
+                r = " ".join(cmd).format(local_path=out_file)
+                context.log.debug(f'las2las {r}')
             future_to_tile[
                 executor.submit(
                     context.resources.lastools.app.execute,
