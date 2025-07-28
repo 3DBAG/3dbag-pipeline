@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Union
+from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
 from dagster import AssetKey, asset, Config
@@ -25,38 +25,70 @@ def create_sequence_header_file(template_file, output_file, version_3dbag):
         json.dump(header, f)
 
 
-def generate_tyler_config(format: str, specs: Specs3DBAGResource, locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]]) -> list[str]:
+def generate_tyler_config(
+    specs: Specs3DBAGResource,
+    data_format: str,
+    locations: Union[
+        tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]
+    ],
+) -> list[str]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
 
     Args:
-        format: Tyler format (multi, cesium3dtiles)
         specs: The 3DBAG specifications
+        data_format: Tyler output format (multi, cesium3dtiles)
+        locations: The data format locations to generate the config for. Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
+    Raises:
+        ValueError: With `format=='cesium3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Cesium3dTilesLocation)`.
     """
     cli_params = []
-    if format == "cesium3dtiles":
-        cli_params.extend([
-            "--3dtiles-metadata-class=building",
-            "--3dtiles-implicit",
-            "--qtree-capacity=280000",
-            "--grid-minz=-50",
-            "--grid-maxz=400",
-            "--object-type=Building",
-            "--object-type=BuildingPart",
-            "--lod-building-part=2.2",
-            "--lod-building=2.2"
-        ])
-        attributes = specs.applies_to(data_format=format, locations=locations)
+    if data_format == "cesium3dtiles":
+        if len(locations) > 1:
+            raise ValueError(
+                "Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
+            )
+        location = locations[0]
+        if not isinstance(location, Cesium3dTilesLocation):
+            raise ValueError(
+                "With data_format 'cesium3dtiles' the location must be a single Cesium3dTilesLocation."
+            )
+        cli_params.extend(
+            [
+                "--3dtiles-metadata-class=building",
+                "--3dtiles-implicit",
+                "--qtree-capacity=280000",
+                "--grid-minz=-50",
+                "--grid-maxz=400",
+                "--object-type=Building",
+                "--object-type=BuildingPart",
+                f"--lod-building-part={location.lod}",
+                f"--lod-building={location.lod}",
+            ]
+        )
+        attributes = specs.applies_to(data_format=data_format, locations=locations)
         for a_name, a_spec in attributes:
             cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
-    elif format == "multi":
-        pass
+    elif data_format == "multi":
+        cli_params.extend(
+            [
+                "--object-type=Building",
+                "--object-type=BuildingPart",
+                "--qtree-capacity=280000",
+                "--grid-export",
+            ]
+        )
     else:
-        raise ValueError(f"format must be one of 'multi', 'cesium3dtiles'")
+        raise ValueError(
+            f"data_format must be one of 'multi', 'cesium3dtiles', got {data_format}"
+        )
+    return cli_params
 
 
-def reconstruction_output_tiles_func(context, format: str, **kwargs):
+def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     """Run tyler on the reconstruction output directory.
-    Format is either 'multi' or 'cesium3dtiles'. See tyler docs for details.
+
+    Args:
+        data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.file_store.data_dir
@@ -88,38 +120,24 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs):
         "--output",
         str(output_dir),
         "--format",
-        format.lower(),
+        data_format.lower(),
         "--exe-geof",
         str(context.resources.geoflow.app.exes["geof"]),
-        "--object-type",
-        "Building",
-        "--object-type",
-        "BuildingPart",
-        "--qtree-capacity",
-        "280000",
     ]
-    if format == "multi":
+    if data_format == "multi":
         exe_name = "tyler-multiformat"
-        cmd.append("--grid-export")
-    elif format == "cesium3dtiles":
+    elif data_format == "cesium3dtiles":
         exe_name = "tyler"
-        cmd.extend(
-            [
-                "--3dtiles-metadata-class",
-                "building",
-                "--object-attribute",
-                "bouwjaar:int",
-                "--3dtiles-implicit",
-                "--lod-building",
-                "2.2",
-                "--lod-building-part",
-                "2.2",
-            ]
-        )
     else:
         raise ValueError(
-            f"invalid format: {format}, only 'multi' and '3dtiles' are allowed"
+            f"invalid data_format: {data_format}, only 'multi' and 'cesium3dtiles' are allowed"
         )
+    cli_params = generate_tyler_config(
+        specs=context.resources.specs,
+        data_format=data_format,
+        locations=kwargs["locations"],
+    )
+    cmd.extend(cli_params)
     context.log.debug(" ".join(cmd))
     context.resources.tyler.app.execute(exe_name, " ".join(cmd), cwd=str(output_dir))
     return output_dir
@@ -138,6 +156,7 @@ class TylerConfig(Config):
         "file_store",
         "file_store_fastssd",
         "version",
+        "specs",
     },
 )
 def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
@@ -148,7 +167,8 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
         context,
-        format="multi",
+        data_format="multi",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
+        locations=tuple(),
     )

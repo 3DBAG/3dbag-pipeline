@@ -7,7 +7,7 @@ from bag3d.specs.core import (
     Attribute,
     CityJSONLocation,
     GpkgLocation,
-    Cesium3dTilesLocation
+    Cesium3dTilesLocation,
 )
 
 
@@ -31,7 +31,9 @@ class Specs3DBAGResource(ConfigurableResource):
     def applies_to(
         self,
         data_format: str,
-        locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]],
+        locations: Union[
+            tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]
+        ],
     ) -> Generator[Tuple[str, Attribute], None, None]:
         """Filter the attributes spec for the specified data format and location.
 

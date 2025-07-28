@@ -119,7 +119,7 @@ provides-extras = ["dev"]
 [[package]]
 name = "bag3d-specs"
 version = "2025.7.24"
-source = { git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop#e1c656bb8ea67e6a5a2bfac56690907f4625c63c" }
+source = { git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop#a789b106dfb889def46cde023705756710cd9b39" }
 dependencies = [
     { name = "jsonschema" },
 ]
