@@ -42,7 +42,6 @@ def download_ahn_index(
 ) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
     """Downloads the AHN 3/4/5 tile index.
     Args:
-        ahn_version: The AHN version, either 3 or 4 or 5.
         with_geom: If False, request only the AHN tile ids. Else also request the
             tile boundaries as geojson.
     Returns:
