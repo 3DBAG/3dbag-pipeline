@@ -7,6 +7,7 @@ from bag3d.specs.core import (
     Attribute,
     CityJSONLocation,
     GpkgLocation,
+    Cesium3dTilesLocation
 )
 
 
@@ -30,18 +31,18 @@ class Specs3DBAGResource(ConfigurableResource):
     def applies_to(
         self,
         data_format: str,
-        locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation]],
+        locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]],
     ) -> Generator[Tuple[str, Attribute], None, None]:
         """Filter the attributes spec for the specified data format and location.
 
         Args:
-            data_format: The data format that contains the attribute (`cityjson`, `gpkg`).
+            data_format: The data format that contains the attribute (`cityjson`, `gpkg`, `cesium3dtiles`).
             locations: The tuple of locations for the attribute in the data format.
 
         Returns:
             A generator that only contains the attributes that are only in the requested data format and location.
         """
-        allowed_formats = ["cityjson", "gpkg"]
+        allowed_formats = ["cityjson", "gpkg", "cesium3dtiles"]
         requested_locations = set(locations)
         if data_format not in allowed_formats:
             raise ValueError(

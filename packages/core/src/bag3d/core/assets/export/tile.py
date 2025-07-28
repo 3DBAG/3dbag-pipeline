@@ -1,14 +1,16 @@
 import json
 import os
-from typing import Any
+from typing import Any, Union
 
+from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
 from dagster import AssetKey, asset, Config
 
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import resource_defs, Specs3DBAGResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
+    """Create the CityJSON metadata file."""
     with open(template_file, "r") as f:
         header = json.load(f)
         header["metadata"]["version"] = (
@@ -23,9 +25,38 @@ def create_sequence_header_file(template_file, output_file, version_3dbag):
         json.dump(header, f)
 
 
+def generate_tyler_config(format: str, specs: Specs3DBAGResource, locations: Union[tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]]) -> list[str]:
+    """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
+
+    Args:
+        format: Tyler format (multi, cesium3dtiles)
+        specs: The 3DBAG specifications
+    """
+    cli_params = []
+    if format == "cesium3dtiles":
+        cli_params.extend([
+            "--3dtiles-metadata-class=building",
+            "--3dtiles-implicit",
+            "--qtree-capacity=280000",
+            "--grid-minz=-50",
+            "--grid-maxz=400",
+            "--object-type=Building",
+            "--object-type=BuildingPart",
+            "--lod-building-part=2.2",
+            "--lod-building=2.2"
+        ])
+        attributes = specs.applies_to(data_format=format, locations=locations)
+        for a_name, a_spec in attributes:
+            cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
+    elif format == "multi":
+        pass
+    else:
+        raise ValueError(f"format must be one of 'multi', 'cesium3dtiles'")
+
+
 def reconstruction_output_tiles_func(context, format: str, **kwargs):
     """Run tyler on the reconstruction output directory.
-    Format is either 'multi' or '3dtiles'. See tyler docs for details.
+    Format is either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.file_store.data_dir
@@ -70,7 +101,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs):
     if format == "multi":
         exe_name = "tyler-multiformat"
         cmd.append("--grid-export")
-    elif format == "3dtiles":
+    elif format == "cesium3dtiles":
         exe_name = "tyler"
         cmd.extend(
             [
