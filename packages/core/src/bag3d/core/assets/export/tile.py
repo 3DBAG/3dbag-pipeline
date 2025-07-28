@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 from dagster import AssetKey, asset, Config
 
@@ -22,7 +23,7 @@ def create_sequence_header_file(template_file, output_file, version_3dbag):
         json.dump(header, f)
 
 
-def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
+def reconstruction_output_tiles_func(context, format: str, **kwargs):
     """Run tyler on the reconstruction output directory.
     Format is either 'multi' or '3dtiles'. See tyler docs for details.
     """
@@ -34,7 +35,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         version=context.resources.version.version,
     )
     context.log.debug(f"{reconstructed_root_dir=}")
-    version_3dbag = kwargs["version_3dbag"]
+    version_3dbag: str = kwargs["version_3dbag"]
 
     sequence_header_file = (
         bag3d_dir(context.resources.file_store_fastssd.file_store.data_dir)
@@ -67,8 +68,10 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
         "280000",
     ]
     if format == "multi":
+        exe_name = "tyler-multiformat"
         cmd.append("--grid-export")
     elif format == "3dtiles":
+        exe_name = "tyler"
         cmd.extend(
             [
                 "--3dtiles-metadata-class",
@@ -87,7 +90,7 @@ def reconstruction_output_tiles_func(context, format: str, **kwargs: dict):
             f"invalid format: {format}, only 'multi' and '3dtiles' are allowed"
         )
     context.log.debug(" ".join(cmd))
-    context.resources.tyler.app.execute("tyler", " ".join(cmd), cwd=str(output_dir))
+    context.resources.tyler.app.execute(exe_name, " ".join(cmd), cwd=str(output_dir))
     return output_dir
 
 
@@ -97,7 +100,7 @@ class TylerConfig(Config):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].app.version("tyler-multiformat"),
     required_resource_keys={
         "tyler",
         "geoflow",
