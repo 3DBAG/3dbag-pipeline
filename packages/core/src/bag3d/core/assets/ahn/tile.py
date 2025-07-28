@@ -242,7 +242,7 @@ def partition_laz_with_grid(
             ]
             if verbose:
                 r = " ".join(cmd).format(local_path=out_file)
-                context.log.debug(f'las2las {r}')
+                context.log.debug(f"las2las {r}")
             future_to_tile[
                 executor.submit(
                     context.resources.lastools.app.execute,
