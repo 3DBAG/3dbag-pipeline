@@ -19,6 +19,7 @@ from bag3d.core.jobs import (
     job_nl_reconstruct,
     job_nl_reconstruct_debug,
     job_nl_export,
+    job_nl_export_after_floors,
     job_nl_deploy,
     job_nl_release,
 )
@@ -42,6 +43,7 @@ all_jobs = [
     job_nl_reconstruct,
     job_nl_reconstruct_debug,
     job_nl_export,
+    job_nl_export_after_floors,
     job_nl_deploy,
     job_nl_release,
 ]
