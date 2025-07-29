@@ -36,6 +36,7 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
             f"Difference: {feature_set ^ AHN_TILE_IDS}"
         )
 
+
 def invert_geometry_coordinates(geometry):
     """Invert x and y coordinates in the JSON geometry."""
     if geometry["type"] == "Polygon":
@@ -43,10 +44,7 @@ def invert_geometry_coordinates(geometry):
         for ring in geometry["coordinates"]:
             inverted_ring = [[coord[1], coord[0]] for coord in ring]
             inverted_coords.append(inverted_ring)
-        return {
-            "type": "Polygon",
-            "coordinates": inverted_coords
-        }
+        return {"type": "Polygon", "coordinates": inverted_coords}
     elif geometry["type"] == "MultiPolygon":
         inverted_coords = []
         for polygon in geometry["coordinates"]:
@@ -55,18 +53,16 @@ def invert_geometry_coordinates(geometry):
                 inverted_ring = [[coord[1], coord[0]] for coord in ring]
                 inverted_polygon.append(inverted_ring)
             inverted_coords.append(inverted_polygon)
-        return {
-            "type": "MultiPolygon", 
-            "coordinates": inverted_coords
-        }
+        return {"type": "MultiPolygon", "coordinates": inverted_coords}
     elif geometry["type"] == "Point":
         return {
             "type": "Point",
-            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]]
+            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]],
         }
     else:
         # Return original geometry for unsupported types
         return geometry
+
 
 def download_ahn_index(
     with_geom: bool = False,
