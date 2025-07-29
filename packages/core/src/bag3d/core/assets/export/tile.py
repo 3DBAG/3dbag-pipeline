@@ -3,7 +3,7 @@ import os
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
-from dagster import AssetKey, asset, Config
+from dagster import AssetKey, asset, Config, Field
 
 from bag3d.common.resources import resource_defs, Specs3DBAGResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
@@ -110,7 +110,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     num_threads = kwargs["rayon_num_threads"]
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
-        "RUST_LOG=info",
+        f"RUST_LOG={'debug' if kwargs.get('verbose', False) else 'info'}",
         f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata",
@@ -145,6 +145,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
 
 class TylerConfig(Config):
     concurrency: int
+    verbose: bool = False
 
 
 @asset(
@@ -171,6 +172,7 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(),
+        verbose=config.verbose,
     )
 
 
@@ -198,6 +200,7 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(Cesium3dTilesLocation.lod12),
+        verbose=config.verbose,
     )
 
 
@@ -225,6 +228,7 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(Cesium3dTilesLocation.lod13),
+        verbose=config.verbose,
     )
 
 
@@ -252,4 +256,5 @@ def reconstruction_output_3dtiles_lod22_nl(context, config: TylerConfig, metadat
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(Cesium3dTilesLocation.lod22),
+        verbose=config.verbose,
     )
