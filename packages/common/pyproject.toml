@@ -43,7 +43,7 @@ dev = [
 
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
-bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", tag = "2025.07.24" }
+bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", branch = "develop" }
 
 [tool.pytest.ini_options]
 filterwarnings = [

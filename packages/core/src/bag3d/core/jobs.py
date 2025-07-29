@@ -106,7 +106,6 @@ job_nl_export = define_asset_job(
     selection=AssetSelection.assets(["export", "feature_evaluation"])
     | AssetSelection.assets(["export", "export_index"])
     | AssetSelection.assets(["export", "metadata"])
-    | AssetSelection.assets(["export", "geopackage_nl"])
     | AssetSelection.assets(["export", "reconstruction_output_multitiles_nl"]),
     config={
         "ops": {
@@ -119,12 +118,40 @@ job_nl_export = define_asset_job(
     },
 )
 
+job_nl_export_after_floors = define_asset_job(
+    name="nl_export_after_floors",
+    description="Run the tyler export and 3D Tiles steps for the Netherlands. To be run after the floors_estimation package's jobs.",
+    selection=AssetSelection.assets(["export", "geopackage_nl"])
+    | AssetSelection.assets(["export", "compressed_tiles"])
+    | AssetSelection.assets(["export", "compressed_tiles_validation"])
+    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod12_nl"])
+    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod13_nl"])
+    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod22_nl"]),
+    config={
+        "ops": {
+            "reconstruction_output_3dtiles_lod12_nl": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                }
+            },
+            "reconstruction_output_3dtiles_lod13_nl": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                }
+            },
+            "reconstruction_output_3dtiles_lod22_nl": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                }
+            },
+        }
+    },
+)
+
 job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
-    selection=AssetSelection.assets(["export", "compressed_tiles"])
-    | AssetSelection.assets(["export", "compressed_tiles_validation"])
-    | AssetSelection.assets(["deploy", "compressed_export_nl"])
+    selection=AssetSelection.assets(["deploy", "compressed_export_nl"])
     | AssetSelection.assets(["deploy", "transfer_to_godzilla"])
     | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
     | AssetSelection.assets(["deploy", "webservice_godzilla"]),

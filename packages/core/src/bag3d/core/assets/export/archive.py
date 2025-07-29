@@ -130,7 +130,13 @@ def create_path_layer(id_layer, path_tiles_dir):
 
 
 @asset(
-    deps={AssetKey("geopackage_nl")}, required_resource_keys={"file_store", "version"}
+    deps={
+        AssetKey("geopackage_nl"),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
+    },
+    required_resource_keys={"file_store", "version"},
 )
 def compressed_tiles(context, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the

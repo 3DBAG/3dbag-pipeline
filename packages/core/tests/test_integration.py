@@ -43,6 +43,7 @@ def test_integration_reconstruction_and_export(
         "tyler": TylerResource(
             exe_tyler=os.getenv("EXE_PATH_TYLER"),
             exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+            exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
         ),
         "geoflow": GeoflowResource(
             exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),

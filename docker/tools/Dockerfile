@@ -62,12 +62,19 @@ FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/share/proj /usr/local/share/proj
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib/ /tyler/lib/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib64/ /tyler/lib64/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/ /tyler/usr/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+COPY --from=3dgi/tyler:0.3.12 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler:0.3.12 /usr/local/share/proj /usr/local/share/proj
+COPY --from=3dgi/tyler:0.3.12 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler:0.3.12 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler:0.3.12 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler:0.3.12 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/local/share/proj /usr/local/share/proj
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha9 /usr/local/bin/tyler-multiformat $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-multiformat
 
 COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib/ /tyler/lib/
 COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib64/ /tyler/lib64/
@@ -102,13 +109,13 @@ FROM roofer AS geoflow-old
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /export /export
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/LASlib /export/usr/local/lib/
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/gdalplugins /export/usr/local/lib/
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /export /export
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/lib/LASlib /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/lib/gdalplugins /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2025.07.15 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 
 RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \
