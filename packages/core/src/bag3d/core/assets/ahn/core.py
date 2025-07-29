@@ -134,7 +134,6 @@ def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cove
             miny = y if y < miny else miny
             maxx = x if x > maxx else maxx
             maxy = y if y > maxy else maxy
-    # Dunno why, but need to swap x-y here to get the correct coordinates
     return minx, miny, maxx, maxy
 
 
