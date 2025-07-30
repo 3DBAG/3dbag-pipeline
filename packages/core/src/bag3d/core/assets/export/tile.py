@@ -3,7 +3,7 @@ import os
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
-from dagster import AssetKey, asset, Config, Field
+from dagster import AssetKey, asset, Config
 
 from bag3d.common.resources import resource_defs, Specs3DBAGResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
@@ -199,7 +199,7 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod12),
+        locations=(Cesium3dTilesLocation.lod12,),
         verbose=config.verbose,
     )
 
@@ -227,7 +227,7 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod13),
+        locations=(Cesium3dTilesLocation.lod13,),
         verbose=config.verbose,
     )
 
@@ -255,6 +255,6 @@ def reconstruction_output_3dtiles_lod22_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod22),
+        locations=(Cesium3dTilesLocation.lod22,),
         verbose=config.verbose,
     )
