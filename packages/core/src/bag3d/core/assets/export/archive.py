@@ -98,9 +98,9 @@ def geopackage_nl(context):
         cmd = [
             "OGR_SQLITE_SYNCHRONOUS=OFF",
             "{exe}",
-            str(path_nl),
             "-sql",
             f"\"SELECT CreateSpatialIndex('{name_layer}','geom')\"",
+            str(path_nl),
         ]
         cmd = " ".join(cmd)
         context.resources.gdal.app.execute("ogrinfo", cmd)
