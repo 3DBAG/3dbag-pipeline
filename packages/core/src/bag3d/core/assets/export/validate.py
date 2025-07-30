@@ -346,7 +346,7 @@ def cityjson(
     planarity_d2p_tol: float,
     url_root: str,
     version: str,
-    specs: Specs3DBAGResource,
+    specs_bag3d: Specs3DBAGResource,
 ) -> CityJSONFileResults:
     """Validate a single CityJSON file."""
     results = CityJSONFileResults()
@@ -501,7 +501,7 @@ def cityjson(
                         if e22 != set(eval(attributes["b3_val3dity_lod22"])):
                             nr_mismatch_errors_lod22 += 1
                         for res_one in cityobject_validate_attributes(
-                            specs=specs, co=cj_co
+                            specs=specs_bag3d, co=cj_co
                         ):
                             results.attributes_with_errors.add_error(res_one)
             results.nr_invalid_building = nr_invalid_building
@@ -958,7 +958,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version, specs = input
+    gdal, validation, dirpath, tile_id, url_root, version, specs_bag3d = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -970,7 +970,7 @@ def check_formats(input) -> TileResults:
         planarity_d2p_tol=planarity_d2p_tol,
         url_root=url_root,
         version=version,
-        specs=specs,
+        specs_bag3d=specs_bag3d,
     )
     obj_results = obj(
         validation,
@@ -982,7 +982,7 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     gpkg_results = gpkg(
-        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs
+        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs_bag3d
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
@@ -1028,7 +1028,7 @@ def compressed_tiles_validation(
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
     validation = context.resources.validation.app
-    specs = context.resources.specs
+    specs_bag3d = context.resources.specs
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
@@ -1040,7 +1040,7 @@ def compressed_tiles_validation(
                 row[0],
                 url_root,
                 version,
-                specs,
+                specs_bag3d,
             )
             for row in csvreader
         ]
@@ -1053,10 +1053,16 @@ def compressed_tiles_validation(
     csvwriter.writeheader()
 
     try:
-        with ProcessPoolExecutor() as executor:
-            for result in executor.map(check_formats, tileids):
-                csvwriter.writerow(result.asdict())
+        for tileid in tileids:
+            tile_result = check_formats(tileid)
+            csvwriter.writerow(tile_result.asdict())
     finally:
         fo.close()
+    # try:
+    #     with ProcessPoolExecutor() as executor:
+    #         for result in executor.map(check_formats, tileids):
+    #             csvwriter.writerow(result.asdict())
+    # finally:
+    #     fo.close()
 
     return output_path
