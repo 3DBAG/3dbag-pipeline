@@ -164,6 +164,10 @@ def create_roofer_config(
     cj-translate = [171800.0,472700.0,0.0]
     cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
+    
+    lod12 = true
+    lod13 = true
+    lod22 = true
 
     [[pointclouds]]
     name = "ahn3"
