@@ -13,7 +13,11 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
 from bag3d.core.assets import export, reconstruction
-from bag3d.core.jobs import job_nl_export, job_nl_reconstruct
+from bag3d.core.jobs import (
+    job_nl_export,
+    job_nl_export_after_floors,
+    job_nl_reconstruct,
+)
 from dagster import (
     AssetKey,
     Definitions,
@@ -102,10 +106,7 @@ def test_integration_reconstruction_and_export(
             *reconstruction_assets,
             *all_export_assets,
         ],
-        jobs=[
-            job_nl_reconstruct,
-            job_nl_export,
-        ],
+        jobs=[job_nl_reconstruct, job_nl_export, job_nl_export_after_floors],
     )
 
     resolved_job = defs.get_job_def("nl_reconstruct")
@@ -117,6 +118,19 @@ def test_integration_reconstruction_and_export(
     assert result.success
 
     resolved_job = defs.get_job_def("nl_export")
+    result = resolved_job.execute_in_process(
+        resources=resources,
+        run_config={
+            "ops": {
+                "reconstruction_output_multitiles_nl": {"config": {"verbose": False, "concurrency": 1}}
+            }
+        },
+    )
+
+    assert isinstance(result, ExecuteInProcessResult)
+    assert result.success
+
+    resolved_job = defs.get_job_def("nl_export_after_floors")
     result = resolved_job.execute_in_process(resources=resources)
 
     assert isinstance(result, ExecuteInProcessResult)
