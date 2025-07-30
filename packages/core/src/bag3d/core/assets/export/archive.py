@@ -5,7 +5,7 @@ import gzip
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
-from dagster import asset, Output, AssetKey
+from dagster import asset, Output, AssetKey, Config
 
 from bag3d.common.utils.files import bag3d_export_dir
 
@@ -129,6 +129,9 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_lod12_2d
 
 
+class CompressionConfig(Config):
+    concurrency: int
+
 @asset(
     deps={
         AssetKey("geopackage_nl"),
@@ -138,7 +141,7 @@ def create_path_layer(id_layer, path_tiles_dir):
     },
     required_resource_keys={"file_store", "version"},
 )
-def compressed_tiles(context, export_index):
+def compressed_tiles(context, config: CompressionConfig, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = bag3d_export_dir(
@@ -151,10 +154,7 @@ def compressed_tiles(context, export_index):
         _ = next(csvreader)  # skip header
         tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
 
-    dagster_max_concurrent_runs = (
-        context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
-    )
-    with ProcessPoolExecutor(max_workers=dagster_max_concurrent_runs) as executor:
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         for result in executor.map(compress_files, tile_ids):
             pass
 

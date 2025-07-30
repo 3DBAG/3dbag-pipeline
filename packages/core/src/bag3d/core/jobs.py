@@ -144,6 +144,11 @@ job_nl_export_after_floors = define_asset_job(
                     "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
                 }
             },
+            "compressed_tiles": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_JOB_ARCHIVE", 1))
+                }
+            },
         }
     },
 )
