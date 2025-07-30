@@ -3,7 +3,6 @@ from pathlib import Path
 import json
 import re
 import csv
-from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
 from typing import Generator
@@ -346,7 +345,7 @@ def cityjson(
     planarity_d2p_tol: float,
     url_root: str,
     version: str,
-    specs_bag3d: Specs3DBAGResource,
+    specs: Specs3DBAGResource,
 ) -> CityJSONFileResults:
     """Validate a single CityJSON file."""
     results = CityJSONFileResults()
@@ -476,32 +475,53 @@ def cityjson(
             for feature in report["features"]:
                 if feature["validity"] is False:
                     nr_invalid_building += 1
-                nr_invalid_lod12 += (
-                    0 if feature["primitives"][lod12_idx]["validity"] else 1
-                )
-                nr_invalid_lod13 += (
-                    0 if feature["primitives"][lod13_idx]["validity"] else 1
-                )
-                nr_invalid_lod22 += (
-                    0 if feature["primitives"][lod22_idx]["validity"] else 1
-                )
-                e12 = set(e["code"] for e in feature["primitives"][lod12_idx]["errors"])
-                e13 = set(e["code"] for e in feature["primitives"][lod13_idx]["errors"])
-                e22 = set(e["code"] for e in feature["primitives"][lod22_idx]["errors"])
-                errors_lod12.update(e12)
-                errors_lod13.update(e13)
-                errors_lod22.update(e22)
+                primitives = feature["primitives"]
+                # If we don't have all 4 primitives in the val3dity report, then we
+                # assume all of them are invalid, because cannot tell which primitive
+                # refers to which LoD in the report
+                e12 = None
+                e13 = None
+                e22 = None
+                if len(primitives) == 4:
+                    nr_invalid_lod12 += 0 if primitives[lod12_idx]["validity"] else 1
+                    nr_invalid_lod13 += 0 if primitives[lod13_idx]["validity"] else 1
+                    nr_invalid_lod22 += 0 if primitives[lod22_idx]["validity"] else 1
+                    e12 = set(
+                        e["code"] for e in feature["primitives"][lod12_idx]["errors"]
+                    )
+                    e13 = set(
+                        e["code"] for e in feature["primitives"][lod13_idx]["errors"]
+                    )
+                    e22 = set(
+                        e["code"] for e in feature["primitives"][lod22_idx]["errors"]
+                    )
+                    errors_lod12.update(e12)
+                    errors_lod13.update(e13)
+                    errors_lod22.update(e22)
+                else:
+                    nr_invalid_lod12 += 1
+                    nr_invalid_lod13 += 1
+                    nr_invalid_lod22 += 1
                 cj_co = cityobjects.get(feature["id"])
                 if cj_co:
                     if attributes := cj_co.get("attributes"):
-                        if e12 != set(eval(attributes["b3_val3dity_lod12"])):
+                        if v_lod12 := attributes.get("b3_val3dity_lod12"):
+                            if e12 != set(eval(v_lod12)):
+                                nr_mismatch_errors_lod12 += 1
+                        elif e12 is not None:
                             nr_mismatch_errors_lod12 += 1
-                        if e13 != set(eval(attributes["b3_val3dity_lod13"])):
+                        if v_lod13 := attributes.get("b3_val3dity_lod13"):
+                            if e13 != set(eval(v_lod13)):
+                                nr_mismatch_errors_lod13 += 1
+                        elif e13 is not None:
                             nr_mismatch_errors_lod13 += 1
-                        if e22 != set(eval(attributes["b3_val3dity_lod22"])):
+                        if v_lod22 := attributes.get("b3_val3dity_lod22"):
+                            if e22 != set(eval(v_lod22)):
+                                nr_mismatch_errors_lod22 += 1
+                        elif e22 is not None:
                             nr_mismatch_errors_lod22 += 1
                         for res_one in cityobject_validate_attributes(
-                            specs=specs_bag3d, co=cj_co
+                            specs=specs, co=cj_co
                         ):
                             results.attributes_with_errors.add_error(res_one)
             results.nr_invalid_building = nr_invalid_building
@@ -514,14 +534,13 @@ def cityjson(
             results.nr_mismatch_errors_lod12 = nr_mismatch_errors_lod12
             results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
             results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
-        reportfile.unlink()
-        logfile.unlink(missing_ok=True)
     except Exception as e:
         logger.error("Failed to run val3dity command.")
-        reportfile.unlink(missing_ok=True)
-        logfile.unlink(missing_ok=True)
         inputfile.unlink(missing_ok=True)
         raise e
+    finally:
+        reportfile.unlink()
+        logfile.unlink(missing_ok=True)
 
     # cjval
     try:
@@ -958,7 +977,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version, specs_bag3d = input
+    gdal, validation, dirpath, tile_id, url_root, version, specs = input
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -970,7 +989,7 @@ def check_formats(input) -> TileResults:
         planarity_d2p_tol=planarity_d2p_tol,
         url_root=url_root,
         version=version,
-        specs_bag3d=specs_bag3d,
+        specs=specs,
     )
     obj_results = obj(
         validation,
@@ -982,7 +1001,7 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     gpkg_results = gpkg(
-        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs_bag3d
+        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
@@ -1028,7 +1047,7 @@ def compressed_tiles_validation(
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
     validation = context.resources.validation.app
-    specs_bag3d = context.resources.specs
+    specs = context.resources.specs
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
@@ -1040,7 +1059,7 @@ def compressed_tiles_validation(
                 row[0],
                 url_root,
                 version,
-                specs_bag3d,
+                specs,
             )
             for row in csvreader
         ]
