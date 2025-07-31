@@ -136,9 +136,6 @@ class CompressionConfig(Config):
 @asset(
     deps={
         AssetKey("geopackage_nl"),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     },
     required_resource_keys={"file_store", "version"},
 )
