@@ -32,7 +32,7 @@ def generate_tyler_config(
     locations: Union[
         tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]
     ],
-    export_dir: Path
+    export_dir: Path,
 ) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
 
@@ -142,7 +142,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
         specs=context.resources.specs,
         data_format=data_format,
         locations=kwargs["locations"],
-        export_dir=export_dir
+        export_dir=export_dir,
     )
     cmd.extend(cli_params)
     context.log.debug(" ".join(cmd))

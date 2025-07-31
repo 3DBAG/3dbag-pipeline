@@ -132,6 +132,7 @@ def create_path_layer(id_layer, path_tiles_dir):
 class CompressionConfig(Config):
     concurrency: int
 
+
 @asset(
     deps={
         AssetKey("geopackage_nl"),

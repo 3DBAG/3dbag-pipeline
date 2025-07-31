@@ -22,7 +22,8 @@ from dagster import (
     AssetKey,
     Definitions,
     ExecuteInProcessResult,
-    load_assets_from_package_module, DagsterInstance,
+    load_assets_from_package_module,
+    DagsterInstance,
 )
 
 
@@ -110,11 +111,9 @@ def test_integration_reconstruction_and_export(
     )
 
     with DagsterInstance.ephemeral() as instance:
-
         resolved_job = defs.get_job_def("nl_reconstruct")
         result = resolved_job.execute_in_process(
-            instance=instance,
-            resources=resources, partition_key="10/564/624"
+            instance=instance, resources=resources, partition_key="10/564/624"
         )
 
         assert isinstance(result, ExecuteInProcessResult)
@@ -126,7 +125,9 @@ def test_integration_reconstruction_and_export(
             resources=resources,
             run_config={
                 "ops": {
-                    "reconstruction_output_multitiles_nl": {"config": {"verbose": False, "concurrency": 1}}
+                    "reconstruction_output_multitiles_nl": {
+                        "config": {"verbose": False, "concurrency": 1}
+                    }
                 }
             },
         )
