@@ -407,7 +407,7 @@ def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol:
                 "--long",
             ]
         )
-        returncode, output = validation.execute("cjio", command=cmd, local_path=dirpath)
+        returncode, output = validation.execute("cjio", command=cmd, local_path=dirpath, silent=True)
         try:
             results.nr_building = int(
                 re.search(r"(?<=Building \()\d+", output).group(0)
@@ -461,7 +461,7 @@ def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol:
         )
 
         returncode, output = validation.execute(
-            "val3dity", command=cmd, local_path=dirpath
+            "val3dity", command=cmd, local_path=dirpath, silent=True
         )
         results.file_ok = (
             False if returncode != 0 or "error" in output.lower() else True
@@ -555,7 +555,7 @@ def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol:
     try:
         cmd = " ".join(["{exe}", str(inputfile)])
         returncode, output = validation.execute(
-            "cjval", command=cmd, local_path=dirpath
+            "cjval", command=cmd, local_path=dirpath, silent=True
         )
         pos = output.find("SUMMARY")
         summary = output[pos:]
@@ -687,7 +687,7 @@ def obj(
                 )
 
                 returncode, output = validation.execute(
-                    "val3dity", command=cmd, local_path=dirpath
+                    "val3dity", command=cmd, local_path=dirpath, silent=True
                 )
                 results.file_ok = (
                     False if returncode != 0 or "error" in output.lower() else True
@@ -882,7 +882,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
@@ -908,7 +908,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
@@ -933,7 +933,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
@@ -954,7 +954,7 @@ def gpkg(
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        returncode, output = gdal.execute("ogrinfo", command=cmd, local_path=dirpath)
+        returncode, output = gdal.execute("ogrinfo", command=cmd, local_path=dirpath, silent=True)
         try:
             gpkg_info = json.loads(output)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
