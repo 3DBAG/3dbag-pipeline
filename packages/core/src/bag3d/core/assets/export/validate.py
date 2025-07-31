@@ -337,17 +337,24 @@ def cityobject_validate_attributes(
                                 )
 
 
-def cityjson(
-    validation: AppImage,
-    dirpath: Path,
-    file_id: str,
-    planarity_n_tol: float,
-    planarity_d2p_tol: float,
-    url_root: str,
-    version: str,
-    specs: Specs3DBAGResource,
-) -> CityJSONFileResults:
-    """Validate a single CityJSON file."""
+def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol: float,
+             planarity_d2p_tol: float, snap_tol: float, url_root: str, version: str,
+             specs: Specs3DBAGResource) -> CityJSONFileResults:
+    """Validate a single CityJSON file.
+
+    Args:
+        validation: Validation resource
+        dirpath: Directory with the compressed cityjson file
+        file_id: File name without extension
+        planarity_n_tol: Val3dity ``planarity_n_tol`` parameter
+        planarity_d2p_tol: Val3dity ``planarity_d2p_tol`` parameter
+        snap_tol: Val3dity ``snap_tol`` parameter
+        url_root: 3DBAG download page url root
+        version: 3DBAG version
+        specs: 3DBAG specifications resource
+
+    Returns: The aggregated validation results. See ``CityJSONFileResults`` for details.
+    """
     results = CityJSONFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
@@ -445,6 +452,8 @@ def cityjson(
                 str(planarity_n_tol),
                 "--planarity_d2p_tol",
                 str(planarity_d2p_tol),
+                "--snap_tol",
+                str(snap_tol),
                 "--report",
                 str(reportfile),
                 str(inputfile),
@@ -568,6 +577,7 @@ def obj(
     file_id: str,
     planarity_n_tol: float,
     planarity_d2p_tol: float,
+    snap_tol: float,
     url_root: str,
     version: str,
 ) -> OBJFileResults:
@@ -668,6 +678,8 @@ def obj(
                         str(planarity_n_tol),
                         "--planarity_d2p_tol",
                         str(planarity_d2p_tol),
+                        "--snap_tol",
+                        str(snap_tol),
                         "--report",
                         str(reportfile),
                         str(inputfile),
@@ -981,22 +993,20 @@ def check_formats(input) -> TileResults:
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
-    cj_results = cityjson(
-        validation=validation,
-        dirpath=dirpath,
-        file_id=file_id,
-        planarity_n_tol=planarity_n_tol,
-        planarity_d2p_tol=planarity_d2p_tol,
-        url_root=url_root,
-        version=version,
-        specs=specs,
-    )
+    snap_tol = 0.0001
+    cj_results = cityjson(validation=validation, dirpath=dirpath, file_id=file_id,
+                          planarity_n_tol=planarity_n_tol,
+                          planarity_d2p_tol=planarity_d2p_tol,
+                          snap_tol=snap_tol,
+                          url_root=url_root,
+                          version=version, specs=specs)
     obj_results = obj(
         validation,
         dirpath,
         file_id,
         planarity_n_tol=planarity_n_tol,
         planarity_d2p_tol=planarity_d2p_tol,
+        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
     )

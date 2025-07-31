@@ -19,6 +19,7 @@ def test_obj(context, test_data_dir):
         "10-564-624",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
+        snap_tol=0.0001,
         url_root="https://data.3dbag.nl",
         version="test",
     )
@@ -43,16 +44,11 @@ def test_gpkg(context, test_data_dir):
 
 
 def test_cityjson(context, test_data_dir):
-    res = cityjson(
-        context.resources.validation.app,
-        test_data_dir / "validation_input/",
-        "10-564-624",
-        planarity_n_tol=20.0,
-        planarity_d2p_tol=0.001,
-        url_root="https://data.3dbag.nl",
-        version="test",
-        specs=context.resources.specs,
-    )
+    res = cityjson(context.resources.validation.app,
+                   test_data_dir / "validation_input/", "10-564-624",
+                   planarity_n_tol=20.0, planarity_d2p_tol=0.001,
+                   url_root="https://data.3dbag.nl", version="test",
+                   specs=context.resources.specs, snap_tol=0.0001)
     assert res.zip_ok
     assert res.sha256 is not None
     assert not res.file_ok
@@ -66,6 +62,7 @@ def test_obj_missing(context_missing, test_data_dir):
             "10-564-624",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
+            snap_tol=0.0001,
             url_root="https://data.3dbag.nl",
             version="test",
         )
@@ -85,16 +82,11 @@ def test_gpkg_missing(context_missing, test_data_dir):
 
 def test_cityjson_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
-        _ = cityjson(
-            context_missing.resources.validation.app,
-            test_data_dir / "validation_input/",
-            "10-564-624",
-            planarity_n_tol=20.0,
-            planarity_d2p_tol=0.001,
-            url_root="https://data.3dbag.nl",
-            version="test",
-            specs=context_missing.resources.specs,
-        )
+        _ = cityjson(context_missing.resources.validation.app,
+                     test_data_dir / "validation_input/", "10-564-624",
+                     planarity_n_tol=20.0, planarity_d2p_tol=0.001,
+                     url_root="https://data.3dbag.nl", version="test",
+                     specs=context_missing.resources.specs, snap_tol=0.0001)
 
 
 class TestAttributeValidationOutcome:
