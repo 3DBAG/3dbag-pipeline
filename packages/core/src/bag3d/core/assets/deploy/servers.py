@@ -8,6 +8,7 @@ from dagster import AssetIn, Output, asset, AssetKey
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.resources import ServerTransferResource
 from dagster import get_dagster_logger
 
 
@@ -29,7 +30,15 @@ logger = get_dagster_logger("deploy")
     required_resource_keys={"version"},
 )
 def compressed_export_nl(context, reconstruction_output_multitiles_nl):
-    """A .tar.gz compressed full directory tree of the exports"""
+    """Create a compressed tar.gz archive containing the complete 3D BAG export.
+    The archive will be named `export_<version>.tar.gz`.
+    Args:
+        context: Dagster execution context
+        reconstruction_output_multitiles_nl: Path to the exported data directory
+
+    Returns:
+        Output: Path to the created export_{version}.tar.gz file with size metadata
+    """
     export_dir = reconstruction_output_multitiles_nl
     version = context.resources.version.version
     output_tarfile = export_dir.parent / f"export_{version}.tar.gz"
@@ -42,38 +51,43 @@ def compressed_export_nl(context, reconstruction_output_multitiles_nl):
     return Output(output_tarfile, metadata=metadata_output)
 
 
-@asset(
-    ins={"metadata": AssetIn(key_prefix="export")},
-    required_resource_keys={"podzilla_server"},
-)
-def transfer_to_podzilla(
-    context,
+def transfer_to_server(
+    server: ServerTransferResource,
     compressed_export_nl: Path,
     metadata: Path,
-):
-    """Transfer the export_<version>.tar.gz archive to `podzilla` and decompress the files
-    in the target directory.
-    The target directory is set to the `BAG3D_PODZILLA_TARGET_DIR` environment variable.
-    The version is extracted from the metadata file and used to create a subdirectory
-    in the target directory.
-    The files on `podzilla` will be used for the 3DBAG API.
+    target_dir: str,
+) -> str:
+    """Transfer and extract export file to a remote server.
+
+    Args:
+        server: SSH connection resource for the target server
+        compressed_export_nl: Path to the compressed export file
+        metadata: Path to metadata file containing version information
+        target_dir: Base directory on remote server for deployment
+
+    Returns:
+        str: Path to the deployment directory on the remote server
+
+    Raises:
+        AssertionError: If SSH commands fail during transfer or extraction
+        Exception: If SSH connection cannot be established
     """
-    data_dir: str = context.resources.podzilla_server.target_dir
+
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = f"{data_dir}/{version}"
-        compressed_file = Path(data_dir) / compressed_export_nl.name
+        deploy_dir = f"{target_dir}/{version}"
+        compressed_file = Path(target_dir) / compressed_export_nl.name
 
     try:
-        with context.resources.podzilla_server.connect as c:
+        with server.connect as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
             logger.debug("SSH connection successful")
 
-            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
-            result = c.put(compressed_export_nl, remote=data_dir)
+            logger.debug(f"Transferring {compressed_export_nl} to {target_dir}")
+            result = c.put(compressed_export_nl, remote=target_dir)
             logger.debug(f"Transferred: {result}")
 
             logger.debug(f"Creating deploy_dir {deploy_dir}")
@@ -87,12 +101,30 @@ def transfer_to_podzilla(
             assert result.ok, "Decompressing failed"
 
             logger.info(
-                f"Deployment successful: Files transferred to {deploy_dir} on podzilla"
+                f"Deployment successful: Files transferred to {deploy_dir} on {server.host}"
             )
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
         raise
     return deploy_dir
+
+
+@asset(
+    ins={"metadata": AssetIn(key_prefix="export")},
+    required_resource_keys={"podzilla_server"},
+)
+def transfer_to_podzilla(
+    context,
+    compressed_export_nl: Path,
+    metadata: Path,
+):
+    """Transfer the 3D BAG export to the podzilla server for API access."""
+    return transfer_to_server(
+        context.resources.podzilla_server,
+        compressed_export_nl,
+        metadata,
+        context.resources.podzilla_server.target_dir,
+    )
 
 
 @asset(
@@ -104,48 +136,13 @@ def transfer_to_godzilla(
     compressed_export_nl: Path,
     metadata: Path,
 ):
-    """Transfer the export_<version>.tar.gz archive to `godzilla` and decompress the files
-    in the target directory.
-    The target directory is set to the `BAG3D_GODZILLA_TARGET_DIR` environment variable.
-    The version is extracted from the metadata file and used to create a subdirectory
-    in the target directory.
-    The files on `godzilla` will be made available for direct download and will be used by the webservices.
-    """
-    data_dir: str = context.resources.godzilla_server.target_dir
-    with metadata.open("r") as fo:
-        metadata_json = json.load(fo)
-        version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = f"{data_dir}/{version}"
-        compressed_file = Path(data_dir) / compressed_export_nl.name
-
-    try:
-        with context.resources.godzilla_server.connect as c:
-            # test connection
-            result = c.run("echo connected", hide=True)
-            assert result.ok, "Connection command failed"
-            logger.debug("SSH connection successful")
-
-            logger.debug(f"Transferring {compressed_export_nl} to {data_dir}")
-            result = c.put(compressed_export_nl, remote=data_dir)
-            logger.debug(f"Transferred: {result}")
-
-            logger.debug(f"Creating deploy_dir {deploy_dir}")
-            result = c.run(f"mkdir -p {deploy_dir}")
-            assert result.ok, "Creating deploy_dir failed"
-
-            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
-            result = c.run(
-                f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
-            )
-            assert result.ok, "Decompressing failed"
-
-            logger.info(
-                f"Deployment successful: Files transferred to {deploy_dir} on godzilla"
-            )
-    except Exception as e:
-        logger.error(f"SSH connection failed: {e}")
-        raise
-    return deploy_dir
+    """Transfer the 3D BAG export to the godzilla server for public downloads and webservices."""
+    return transfer_to_server(
+        context.resources.godzilla_server,
+        compressed_export_nl,
+        metadata,
+        context.resources.godzilla_server.target_dir,
+    )
 
 
 @asset(
