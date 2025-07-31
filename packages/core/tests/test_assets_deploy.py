@@ -7,6 +7,9 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.skip(
+    reason="Skip until refactor so that it transfers to a docker container instead of our server, because we should not modify the state of the world outside the test environment"
+)
 @pytest.mark.needs_tools
 def test_transfer_to_podzilla(context, test_data_dir):
     # Create deployment dir
@@ -56,6 +59,9 @@ def test_transfer_to_podzilla(context, test_data_dir):
             )
 
 
+@pytest.mark.skip(
+    reason="Skip until refactor so that it transfers to a docker container instead of our server, because we should not modify the state of the world outside the test environment"
+)
 @pytest.mark.needs_tools
 def test_transfer_to_godzilla(context, test_data_dir):
     # Create deployment dir

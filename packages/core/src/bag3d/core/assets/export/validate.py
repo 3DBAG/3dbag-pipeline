@@ -337,9 +337,17 @@ def cityobject_validate_attributes(
                                 )
 
 
-def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol: float,
-             planarity_d2p_tol: float, snap_tol: float, url_root: str, version: str,
-             specs: Specs3DBAGResource) -> CityJSONFileResults:
+def cityjson(
+    validation: AppImage,
+    dirpath: Path,
+    file_id: str,
+    planarity_n_tol: float,
+    planarity_d2p_tol: float,
+    snap_tol: float,
+    url_root: str,
+    version: str,
+    specs: Specs3DBAGResource,
+) -> CityJSONFileResults:
     """Validate a single CityJSON file.
 
     Args:
@@ -407,7 +415,9 @@ def cityjson(validation: AppImage, dirpath: Path, file_id: str, planarity_n_tol:
                 "--long",
             ]
         )
-        returncode, output = validation.execute("cjio", command=cmd, local_path=dirpath, silent=True)
+        returncode, output = validation.execute(
+            "cjio", command=cmd, local_path=dirpath, silent=True
+        )
         try:
             results.nr_building = int(
                 re.search(r"(?<=Building \()\d+", output).group(0)
@@ -954,7 +964,9 @@ def gpkg(
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        returncode, output = gdal.execute("ogrinfo", command=cmd, local_path=dirpath, silent=True)
+        returncode, output = gdal.execute(
+            "ogrinfo", command=cmd, local_path=dirpath, silent=True
+        )
         try:
             gpkg_info = json.loads(output)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
@@ -994,12 +1006,17 @@ def check_formats(input) -> TileResults:
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
     snap_tol = 0.0001
-    cj_results = cityjson(validation=validation, dirpath=dirpath, file_id=file_id,
-                          planarity_n_tol=planarity_n_tol,
-                          planarity_d2p_tol=planarity_d2p_tol,
-                          snap_tol=snap_tol,
-                          url_root=url_root,
-                          version=version, specs=specs)
+    cj_results = cityjson(
+        validation=validation,
+        dirpath=dirpath,
+        file_id=file_id,
+        planarity_n_tol=planarity_n_tol,
+        planarity_d2p_tol=planarity_d2p_tol,
+        snap_tol=snap_tol,
+        url_root=url_root,
+        version=version,
+        specs=specs,
+    )
     obj_results = obj(
         validation,
         dirpath,
