@@ -37,6 +37,33 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
         )
 
 
+def invert_geometry_coordinates(geometry):
+    """Invert x and y coordinates in the JSON geometry."""
+    if geometry["type"] == "Polygon":
+        inverted_coords = []
+        for ring in geometry["coordinates"]:
+            inverted_ring = [[coord[1], coord[0]] for coord in ring]
+            inverted_coords.append(inverted_ring)
+        return {"type": "Polygon", "coordinates": inverted_coords}
+    elif geometry["type"] == "MultiPolygon":
+        inverted_coords = []
+        for polygon in geometry["coordinates"]:
+            inverted_polygon = []
+            for ring in polygon:
+                inverted_ring = [[coord[1], coord[0]] for coord in ring]
+                inverted_polygon.append(inverted_ring)
+            inverted_coords.append(inverted_polygon)
+        return {"type": "MultiPolygon", "coordinates": inverted_coords}
+    elif geometry["type"] == "Point":
+        return {
+            "type": "Point",
+            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]],
+        }
+    else:
+        # Return original geometry for unsupported types
+        return geometry
+
+
 def download_ahn_index(
     with_geom: bool = False,
 ) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
@@ -86,7 +113,7 @@ def download_ahn_index(
                     "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
                     "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
                     "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
-                    "geometry": f["geometry"],
+                    "geometry": invert_geometry_coordinates(f["geometry"]),
                 }
         else:
             for f in returned_features:
@@ -107,8 +134,7 @@ def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cove
             miny = y if y < miny else miny
             maxx = x if x > maxx else maxx
             maxy = y if y > maxy else maxy
-    # Dunno why, but need to swap x-y here to get the correct coordinates
-    return miny, minx, maxy, maxx
+    return minx, miny, maxx, maxy
 
 
 def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
