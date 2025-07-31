@@ -3,6 +3,9 @@ include docker/.env
 export COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),bag3d-dev)
 export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_IMAGE_TAG),develop)
 
+sleep_a_bit:
+	sleep 2
+
 docker_volume_create_data_pipeline:
 	docker rm -f $(TEMP_CONTAINER) > /dev/null 2>&1 || true
 	docker volume create $(BAG3D_DOCKER_VOLUME_DATA_PIPELINE)
@@ -52,7 +55,7 @@ docker_watch:
 docker_build:
 	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
 
-docker_restart: docker_down docker_volume_recreate docker_up
+docker_restart: docker_down docker_volume_recreate sleep_a_bit docker_up
 
 docker_restart_containers:
 	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml restart
