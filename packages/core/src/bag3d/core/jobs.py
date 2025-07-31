@@ -125,8 +125,8 @@ job_nl_export_after_floors = define_asset_job(
     | AssetSelection.assets(["export", "compressed_tiles"])
     | AssetSelection.assets(["export", "compressed_tiles_validation"])
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod12_nl"])
-    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod13_nl"])
-    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod22_nl"]),
+    | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod13_nl"]),
+    # | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod22_nl"]),
     config={
         "ops": {
             "reconstruction_output_3dtiles_lod12_nl": {
@@ -139,9 +139,14 @@ job_nl_export_after_floors = define_asset_job(
                     "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
                 }
             },
-            "reconstruction_output_3dtiles_lod22_nl": {
+            # "reconstruction_output_3dtiles_lod22_nl": {
+            #     "config": {
+            #         "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+            #     }
+            # },
+            "compressed_tiles": {
                 "config": {
-                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_JOB_ARCHIVE", 1))
                 }
             },
         }

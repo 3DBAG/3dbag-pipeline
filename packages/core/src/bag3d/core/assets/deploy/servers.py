@@ -22,6 +22,9 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "metadata")),
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     ],
     required_resource_keys={"version"},
 )

@@ -164,6 +164,10 @@ def create_roofer_config(
     cj-translate = [171800.0,472700.0,0.0]
     cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
+    
+    lod12 = true
+    lod13 = true
+    lod22 = true
 
     [[pointclouds]]
     name = "ahn3"
@@ -194,7 +198,6 @@ def create_roofer_config(
     pc_select = "b3_pw_selectie_reden"
     pc_source = "b3_pw_bron"
     pc_year = "b3_pw_datum"
-    force_lod11 = ""
     roof_type = "b3_dak_type"
     h_roof_50p = "b3_h_dak_50p"
     h_roof_70p = "b3_h_dak_70p"

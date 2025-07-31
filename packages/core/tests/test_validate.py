@@ -19,6 +19,7 @@ def test_obj(context, test_data_dir):
         "10-564-624",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
+        snap_tol=0.0001,
         url_root="https://data.3dbag.nl",
         version="test",
     )
@@ -52,6 +53,7 @@ def test_cityjson(context, test_data_dir):
         url_root="https://data.3dbag.nl",
         version="test",
         specs=context.resources.specs,
+        snap_tol=0.0001,
     )
     assert res.zip_ok
     assert res.sha256 is not None
@@ -66,6 +68,7 @@ def test_obj_missing(context_missing, test_data_dir):
             "10-564-624",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
+            snap_tol=0.0001,
             url_root="https://data.3dbag.nl",
             version="test",
         )
@@ -94,6 +97,7 @@ def test_cityjson_missing(context_missing, test_data_dir):
             url_root="https://data.3dbag.nl",
             version="test",
             specs=context_missing.resources.specs,
+            snap_tol=0.0001,
         )
 
 

@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
@@ -31,17 +32,20 @@ def generate_tyler_config(
     locations: Union[
         tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]
     ],
-) -> list[str]:
+    export_dir: Path,
+) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
 
     Args:
         specs: The 3DBAG specifications
         data_format: Tyler output format (multi, cesium3dtiles)
         locations: The data format locations to generate the config for. Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
+        output_dir: The directory there tyler will write the output
     Raises:
         ValueError: With `format=='cesium3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Cesium3dTilesLocation)`.
     """
     cli_params = []
+    output_dir = None
     if data_format == "cesium3dtiles":
         if len(locations) > 1:
             raise ValueError(
@@ -52,8 +56,10 @@ def generate_tyler_config(
             raise ValueError(
                 "With data_format 'cesium3dtiles' the location must be a single Cesium3dTilesLocation."
             )
+        output_dir = export_dir.joinpath(data_format, str(location))
         cli_params.extend(
             [
+                f"--output={output_dir}",
                 "--3dtiles-metadata-class=building",
                 "--3dtiles-implicit",
                 "--qtree-capacity=280000",
@@ -69,8 +75,11 @@ def generate_tyler_config(
         for a_name, a_spec in attributes:
             cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
     elif data_format == "multi":
+        output_dir = export_dir
         cli_params.extend(
             [
+                f"--output={output_dir}",
+                "--format=multi",
                 "--object-type=Building",
                 "--object-type=BuildingPart",
                 "--qtree-capacity=280000",
@@ -81,7 +90,8 @@ def generate_tyler_config(
         raise ValueError(
             f"data_format must be one of 'multi', 'cesium3dtiles', got {data_format}"
         )
-    return cli_params
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return cli_params, output_dir
 
 
 def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
@@ -93,7 +103,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     reconstructed_root_dir = geoflow_crop_dir(
         context.resources.file_store_fastssd.file_store.data_dir
     )
-    output_dir = bag3d_export_dir(
+    export_dir = bag3d_export_dir(
         context.resources.file_store.file_store.data_dir,
         version=context.resources.version.version,
     )
@@ -110,17 +120,13 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     num_threads = kwargs["rayon_num_threads"]
     cmd = [
         f"RAYON_NUM_THREADS={num_threads}",
-        "RUST_LOG=info",
+        f"RUST_LOG={'debug' if kwargs.get('verbose', False) else 'info'}",
         f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata",
         str(sequence_header_file),
         "--features",
         str(reconstructed_root_dir),
-        "--output",
-        str(output_dir),
-        "--format",
-        data_format.lower(),
         "--exe-geof",
         str(context.resources.geoflow.app.exes["geof"]),
     ]
@@ -132,10 +138,11 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
         raise ValueError(
             f"invalid data_format: {data_format}, only 'multi' and 'cesium3dtiles' are allowed"
         )
-    cli_params = generate_tyler_config(
+    cli_params, output_dir = generate_tyler_config(
         specs=context.resources.specs,
         data_format=data_format,
         locations=kwargs["locations"],
+        export_dir=export_dir,
     )
     cmd.extend(cli_params)
     context.log.debug(" ".join(cmd))
@@ -145,6 +152,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
 
 class TylerConfig(Config):
     concurrency: int
+    verbose: bool = False
 
 
 @asset(
@@ -171,6 +179,7 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(),
+        verbose=config.verbose,
     )
 
 
@@ -197,7 +206,8 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod12),
+        locations=(Cesium3dTilesLocation.lod12,),
+        verbose=config.verbose,
     )
 
 
@@ -224,7 +234,8 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod13),
+        locations=(Cesium3dTilesLocation.lod13,),
+        verbose=config.verbose,
     )
 
 
@@ -251,5 +262,6 @@ def reconstruction_output_3dtiles_lod22_nl(context, config: TylerConfig, metadat
         data_format="cesium3dtiles",
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(Cesium3dTilesLocation.lod22),
+        locations=(Cesium3dTilesLocation.lod22,),
+        verbose=config.verbose,
     )

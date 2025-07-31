@@ -3,7 +3,6 @@ from pathlib import Path
 import json
 import re
 import csv
-from concurrent.futures import ProcessPoolExecutor
 import ast
 from dataclasses import dataclass, field
 from typing import Generator
@@ -344,11 +343,26 @@ def cityjson(
     file_id: str,
     planarity_n_tol: float,
     planarity_d2p_tol: float,
+    snap_tol: float,
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
 ) -> CityJSONFileResults:
-    """Validate a single CityJSON file."""
+    """Validate a single CityJSON file.
+
+    Args:
+        validation: Validation resource
+        dirpath: Directory with the compressed cityjson file
+        file_id: File name without extension
+        planarity_n_tol: Val3dity ``planarity_n_tol`` parameter
+        planarity_d2p_tol: Val3dity ``planarity_d2p_tol`` parameter
+        snap_tol: Val3dity ``snap_tol`` parameter
+        url_root: 3DBAG download page url root
+        version: 3DBAG version
+        specs: 3DBAG specifications resource
+
+    Returns: The aggregated validation results. See ``CityJSONFileResults`` for details.
+    """
     results = CityJSONFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".city.json.gz")
     inputfile = dirpath / f"{file_id}.city.json"
@@ -401,7 +415,9 @@ def cityjson(
                 "--long",
             ]
         )
-        returncode, output = validation.execute("cjio", command=cmd, local_path=dirpath)
+        returncode, output = validation.execute(
+            "cjio", command=cmd, local_path=dirpath, silent=True
+        )
         try:
             results.nr_building = int(
                 re.search(r"(?<=Building \()\d+", output).group(0)
@@ -446,6 +462,8 @@ def cityjson(
                 str(planarity_n_tol),
                 "--planarity_d2p_tol",
                 str(planarity_d2p_tol),
+                "--snap_tol",
+                str(snap_tol),
                 "--report",
                 str(reportfile),
                 str(inputfile),
@@ -453,7 +471,7 @@ def cityjson(
         )
 
         returncode, output = validation.execute(
-            "val3dity", command=cmd, local_path=dirpath
+            "val3dity", command=cmd, local_path=dirpath, silent=True
         )
         results.file_ok = (
             False if returncode != 0 or "error" in output.lower() else True
@@ -476,29 +494,50 @@ def cityjson(
             for feature in report["features"]:
                 if feature["validity"] is False:
                     nr_invalid_building += 1
-                nr_invalid_lod12 += (
-                    0 if feature["primitives"][lod12_idx]["validity"] else 1
-                )
-                nr_invalid_lod13 += (
-                    0 if feature["primitives"][lod13_idx]["validity"] else 1
-                )
-                nr_invalid_lod22 += (
-                    0 if feature["primitives"][lod22_idx]["validity"] else 1
-                )
-                e12 = set(e["code"] for e in feature["primitives"][lod12_idx]["errors"])
-                e13 = set(e["code"] for e in feature["primitives"][lod13_idx]["errors"])
-                e22 = set(e["code"] for e in feature["primitives"][lod22_idx]["errors"])
-                errors_lod12.update(e12)
-                errors_lod13.update(e13)
-                errors_lod22.update(e22)
+                primitives = feature["primitives"]
+                # If we don't have all 4 primitives in the val3dity report, then we
+                # assume all of them are invalid, because cannot tell which primitive
+                # refers to which LoD in the report
+                e12 = None
+                e13 = None
+                e22 = None
+                if len(primitives) == 4:
+                    nr_invalid_lod12 += 0 if primitives[lod12_idx]["validity"] else 1
+                    nr_invalid_lod13 += 0 if primitives[lod13_idx]["validity"] else 1
+                    nr_invalid_lod22 += 0 if primitives[lod22_idx]["validity"] else 1
+                    e12 = set(
+                        e["code"] for e in feature["primitives"][lod12_idx]["errors"]
+                    )
+                    e13 = set(
+                        e["code"] for e in feature["primitives"][lod13_idx]["errors"]
+                    )
+                    e22 = set(
+                        e["code"] for e in feature["primitives"][lod22_idx]["errors"]
+                    )
+                    errors_lod12.update(e12)
+                    errors_lod13.update(e13)
+                    errors_lod22.update(e22)
+                else:
+                    nr_invalid_lod12 += 1
+                    nr_invalid_lod13 += 1
+                    nr_invalid_lod22 += 1
                 cj_co = cityobjects.get(feature["id"])
                 if cj_co:
                     if attributes := cj_co.get("attributes"):
-                        if e12 != set(eval(attributes["b3_val3dity_lod12"])):
+                        if v_lod12 := attributes.get("b3_val3dity_lod12"):
+                            if e12 != set(eval(v_lod12)):
+                                nr_mismatch_errors_lod12 += 1
+                        elif e12 is not None:
                             nr_mismatch_errors_lod12 += 1
-                        if e13 != set(eval(attributes["b3_val3dity_lod13"])):
+                        if v_lod13 := attributes.get("b3_val3dity_lod13"):
+                            if e13 != set(eval(v_lod13)):
+                                nr_mismatch_errors_lod13 += 1
+                        elif e13 is not None:
                             nr_mismatch_errors_lod13 += 1
-                        if e22 != set(eval(attributes["b3_val3dity_lod22"])):
+                        if v_lod22 := attributes.get("b3_val3dity_lod22"):
+                            if e22 != set(eval(v_lod22)):
+                                nr_mismatch_errors_lod22 += 1
+                        elif e22 is not None:
                             nr_mismatch_errors_lod22 += 1
                         for res_one in cityobject_validate_attributes(
                             specs=specs, co=cj_co
@@ -514,20 +553,19 @@ def cityjson(
             results.nr_mismatch_errors_lod12 = nr_mismatch_errors_lod12
             results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
             results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
-        reportfile.unlink()
-        logfile.unlink(missing_ok=True)
     except Exception as e:
         logger.error("Failed to run val3dity command.")
-        reportfile.unlink(missing_ok=True)
-        logfile.unlink(missing_ok=True)
         inputfile.unlink(missing_ok=True)
         raise e
+    finally:
+        reportfile.unlink()
+        logfile.unlink(missing_ok=True)
 
     # cjval
     try:
         cmd = " ".join(["{exe}", str(inputfile)])
         returncode, output = validation.execute(
-            "cjval", command=cmd, local_path=dirpath
+            "cjval", command=cmd, local_path=dirpath, silent=True
         )
         pos = output.find("SUMMARY")
         summary = output[pos:]
@@ -549,6 +587,7 @@ def obj(
     file_id: str,
     planarity_n_tol: float,
     planarity_d2p_tol: float,
+    snap_tol: float,
     url_root: str,
     version: str,
 ) -> OBJFileResults:
@@ -649,6 +688,8 @@ def obj(
                         str(planarity_n_tol),
                         "--planarity_d2p_tol",
                         str(planarity_d2p_tol),
+                        "--snap_tol",
+                        str(snap_tol),
                         "--report",
                         str(reportfile),
                         str(inputfile),
@@ -656,7 +697,7 @@ def obj(
                 )
 
                 returncode, output = validation.execute(
-                    "val3dity", command=cmd, local_path=dirpath
+                    "val3dity", command=cmd, local_path=dirpath, silent=True
                 )
                 results.file_ok = (
                     False if returncode != 0 or "error" in output.lower() else True
@@ -851,7 +892,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             results.file_ok = (
                 False if returncode != 0 or "error" in output.lower() else True
@@ -877,7 +918,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
@@ -902,7 +943,7 @@ def gpkg(
                 ]
             )
             returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath
+                "ogrinfo", command=cmd, local_path=dirpath, silent=True
             )
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
@@ -923,7 +964,9 @@ def gpkg(
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        returncode, output = gdal.execute("ogrinfo", command=cmd, local_path=dirpath)
+        returncode, output = gdal.execute(
+            "ogrinfo", command=cmd, local_path=dirpath, silent=True
+        )
         try:
             gpkg_info = json.loads(output)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
@@ -962,12 +1005,14 @@ def check_formats(input) -> TileResults:
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
+    snap_tol = 0.0001
     cj_results = cityjson(
         validation=validation,
         dirpath=dirpath,
         file_id=file_id,
         planarity_n_tol=planarity_n_tol,
         planarity_d2p_tol=planarity_d2p_tol,
+        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
         specs=specs,
@@ -978,6 +1023,7 @@ def check_formats(input) -> TileResults:
         file_id,
         planarity_n_tol=planarity_n_tol,
         planarity_d2p_tol=planarity_d2p_tol,
+        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
     )
@@ -1053,10 +1099,16 @@ def compressed_tiles_validation(
     csvwriter.writeheader()
 
     try:
-        with ProcessPoolExecutor() as executor:
-            for result in executor.map(check_formats, tileids):
-                csvwriter.writerow(result.asdict())
+        for tileid in tileids:
+            tile_result = check_formats(tileid)
+            csvwriter.writerow(tile_result.asdict())
     finally:
         fo.close()
+    # try:
+    #     with ProcessPoolExecutor() as executor:
+    #         for result in executor.map(check_formats, tileids):
+    #             csvwriter.writerow(result.asdict())
+    # finally:
+    #     fo.close()
 
     return output_path
