@@ -365,13 +365,19 @@ def metadata(context: AssetExecutionContext):
                         "name": "tyler",
                         "version": resource_defs["tyler"].app.version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
-                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
+                        "description": "Generating Cesium 3DTiles",
                     },
                     {
                         "name": "tyler-db",
                         "version": resource_defs["tyler"].app.version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
+                    },
+                    {
+                        "name": "tyler-multiformat",
+                        "version": resource_defs["tyler"].app.version("tyler-multiformat"),
+                        "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
+                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
                     {
                         "name": "GDAL",
