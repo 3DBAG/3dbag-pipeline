@@ -80,7 +80,7 @@ def transfer_to_server(
         compressed_file = Path(target_dir) / compressed_export_nl.name
 
     try:
-        with server.connect as c:
+        with server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
