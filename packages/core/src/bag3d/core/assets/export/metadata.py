@@ -387,7 +387,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "PDAL",
-                        "version": resource_defs["pdal"].app.version("pdal"),
+                        "version": resource_defs["pdal"].app.version("pdal").replace("-","").replace(",",""),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
