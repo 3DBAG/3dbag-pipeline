@@ -375,7 +375,9 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "tyler-multiformat",
-                        "version": resource_defs["tyler"].app.version("tyler-multiformat"),
+                        "version": resource_defs["tyler"].app.version(
+                            "tyler-multiformat"
+                        ),
                         "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
                         "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
@@ -387,13 +389,18 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "PDAL",
-                        "version": resource_defs["pdal"].app.version("pdal").replace("-","").replace(",",""),
+                        "version": resource_defs["pdal"]
+                        .app.version("pdal")
+                        .replace("-", "")
+                        .replace(",", ""),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].app.version("lasindex", version_cmd="-version"),
+                        "version": resource_defs["lastools"].app.version(
+                            "lasindex", version_cmd="-version"
+                        ),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },

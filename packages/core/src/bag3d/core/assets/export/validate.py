@@ -1002,7 +1002,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version= input
+    gdal, validation, dirpath, tile_id, url_root, version = input
     specs = Specs3DBAGResource()
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
@@ -1076,7 +1076,6 @@ def compressed_tiles_validation(
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
     validation = context.resources.validation.app
-    specs = context.resources.specs
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
