@@ -164,7 +164,7 @@ def create_roofer_config(
     cj-translate = [171800.0,472700.0,0.0]
     cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
-    
+
     lod12 = true
     lod13 = true
     lod22 = true
@@ -185,7 +185,9 @@ def create_roofer_config(
     source = {ahn5_files}
 
     [output-attributes]
-    success = "b3_succes"
+    success = ""
+    force_lod11 = ""
+    h_pc_98p = ""
     reconstruction_time = "b3_t_run"
     val3dity_lod12 = "b3_val3dity_lod12"
     val3dity_lod13 = "b3_val3dity_lod13"
