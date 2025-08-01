@@ -357,9 +357,9 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "roofer",
-                        "version": resource_defs["roofer"].app.version("crop"),
+                        "version": resource_defs["roofer"].app.version("roofer"),
                         "repository": "https://github.com/3DGI/roofer",
-                        "description": "Point cloud selection and cropping",
+                        "description": "Point cloud selection and building reconstruction",
                     },
                     {
                         "name": "tyler",
