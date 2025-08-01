@@ -393,7 +393,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].app.version("lasindex"),
+                        "version": resource_defs["lastools"].app.version("lasindex", version_cmd="-version"),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },
