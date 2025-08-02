@@ -191,6 +191,12 @@ def pytest_addoption(parser):
         "--run-slow", action="store_true", default=False, help="run slow tests"
     )
     parser.addoption(
+        "--run-deploy",
+        action="store_true",
+        default=False,
+        help="run deployment tests that require the dockerized deployment setup",
+    )
+    parser.addoption(
         "--run-all",
         action="store_true",
         default=False,
@@ -202,6 +208,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow to run")
     config.addinivalue_line(
         "markers", "needs_tools: mark test as needing local builds of tools"
+    )
+    config.addinivalue_line(
+        "markers", "needs_deploy: mark test as needing the dockerized deployment setup"
     )
 
 
@@ -217,6 +226,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "needs_tools" in item.keywords:
                 item.add_marker(skip_needs_tools)
+
+    if not config.getoption("--run-deploy"):  # pragma: no cover
+        skip_needs_deploy = pytest.mark.skip(reason="needs the --run-deploy option to run")
+        for item in items:
+            if "needs_deploy" in item.keywords:
+                item.add_marker(skip_needs_deploy)
 
 
 @pytest.fixture(scope="session")

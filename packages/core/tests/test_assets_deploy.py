@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.needs_deploy
 def test_transfer_to_server(context, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
