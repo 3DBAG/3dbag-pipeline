@@ -35,7 +35,7 @@ class ServerTransferResource(ConfigurableResource):
     public_dir: Optional[str] = None
 
     @property
-    def connection(self):
+    def connection(self) -> Connection:
         connect_kwargs = {}
         if self.key_filename:
             connect_kwargs["key_filename"] = self.key_filename
@@ -48,17 +48,17 @@ class ServerTransferResource(ConfigurableResource):
             connect_kwargs=connect_kwargs,
         )
 
-    def transfer_file(self, local_path, remote_path):
+    def transfer_file(self, local_path, remote_path) -> bool:
         """Transfer a file to remote server."""
         with self.connection as conn:
             # Upload the file
             conn.put(local_path, remote_path)
 
             # Verify the file was uploaded
-            result = conn.run(f"ls -la {remote_path}", hide=True)
+            result = conn.run(f"test -f {remote_path}", warn=True, hide=True)
             return result.ok
 
-    def file_exists(self, remote_path):
+    def file_exists(self, remote_path) -> bool:
         """Check if file exists on remote server."""
         with self.connection as conn:
             result = conn.run(f"test -f {remote_path}", warn=True, hide=True)

@@ -27,6 +27,24 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
+def deployment_server():
+    """Connection to the dockerized deployment setup.
+    The dockerized deployment setup is in the 3dbag-admin repo and it needs to be
+    managed manually, similar to the 3dbag-pipeline docker setup.
+    These credentials provide access to the ``deployment-server`` service of the
+    deployment setup.
+    """
+    yield ServerTransferResource(
+        host="3dbag.docker.internal",
+        port=2222,
+        user="deploy",
+        password="deploy",
+        target_dir="/data/3DBAG",
+        public_dir="/data/3DBAG/public",
+    )
+
+
+@pytest.fixture(scope="session")
 def godzilla_server():
     yield ServerTransferResource(
         host="godzilla",
@@ -228,7 +246,9 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_needs_tools)
 
     if not config.getoption("--run-deploy"):  # pragma: no cover
-        skip_needs_deploy = pytest.mark.skip(reason="needs the --run-deploy option to run")
+        skip_needs_deploy = pytest.mark.skip(
+            reason="needs the --run-deploy option to run"
+        )
         for item in items:
             if "needs_deploy" in item.keywords:
                 item.add_marker(skip_needs_deploy)
