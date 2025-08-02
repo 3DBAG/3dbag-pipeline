@@ -157,15 +157,15 @@ job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
     selection=AssetSelection.assets(["deploy", "compressed_export_nl"])
-    | AssetSelection.assets(["deploy", "transfer_to_godzilla"])
-    | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
-    | AssetSelection.assets(["deploy", "webservice_godzilla"]),
+    | AssetSelection.assets(["deploy", "transfer_to_godzilla"]),
+    # | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
+    # | AssetSelection.assets(["deploy", "webservice_godzilla"]),
 )
 
 
 job_nl_release = define_asset_job(
     name="nl_release",
     description="Perform the final steps for the 3DBAG release.",
-    selection=AssetSelection.assets(["release", "publish_data"])
-    | AssetSelection.assets(["release", "publish_webservices"]),
+    selection=AssetSelection.assets(["release", "publish_data"]),
+    # | AssetSelection.assets(["release", "publish_webservices"]),
 )

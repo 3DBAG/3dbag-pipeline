@@ -1,10 +1,9 @@
-from bag3d.common.resources import ServerTransferResource
 from bag3d.core.assets.deploy.servers import compressed_export_nl, transfer_to_server
 from pathlib import Path
 import pytest
 
 
-@pytest.mark.needs_deploy
+@pytest.mark.skip("included in integration test")
 def test_transfer_to_server(context, deployment_server, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
@@ -37,7 +36,9 @@ def test_transfer_to_server(context, deployment_server, test_data_dir):
         assert (
             res == f"{deployment_server.target_dir}/test_version"
         )  # Check that the function returns a value
-        assert deployment_server.file_exists(f"{deployment_server.target_dir}/test_version/dummy.txt")
+        assert deployment_server.file_exists(
+            f"{deployment_server.target_dir}/test_version/dummy.txt"
+        )
     finally:
         # Clean up the test files
         compressed_file.unlink(missing_ok=True)

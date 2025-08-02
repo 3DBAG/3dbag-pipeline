@@ -37,7 +37,7 @@ def publish_data(
         compressed_file = Path(data_dir) / compressed_export_nl.name
 
     try:
-        with context.resources.godzilla_server.connect as c:
+        with context.resources.godzilla_server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -84,7 +84,7 @@ def publish_webservices(context):
     alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
 
     try:
-        with context.resources.godzilla_server.connect as c:
+        with context.resources.godzilla_server.connection as c:
             context.log.debug(alter_latest_to_archive)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
