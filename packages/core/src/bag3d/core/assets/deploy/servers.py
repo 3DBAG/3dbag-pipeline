@@ -16,30 +16,31 @@ logger = get_dagster_logger("deploy")
 
 
 @asset(
-    ins={"reconstruction_output_multitiles_nl": AssetIn(key_prefix="export")},
+    ins={"metadata": AssetIn(key_prefix="export")},
     deps=[
         AssetKey(("export", "geopackage_nl")),
         AssetKey(("export", "export_index")),
-        AssetKey(("export", "metadata")),
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
+        AssetKey(("export", "reconstruction_output_multitiles_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     ],
     required_resource_keys={"version"},
 )
-def compressed_export_nl(context, reconstruction_output_multitiles_nl):
+def compressed_export_nl(context, metadata):
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
+
     Args:
         context: Dagster execution context
-        reconstruction_output_multitiles_nl: Path to the exported data directory
+        metadata: Path to the 3DBAG metadata file
 
     Returns:
         Output: Path to the created export_{version}.tar.gz file with size metadata
     """
-    export_dir = reconstruction_output_multitiles_nl
+    export_dir = metadata.parent
     version = context.resources.version.version
     output_tarfile = export_dir.parent / f"export_{version}.tar.gz"
     with tarfile.open(output_tarfile, "w:gz") as tar:
@@ -56,7 +57,7 @@ def transfer_to_server(
     compressed_export_nl: Path,
     metadata: Path,
     target_dir: str,
-) -> str:
+) -> tuple[Path, Path]:
     """Transfer and extract export file to a remote server.
 
     Args:
@@ -66,7 +67,7 @@ def transfer_to_server(
         target_dir: Base directory on remote server for deployment
 
     Returns:
-        str: Path to the deployment directory on the remote server
+        (Path to the deployment directory on the remote server, Path to the compressed export on the remote server)
 
     Raises:
         AssertionError: If SSH commands fail during transfer or extraction
@@ -76,7 +77,7 @@ def transfer_to_server(
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = f"{target_dir}/{version}"
+        deploy_dir = Path(target_dir) / version
         compressed_file = Path(target_dir) / compressed_export_nl.name
 
     try:
@@ -106,7 +107,7 @@ def transfer_to_server(
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
         raise
-    return deploy_dir
+    return deploy_dir, compressed_file
 
 
 @asset(
