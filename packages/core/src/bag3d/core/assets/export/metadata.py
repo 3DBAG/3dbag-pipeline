@@ -357,21 +357,29 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "roofer",
-                        "version": resource_defs["roofer"].app.version("crop"),
-                        "repository": "https://github.com/3DGI/roofer",
-                        "description": "Point cloud selection and cropping",
+                        "version": resource_defs["roofer"].app.version("roofer"),
+                        "repository": "https://github.com/3DBAG/roofer",
+                        "description": "Point cloud selection and building reconstruction",
                     },
                     {
                         "name": "tyler",
                         "version": resource_defs["tyler"].app.version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
-                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
+                        "description": "Generating Cesium 3DTiles",
                     },
                     {
                         "name": "tyler-db",
                         "version": resource_defs["tyler"].app.version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
+                    },
+                    {
+                        "name": "tyler-multiformat",
+                        "version": resource_defs["tyler"].app.version(
+                            "tyler-multiformat"
+                        ),
+                        "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
+                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
                     {
                         "name": "GDAL",
@@ -381,13 +389,18 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "PDAL",
-                        "version": resource_defs["pdal"].app.version("pdal"),
+                        "version": resource_defs["pdal"]
+                        .app.version("pdal")
+                        .replace("-", "")
+                        .replace(",", ""),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].app.version("lasindex"),
+                        "version": resource_defs["lastools"].app.version(
+                            "lasindex", version_cmd="-version"
+                        ),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },

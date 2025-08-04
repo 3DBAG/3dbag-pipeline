@@ -346,7 +346,7 @@ class TestGpkgValidateAttributes:
                         {
                             "name": "b3_pand_deel_id",
                             "type": "Integer",
-                            "nullable": False,
+                            "nullable": True,
                         },  # Wrong nullable
                         {"name": "identificatie", "type": "String", "nullable": False},
                     ],
@@ -354,7 +354,7 @@ class TestGpkgValidateAttributes:
             ]
         }
         results = list(gpkg_validate_attributes(specs, gpkg_info))
-        print(str(x) for x in results)
+        print(list(str(x) for x in results))
 
         # Check for type and nullable errors
         type_errors = [
@@ -368,5 +368,5 @@ class TestGpkgValidateAttributes:
             if r.outcome == AttributeValidationOutcome.INCORRECT_NULLABLE
         ]
 
-        assert len(type_errors) > 0
-        assert len(nullable_errors) > 0
+        assert len(type_errors) == 1
+        assert len(nullable_errors) == 1

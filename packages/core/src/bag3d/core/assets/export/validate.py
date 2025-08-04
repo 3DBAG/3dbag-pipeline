@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor
 from enum import Enum
 from pathlib import Path
 import json
@@ -1001,7 +1002,8 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version, specs = input
+    gdal, validation, dirpath, tile_id, url_root, version = input
+    specs = Specs3DBAGResource()
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.001
@@ -1074,7 +1076,6 @@ def compressed_tiles_validation(
         context.log.debug(f"{version=}")
     gdal = context.resources.gdal.app
     validation = context.resources.validation.app
-    specs = context.resources.specs
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
@@ -1086,7 +1087,6 @@ def compressed_tiles_validation(
                 row[0],
                 url_root,
                 version,
-                specs,
             )
             for row in csvreader
         ]
@@ -1099,16 +1099,9 @@ def compressed_tiles_validation(
     csvwriter.writeheader()
 
     try:
-        for tileid in tileids:
-            tile_result = check_formats(tileid)
-            csvwriter.writerow(tile_result.asdict())
+        with ProcessPoolExecutor() as executor:
+            for result in executor.map(check_formats, tileids):
+                csvwriter.writerow(result.asdict())
+        return output_path
     finally:
         fo.close()
-    # try:
-    #     with ProcessPoolExecutor() as executor:
-    #         for result in executor.map(check_formats, tileids):
-    #             csvwriter.writerow(result.asdict())
-    # finally:
-    #     fo.close()
-
-    return output_path

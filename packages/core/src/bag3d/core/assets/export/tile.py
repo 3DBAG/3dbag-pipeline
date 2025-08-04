@@ -61,7 +61,6 @@ def generate_tyler_config(
             [
                 f"--output={output_dir}",
                 "--3dtiles-metadata-class=building",
-                "--3dtiles-implicit",
                 "--qtree-capacity=280000",
                 "--grid-minz=-50",
                 "--grid-maxz=400",

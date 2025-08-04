@@ -241,9 +241,9 @@ class AppImage:
                 "executable resource was not initialized with a docker image"
             )
 
-    def version(self, exe: str):
+    def version(self, exe: str, version_cmd: str = "--version"):
         exe_path = self.exes[exe]
-        version, returncode = execute_shell_command_silent(f"{exe_path} --version")
+        version, returncode = execute_shell_command_silent(f"{exe_path} {version_cmd}")
         return format_version_stdout(version)
 
 
