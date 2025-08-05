@@ -8,6 +8,9 @@ from concurrent.futures import ProcessPoolExecutor
 from dagster import asset, Output, AssetKey, Config
 
 from bag3d.common.utils.files import bag3d_export_dir
+from dagster import get_dagster_logger
+
+logger = get_dagster_logger()
 
 
 @asset(
@@ -147,6 +150,7 @@ def compressed_tiles(context, config: CompressionConfig, export_index):
         version=context.resources.version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
+    logger.info(f"Compressing files in {path_tiles_dir}")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # skip header
@@ -159,6 +163,7 @@ def compressed_tiles(context, config: CompressionConfig, export_index):
 
 def compress_files(input):
     tile_id, path_tiles_dir = input
+    logger.debug(f"Compressing tile {tile_id}")
     path_tile_dir = path_tiles_dir.joinpath(tile_id)
     lid_in_filename = tile_id.replace("/", "-")
     # OBJ
@@ -180,6 +185,8 @@ def compress_files(input):
             with gzip.open(cj_zip, "wb") as f_out:
                 copyfileobj(f_in, f_out)
         cj_file.unlink()
+    else:
+        logger.warning(f"CityJSON file {cj_file} does not exist, skipping compression.")
     # GPKG
     gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
     gpkg_zip = str(gpkg_file) + ".gz"
@@ -188,3 +195,5 @@ def compress_files(input):
             with gzip.open(gpkg_zip, "wb") as f_out:
                 copyfileobj(f_in, f_out)
         gpkg_file.unlink()
+    else:
+        logger.warning(f"GPKG file {gpkg_file} does not exist, skipping compression.")
