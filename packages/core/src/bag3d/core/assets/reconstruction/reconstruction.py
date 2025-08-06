@@ -141,6 +141,19 @@ def create_roofer_config(
     dir_tiles_200m_ahn4=None,
     dir_tiles_200m_ahn5=None,
 ):
+    def laz_filepaths_generator(
+        file_store_dir: Path, resultset: list[tuple], dir_200m_laz=None
+    ):
+        """Generator for the full 200m laz file paths that only emits existing paths."""
+        if dir_200m_laz is not None:
+            lazdir = Path(dir_200m_laz)
+        else:
+            lazdir = ahn_dir(file_store_dir, ahn_version=5).joinpath("tiles_200m")
+        for tile_id_ahn in resultset:
+            p = lazdir / f"t_{tile_id_ahn[0]}.laz"
+            if p.is_file():
+                yield str(p)
+
     toml_template = """
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
@@ -226,33 +239,30 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    if dir_tiles_200m_ahn3 is not None:
-        out_dir_ahn3 = Path(dir_tiles_200m_ahn3)
-    else:
-        out_dir_ahn3 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=3
-        ).joinpath("tiles_200m")
-    laz_files_ahn3 = [
-        str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
-    if dir_tiles_200m_ahn4 is not None:
-        out_dir_ahn4 = Path(dir_tiles_200m_ahn4)
-    else:
-        out_dir_ahn4 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=4
-        ).joinpath("tiles_200m")
-    laz_files_ahn4 = [
-        str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
-    if dir_tiles_200m_ahn5 is not None:
-        out_dir_ahn5 = Path(dir_tiles_200m_ahn5)
-    else:
-        out_dir_ahn5 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=5
-        ).joinpath("tiles_200m")
-    laz_files_ahn5 = [
-        str(out_dir_ahn5 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
+    laz_files_ahn3 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn3,
+        )
+    )
+
+    laz_files_ahn4 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn4,
+        )
+    )
+
+    laz_files_ahn5 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn5,
+        )
+    )
+
     # Would be neater if we could use -sql in the OGR connection to do this query,
     # instead of creating a view.
     tile_view = PostgresTableIdentifier(tiles.schema, f"t_{tile_id}")
