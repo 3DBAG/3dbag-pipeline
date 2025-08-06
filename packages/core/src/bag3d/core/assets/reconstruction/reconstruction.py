@@ -56,6 +56,9 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     ),
     ins={
         "regular_grid_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn3_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn4_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn5_200m": AssetIn(key_prefix="ahn"),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -80,25 +83,17 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             is_required=False,
             default_value="info",
         ),
-        "dir_tiles_200m_ahn3": Field(
-            str,
-            description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
-        "dir_tiles_200m_ahn4": Field(
-            str,
-            description="Directory of the 200m tiles of AHN4. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
-        "dir_tiles_200m_ahn5": Field(
-            str,
-            description="Directory of the 200m tiles of AHN5. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
     },
 )
 def reconstructed_building_models_nl(
-    context, regular_grid_200m, tiles, index, reconstruction_input
+    context,
+    regular_grid_200m,
+    tiles,
+    index,
+    reconstruction_input,
+    laz_tiles_ahn3_200m,
+    laz_tiles_ahn4_200m,
+    laz_tiles_ahn5_200m,
 ):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
@@ -110,15 +105,9 @@ def reconstructed_building_models_nl(
         reconstruction_input,
         regular_grid_200m,
         tiles,
-        dir_tiles_200m_ahn3=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn3"
-        ),
-        dir_tiles_200m_ahn4=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn4"
-        ),
-        dir_tiles_200m_ahn5=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn5"
-        ),
+        dir_tiles_200m_ahn3=laz_tiles_ahn3_200m,
+        dir_tiles_200m_ahn4=laz_tiles_ahn4_200m,
+        dir_tiles_200m_ahn5=laz_tiles_ahn5_200m,
     )
 
     context.log.info(f"{roofer_toml=}")
@@ -152,6 +141,19 @@ def create_roofer_config(
     dir_tiles_200m_ahn4=None,
     dir_tiles_200m_ahn5=None,
 ):
+    def laz_filepaths_generator(
+        file_store_dir: Path, resultset: list[tuple], dir_200m_laz=None
+    ):
+        """Generator for the full 200m laz file paths that only emits existing paths."""
+        if dir_200m_laz is not None:
+            lazdir = Path(dir_200m_laz)
+        else:
+            lazdir = ahn_dir(file_store_dir, ahn_version=5).joinpath("tiles_200m")
+        for tile_id_ahn in resultset:
+            p = lazdir / f"t_{tile_id_ahn[0]}.laz"
+            if p.is_file():
+                yield str(p)
+
     toml_template = """
     polygon-source = "{footprint_file}"
     id-attribute = "identificatie"
@@ -237,26 +239,30 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    if dir_tiles_200m_ahn3 is not None:
-        out_dir_ahn3 = Path(dir_tiles_200m_ahn3)
-    else:
-        out_dir_ahn3 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=3
-        ).joinpath("tiles_200m")
-    laz_files_ahn3 = [
-        str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
-    # TODO: probably should take the tiles_200m directory from the asset output
-    if dir_tiles_200m_ahn4 is not None:
-        out_dir_ahn4 = Path(dir_tiles_200m_ahn4)
-    else:
-        out_dir_ahn4 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=4
-        ).joinpath("tiles_200m")
-    # TODO: same with the laz filename pattern
-    laz_files_ahn4 = [
-        str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
-    ]
+    laz_files_ahn3 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn3,
+        )
+    )
+
+    laz_files_ahn4 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn4,
+        )
+    )
+
+    laz_files_ahn5 = list(
+        laz_filepaths_generator(
+            file_store_dir=context.resources.file_store.file_store.data_dir,
+            resultset=res,
+            dir_200m_laz=dir_tiles_200m_ahn5,
+        )
+    )
+
     # Would be neater if we could use -sql in the OGR connection to do this query,
     # instead of creating a view.
     tile_view = PostgresTableIdentifier(tiles.schema, f"t_{tile_id}")
@@ -284,13 +290,7 @@ def create_roofer_config(
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
-        ahn5_files=[
-            str(
-                ahn_dir(
-                    context.resources.file_store.file_store.data_dir, ahn_version=5
-                ).joinpath("as_downloaded/LAZ")
-            )
-        ],
+        ahn5_files=laz_files_ahn5,
         output_path=output_dir,
     )
     path_toml = output_dir / "roofer.toml"

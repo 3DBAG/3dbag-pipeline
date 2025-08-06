@@ -35,6 +35,9 @@ def test_integration_reconstruction_and_export(
     mock_asset_reconstruction_input,
     mock_asset_tiles,
     mock_asset_index,
+    mock_asset_laz_tiles_ahn3_200m,
+    mock_asset_laz_tiles_ahn4_200m,
+    mock_asset_laz_tiles_ahn5_200m,
 ):
     # update quadtree
     og_quadtree = test_data_dir / "quadtree.tsv"
@@ -104,6 +107,9 @@ def test_integration_reconstruction_and_export(
             mock_asset_reconstruction_input,
             mock_asset_tiles,
             mock_asset_index,
+            mock_asset_laz_tiles_ahn3_200m,
+            mock_asset_laz_tiles_ahn4_200m,
+            mock_asset_laz_tiles_ahn5_200m,
             *reconstruction_assets,
             *all_export_assets,
         ],

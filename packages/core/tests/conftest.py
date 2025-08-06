@@ -329,3 +329,66 @@ def mock_asset_regular_grid_200m():
         key=AssetKey(["ahn", "regular_grid_200m"]),
         io_manager_def=MockIOManager(),
     )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_laz_tiles_ahn3_200m(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "reconstruction_input"
+                / "pointcloud"
+                / "AHN3"
+                / "tiles_200m"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "laz_tiles_ahn3_200m"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_laz_tiles_ahn4_200m(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "reconstruction_input"
+                / "pointcloud"
+                / "AHN4"
+                / "tiles_200m"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "laz_tiles_ahn4_200m"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_laz_tiles_ahn5_200m(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "reconstruction_input"
+                / "pointcloud"
+                / "AHN5"
+                / "tiles_200m"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "laz_tiles_ahn5_200m"]),
+        io_manager_def=MockIOManager(),
+    )
