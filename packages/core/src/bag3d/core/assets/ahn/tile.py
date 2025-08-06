@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from dagster import asset, AssetKey, Output, Field, get_dagster_logger
 
@@ -6,6 +7,7 @@ from pgutils import PostgresTableIdentifier, inject_parameters
 from psycopg.sql import SQL
 from psycopg import Connection
 
+from bag3d.common.types import LocalPath
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.common.utils.geodata import wkt_from_bbox
 from bag3d.core.assets.ahn.core import (
@@ -92,9 +94,9 @@ def regular_grid_200m(context):
     deps={AssetKey(["ahn", "metadata_ahn3"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
 )
-def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
+def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3) -> LocalPath:
     """AHN3 partitioned by a grid of 200m cells on the extent of the AHN PDOK tiles."""
-    partition_laz_with_grid(
+    return partition_laz_with_grid(
         context,
         metadata_table_ahn3,
         regular_grid_200m,
@@ -123,9 +125,9 @@ def laz_tiles_ahn3_200m(context, regular_grid_200m, metadata_table_ahn3):
     deps={AssetKey(["ahn", "metadata_ahn4"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
 )
-def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
+def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4) -> LocalPath:
     """AHN4 partitioned by a grid of 200m cells on the extent of the AHN PDOK tiles."""
-    partition_laz_with_grid(
+    return partition_laz_with_grid(
         context,
         metadata_table_ahn4,
         regular_grid_200m,
@@ -154,9 +156,9 @@ def laz_tiles_ahn4_200m(context, regular_grid_200m, metadata_table_ahn4):
     deps={AssetKey(["ahn", "metadata_ahn5"])},
     required_resource_keys={"file_store", "lastools", "db_connection"},
 )
-def laz_tiles_ahn5_200m(context, regular_grid_200m, metadata_table_ahn5):
+def laz_tiles_ahn5_200m(context, regular_grid_200m, metadata_table_ahn5) -> LocalPath:
     """AHN5 partitioned by a grid of 200m cells on the extent of the AHN PDOK tiles."""
-    partition_laz_with_grid(
+    return partition_laz_with_grid(
         context,
         metadata_table_ahn5,
         regular_grid_200m,
@@ -175,7 +177,7 @@ def partition_laz_with_grid(
     cellsize,
     max_workers,
     verbose: bool = False,
-):
+) -> Path:
     """
     Partitions LAZ files into tiles based on a regular grid.
     Queries the PostgreSQL database to find the grid cells that overlap the AHN tile.
@@ -192,7 +194,7 @@ def partition_laz_with_grid(
         verbose: Whether to suppress output from the subprocesses.
 
     Returns:
-        None
+        The Path to the directory with the output 200m tiles
     """
     conn = context.resources.db_connection.connect
     query_params = {
@@ -262,3 +264,4 @@ def partition_laz_with_grid(
                 logger.warning(f"Tile {tile} raised an exception: {e}")
     if len(failed) > 0:
         logger.error(f"Failed {len(failed)} tiles. Failed tiles: {failed}")
+    return out_dir

@@ -56,6 +56,9 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     ),
     ins={
         "regular_grid_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn3_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn4_200m": AssetIn(key_prefix="ahn"),
+        "laz_tiles_ahn5_200m": AssetIn(key_prefix="ahn"),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -80,25 +83,17 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             is_required=False,
             default_value="info",
         ),
-        "dir_tiles_200m_ahn3": Field(
-            str,
-            description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
-        "dir_tiles_200m_ahn4": Field(
-            str,
-            description="Directory of the 200m tiles of AHN4. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
-        "dir_tiles_200m_ahn5": Field(
-            str,
-            description="Directory of the 200m tiles of AHN5. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
     },
 )
 def reconstructed_building_models_nl(
-    context, regular_grid_200m, tiles, index, reconstruction_input
+    context,
+    regular_grid_200m,
+    tiles,
+    index,
+    reconstruction_input,
+    laz_tiles_ahn3_200m,
+    laz_tiles_ahn4_200m,
+    laz_tiles_ahn5_200m,
 ):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
@@ -110,15 +105,9 @@ def reconstructed_building_models_nl(
         reconstruction_input,
         regular_grid_200m,
         tiles,
-        dir_tiles_200m_ahn3=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn3"
-        ),
-        dir_tiles_200m_ahn4=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn4"
-        ),
-        dir_tiles_200m_ahn5=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn5"
-        ),
+        dir_tiles_200m_ahn3=laz_tiles_ahn3_200m,
+        dir_tiles_200m_ahn4=laz_tiles_ahn4_200m,
+        dir_tiles_200m_ahn5=laz_tiles_ahn5_200m,
     )
 
     context.log.info(f"{roofer_toml=}")
@@ -246,14 +235,12 @@ def create_roofer_config(
     laz_files_ahn3 = [
         str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
-    # TODO: probably should take the tiles_200m directory from the asset output
     if dir_tiles_200m_ahn4 is not None:
         out_dir_ahn4 = Path(dir_tiles_200m_ahn4)
     else:
         out_dir_ahn4 = ahn_dir(
             context.resources.file_store.file_store.data_dir, ahn_version=4
         ).joinpath("tiles_200m")
-    # TODO: same with the laz filename pattern
     laz_files_ahn4 = [
         str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
@@ -263,7 +250,6 @@ def create_roofer_config(
         out_dir_ahn5 = ahn_dir(
             context.resources.file_store.file_store.data_dir, ahn_version=5
         ).joinpath("tiles_200m")
-    # TODO: same with the laz filename pattern
     laz_files_ahn5 = [
         str(out_dir_ahn5 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
     ]
