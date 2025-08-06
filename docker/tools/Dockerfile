@@ -98,9 +98,9 @@ FROM tyler AS roofer
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=3dgi/roofer:v1.0.0-beta.2 /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --from=3dgi/roofer:v1.0.0-beta.2 /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
-COPY --from=3dgi/roofer:v1.0.0-beta.2 /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+COPY --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
+COPY --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+COPY --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
 ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
