@@ -2,8 +2,6 @@ import pytest
 from bag3d.core.assets.ahn.core import (
     ahn_laz_dir,
     download_ahn_index,
-    generate_grid,
-    tile_index_origin,
 )
 from bag3d.core.assets.ahn.download import (
     URL_LAZ_SHA,
@@ -25,14 +23,6 @@ from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 
 
-def test_tile_index_origin():
-    minx, miny, maxx, maxy = tile_index_origin()
-    assert minx == pytest.approx(9999.99998)
-    assert miny == pytest.approx(306250.00034)
-    assert maxx == pytest.approx(280000.00023)
-    assert maxy == pytest.approx(625000.00053)
-
-
 def test_download_ahn_index():
     tile_ids = download_ahn_index()
     assert len(tile_ids) == 1407
@@ -43,12 +33,6 @@ def test_download_ahn_index_geometry():
     features = download_ahn_index(with_geom=True)
     assert len(features) == 1407
     assert features[list(features.keys())[0]] is not None
-
-
-def test_generate_grid():
-    PDOK_TILE_INDEX_BBOX = (13000, 306250, 279000, 616250)
-    grid = generate_grid(PDOK_TILE_INDEX_BBOX, 200)
-    assert grid == ((13000, 306250, 279000, 616250), 1330, 1550)
 
 
 @pytest.mark.parametrize(
