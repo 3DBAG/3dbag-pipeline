@@ -41,7 +41,7 @@ def test_pdal_local(laz_files_ahn3_dir):
     """Use local PDAL installation"""
     pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
     assert not pdal.with_docker
-    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+    filepath = laz_files_ahn3_dir / "C_32BZ2.LAZ"
     return_code, output = pdal_info(pdal.app, filepath, with_all=True)
     assert return_code == 0
 
@@ -55,7 +55,7 @@ def test_lastools(laz_files_ahn3_dir):
 
     lastools = lastools_resource.app
 
-    filepath = laz_files_ahn3_dir / "t_1042098.laz"
+    filepath = laz_files_ahn3_dir / "C_32BZ2.LAZ"
 
     cmd_list = [
         "{exe}",

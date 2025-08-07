@@ -12,7 +12,7 @@ from bag3d.core.assets.ahn.download import (
     md5_ahn3,
     md5_ahn4,
     sha256_ahn5,
-    tile_index_ahn,
+    tile_index_ahn, LazFilesConfig,
 )
 from bag3d.core.assets.ahn.metadata import (
     metadata_table_ahn3,
@@ -72,7 +72,8 @@ def test_tile_index_ahn(context):
 def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix)
+    config = LazFilesConfig(force_download=False, check_hash=False)
+    res = laz_files_ahn3(context, config, md5_ahn3_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
     print(res.value)
@@ -82,7 +83,8 @@ def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix):
 def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix)
+    config = LazFilesConfig(force_download=False, check_hash=False)
+    res = laz_files_ahn4(context, config, md5_ahn4_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 
@@ -91,7 +93,8 @@ def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix):
 def test_laz_files_ahn5(context, sha256_ahn5_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
-    res = laz_files_ahn5(context, sha256_ahn5_fix, tile_index_ahn_fix)
+    config = LazFilesConfig(force_download=False, check_hash=False)
+    res = laz_files_ahn5(context, config, sha256_ahn5_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 

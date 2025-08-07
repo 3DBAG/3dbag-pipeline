@@ -196,7 +196,7 @@ def test_integration_reconstruction_and_export(
             run_config={
                 "ops": {
                     "reconstructed_building_models_nl": {
-                        "config": {"loglevel": "debug"}
+                        "config": {"loglevel": "info"}
                     }
                 }
             },
