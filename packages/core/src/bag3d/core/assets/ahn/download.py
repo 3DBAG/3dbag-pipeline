@@ -3,7 +3,7 @@ from typing import Tuple, Mapping, Union, Any
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
-from dagster import asset, Output, get_dagster_logger
+from dagster import asset, Output, get_dagster_logger, Config
 
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
@@ -139,11 +139,16 @@ def tile_index_ahn(context):
     return download_ahn_index(with_geom=True)
 
 
+class LazFilesConfig(Config):
+    force_download: bool = False
+    check_hash: bool = True
+
+
 @asset(
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
 )
-def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
+def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -162,34 +167,36 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
-    )
-
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
-        )
-        second_validation = lazdownload.validate(
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(format_laz_log(fpath, "Removing"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            second_validation = lazdownload.validate(
+                sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+            )
+            if not second_validation:
+                logger.error(format_laz_log(fpath, "ERROR"))
+                lazdownload = LAZDownload(
+                    url=None,
+                    path=Path(),
+                    success=False,
+                    hash_name=None,
+                    hash_hexdigest=None,
+                    new=False,
+                    size=0.0,
+                )
+        else:
+            logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -198,7 +205,7 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
 )
-def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
+def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -218,36 +225,38 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
-    )
-
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
-            verify_ssl=verify_ssl,
-        )
-        second_validation = lazdownload.validate(
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(format_laz_log(fpath, "Removing"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath,
+                url_laz=url_laz,
+                verify_ssl=verify_ssl,
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            second_validation = lazdownload.validate(
+                sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+            )
+            if not second_validation:
+                logger.error(format_laz_log(fpath, "ERROR"))
+                lazdownload = LAZDownload(
+                    url=None,
+                    path=Path(),
+                    success=False,
+                    hash_name=None,
+                    hash_hexdigest=None,
+                    new=False,
+                    size=0.0,
+                )
+        else:
+            logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -256,7 +265,7 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
 )
-def laz_files_ahn5(context, sha256_ahn5, tile_index_ahn):
+def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn):
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -274,35 +283,37 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
-    )
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
-            verify_ssl=verify_ssl,
-        )
-        second_validation = lazdownload.validate(
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(format_laz_log(fpath, "Removing"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath,
+                url_laz=url_laz,
+                verify_ssl=verify_ssl,
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            second_validation = lazdownload.validate(
+                sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+            )
+            if not second_validation:
+                logger.error(format_laz_log(fpath, "ERROR"))
+                lazdownload = LAZDownload(
+                    url=None,
+                    path=Path(),
+                    success=False,
+                    hash_name=None,
+                    hash_hexdigest=None,
+                    new=False,
+                    size=0.0,
+                )
+        else:
+            logger.debug(format_laz_log(fpath, "OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
@@ -327,11 +338,13 @@ def download_ahn_laz(
     url_base: str = None,
     verify_ssl: bool = False,
     nr_retries: int = 5,
+    force_download: bool = False,
 ) -> LAZDownload:
     """Download an AHN LAZ file from the input url to the given path,
     if the file does not exists.
 
     Args:
+        force_download: Force downloading the file even if it exists on disk.
         nr_retries: The number of retries to download the file.
         fpath: Path to the LAZ file that may exist locally. If not it will be downloaded.
         url_laz: Complete URL of the file to download. If provided, 'url_base' is
@@ -350,34 +363,16 @@ def download_ahn_laz(
     is_new = False
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        for i in range(nr_retries):
-            try:
-                fpath = download_file(
-                    url=url,
-                    target_path=fpath,
-                    chunk_size=1024 * 1024,
-                    verify=verify_ssl,
-                )
-                if fpath is None:
-                    # Download failed
-                    logger.warning(format_laz_log(fpath, "Downloading failed!"))
-                    url_laz = None
-                    fpath = Path()
-                    success = False
-                    is_new = False
-                    file_size = 0.0
-                else:
-                    success = True
-                    is_new = True
-                    file_size = round(fpath.stat().st_size / 1e6, 2)
-                    break
-            except ConnectionError as e:
-                if i == 4:
-                    raise e
-                else:
-                    logger.warning(f"Retrying ({i + 1}/5) due to {e}")
+        file_size, fpath, is_new, success, url_laz = download_laz(
+            file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
+        )
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, "File already downloaded"))
+        if force_download:
+            logger.info(format_laz_log(fpath, "Forcing re-download"))
+            file_size, fpath, is_new, success, url_laz = download_laz(
+                file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
+            )
         success = True
         file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
@@ -390,6 +385,38 @@ def download_ahn_laz(
         new=is_new,
         size=file_size,
     )
+
+
+def download_laz(
+    file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
+):
+    for i in range(nr_retries):
+        try:
+            fpath = download_file(
+                url=url,
+                target_path=fpath,
+                chunk_size=1024 * 1024,
+                verify=verify_ssl,
+            )
+            if fpath is None:
+                # Download failed
+                logger.warning(format_laz_log(fpath, "Downloading failed!"))
+                url_laz = None
+                fpath = Path()
+                success = False
+                is_new = False
+                file_size = 0.0
+            else:
+                success = True
+                is_new = True
+                file_size = round(fpath.stat().st_size / 1e6, 2)
+                break
+        except ConnectionError as e:
+            if i == 4:
+                raise e
+            else:
+                logger.warning(f"Retrying ({i + 1}/5) due to {e}")
+    return file_size, fpath, is_new, success, url_laz
 
 
 def match_sha(

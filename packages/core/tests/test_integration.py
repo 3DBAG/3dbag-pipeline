@@ -2,21 +2,26 @@ import os
 
 import pytest
 
-from bag3d.common.resources import Specs3DBAGResource
+from bag3d.common.resources import Specs3DBAGResource, PDALResource
 from bag3d.common.resources.executables import (
     GeoflowResource,
     GDALResource,
     TylerResource,
     RooferResource,
     ValidationResource,
+    LASToolsResource,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
-from bag3d.core.assets import export, reconstruction
+from bag3d.core.assets import export, reconstruction, ahn
 from bag3d.core.jobs import (
     job_nl_export,
     job_nl_export_after_floors,
     job_nl_reconstruct,
+    job_ahn_tile_index,
+    job_ahn3,
+    job_ahn4,
+    job_ahn5,
 )
 from dagster import (
     AssetKey,
@@ -25,6 +30,66 @@ from dagster import (
     load_assets_from_package_module,
     DagsterInstance,
 )
+
+
+@pytest.mark.needs_tools
+def test_integration_ahn(database, test_data_dir):
+    """Test the ahn jobs."""
+    resources = {
+        "lastools": LASToolsResource(
+            exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+            exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+        ),
+        "pdal": PDALResource(
+            exe_pdal=os.getenv("EXE_PATH_PDAL"),
+        ),
+        "db_connection": database,
+        "file_store": FileStoreResource(
+            data_dir=str(test_data_dir / "reconstruction_input")
+        ),
+    }
+
+    all_ahn_assets = load_assets_from_package_module(
+        ahn, key_prefix="ahn", group_name="ahn"
+    )
+
+    defs = Definitions(
+        resources=resources,
+        assets=[*all_ahn_assets],
+        jobs=[job_ahn_tile_index, job_ahn3, job_ahn4, job_ahn5],
+    )
+
+    with DagsterInstance.ephemeral() as instance:
+        resolved_job = defs.get_job_def("ahn_tile_index")
+        result = resolved_job.execute_in_process(
+            instance=instance,
+            resources=resources,
+        )
+
+        assert isinstance(result, ExecuteInProcessResult)
+        assert result.success
+
+        for ahn_version in ("ahn3", "ahn4", "ahn5"):
+            resolved_job = defs.get_job_def(ahn_version)
+            for partition in ("32bz1", "32bz2"):
+                result = resolved_job.execute_in_process(
+                    instance=instance,
+                    resources=resources,
+                    partition_key=partition,
+                    run_config={
+                        "ops": {
+                            f"laz_files_{ahn_version}": {
+                                "config": {"force_download": False, "check_hash": False}
+                            },
+                            f"metadata_{ahn_version}": {
+                                "config": {"force": True, "all": True}
+                            },
+                            f"lasindex_{ahn_version}": {"config": {"force": True}},
+                        }
+                    },
+                )
+                assert isinstance(result, ExecuteInProcessResult)
+                assert result.success
 
 
 @pytest.mark.needs_tools
