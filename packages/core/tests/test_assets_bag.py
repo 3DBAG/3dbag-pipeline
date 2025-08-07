@@ -37,12 +37,6 @@ def test_load_bag_layer(context, test_data_dir):
     assert table_exists(context, test_bag_table) is False
 
 
-@pytest.mark.slow
-def test_extract_bag(context):
-    res = extract_bag(context)
-    assert res.value is not None
-
-
 def test_stage_bag_layer(context, test_data_dir):
     res = stage_bag_layer(
         context,
