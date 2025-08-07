@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Dict, Optional
-from math import ceil
+from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
@@ -120,41 +119,3 @@ def download_ahn_index(
                 features[f["properties"]["AHN"].lower()] = None
 
     return features
-
-
-def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cover
-    """Computes the BBOX of the AHN tile index."""
-    tindex = download_ahn_index(True)
-    minx, miny = tindex["01cz1"]["geometry"]["coordinates"][0][0]
-    maxx, maxy = minx, miny
-    for feature in tindex.values():
-        exterior = feature["geometry"]["coordinates"][0]
-        for x, y in exterior:
-            minx = x if x < minx else minx
-            miny = y if y < miny else miny
-            maxx = x if x > maxx else maxx
-            maxy = y if y > maxy else maxy
-    return minx, miny, maxx, maxy
-
-
-def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
-    """Generates a grid of fixed cell-size for a BBOX.
-    The origin of the grid is the BBOX min coordinates.
-
-    Args:
-        bbox: (minx, miny, maxx, maxy)
-        cellsize: Cell size.
-
-    Returns:
-        The bbox of the generated grid, nr. of cells in X-direction,
-        nr. of cells in Y-direction.
-    """
-    origin = bbox[:2]
-    nr_cells_x = ceil((bbox[2] - bbox[0]) / cellsize)
-    nr_cells_y = ceil((bbox[3] - bbox[1]) / cellsize)
-    bbox_new = (
-        *origin,
-        origin[0] + nr_cells_x * cellsize,
-        origin[1] + nr_cells_y * cellsize,
-    )
-    return bbox_new, nr_cells_x, nr_cells_y
