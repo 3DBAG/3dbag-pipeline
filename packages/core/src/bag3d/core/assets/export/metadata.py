@@ -145,8 +145,9 @@ def feature_evaluation(context):
     with not_reconstructed_file.open("w") as f:
         for building_id in sorted(not_reconstructed):
             f.write(f"{building_id}\n")
-    context.log.info(f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}")
-
+    context.log.info(
+        f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}"
+    )
 
     for feature in not_reconstructed:
         cityobjects[feature] = cityobject_info
