@@ -1,18 +1,22 @@
 import json
 from datetime import datetime
+from functools import partial
 
 import pytz
 from dagster import asset, Output, Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
+from psycopg.types.json import Jsonb, set_json_dumps
 
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTable
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import partition_definition_ahn
 
 
 @asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn3(context):
+def metadata_table_ahn3(context) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(context, ahn_version=3)
 
@@ -128,14 +132,45 @@ def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
     )
 
 
-# TODO: add some op or sensor or sth that indexes and clusters the metadata table after
-#   the partitioned job is completed. Keep in mind that some partitions might fail, but
-#   we still need to index the table.
-# context.resources.db_connection.connect.send_query(f"ALTER TABLE {metadata_table_ahn} ADD PRIMARY KEY (tile_id)")
-# geom_idx_name = f"{metadata_table_ahn.table}_boundary_idx"
-# context.resources.db_connection.connect.send_query(
-#     f"CREATE INDEX {geom_idx_name} ON {metadata_table_ahn} USING gist (boundary)")
-# context.resources.db_connection.connect.send_query(f"CLUSTER {metadata_table_ahn} USING {geom_idx_name}")
+@asset(deps=["metadata_ahn3"])
+def metadata_ahn3_index(
+    db_connection: DatabaseResource,
+    metadata_table_ahn3: PostgresTable,
+):
+    """Create indices on the AHN3 metadata table."""
+    create_indices_metadata_table(db_connection, metadata_table_ahn3)
+
+
+@asset(deps=["metadata_ahn4"])
+def metadata_ahn4_index(
+    db_connection: DatabaseResource,
+    metadata_table_ahn4: PostgresTable,
+):
+    """Create indices on the AHN4 metadata table."""
+    create_indices_metadata_table(db_connection, metadata_table_ahn4)
+
+
+@asset(deps=["metadata_ahn5"])
+def metadata_ahn5_index(
+    db_connection: DatabaseResource,
+    metadata_table_ahn5: PostgresTable,
+):
+    """Create indices on the AHN5 metadata table."""
+    create_indices_metadata_table(db_connection, metadata_table_ahn5)
+
+
+def create_indices_metadata_table(
+    db_connection: DatabaseResource, metadata_table: PostgresTable
+):
+    db_connection.connect.send_query(
+        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"
+    )
+    db_connection.connect.send_query(
+        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"
+    )
+    db_connection.connect.send_query(
+        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
+    )
 
 
 def compute_load_metadata(
@@ -183,26 +218,28 @@ def compute_load_metadata(
         context.log.exception(e)
         out_info = {}
 
+    set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),
         "hash": Literal(f"{laz_files_ahn.hash_name}:{laz_files_ahn.hash_hexdigest}"),
-        "download_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
-        "pdal_info": Literal(json.dumps(out_info)),
+        "insert_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
+        "pdal_info": Jsonb(out_info),
         "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"])),
     }
     query = SQL("""
         INSERT INTO {metadata_table}(
             tile_id,
             hash,
-            download_time,
+            insert_time,
             pdal_info,
             boundary
         ) 
         VALUES (
             {tile_id}, 
             {hash}, 
-            {download_time}, 
+            {insert_time}, 
             {pdal_info}, 
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
         );    

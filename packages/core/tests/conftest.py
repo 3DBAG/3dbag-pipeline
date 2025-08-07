@@ -357,17 +357,49 @@ def mock_asset_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_regular_grid_200m():
+def mock_asset_metadata_ahn3():
     class MockIOManager(IOManager):
         def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "regular_grid_200m")
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn3")
             return new_table
 
         def handle_output(self, context, obj):  # pragma: no cover
             raise NotImplementedError()
 
     return SourceAsset(
-        key=AssetKey(["ahn", "regular_grid_200m"]),
+        key=AssetKey(["ahn", "metadata_ahn3"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_metadata_ahn4():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn4")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "metadata_ahn4"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_metadata_ahn5():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn5")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "metadata_ahn5"]),
         io_manager_def=MockIOManager(),
     )
 
