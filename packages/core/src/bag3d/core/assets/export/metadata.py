@@ -140,6 +140,14 @@ def feature_evaluation(context):
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
     context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
+    # Save not_reconstructed buildings to a text file
+    not_reconstructed_file = output_dir.joinpath("not_reconstructed_buildings.txt")
+    with not_reconstructed_file.open("w") as f:
+        for building_id in sorted(not_reconstructed):
+            f.write(f"{building_id}\n")
+    context.log.info(f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}")
+
+
     for feature in not_reconstructed:
         cityobjects[feature] = cityobject_info
 
