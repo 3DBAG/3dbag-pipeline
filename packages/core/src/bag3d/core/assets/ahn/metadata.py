@@ -1,10 +1,12 @@
 import json
 from datetime import datetime
+from functools import partial
 
 import pytz
 from dagster import asset, Output, Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
+from psycopg.types.json import Jsonb, set_json_dumps
 
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
@@ -183,26 +185,30 @@ def compute_load_metadata(
         context.log.exception(e)
         out_info = {}
 
+    set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),
         "hash": Literal(f"{laz_files_ahn.hash_name}:{laz_files_ahn.hash_hexdigest}"),
-        "download_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
-        "pdal_info": Literal(json.dumps(out_info)),
+        "insert_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
+        "pdal_info": Jsonb(out_info),
         "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"])),
     }
+    context.log.debug(out_info)
+    context.log.debug(json.dumps(out_info))
     query = SQL("""
         INSERT INTO {metadata_table}(
             tile_id,
             hash,
-            download_time,
+            insert_time,
             pdal_info,
             boundary
         ) 
         VALUES (
             {tile_id}, 
             {hash}, 
-            {download_time}, 
+            {insert_time}, 
             {pdal_info}, 
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
         );    

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Mapping, Union, Any
+from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
@@ -100,16 +100,25 @@ class LAZDownload:
             "Size [Mb]": self.size,
         }
 
+    def compute_sha(self, sha_func: HashChunkwise):
+        """Compute and store the SHA of the local file."""
+        if not self.path.is_file():  # pragma: no cover
+            raise FileNotFoundError(self.path)
+        sha = sha_func.compute(self.path)
+        self.hash_name = sha.name
+        self.hash_hexdigest = sha.hexdigest()
+
     def validate(
         self, sha_reference: Mapping[str, str], sha_func: HashChunkwise
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
-        match, sha = match_sha(
-            fpath=self.path, sha_reference=sha_reference, sha_func=sha_func
+        self.compute_sha(sha_func=sha_func)
+        match = match_sha(
+            fpath=self.path,
+            sha_reference=sha_reference,
+            hash_name=self.hash_name,
+            hash_hexdigest=self.hash_hexdigest,
         )
-
-        self.hash_name = sha.name
-        self.hash_hexdigest = sha.hexdigest()
         if match:
             logger.debug(format_laz_log(self.path, "OK"))
         return match
@@ -169,6 +178,7 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
         verify_ssl=verify_ssl,
         force_download=config.force_download,
     )
+    lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
             sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
@@ -227,6 +237,7 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
         verify_ssl=verify_ssl,
         force_download=config.force_download,
     )
+    lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
             sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
@@ -285,6 +296,7 @@ def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn)
         verify_ssl=verify_ssl,
         force_download=config.force_download,
     )
+    lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
@@ -420,30 +432,27 @@ def download_laz(
 
 
 def match_sha(
-    fpath: Path, sha_reference: Mapping[str, str], sha_func: HashChunkwise
-) -> Tuple[bool, Any]:
+    fpath: Path, sha_reference: Mapping[str, str], hash_name: str, hash_hexdigest: str
+) -> bool:
     """Verify the SHA of a file against a reference.
 
     Args:
+        hash_hexdigest: The hexadecimal digest of the data passed through the hasher
+        hash_name: Hash function name
         fpath: Path to the file
         sha_reference: Reference SHA sums to match against,
             as { filename : SHA }
-        sha_func: An SHA function object
-
     Returns:
-        Tuple of (success, SHA).
+        True on matching hashes
     """
-    if not fpath.is_file():  # pragma: no cover
-        raise FileNotFoundError(fpath)
-    sha = sha_func.compute(fpath)
     if not sha_reference[fpath.name]:
         # this check if for ensuring that new AHN5 tiles which do not have a
         # checksum yet will still be downloaded.
-        logger.info(format_laz_log(fpath, f"{sha.name} doesn't have a hash"))
-        return True, sha
-    elif sha.hexdigest() == sha_reference[fpath.name]:
-        logger.info(format_laz_log(fpath, f"{sha.name} OK"))
-        return True, sha
+        logger.info(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
+        return True
+    elif hash_hexdigest == sha_reference[fpath.name]:
+        logger.info(format_laz_log(fpath, f"{hash_name} OK"))
+        return True
     else:  # pragma: no cover
-        logger.info(format_laz_log(fpath, f"{sha.name} mismatch"))
-        return False, sha
+        logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
+        return False

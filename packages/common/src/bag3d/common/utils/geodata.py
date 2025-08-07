@@ -242,6 +242,7 @@ def pdal_info(
     """Run 'pdal info' on a point cloud file.
 
     Args:
+        verbose: Return stdout/stderr from pdal
         pdal (AppImage): The pdal AppImage executable.
         file_path: Path to the point cloud file.
         with_all: If true, run ``pdal info --all``, else run ``pdal info --metadata``.
@@ -258,8 +259,8 @@ def pdal_info(
     return_code, output = pdal.execute(
         "pdal", command=" ".join(cmd_list), local_path=file_path, silent=(not verbose)
     )
-
-    return return_code, json.loads(output)
+    output_processed = output.replace("\\u0000", "")
+    return return_code, json.loads(output_processed)
 
 
 def geojson_poly_to_wkt(geometry) -> str:
