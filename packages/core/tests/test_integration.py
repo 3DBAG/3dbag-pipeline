@@ -21,7 +21,7 @@ from bag3d.core.jobs import (
     job_ahn_tile_index,
     job_ahn3,
     job_ahn4,
-    job_ahn5,
+    job_ahn5, job_ahn_metadata_index,
 )
 from dagster import (
     AssetKey,
@@ -56,7 +56,7 @@ def test_integration_ahn(database, test_data_dir):
     defs = Definitions(
         resources=resources,
         assets=[*all_ahn_assets],
-        jobs=[job_ahn_tile_index, job_ahn3, job_ahn4, job_ahn5],
+        jobs=[job_ahn_tile_index, job_ahn3, job_ahn4, job_ahn5, job_ahn_metadata_index],
     )
 
     with DagsterInstance.ephemeral() as instance:
@@ -91,6 +91,14 @@ def test_integration_ahn(database, test_data_dir):
                 assert isinstance(result, ExecuteInProcessResult)
                 assert result.success
 
+        resolved_job = defs.get_job_def("ahn_metadata_index")
+        result = resolved_job.execute_in_process(
+            instance=instance,
+            resources=resources,
+        )
+
+        assert isinstance(result, ExecuteInProcessResult)
+        assert result.success
 
 @pytest.mark.needs_tools
 def test_integration_reconstruction_and_export(

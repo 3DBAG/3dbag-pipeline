@@ -53,6 +53,16 @@ job_ahn5 = define_asset_job(
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
 )
 
+
+job_ahn_metadata_index = define_asset_job(
+    name="ahn_metadata_index",
+    description="Creates indices on the AHN metadata tables",
+    selection=AssetSelection.assets(["ahn", "metadata_ahn3_index"])
+    | AssetSelection.assets(["ahn", "metadata_ahn4_index"])
+    | AssetSelection.assets(["ahn", "metadata_ahn5_index"]),
+)
+
+
 job_source_input = define_asset_job(
     name="source_input",
     description="Update the source data sets and prepare the input for the reconstruction.",
