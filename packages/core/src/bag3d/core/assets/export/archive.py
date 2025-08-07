@@ -132,35 +132,6 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_lod12_2d
 
 
-class CompressionConfig(Config):
-    concurrency: int
-
-
-@asset(
-    deps={
-        AssetKey("geopackage_nl"),
-    },
-    required_resource_keys={"file_store", "version"},
-)
-def compressed_tiles(context, config: CompressionConfig, export_index):
-    """Each format is gzipped individually in each tile, for better transfer over the
-    web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
-    )
-    path_tiles_dir = path_export_dir.joinpath("tiles")
-    logger.info(f"Compressing files in {path_tiles_dir}")
-    with export_index.open("r") as fo:
-        csvreader = csv.reader(fo)
-        _ = next(csvreader)  # skip header
-        tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
-
-    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
-        for result in executor.map(compress_files, tile_ids):
-            pass
-
-
 def compress_files(input):
     tile_id, path_tiles_dir = input
     logger.debug(f"Compressing tile {tile_id}")
@@ -197,3 +168,31 @@ def compress_files(input):
         gpkg_file.unlink()
     else:
         logger.warning(f"GPKG file {gpkg_file} does not exist, skipping compression.")
+
+
+class CompressionConfig(Config):
+    concurrency: int
+
+
+@asset(
+    deps={
+        AssetKey("geopackage_nl"),
+    },
+    required_resource_keys={"file_store", "version"},
+)
+def compressed_tiles(context, config: CompressionConfig, export_index):
+    """Each format is gzipped individually in each tile, for better transfer over the
+    web. The OBJ files are collected into a single .zip file."""
+    path_export_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
+    )
+    path_tiles_dir = path_export_dir.joinpath("tiles")
+    with export_index.open("r") as fo:
+        csvreader = csv.reader(fo)
+        _ = next(csvreader)  # skip header
+        tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
+
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
+        for result in executor.map(compress_files, tile_ids):
+            pass

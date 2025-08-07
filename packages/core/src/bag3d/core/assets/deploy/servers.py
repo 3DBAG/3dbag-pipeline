@@ -8,7 +8,7 @@ from dagster import AssetIn, Output, asset, AssetKey
 
 from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import ServerTransferResource
+from bag3d.common.resources import ServerTransferResource, DatabaseResource
 from dagster import get_dagster_logger
 
 
@@ -16,30 +16,31 @@ logger = get_dagster_logger("deploy")
 
 
 @asset(
-    ins={"reconstruction_output_multitiles_nl": AssetIn(key_prefix="export")},
+    ins={"metadata": AssetIn(key_prefix="export")},
     deps=[
         AssetKey(("export", "geopackage_nl")),
         AssetKey(("export", "export_index")),
-        AssetKey(("export", "metadata")),
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
+        AssetKey(("export", "reconstruction_output_multitiles_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     ],
     required_resource_keys={"version"},
 )
-def compressed_export_nl(context, reconstruction_output_multitiles_nl):
+def compressed_export_nl(context, metadata):
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
+
     Args:
         context: Dagster execution context
-        reconstruction_output_multitiles_nl: Path to the exported data directory
+        metadata: Path to the 3DBAG metadata file
 
     Returns:
         Output: Path to the created export_{version}.tar.gz file with size metadata
     """
-    export_dir = reconstruction_output_multitiles_nl
+    export_dir = metadata.parent
     version = context.resources.version.version
     output_tarfile = export_dir.parent / f"export_{version}.tar.gz"
     with tarfile.open(output_tarfile, "w:gz") as tar:
@@ -56,7 +57,7 @@ def transfer_to_server(
     compressed_export_nl: Path,
     metadata: Path,
     target_dir: str,
-) -> str:
+) -> tuple[Path, Path]:
     """Transfer and extract export file to a remote server.
 
     Args:
@@ -66,7 +67,7 @@ def transfer_to_server(
         target_dir: Base directory on remote server for deployment
 
     Returns:
-        str: Path to the deployment directory on the remote server
+        (Path to the deployment directory on the remote server, Path to the compressed export on the remote server)
 
     Raises:
         AssertionError: If SSH commands fail during transfer or extraction
@@ -76,11 +77,11 @@ def transfer_to_server(
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = f"{target_dir}/{version}"
+        deploy_dir = Path(target_dir) / version
         compressed_file = Path(target_dir) / compressed_export_nl.name
 
     try:
-        with server.connect as c:
+        with server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -106,50 +107,47 @@ def transfer_to_server(
     except Exception as e:
         logger.error(f"SSH connection failed: {e}")
         raise
-    return deploy_dir
+    return deploy_dir, compressed_file
 
 
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")},
-    required_resource_keys={"podzilla_server"},
 )
 def transfer_to_podzilla(
-    context,
-    compressed_export_nl: Path,
-    metadata: Path,
+    compressed_export_nl: Path, metadata: Path, podzilla_server: ServerTransferResource
 ):
     """Transfer the 3D BAG export to the podzilla server for API access."""
     return transfer_to_server(
-        context.resources.podzilla_server,
+        podzilla_server,
         compressed_export_nl,
         metadata,
-        context.resources.podzilla_server.target_dir,
+        podzilla_server.target_dir,
     )
 
 
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")},
-    required_resource_keys={"godzilla_server"},
 )
 def transfer_to_godzilla(
-    context,
-    compressed_export_nl: Path,
-    metadata: Path,
+    compressed_export_nl: Path, metadata: Path, godzilla_server: ServerTransferResource
 ):
     """Transfer the 3D BAG export to the godzilla server for public downloads and webservices."""
     return transfer_to_server(
-        context.resources.godzilla_server,
+        godzilla_server,
         compressed_export_nl,
         metadata,
-        context.resources.godzilla_server.target_dir,
+        godzilla_server.target_dir,
     )
 
 
 @asset(
     deps={AssetKey(("transfer_to_godzilla"))},
-    required_resource_keys={"db_connection", "godzilla_server"},
 )
-def webservice_godzilla(context, transfer_to_godzilla):
+def webservice_godzilla(
+    transfer_to_godzilla,
+    db_connection: DatabaseResource,
+    godzilla_server: ServerTransferResource,
+):
     """
     Load the layers for WFS, WMS to the database on Godzilla.
     The layers will be loaded into the schema `webservice_dev` and
@@ -158,8 +156,8 @@ def webservice_godzilla(context, transfer_to_godzilla):
     """
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with context.resources.godzilla_server.connect as c:
-        context.log.debug(sql)
+    with godzilla_server.connection as c:
+        logger.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
@@ -185,10 +183,10 @@ def webservice_godzilla(context, transfer_to_godzilla):
                 layer + "_tmp",
             ]
         )
-        with context.resources.godzilla_server.connect as c:
-            context.log.debug(cmd)
+        with godzilla_server.connection as c:
+            logger.debug(cmd)
             r = c.run(cmd)
-            context.log.debug(r.stdout)
+            logger.debug(r.stdout)
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
     lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")
@@ -211,9 +209,9 @@ def webservice_godzilla(context, transfer_to_godzilla):
             "lod22_2d": lod22_2d,
         },
     )
-    sql = context.resources.db_connection.connect.print_query(sql)
-    with context.resources.godzilla_server.connect as c:
-        context.log.debug(sql)
+    sql = db_connection.connect.print_query(sql)
+    with godzilla_server.connection as c:
+        logger.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
@@ -230,15 +228,15 @@ def webservice_godzilla(context, transfer_to_godzilla):
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = context.resources.db_connection.connect.print_query(sql)
-    with context.resources.godzilla_server.connect as c:
-        context.log.debug(sql)
+    sql = db_connection.connect.print_query(sql)
+    with godzilla_server.connection as c:
+        logger.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
     # Load the CSV files into the intermediary tables
-    with context.resources.godzilla_server.connect as c:
+    with godzilla_server.connection as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
             "\copy "
@@ -247,7 +245,7 @@ def webservice_godzilla(context, transfer_to_godzilla):
             + filepath
             + "' DELIMITER ',' CSV HEADER "
         )
-        context.log.debug(f"{copy_cmd}")
+        logger.debug(f"{copy_cmd}")
         c.run(
             rf'psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" '
         )
@@ -259,7 +257,7 @@ def webservice_godzilla(context, transfer_to_godzilla):
             + filepath
             + "' DELIMITER ',' CSV HEADER "
         )
-        context.log.debug(f"{copy_cmd}")
+        logger.debug(f"{copy_cmd}")
         c.run(
             rf'psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" '
         )
@@ -274,9 +272,9 @@ def webservice_godzilla(context, transfer_to_godzilla):
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = context.resources.db_connection.connect.print_query(sql)
-    with context.resources.godzilla_server.connect as c:
-        context.log.debug(sql)
+    sql = db_connection.connect.print_query(sql)
+    with godzilla_server.connection as c:
+        logger.debug(sql)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
@@ -284,12 +282,12 @@ def webservice_godzilla(context, transfer_to_godzilla):
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with context.resources.godzilla_server.connect as c:
-        context.log.debug(grant_usage)
+    with godzilla_server.connection as c:
+        logger.debug(grant_usage)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'"
         )
-        context.log.debug(grant_select)
+        logger.debug(grant_select)
         c.run(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'"
         )

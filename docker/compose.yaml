@@ -88,6 +88,8 @@ services:
       - ~/.ssh:/root/.ssh:ro
     networks:
       - bag3d-network
+    extra_hosts:
+      - "3dbag.docker.internal:host-gateway"
     depends_on:
       data-postgresql:
         condition: service_healthy

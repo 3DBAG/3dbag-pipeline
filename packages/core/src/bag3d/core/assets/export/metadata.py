@@ -161,7 +161,7 @@ def feature_evaluation(context):
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
     required_resource_keys={"file_store", "version"},
 )
-def export_index(context):
+def export_index(context) -> Path:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for

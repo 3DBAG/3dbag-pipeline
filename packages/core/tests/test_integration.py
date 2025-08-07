@@ -13,7 +13,7 @@ from bag3d.common.resources.executables import (
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
-from bag3d.core.assets import export, reconstruction, ahn
+from bag3d.core.assets import export, reconstruction, ahn, deploy, release
 from bag3d.core.jobs import (
     job_nl_export,
     job_nl_export_after_floors,
@@ -23,6 +23,8 @@ from bag3d.core.jobs import (
     job_ahn4,
     job_ahn5,
     job_ahn_metadata_index,
+    job_nl_deploy,
+    job_nl_release,
 )
 from dagster import (
     AssetKey,
@@ -223,6 +225,74 @@ def test_integration_reconstruction_and_export(
 
         resolved_job = defs.get_job_def("nl_export_after_floors")
         result = resolved_job.execute_in_process(instance=instance, resources=resources)
+
+        assert isinstance(result, ExecuteInProcessResult)
+        assert result.success
+
+
+@pytest.mark.needs_deploy
+def test_integration_deploy_release(
+    test_data_dir,
+    godzilla_server,
+    podzilla_server,
+    database,
+    mock_asset_compressed_tiles,
+    mock_asset_compressed_tiles_validation,
+    mock_asset_export_index,
+    mock_asset_geopackage_nl,
+    mock_asset_metadata,
+    mock_asset_reconstruction_output_3dtiles_lod12_nl,
+    mock_asset_reconstruction_output_3dtiles_lod13_nl,
+    mock_asset_reconstruction_output_3dtiles_lod22_nl,
+    mock_asset_reconstruction_output_multitiles_nl,
+):
+    """Can we deploy and release the 3DBAG, everything included?"""
+
+    resources = {
+        "version": VersionResource("test_version"),
+        "godzilla_server": godzilla_server,
+        "podzilla_server": podzilla_server,
+        "db_connection": database,
+    }
+
+    all_deploy_assets = load_assets_from_package_module(
+        deploy, key_prefix="deploy", group_name="deploy"
+    )
+
+    all_release_assets = load_assets_from_package_module(
+        release, key_prefix="release", group_name="release"
+    )
+
+    defs = Definitions(
+        resources=resources,
+        assets=[
+            mock_asset_compressed_tiles,
+            mock_asset_compressed_tiles_validation,
+            mock_asset_export_index,
+            mock_asset_geopackage_nl,
+            mock_asset_metadata,
+            mock_asset_reconstruction_output_3dtiles_lod12_nl,
+            mock_asset_reconstruction_output_3dtiles_lod13_nl,
+            mock_asset_reconstruction_output_3dtiles_lod22_nl,
+            mock_asset_reconstruction_output_multitiles_nl,
+            *all_deploy_assets,
+            *all_release_assets,
+        ],
+        jobs=[job_nl_deploy, job_nl_release],
+    )
+
+    with DagsterInstance.ephemeral() as instance:
+        resolved_job = defs.get_job_def("nl_deploy")
+        result = resolved_job.execute_in_process(instance=instance, resources=resources)
+
+        assert isinstance(result, ExecuteInProcessResult)
+        assert result.success
+
+        resolved_job = defs.get_job_def("nl_release")
+        result = resolved_job.execute_in_process(
+            instance=instance,
+            resources=resources,
+        )
 
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success

@@ -13,31 +13,28 @@ logger = get_dagster_logger("publish")
 
 
 @asset(
-    deps={AssetKey(("deploy", "transfer_to_godzilla"))},
     ins={
         "metadata": AssetIn(key_prefix="export"),
-        "compressed_export_nl": AssetIn(key_prefix="deploy"),
+        "transfer_to_godzilla": AssetIn(key_prefix="deploy"),
     },
     required_resource_keys={"godzilla_server"},
 )
 def publish_data(
     context,
-    compressed_export_nl: Path,
+    transfer_to_godzilla: tuple[Path, Path],
     metadata: Path,
 ):
     """On godzilla, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
-    data_dir: str = context.resources.godzilla_server.target_dir
-    public_dir: str = context.resources.godzilla_server.target_dir
+    public_dir: str = context.resources.godzilla_server.public_dir
+    deploy_dir, compressed_file = transfer_to_godzilla
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = f"{data_dir}/{version}"
-        compressed_file = Path(data_dir) / compressed_export_nl.name
 
     try:
-        with context.resources.godzilla_server.connect as c:
+        with context.resources.godzilla_server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -55,6 +52,14 @@ def publish_data(
             )
             result = c.run(f"ln -s {deploy_dir} {public_dir}/{version_nopoints}")
             assert result.ok, "Creating symlink failed"
+
+            logger.debug(
+                f"Setting published version {version_nopoints} to latest version"
+            )
+            result = c.run(f"rm -f {public_dir}/latest")
+            assert result.ok, "Removing public/latest symlink failed"
+            result = c.run(f"ln -s {public_dir}/{version_nopoints} {public_dir}/latest")
+            assert result.ok, "Setting latest version failed"
 
             logger.debug(f"Removing compressed file {compressed_file}")
             result = c.run(f"rm {compressed_file}")
@@ -84,7 +89,7 @@ def publish_webservices(context):
     alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
 
     try:
-        with context.resources.godzilla_server.connect as c:
+        with context.resources.godzilla_server.connection as c:
             context.log.debug(alter_latest_to_archive)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
