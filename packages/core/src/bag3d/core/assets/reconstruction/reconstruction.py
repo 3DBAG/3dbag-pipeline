@@ -208,14 +208,15 @@ def create_roofer_config(
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""
-    SELECT DISTINCT m.pdal_info ->> 'filename' AS filename
+    SELECT DISTINCT ON (m.tile_id) m.tile_id, m.pdal_info ->> 'filename' AS filename
     FROM {metadata_ahn} m
              JOIN {reconstruction_input} r
                   ON st_intersects(r.geometrie, m.boundary)
              JOIN {tile_index} AS i USING (fid)
     WHERE i.tile_id = {tile_id}
       AND m.pdal_info -> '"filename"' IS DISTINCT FROM '""'
-      AND m.hash IS NOT NULL;
+      AND m.hash IS NOT NULL
+    ORDER BY m.tile_id, m.insert_time DESC;
     """)
     query_params = {
         "metadata_ahn": None,
@@ -230,21 +231,21 @@ def create_roofer_config(
     query_params_ahn5 = deepcopy(query_params)
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
-        r[0]
-        for r in context.resources.db_connection.connect.get_query(
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
     ]
     laz_files_ahn4 = [
-        r[0]
-        for r in context.resources.db_connection.connect.get_query(
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
             query_laz_tiles, query_params=query_params_ahn4
         )
     ]
     laz_files_ahn5 = [
-        r[0]
-        for r in context.resources.db_connection.connect.get_query(
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,
         )
