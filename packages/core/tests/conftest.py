@@ -64,8 +64,8 @@ def podzilla_server():
         port=2222,
         user="deploy",
         password="deploy",
-        target_dir="/tmp/podzilla",
-        public_dir="/tmp/podzilla/public",
+        target_dir="/tmp",
+        public_dir="/tmp/podzilla_public",
     )
 
 
