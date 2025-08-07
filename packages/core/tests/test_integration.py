@@ -21,7 +21,8 @@ from bag3d.core.jobs import (
     job_ahn_tile_index,
     job_ahn3,
     job_ahn4,
-    job_ahn5, job_ahn_metadata_index,
+    job_ahn5,
+    job_ahn_metadata_index,
 )
 from dagster import (
     AssetKey,
@@ -99,6 +100,7 @@ def test_integration_ahn(database, test_data_dir):
 
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success
+
 
 @pytest.mark.needs_tools
 def test_integration_reconstruction_and_export(
@@ -195,9 +197,7 @@ def test_integration_reconstruction_and_export(
             partition_key="10/564/624",
             run_config={
                 "ops": {
-                    "reconstructed_building_models_nl": {
-                        "config": {"loglevel": "info"}
-                    }
+                    "reconstructed_building_models_nl": {"config": {"loglevel": "info"}}
                 }
             },
         )
