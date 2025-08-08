@@ -357,7 +357,7 @@ def mock_asset_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn3():
+def mock_asset_metadata_ahn3_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn3")
@@ -373,7 +373,7 @@ def mock_asset_metadata_ahn3():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn4():
+def mock_asset_metadata_ahn4_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn4")
@@ -389,7 +389,7 @@ def mock_asset_metadata_ahn4():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn5():
+def mock_asset_metadata_ahn5_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn5")
