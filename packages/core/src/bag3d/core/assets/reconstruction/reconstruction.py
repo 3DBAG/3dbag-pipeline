@@ -232,7 +232,7 @@ def create_roofer_config(
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
         r["filename"]
-        for r in context.resources.db_connection.connect.get7_dict(
+        for r in context.resources.db_connection.connect.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
