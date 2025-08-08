@@ -56,9 +56,9 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
     ins={
-        "metadata_ahn3": AssetIn(key_prefix="ahn"),
-        "metadata_ahn4": AssetIn(key_prefix="ahn"),
-        "metadata_ahn5": AssetIn(key_prefix="ahn"),
+        "metadata_ahn3_index": AssetIn(key_prefix="ahn"),
+        "metadata_ahn4_index": AssetIn(key_prefix="ahn"),
+        "metadata_ahn5_index": AssetIn(key_prefix="ahn"),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -90,9 +90,9 @@ def reconstructed_building_models_nl(
     tiles,
     index,
     reconstruction_input,
-    metadata_ahn3,
-    metadata_ahn4,
-    metadata_ahn5,
+    metadata_ahn3_index,
+    metadata_ahn4_index,
+    metadata_ahn5_index,
 ):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
@@ -103,9 +103,9 @@ def reconstructed_building_models_nl(
         reconstruction_input=reconstruction_input,
         index=index,
         tiles=tiles,
-        metadata_ahn3=metadata_ahn3,
-        metadata_ahn4=metadata_ahn4,
-        metadata_ahn5=metadata_ahn5,
+        metadata_ahn3=metadata_ahn3_index,
+        metadata_ahn4=metadata_ahn4_index,
+        metadata_ahn5=metadata_ahn5_index,
     )
 
     context.log.info(f"{roofer_toml=}")
@@ -232,7 +232,7 @@ def create_roofer_config(
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
         r["filename"]
-        for r in context.resources.db_connection.connect.get_dict(
+        for r in context.resources.db_connection.connect.get7_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )

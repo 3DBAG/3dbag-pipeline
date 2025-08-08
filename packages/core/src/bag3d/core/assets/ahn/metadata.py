@@ -53,7 +53,9 @@ def metadata_table_ahn5(context):
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=partition_definition_ahn,
 )
-def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
+def metadata_ahn3(
+    context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn
+) -> PostgresTable:
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -86,7 +88,9 @@ def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=partition_definition_ahn,
 )
-def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
+def metadata_ahn4(
+    context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn
+) -> PostgresTable:
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -119,7 +123,9 @@ def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
     required_resource_keys={"pdal", "db_connection"},
     partitions_def=partition_definition_ahn,
 )
-def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
+def metadata_ahn5(
+    context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn
+) -> PostgresTable:
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -136,27 +142,30 @@ def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
 def metadata_ahn3_index(
     db_connection: DatabaseResource,
     metadata_table_ahn3: PostgresTable,
-):
+) -> PostgresTable:
     """Create indices on the AHN3 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn3)
+    return metadata_table_ahn3
 
 
 @asset(deps=["metadata_ahn4"])
 def metadata_ahn4_index(
     db_connection: DatabaseResource,
     metadata_table_ahn4: PostgresTable,
-):
+) -> PostgresTable:
     """Create indices on the AHN4 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn4)
+    return metadata_table_ahn4
 
 
 @asset(deps=["metadata_ahn5"])
 def metadata_ahn5_index(
     db_connection: DatabaseResource,
     metadata_table_ahn5: PostgresTable,
-):
+) -> PostgresTable:
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn5)
+    return metadata_table_ahn5
 
 
 def create_indices_metadata_table(
