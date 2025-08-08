@@ -71,6 +71,7 @@ def download_file(
     except (
         requests.exceptions.BaseHTTPError,
         requests.exceptions.HTTPError,
+        requests.exceptions.ChunkedEncodingError,
     ) as e:  # pragma: no cover
         logger.exception(e)
         return None
