@@ -357,7 +357,7 @@ def mock_asset_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn3():
+def mock_asset_metadata_ahn3_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn3")
@@ -367,13 +367,13 @@ def mock_asset_metadata_ahn3():
             raise NotImplementedError()
 
     return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn3"]),
+        key=AssetKey(["ahn", "metadata_ahn3_index"]),
         io_manager_def=MockIOManager(),
     )
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn4():
+def mock_asset_metadata_ahn4_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn4")
@@ -383,13 +383,13 @@ def mock_asset_metadata_ahn4():
             raise NotImplementedError()
 
     return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn4"]),
+        key=AssetKey(["ahn", "metadata_ahn4_index"]),
         io_manager_def=MockIOManager(),
     )
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn5():
+def mock_asset_metadata_ahn5_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
             new_table = PostgresTableIdentifier("ahn", "metadata_ahn5")
@@ -399,7 +399,7 @@ def mock_asset_metadata_ahn5():
             raise NotImplementedError()
 
     return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn5"]),
+        key=AssetKey(["ahn", "metadata_ahn5_index"]),
         io_manager_def=MockIOManager(),
     )
 

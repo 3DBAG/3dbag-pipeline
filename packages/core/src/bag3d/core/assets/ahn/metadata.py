@@ -139,6 +139,7 @@ def metadata_ahn3_index(
 ):
     """Create indices on the AHN3 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn3)
+    return metadata_table_ahn3
 
 
 @asset(deps=["metadata_ahn4"])
@@ -148,6 +149,7 @@ def metadata_ahn4_index(
 ):
     """Create indices on the AHN4 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn4)
+    return metadata_table_ahn4
 
 
 @asset(deps=["metadata_ahn5"])
@@ -157,6 +159,7 @@ def metadata_ahn5_index(
 ):
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn5)
+    return metadata_table_ahn5
 
 
 def create_indices_metadata_table(
