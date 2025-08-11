@@ -168,6 +168,21 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
+    if url_laz is None or url_laz == "None":
+        logger.error(f"Tile {tile_id} does not have a download link for AHN3.")
+        return Output(
+            LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            ),
+            metadata={},
+        )
+
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -227,6 +242,20 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
+    if url_laz is None or url_laz == "None":
+        logger.error(f"Tile {tile_id} does not have a download link for AHN4.")
+        return Output(
+            LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            ),
+            metadata={},
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -286,6 +315,20 @@ def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn)
     laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
+    if url_laz is None or url_laz == "None":
+        logger.error(f"Tile {tile_id} does not have a download link for AHN5.")
+        return Output(
+            LAZDownload(
+                url=None,
+                path=Path(),
+                success=False,
+                hash_name=None,
+                hash_hexdigest=None,
+                new=False,
+                size=0.0,
+            ),
+            metadata={},
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/

@@ -27,13 +27,15 @@ def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
     return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
 
 
-def validate_new_ahn_tile_ids(features: dict) -> None:
+def validate_new_ahn_tile_ids(features: dict) -> bool:
     feature_set = {f["properties"]["AHN"].lower() for f in features}
     if len(feature_set ^ AHN_TILE_IDS) > 0:
         logger.warning(
             "Received AHN tile list has diverged from the one used, list must be updated"
             f"Difference: {feature_set ^ AHN_TILE_IDS}"
         )
+        return False
+    return True
 
 
 def invert_geometry_coordinates(geometry):
@@ -99,7 +101,8 @@ def download_ahn_index(
         response.raise_for_status()
         return
     returned_features = r_json.get("features")
-    validate_new_ahn_tile_ids(returned_features)
+    if not validate_new_ahn_tile_ids(returned_features):
+        raise ValueError("Received AHN tile list has diverged from the one used.")
     if returned_features is None or len(returned_features) == 0:
         logger.error(
             "The response did not contain a 'features' member or had 0 features."
