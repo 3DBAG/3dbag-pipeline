@@ -214,7 +214,7 @@ def create_roofer_config(
                   ON st_intersects(r.geometrie, m.boundary)
              JOIN {tile_index} AS i USING (fid)
     WHERE i.tile_id = {tile_id}
-      AND m.pdal_info -> 'filename' IS DISTINCT FROM jsonb('""')
+      AND NULLIF(m.pdal_info ->> 'filename', '') IS NOT NULL
       AND m.hash IS NOT NULL
     ORDER BY m.tile_id, m.insert_time DESC;
     """)
