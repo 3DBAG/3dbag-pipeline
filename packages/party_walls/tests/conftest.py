@@ -17,12 +17,6 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 VERSION = "test_version"
 
-# update quadtree
-og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
-export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
-export_dir.mkdir(exist_ok=True, parents=True)
-os.system(f"cp {og_quadtree} {export_dir}")
-
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -61,13 +55,15 @@ def database():
 
 
 @pytest.fixture
-def context(database, party_walls_file_store, fastssd_data_dir):
+def context(database, party_walls_file_store, party_walls_file_store_fastssd):
     yield build_op_context(
         partition_key="0/0/0",
         resources={
             "db_connection": database,
             "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
-            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "file_store_fastssd": FileStoreResource(
+                data_dir=str(party_walls_file_store_fastssd)
+            ),
             "version": VersionResource(VERSION),
         },
     )
@@ -112,12 +108,12 @@ def mock_party_walls_nl(intermediate_data_dir) -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
+def mock_features_file_index(intermediate_data_dir, party_walls_file_store_fastssd):
     data = pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
     for k, v in data.items():
         data[k] = Path(
             str(v)
-            .replace(str(v.parents[8]), str(fastssd_data_dir))
+            .replace(str(v.parents[8]), str(party_walls_file_store_fastssd))
             .replace("export", "export_test_version")
         )
     return data
