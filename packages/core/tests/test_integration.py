@@ -36,7 +36,7 @@ from dagster import (
 
 
 @pytest.mark.needs_tools
-def test_integration_ahn(database, test_data_dir):
+def test_integration_ahn(database, core_file_store):
     """Test the ahn jobs."""
     resources = {
         "lastools": LASToolsResource(
@@ -48,7 +48,7 @@ def test_integration_ahn(database, test_data_dir):
         ),
         "db_connection": database,
         "file_store": FileStoreResource(
-            data_dir=str(test_data_dir / "reconstruction_input")
+            data_dir=str(core_file_store)
         ),
     }
 
@@ -108,6 +108,8 @@ def test_integration_ahn(database, test_data_dir):
 def test_integration_reconstruction_and_export(
     database,
     test_data_dir,
+    core_file_store,
+    core_file_store_fastssd,
     mock_asset_reconstruction_input,
     mock_asset_tiles,
     mock_asset_index,
@@ -118,7 +120,7 @@ def test_integration_reconstruction_and_export(
     # update quadtree
     og_quadtree = test_data_dir / "quadtree.tsv"
     export_dir = (
-        test_data_dir / "reconstruction_input" / "3DBAG" / "export_test_version"
+        core_file_store / "3DBAG" / "export_test_version"
     )
     export_dir.mkdir(exist_ok=True)
     os.system(f"cp {og_quadtree} {export_dir}")
@@ -144,10 +146,10 @@ def test_integration_reconstruction_and_export(
         ),
         "db_connection": database,
         "file_store": FileStoreResource(
-            data_dir=str(test_data_dir / "reconstruction_input")
+            data_dir=str(core_file_store)
         ),
         "file_store_fastssd": FileStoreResource(
-            data_dir=str(test_data_dir / "integration_core")
+            data_dir=str(core_file_store_fastssd)
         ),
         "version": VersionResource("test_version"),
         "validation": ValidationResource(

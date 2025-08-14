@@ -290,6 +290,23 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
+def core_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_core"
+
+
+@pytest.fixture(scope="session")
+def core_file_store_fastssd(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store_fastssd"
+
+
+@pytest.fixture(scope="session")
+def core_file_store(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store"
+
+
+@pytest.fixture(scope="session")
 def md5_ahn3_fix():
     yield {"C_01CZ1.LAZ": "063b23d038f97576d279fb7d8a1481ad"}
 
