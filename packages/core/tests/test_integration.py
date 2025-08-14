@@ -47,9 +47,7 @@ def test_integration_ahn(database, core_file_store):
             exe_pdal=os.getenv("EXE_PATH_PDAL"),
         ),
         "db_connection": database,
-        "file_store": FileStoreResource(
-            data_dir=str(core_file_store)
-        ),
+        "file_store": FileStoreResource(data_dir=str(core_file_store)),
     }
 
     all_ahn_assets = load_assets_from_package_module(
@@ -119,9 +117,7 @@ def test_integration_reconstruction_and_export(
 ):
     # update quadtree
     og_quadtree = test_data_dir / "quadtree.tsv"
-    export_dir = (
-        core_file_store / "3DBAG" / "export_test_version"
-    )
+    export_dir = core_file_store / "3DBAG" / "export_test_version"
     export_dir.mkdir(exist_ok=True)
     os.system(f"cp {og_quadtree} {export_dir}")
 
@@ -145,12 +141,8 @@ def test_integration_reconstruction_and_export(
             exe_sozip=os.getenv("EXE_PATH_SOZIP"),
         ),
         "db_connection": database,
-        "file_store": FileStoreResource(
-            data_dir=str(core_file_store)
-        ),
-        "file_store_fastssd": FileStoreResource(
-            data_dir=str(core_file_store_fastssd)
-        ),
+        "file_store": FileStoreResource(data_dir=str(core_file_store)),
+        "file_store_fastssd": FileStoreResource(data_dir=str(core_file_store_fastssd)),
         "version": VersionResource("test_version"),
         "validation": ValidationResource(
             exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
