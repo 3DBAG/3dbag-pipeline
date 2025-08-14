@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -60,10 +59,6 @@ podzilla_server = ServerTransferResource(
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD"))
 
-
-# Configure for  gilfoyle
-file_store_gilfoyle = FileStoreResource(data_dir="/data")
-file_store_gilfoyle_fastssd = FileStoreResource(data_dir="/fastssd/data")
 
 lastools = LASToolsResource(
     exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
