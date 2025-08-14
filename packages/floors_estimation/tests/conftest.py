@@ -21,15 +21,16 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def input_data_dir(test_data_dir) -> Path:
-    """Root directory path for test data"""
-    return test_data_dir / "reconstruction_input"
+def floors_estimation_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_floors_estimation"
 
 
 @pytest.fixture(scope="session")
-def fastssd_data_dir(test_data_dir) -> Path:
+def floors_estimation_file_store_fastssd(
+    floors_estimation_integration_test_dir,
+) -> Path:
     """Root directory path for test data"""
-    return test_data_dir / "integration_floors_estimation"
+    return floors_estimation_integration_test_dir / "file_store_fastssd"
 
 
 @pytest.fixture(scope="session")
@@ -53,13 +54,14 @@ def database():
 
 
 @pytest.fixture
-def context(database, input_data_dir, model, fastssd_data_dir):
+def context(database, model, floors_estimation_file_store_fastssd):
     yield build_op_context(
-        partition_key="10/564/624",
+        partition_key="0/0/0",
         resources={
             "db_connection": database,
-            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
-            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "file_store_fastssd": FileStoreResource(
+                data_dir=str(floors_estimation_file_store_fastssd)
+            ),
             "model_store": model,
             "version": "test_version",
         },
