@@ -44,7 +44,7 @@ def test_job_party_walls(
 
         resolved_job = defs.get_job_def("nl_party_walls")
         result = resolved_job.execute_in_process(
-            instance=instance, resources=resources, partition_key="0/0/0"
+            instance=instance, resources=resources, partition_key="10/564/624"
         )
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success
