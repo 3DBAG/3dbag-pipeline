@@ -60,17 +60,10 @@ podzilla_server = ServerTransferResource(
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD"))
 
-file_store_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input")
-)
-file_store_fastssd_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core")
-)
 
 # Configure for  gilfoyle
 file_store_gilfoyle = FileStoreResource(data_dir="/data")
 file_store_gilfoyle_fastssd = FileStoreResource(data_dir="/fastssd/data")
-
 
 lastools = LASToolsResource(
     exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
@@ -118,23 +111,6 @@ resource_defs = {
 }
 
 
-# RESOURCES_TEST = {
-#     "gdal": gdal,
-#     "file_store": file_store_test,
-#     "file_store_fastssd": file_store_fastssd_test,
-#     "db_connection": db_connection,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "validation": validation,
-#     "roofer": roofer,
-#     "version": version,
-#     "specs": specs,
-#     "godzilla_server": godzilla_server,
-#     "podzilla_server": podzilla_server,
-# }
-#
 # RESOURCES_PROD = {
 #     "gdal": gdal,
 #     "file_store": file_store_gilfoyle,
