@@ -107,7 +107,9 @@ def mock_preprocessed_features(intermediate_data_dir):
 
 
 @pytest.fixture(scope="session")
-def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
+def mock_features_file_index(
+    intermediate_data_dir, floors_estimation_file_store_fastssd
+):
     data = pickle.load(
         open(
             intermediate_data_dir / "features_file_index_floors_estimation.pkl",
@@ -115,7 +117,9 @@ def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
         )
     )
     for k, v in data.items():
-        data[k] = Path(str(v).replace(str(v.parents[5]), str(fastssd_data_dir)))
+        data[k] = Path(
+            str(v).replace(str(v.parents[5]), str(floors_estimation_file_store_fastssd))
+        )
     return data
 
 
