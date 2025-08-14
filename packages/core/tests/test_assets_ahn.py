@@ -48,77 +48,77 @@ def test_get_checksums(url):
         assert sha is not None
 
 
-def test_checksums_for_ahn(context):
-    res = md5_ahn3(context)
+def test_checksums_for_ahn(context_ahn):
+    res = md5_ahn3(context_ahn)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
-    res = md5_ahn4(context)
+    res = md5_ahn4(context_ahn)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
-    res = sha256_ahn5(context)
+    res = sha256_ahn5(context_ahn)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
 
 
-def test_tile_index_ahn(context):
-    res = tile_index_ahn(context)
+def test_tile_index_ahn(context_ahn):
+    res = tile_index_ahn(context_ahn)
     assert len(res) == 1407
     assert res[list(res.keys())[0]] is not None
 
 
 @pytest.mark.slow
-def test_laz_files_ahn3(context, md5_ahn3_fix, tile_index_ahn_fix):
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
+def test_laz_files_ahn3(context_ahn, md5_ahn3_fix, tile_index_ahn_fix):
+    laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn3(context, config, md5_ahn3_fix, tile_index_ahn_fix)
+    res = laz_files_ahn3(context_ahn, config, md5_ahn3_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
     print(res.value)
 
 
 @pytest.mark.slow
-def test_laz_files_ahn4(context, md5_ahn4_fix, tile_index_ahn_fix):
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
+def test_laz_files_ahn4(context_ahn, md5_ahn4_fix, tile_index_ahn_fix):
+    laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn4(context, config, md5_ahn4_fix, tile_index_ahn_fix)
+    res = laz_files_ahn4(context_ahn, config, md5_ahn4_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 
 
 @pytest.mark.slow
-def test_laz_files_ahn5(context, sha256_ahn5_fix, tile_index_ahn_fix):
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
+def test_laz_files_ahn5(context_ahn, sha256_ahn5_fix, tile_index_ahn_fix):
+    laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn5(context, config, sha256_ahn5_fix, tile_index_ahn_fix)
+    res = laz_files_ahn5(context_ahn, config, sha256_ahn5_fix, tile_index_ahn_fix)
     assert res.value.url is not None
     assert res is not None
 
 
-def test_metadata_table_ahn3(context):
-    metadata = metadata_table_ahn3(context)
+def test_metadata_table_ahn3(context_ahn):
+    metadata = metadata_table_ahn3(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn3")
-    assert table_exists(context, tbl)
+    assert table_exists(context_ahn, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
-def test_metadata_table_ahn4(context):
-    metadata = metadata_table_ahn4(context)
+def test_metadata_table_ahn4(context_ahn):
+    metadata = metadata_table_ahn4(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
-    assert table_exists(context, tbl)
+    assert table_exists(context_ahn, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
-def test_metadata_table_ahn5(context):
-    metadata = metadata_table_ahn5(context)
+def test_metadata_table_ahn5(context_ahn):
+    metadata = metadata_table_ahn5(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn5")
-    assert table_exists(context, tbl)
+    assert table_exists(context_ahn, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"

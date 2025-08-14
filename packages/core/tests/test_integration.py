@@ -203,7 +203,6 @@ def test_integration_reconstruction_and_export(
                 }
             },
         )
-
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success
 
@@ -219,13 +218,11 @@ def test_integration_reconstruction_and_export(
                 }
             },
         )
-
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success
 
         resolved_job = defs.get_job_def("nl_export_after_floors")
         result = resolved_job.execute_in_process(instance=instance, resources=resources)
-
         assert isinstance(result, ExecuteInProcessResult)
         assert result.success
 

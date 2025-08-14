@@ -6,7 +6,7 @@ from bag3d.party_walls.assets.party_walls import (
     party_walls_nl,
 )
 
-TILE_IDS = ("10/564/624", "10/564/626", "10/566/624", "10/566/626", "9/560/624")
+TILE_IDS = "0/0/0"
 
 
 def test_distribution_tiles_files_index(context):

@@ -58,7 +58,7 @@ def database():
 @pytest.fixture
 def context(database, input_data_dir, fastssd_data_dir):
     yield build_op_context(
-        partition_key="10/564/624",
+        partition_key="0/0/0",
         resources={
             "db_connection": database,
             "file_store": FileStoreResource(data_dir=str(input_data_dir)),

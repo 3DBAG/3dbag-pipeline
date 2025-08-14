@@ -169,6 +169,30 @@ def context(
 
 
 @pytest.fixture
+def context_ahn(
+    database,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
+    yield build_op_context(
+        partition_key="01cz1",
+        resources={
+            "gdal": gdal,
+            "validation": validation,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
+            "godzilla_server": godzilla_server,
+            "podzilla_server": podzilla_server,
+            "specs": Specs3DBAGResource(),
+        },
+    )
+
+
+@pytest.fixture
 def context_missing(
     database, wkt_testarea, file_store, gdal_missing, validation_missing
 ):
