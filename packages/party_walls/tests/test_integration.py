@@ -14,13 +14,15 @@ from dagster import (
 @pytest.mark.needs_tools
 def test_job_party_walls(
     database,
-    input_data_dir,
-    fastssd_data_dir,
+    party_walls_file_store,
+    party_walls_file_store_fastssd,
 ):
     resources = {
         "db_connection": database,
-        "file_store": FileStoreResource(data_dir=str(input_data_dir)),
-        "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+        "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
+        "file_store_fastssd": FileStoreResource(
+            data_dir=str(party_walls_file_store_fastssd)
+        ),
         "version": VersionResource("test_version"),
     }
     all_party_assets = load_assets_from_package_module(

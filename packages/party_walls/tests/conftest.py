@@ -30,15 +30,20 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def input_data_dir(test_data_dir) -> Path:
-    """Root directory path for test data"""
-    return test_data_dir / "reconstruction_input"
+def party_walls_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_party_walls"
 
 
 @pytest.fixture(scope="session")
-def fastssd_data_dir(test_data_dir) -> Path:
+def party_walls_file_store_fastssd(party_walls_integration_test_dir) -> Path:
     """Root directory path for test data"""
-    return test_data_dir / "integration_party_walls"
+    return party_walls_integration_test_dir / "file_store_fastssd"
+
+
+@pytest.fixture(scope="session")
+def party_walls_file_store(party_walls_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return party_walls_integration_test_dir / "file_store"
 
 
 @pytest.fixture(scope="session")
@@ -56,12 +61,12 @@ def database():
 
 
 @pytest.fixture
-def context(database, input_data_dir, fastssd_data_dir):
+def context(database, party_walls_file_store, fastssd_data_dir):
     yield build_op_context(
-        partition_key="10/564/624",
+        partition_key="0/0/0",
         resources={
             "db_connection": database,
-            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
+            "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
             "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
             "version": VersionResource(VERSION),
         },
@@ -119,27 +124,27 @@ def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
 
 
 @pytest.fixture(scope="session")
-def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir):
+def mock_distribution_tiles_files_index(intermediate_data_dir, party_walls_file_store):
     data = pickle.load(
         open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
     )
     for i, d in enumerate(data.paths_array):
         data.paths_array[i] = Path(
             str(d)
-            .replace(str(d.parents[6]), str(input_data_dir))
+            .replace(str(d.parents[6]), str(party_walls_file_store))
             .replace("export", "export_test_version")
         )
     for k, v in data.export_results.items():
         cj_path = data.export_results[k].cityjson_path
         data.export_results[k].cityjson_path = Path(
             str(cj_path)
-            .replace(str(cj_path.parents[6]), str(input_data_dir))
+            .replace(str(cj_path.parents[6]), str(party_walls_file_store))
             .replace("export", "export_test_version")
         )
         gpkg_path = data.export_results[k].gpkg_path
         data.export_results[k].gpkg_path = Path(
             str(gpkg_path)
-            .replace(str(gpkg_path.parents[6]), str(input_data_dir))
+            .replace(str(gpkg_path.parents[6]), str(party_walls_file_store))
             .replace("export", "export_test_version")
         )
         # TODO: fix data.export_results[k].obj_paths
