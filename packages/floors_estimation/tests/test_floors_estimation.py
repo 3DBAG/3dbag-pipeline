@@ -106,12 +106,12 @@ def test_preprocessed_features(context):
     assert data.shape[0] == 6
 
 
-
 def test_inferenced_floors(context, mock_preprocessed_features):
     res = inferenced_floors(context, preprocessed_features=mock_preprocessed_features)
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
+
 
 def test_predictions_table(context, mock_inferenced_floors):
     res = predictions_table(context, inferenced_floors=mock_inferenced_floors)
