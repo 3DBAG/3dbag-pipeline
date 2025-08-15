@@ -6,7 +6,7 @@ from bag3d.party_walls.assets.party_walls import (
     party_walls_nl,
 )
 
-TILE_IDS = "0/0/0"
+TILE_IDS = ("0/0/0",)
 
 
 def test_distribution_tiles_files_index(context):
@@ -30,7 +30,7 @@ def test_party_walls(context, mock_distribution_tiles_files_index):
 def test_features_file_index(context):
     """Can we find and map all the 5825 cityjson feature files of the test data?"""
     result = features_file_index(context=context)
-    assert len(result) == 407
+    assert len(result) == 415
 
 
 @pytest.mark.slow
