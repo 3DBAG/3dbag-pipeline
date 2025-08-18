@@ -218,8 +218,8 @@ def compute_load_metadata(
             raise
     # if pdal fails store only the filename in the table (to be used later)
     except Exception as e:
-        context.log.exception(f"PDAL failed for tile {tile_id}: {e}")
-        out_info = {"filename": laz_files_ahn.path}
+        context.log.exception(f"PDAL failed for tile {tile_id} in {laz_files_ahn.path}: {e}")
+        out_info = {"filename": str(laz_files_ahn.path)}
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
 
