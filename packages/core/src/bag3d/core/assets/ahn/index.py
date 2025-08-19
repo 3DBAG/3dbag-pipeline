@@ -37,7 +37,6 @@ def lasindex_ahn3(context, laz_files_ahn3):
     cmd_list = [
         "{exe}",
         "-i {local_path}",
-        "-append",
         "-tile_size",
         str(context.op_execution_context.op_config["tile_size"]),
     ]
@@ -79,7 +78,6 @@ def lasindex_ahn4(context, laz_files_ahn4):
     cmd_list = [
         "{exe}",
         "-i {local_path}",
-        "-append",
         "-tile_size",
         str(context.op_execution_context.op_config["tile_size"]),
     ]
@@ -121,7 +119,6 @@ def lasindex_ahn5(context, laz_files_ahn5):
     cmd_list = [
         "{exe}",
         "-i {local_path}",
-        "-append",
         "-tile_size",
         str(context.op_execution_context.op_config["tile_size"]),
     ]
