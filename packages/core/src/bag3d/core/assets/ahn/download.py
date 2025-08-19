@@ -390,9 +390,6 @@ def download_ahn_laz(
             file_size, fpath, is_new, success, url_laz = download_laz(
                 file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
             )
-        success = True
-        file_size = round(fpath.stat().st_size / 1e6, 2)
-        is_new = False
 
     if not success:
         raise Failure(format_laz_log(fpath, "Downloading failed!"))
