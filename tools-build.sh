@@ -29,7 +29,7 @@ geotiff_version="1.7.3"
 proj_version="9.4.0"
 lastools_version="2.0.3"
 gdal_version="3.8.5"
-pdal_version="2.9.0"
+pdal_version="2.8.4"
 geoflow_bundle_version="2024.08.09"
 val3dity_version="2.4.0"
 
