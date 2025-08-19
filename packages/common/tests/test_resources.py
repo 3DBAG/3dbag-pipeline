@@ -37,16 +37,15 @@ def test_gdal_local(test_data_dir):
     assert return_code == 0
 
 
-def test_pdal_local(laz_files_ahn3_dir):
+def test_pdal_local(sample_laz_file):
     """Use local PDAL installation"""
     pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
     assert not pdal.with_docker
-    filepath = laz_files_ahn3_dir / "C_32BZ2.LAZ"
-    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.app, sample_laz_file, with_all=True)
     assert return_code == 0
 
 
-def test_lastools(laz_files_ahn3_dir):
+def test_lastools(sample_laz_file):
     lastools_resource = LASToolsResource(
         exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value(),
         exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value(),
@@ -54,8 +53,6 @@ def test_lastools(laz_files_ahn3_dir):
     assert not lastools_resource.with_docker
 
     lastools = lastools_resource.app
-
-    filepath = laz_files_ahn3_dir / "C_32BZ2.LAZ"
 
     cmd_list = [
         "{exe}",
@@ -66,7 +63,7 @@ def test_lastools(laz_files_ahn3_dir):
         "-dont_reindex",
     ]
     return_code, output = lastools.execute(
-        "lasindex", " ".join(cmd_list), local_path=filepath
+        "lasindex", " ".join(cmd_list), local_path=sample_laz_file
     )
 
     assert return_code == 0

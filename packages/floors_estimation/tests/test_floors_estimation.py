@@ -15,10 +15,10 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
-def test_features_file_index(context):
+def test_features_file_index(context_with_data):
     """"""
-    result = features_file_index(context=context)
-    assert len(result) == 419
+    result = features_file_index(context=context_with_data)
+    assert len(result) == 413
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
 
@@ -103,7 +103,7 @@ def test_preprocessed_features(context):
     assert table_exists(context, all_features_table) is True
     data = preprocessed_features(context, all_features_table)
     assert data is not None
-    assert data.shape[0] == 274
+    assert data.shape[0] == 6
 
 
 def test_inferenced_floors(context, mock_preprocessed_features):
@@ -121,7 +121,10 @@ def test_predictions_table(context, mock_inferenced_floors):
 
 
 def test_save_cjfiles(
-    context, fastssd_data_dir, mock_inferenced_floors, mock_features_file_index
+    context,
+    file_store_tmp,
+    mock_inferenced_floors,
+    mock_features_file_index,
 ):
     save_cjfiles(
         context,
@@ -129,6 +132,6 @@ def test_save_cjfiles(
         mock_features_file_index,
     )
     assert (
-        fastssd_data_dir
-        / "3DBAG/bouwlagen_features/10/564/624/NL.IMBAG.Pand.0307100000308298.city.jsonl"
+        file_store_tmp
+        / "3DBAG/bouwlagen_features/0/0/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
     ).exists()

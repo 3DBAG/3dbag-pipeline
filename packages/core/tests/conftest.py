@@ -169,6 +169,30 @@ def context(
 
 
 @pytest.fixture
+def context_ahn(
+    database,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
+    yield build_op_context(
+        partition_key="01cz1",
+        resources={
+            "gdal": gdal,
+            "validation": validation,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
+            "godzilla_server": godzilla_server,
+            "podzilla_server": podzilla_server,
+            "specs": Specs3DBAGResource(),
+        },
+    )
+
+
+@pytest.fixture
 def context_missing(
     database, wkt_testarea, file_store, gdal_missing, validation_missing
 ):
@@ -263,6 +287,23 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
+
+
+@pytest.fixture(scope="session")
+def core_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_core"
+
+
+@pytest.fixture(scope="session")
+def core_file_store_fastssd(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store_fastssd"
+
+
+@pytest.fixture(scope="session")
+def core_file_store(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store"
 
 
 @pytest.fixture(scope="session")

@@ -248,7 +248,7 @@ def compute_load_metadata(
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
         );
         """).format(**query_params)
-    context.log.info(conn.print_query(query))
+    context.log.debug(conn.print_query(query))
     conn.send_query(query)
     # Cannot index the table here, because this is a partitioned assed. This means that
     # this function is called for each partition, which would index the table after
