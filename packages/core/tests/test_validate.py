@@ -16,7 +16,7 @@ def test_obj(context, test_data_dir):
     res = obj(
         context.resources.validation.app,
         test_data_dir / "validation_input/",
-        "10-564-624",
+        "0-0-0",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
         snap_tol=0.0001,
@@ -31,15 +31,15 @@ def test_gpkg(context, test_data_dir):
     res = gpkg(
         context.resources.gdal.app,
         test_data_dir / "validation_input/",
-        "10-564-624",
+        "0-0-0",
         "https://data.3dbag.nl",
         "test",
         specs=context.resources.specs,
     )
     assert res.zip_ok
     assert res.file_ok
-    assert res.nr_building == 419
-    assert res.nr_buildingpart == 422
+    assert res.nr_building == 413
+    assert res.nr_buildingpart == 414
     assert res.nr_invalid_2d_geom == 0
 
 
@@ -47,7 +47,7 @@ def test_cityjson(context, test_data_dir):
     res = cityjson(
         context.resources.validation.app,
         test_data_dir / "validation_input/",
-        "10-564-624",
+        "0-0-0",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
         url_root="https://data.3dbag.nl",
@@ -65,7 +65,7 @@ def test_obj_missing(context_missing, test_data_dir):
         _ = obj(
             context_missing.resources.validation.app,
             test_data_dir / "validation_input/",
-            "10-564-624",
+            "0-0-0",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
             snap_tol=0.0001,
@@ -79,7 +79,7 @@ def test_gpkg_missing(context_missing, test_data_dir):
         _ = gpkg(
             context_missing.resources.gdal.app,
             test_data_dir / "validation_input/",
-            "10-564-624",
+            "0-0-0",
             "https://data.3dbag.nl",
             "test",
             specs=context_missing.resources.specs,
@@ -91,7 +91,7 @@ def test_cityjson_missing(context_missing, test_data_dir):
         _ = cityjson(
             context_missing.resources.validation.app,
             test_data_dir / "validation_input/",
-            "10-564-624",
+            "0-0-0",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
             url_root="https://data.3dbag.nl",

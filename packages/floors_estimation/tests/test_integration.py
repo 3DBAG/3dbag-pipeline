@@ -5,11 +5,13 @@ from dagster import ExecuteInProcessResult
 
 
 @pytest.mark.needs_tools
-def test_job_floors_estimation(fastssd_data_dir):
+def test_job_floors_estimation(floors_estimation_file_store_fastssd):
     resolved_job = defs.get_job_def("floors_estimation")
 
     resources = {
-        "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir))
+        "file_store_fastssd": FileStoreResource(
+            data_dir=str(floors_estimation_file_store_fastssd)
+        )
     }
     result = resolved_job.execute_in_process(resources=resources)
 
