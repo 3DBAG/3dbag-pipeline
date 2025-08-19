@@ -9,7 +9,7 @@ from bag3d.common.types import ExportResult
 from bag3d.party_walls.assets.party_walls import (
     TilesFilesIndex,
 )
-from dagster import AssetKey, IOManager, SourceAsset, build_op_context
+from dagster import build_op_context
 import pandas as pd
 from shapely import STRtree, from_wkt
 import numpy as np
@@ -160,34 +160,4 @@ def mock_distribution_tiles_files_index(party_walls_file_store):
     paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
     return TilesFilesIndex(
         export_results=export_results, tree=tree, paths_array=paths_array
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_features_file_index(mock_features_file_index):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return mock_features_file_index
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", "features_file_index"]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_distribution_tiles_files_index(mock_distribution_tiles_files_index):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return mock_distribution_tiles_files_index
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", "distribution_tiles_files_index"]),
-        io_manager_def=MockIOManager(),
     )
