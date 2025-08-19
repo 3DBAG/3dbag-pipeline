@@ -1,13 +1,21 @@
 import os
 import pickle
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.types import ExportResult
+from bag3d.party_walls.assets.party_walls import (
+    TilesFilesIndex,
+)
 from dagster import AssetKey, IOManager, SourceAsset, build_op_context
 import pandas as pd
+from shapely import STRtree, from_wkt
+import numpy as np
+
+
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
@@ -120,31 +128,35 @@ def mock_features_file_index(intermediate_data_dir, party_walls_file_store_fasts
 
 
 @pytest.fixture(scope="session")
-def mock_distribution_tiles_files_index(intermediate_data_dir, party_walls_file_store):
-    data = pickle.load(
-        open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
+def mock_distribution_tiles_files_index(party_walls_file_store):
+    export_results = {
+        "0/0/0": ExportResult(
+            tile_id="0/0/0",
+            cityjson_path=PosixPath(
+                f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0.city.json"
+            ),
+            gpkg_path=PosixPath(
+                f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0.gpkg"
+            ),
+            obj_paths=(
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD13-3D.obj"
+                ),
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD12-3D.obj"
+                ),
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD22-3D.obj"
+                ),
+            ),
+            wkt="POLYGON((154565.241 462855.414, 155565.241 462855.414, 155565.241 463855.414, 154565.241 463855.414, 154565.241 462855.414))",
+        )
+    }
+    tree = STRtree(tuple(from_wkt(t.wkt) for t in export_results.values()))
+    paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
+    return TilesFilesIndex(
+        export_results=export_results, tree=tree, paths_array=paths_array
     )
-    for i, d in enumerate(data.paths_array):
-        data.paths_array[i] = Path(
-            str(d)
-            .replace(str(d.parents[6]), str(party_walls_file_store))
-            .replace("export", "export_test_version")
-        )
-    for k, v in data.export_results.items():
-        cj_path = data.export_results[k].cityjson_path
-        data.export_results[k].cityjson_path = Path(
-            str(cj_path)
-            .replace(str(cj_path.parents[6]), str(party_walls_file_store))
-            .replace("export", "export_test_version")
-        )
-        gpkg_path = data.export_results[k].gpkg_path
-        data.export_results[k].gpkg_path = Path(
-            str(gpkg_path)
-            .replace(str(gpkg_path.parents[6]), str(party_walls_file_store))
-            .replace("export", "export_test_version")
-        )
-        # TODO: fix data.export_results[k].obj_paths
-    return data
 
 
 @pytest.fixture(scope="session")
