@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
@@ -17,9 +18,9 @@ logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
-    "ahn5": "https://gist.githubusercontent.com/GinaStavropoulou/4f6b70bd6d356c3a06434916bfa627e0/raw/a87213a9643446b485d5a1b8f5c7416bad1a05f5/01_LAZ.SHA256",
-    "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
-    "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
+    5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
+    4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
+    3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
 }
 
 
@@ -127,19 +128,19 @@ class LAZDownload:
 @asset
 def md5_ahn3(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
-    return get_checksums(URL_LAZ_SHA["ahn3"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset
 def md5_ahn4(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
-    return get_checksums(URL_LAZ_SHA["ahn4"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset
 def sha256_ahn5(context):
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
-    return get_checksums(URL_LAZ_SHA["ahn5"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset
@@ -330,17 +331,33 @@ def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn)
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-def get_checksums(url: str) -> Mapping[str, str]:
-    """Download the checksums of AHN3/4/5 LAZ files.
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, str]:
+    """
+    Get the AHN LAZ file checksums for the given AHN version.
+
+    Args:
+        url_map (Mapping[int, str]): A mapping between AHN versions as keys and
+            their corresponding checksum file URL as values.
+        ahn_version (int): The version of AHN.
 
     Returns:
-         { filename: checksum }
+        Mapping[str, str]: A dictionary where the keys are filenames and the values
+            are their corresponding SHA-256 or MD5 checksums.
     """
+    url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    for tile in _hashes.strip().split("\n"):
-        sha, file = tile.split()
-        checksums[file] = sha
+    if ahn_version == 5:
+        # We have a GeoJSON FeatureCollection
+        for feature in json.loads(_hashes)["features"]:
+            if properties := feature.get("properties"):
+                if file_url := properties.get("file"):
+                    filename = file_url.split("/")[-1]
+                    checksums[filename] = properties.get("sha256")
+    else:
+        for tile in _hashes.strip().split("\n"):
+            sha, file = tile.split()
+            checksums[file] = sha
     return checksums
 
 
