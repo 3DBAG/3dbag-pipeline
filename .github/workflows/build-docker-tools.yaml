@@ -3,12 +3,14 @@ name: Build and Publish The Tools Docker Image
 on:
   push:
     tags:
-      - '*'
+      - "*"
     branches:
       - "develop"
       - "pc-*"
     paths:
       - docker/tools/Dockerfile
+      - tools-build.sh
+      - tools-test.sh
   workflow_dispatch:
 
 jobs:
@@ -38,4 +40,3 @@ jobs:
           tags: 3dgi/3dbag-pipeline-tools:${{ env.DOCKER_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
