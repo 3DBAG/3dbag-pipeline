@@ -1,5 +1,4 @@
 import os
-import pickle
 from pathlib import Path, PosixPath
 
 import pytest
@@ -14,7 +13,6 @@ from dagster import AssetKey, IOManager, SourceAsset, build_op_context
 import pandas as pd
 from shapely import STRtree, from_wkt
 import numpy as np
-
 
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
@@ -116,15 +114,21 @@ def mock_party_walls_nl(intermediate_data_dir) -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def mock_features_file_index(intermediate_data_dir, party_walls_file_store_fastssd):
-    data = pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
-    for k, v in data.items():
-        data[k] = Path(
-            str(v)
-            .replace(str(v.parents[8]), str(party_walls_file_store_fastssd))
-            .replace("export", "export_test_version")
-        )
-    return data
+def mock_features_file_index(party_walls_file_store_fastssd):
+    return {
+        "NL.IMBAG.Pand.0307100000308298": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000308298/reconstruct/NL.IMBAG.Pand.0307100000308298.city.jsonl",
+        "NL.IMBAG.Pand.0307100000368987": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000368987/reconstruct/NL.IMBAG.Pand.0307100000368987.city.jsonl",
+        "NL.IMBAG.Pand.0307100000547663": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000547663/reconstruct/NL.IMBAG.Pand.0307100000547663.city.jsonl",
+        "NL.IMBAG.Pand.0307100000536600": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000536600/reconstruct/NL.IMBAG.Pand.0307100000536600.city.jsonl",
+        "NL.IMBAG.Pand.0307100000313420": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000313420/reconstruct/NL.IMBAG.Pand.0307100000313420.city.jsonl",
+        "NL.IMBAG.Pand.0307100000332591": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000332591/reconstruct/NL.IMBAG.Pand.0307100000332591.city.jsonl",
+    }
 
 
 @pytest.fixture(scope="session")
