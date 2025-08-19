@@ -3,7 +3,7 @@ from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
-from dagster import asset, Output, get_dagster_logger, Config
+from dagster import asset, Output, get_dagster_logger, Config, Failure
 
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
@@ -388,6 +388,10 @@ def download_ahn_laz(
         success = True
         file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
+
+    if success == False:
+        raise Failure(format_laz_log(fpath, "Downloading failed!"))
+
     return LAZDownload(
         url=url_laz,
         path=fpath,
