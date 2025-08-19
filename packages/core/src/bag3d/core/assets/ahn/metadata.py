@@ -214,21 +214,13 @@ def compute_load_metadata(
                 f"skipping computation."
             )
             return Output(None)
-    try:
-        ret_code, out_info = pdal_info(
-            context.resources.pdal.app,
-            file_path=laz_files_ahn.path,
-            with_all=context.op_execution_context.op_config["all"],
-            verbose=verbose,
-        )
-        if ret_code != 0:
-            raise
-    # if pdal fails store only the filename in the table (to be used later)
-    except Exception as e:
-        context.log.exception(
-            f"PDAL failed for tile {tile_id} in {laz_files_ahn.path}: {e}"
-        )
-        out_info = {"filename": str(laz_files_ahn.path)}
+
+    ret_code, out_info = pdal_info(
+        context.resources.pdal.app,
+        file_path=laz_files_ahn.path,
+        with_all=context.op_execution_context.op_config["all"],
+        verbose=verbose,
+    )
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
 
@@ -247,14 +239,14 @@ def compute_load_metadata(
             insert_time,
             pdal_info,
             boundary
-        ) 
+        )
         VALUES (
-            {tile_id}, 
-            {hash}, 
-            {insert_time}, 
-            {pdal_info}, 
+            {tile_id},
+            {hash},
+            {insert_time},
+            {pdal_info},
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
-        );    
+        );
         """).format(**query_params)
     context.log.info(conn.print_query(query))
     conn.send_query(query)

@@ -37,12 +37,15 @@ def test_download_ahn_index_geometry():
 
 
 @pytest.mark.parametrize(
-    "url",
-    (URL_LAZ_SHA["ahn3"], URL_LAZ_SHA["ahn4"], URL_LAZ_SHA["ahn5"]),
+    "ahn_version",
+    (3, 4, 5),
     ids=("ahn3", "ahn4", "ahn5"),
 )
-def test_get_checksums(url):
-    checksums = get_checksums(url)
+def test_get_checksums(ahn_version):
+    checksums = get_checksums(URL_LAZ_SHA, ahn_version=ahn_version)
+    print(
+        f"Found {len(checksums)} checksums for AHN{ahn_version} LAZ files. First five:"
+    )
     assert len(checksums) > 0
     for k, sha in list(checksums.items())[:5]:
         assert sha is not None
