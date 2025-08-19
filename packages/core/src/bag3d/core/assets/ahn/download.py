@@ -4,7 +4,7 @@ from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
-from dagster import asset, Output, get_dagster_logger, Config
+from dagster import asset, Output, get_dagster_logger, Config, Failure
 
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
@@ -196,16 +196,7 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
                 sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
@@ -257,16 +248,7 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
                 sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
@@ -315,16 +297,7 @@ def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn)
                 sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
@@ -405,6 +378,10 @@ def download_ahn_laz(
         success = True
         file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
+
+    if not success:
+        raise Failure(format_laz_log(fpath, "Downloading failed!"))
+
     return LAZDownload(
         url=url_laz,
         path=fpath,
