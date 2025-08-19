@@ -200,7 +200,6 @@ def compute_load_metadata(
     """
     tile_id = context.partition_key
     conn = context.resources.db_connection.connect
-
     if not laz_files_ahn.new:
         if not context.op_execution_context.op_execution_context.op_config["force"]:
             context.log.info(
