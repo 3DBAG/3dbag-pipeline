@@ -9,11 +9,14 @@ from dagster import (
     TableSchema,
     TableColumnConstraints,
     TableColumn,
+    get_dagster_logger,
 )
 from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.database import postgrestable_metadata
 from bag3d.common.resources.executables import AppImage
+
+logger = get_dagster_logger()
 
 
 def wkt_from_bbox(bbox):
@@ -256,9 +259,26 @@ def pdal_info(
     ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
-    return_code, output = pdal.execute(
-        "pdal", command=" ".join(cmd_list), local_path=file_path, silent=(not verbose)
-    )
+    try:
+        return_code, output = pdal.execute(
+            "pdal",
+            command=" ".join(cmd_list),
+            local_path=file_path,
+            silent=(not verbose),
+        )
+    except Exception as e:
+        if "Global encoding WKT flag" in str(e):
+            logger.warning(f"Pdal failed for tile {file_path} with error {e}.")
+            logger.warning("Setting --readers.las.nosrs true")
+            cmd_list.append("--readers.las.nosrs true")
+            return_code, output = pdal.execute(
+                "pdal",
+                command=" ".join(cmd_list),
+                local_path=file_path,
+                silent=(not verbose),
+            )
+        else:
+            raise
     output_processed = output.replace("\\u0000", "")
     return return_code, json.loads(output_processed)
 
