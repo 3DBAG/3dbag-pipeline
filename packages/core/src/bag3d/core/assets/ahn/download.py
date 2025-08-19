@@ -195,16 +195,7 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
                 sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+              logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
@@ -256,16 +247,7 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
                 sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
@@ -314,16 +296,7 @@ def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn)
                 sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
-                logger.error(format_laz_log(fpath, "ERROR"))
-                lazdownload = LAZDownload(
-                    url=None,
-                    path=Path(),
-                    success=False,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=0.0,
-                )
+              logger.warning(format_laz_log(fpath, "Checksum failed"))
         else:
             logger.debug(format_laz_log(fpath, "OK"))
 
