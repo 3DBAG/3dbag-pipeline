@@ -200,12 +200,6 @@ def compute_load_metadata(
     """
     tile_id = context.partition_key
     conn = context.resources.db_connection.connect
-    if not laz_files_ahn.success or laz_files_ahn.hash_name is None:
-        context.log.info(
-            f"LAZ tile {tile_id} has not been successfully downloaded."
-            f"Skipping metadata computation..."
-        )
-        return Output(None)
 
     if not laz_files_ahn.new:
         if not context.op_execution_context.op_execution_context.op_config["force"]:
