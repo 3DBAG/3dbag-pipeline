@@ -389,7 +389,7 @@ def download_ahn_laz(
         file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
 
-    if success == False:
+    if not success:
         raise Failure(format_laz_log(fpath, "Downloading failed!"))
 
     return LAZDownload(
