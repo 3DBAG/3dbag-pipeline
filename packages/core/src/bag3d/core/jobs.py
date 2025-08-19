@@ -122,7 +122,10 @@ job_nl_export = define_asset_job(
 job_nl_export_after_floors = define_asset_job(
     name="nl_export_after_floors",
     description="Run the tyler export and 3D Tiles steps for the Netherlands. To be run after the floors_estimation package's jobs.",
-    selection=AssetSelection.assets(["export", "geopackage_nl"])
+    selection=AssetSelection.assets(["export", "export_index"])
+    | AssetSelection.assets(["export", "metadata"])
+    | AssetSelection.assets(["export", "reconstruction_output_multitiles_nl"])
+    | AssetSelection.assets(["export", "geopackage_nl"])
     | AssetSelection.assets(["export", "compressed_tiles"])
     | AssetSelection.assets(["export", "compressed_tiles_validation"])
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod12_nl"])
@@ -130,6 +133,11 @@ job_nl_export_after_floors = define_asset_job(
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod22_nl"]),
     config={
         "ops": {
+            "reconstruction_output_multitiles_nl": {
+                "config": {
+                    "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
+                }
+            },
             "reconstruction_output_3dtiles_lod12_nl": {
                 "config": {
                     "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
