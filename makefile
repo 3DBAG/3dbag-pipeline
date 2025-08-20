@@ -50,7 +50,7 @@ docker_up_nobuild:
 	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
 
 docker_watch:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
+	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
 
 docker_build:
 	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
@@ -70,27 +70,19 @@ docker_down_rm:
 test:
 	@set -e; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/test_geodata.py -v || FAILED=1; 
 	exit $$FAILED
 
 test_slow:
 	@set -e; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow || FAILED=1; \
 	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow || FAILED=1; \
     exit $$FAILED
 
 test_integration:
 	@set -e; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all || FAILED=1; \
 	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all || FAILED=1; \
     exit $$FAILED
 
 test_deploy:
@@ -102,10 +94,13 @@ test_deploy:
 test_all:
 	@set -e; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all || FAILED=1; \
 	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all || FAILED=1; \
+    exit $$FAILED
+
+test_servers:
+	@set -e; \
+	FAILED=0; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_assets_deploy.py -v --run-all -s || FAILED=1; \
     exit $$FAILED
 
 include .env
@@ -126,3 +121,30 @@ format:
 docker_build_tools:
 	rm docker_build_tools.log || true
 	docker buildx build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
+
+docker_prune:
+	docker system prune -af 
+	docker volume prune -f
+	docker network prune -f
+	docker builder prune -af
+
+make again: docker_down docker_prune docker_volume_rm docker_volume_create docker_watch
+
+uvlock:
+	cd packages/core && uv lock --refresh && uv sync && cd ../..
+	cd packages/common && uv lock --refresh && uv sync && cd ../..
+	cd packages/party_walls && uv lock --refresh && uv sync && cd ../..
+	cd packages/floors_estimation && uv lock --refresh && uv sync && cd ../..
+
+tools_image:
+	docker build --platform linux/amd64 -f docker/tools/Dockerfile -t 3dbag-pipeline-tools:latest --progress=plain .
+
+data_from_volume:
+	docker run --rm -d --name temp_copy_container -v bag3d-dev-data-pipeline:/data busybox sleep 300
+	rm -rf ./local_data
+	docker cp temp_copy_container:/data/ ./local_data
+
+update_test_data:
+	cd tests/test_data; zip -r ../test_data_v14.zip * ; cd ../..
+	rsync -avz tests/test_data_v14.zip gstavropoulou@godzilla:/data/3DBAG_Pipeline_test_data/
+

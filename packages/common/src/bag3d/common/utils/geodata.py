@@ -259,28 +259,34 @@ def pdal_info(
     ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
-    try:
+    return_code, output = pdal.execute(
+        "pdal",
+        command=" ".join(cmd_list),
+        local_path=file_path,
+        silent=(not verbose),
+        output_logging="BUFFER",
+    )
+
+    if "Global encoding WKT flag" in str(output):
+        logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
+        logger.warning("Setting --readers.las.nosrs true")
+        cmd_list.append("--readers.las.nosrs true")
         return_code, output = pdal.execute(
             "pdal",
             command=" ".join(cmd_list),
             local_path=file_path,
             silent=(not verbose),
+            output_logging="BUFFER",
         )
-    except Exception as e:
-        if "Global encoding WKT flag" in str(e):
-            logger.warning(f"Pdal failed for tile {file_path} with error {e}.")
-            logger.warning("Setting --readers.las.nosrs true")
-            cmd_list.append("--readers.las.nosrs true")
-            return_code, output = pdal.execute(
-                "pdal",
-                command=" ".join(cmd_list),
-                local_path=file_path,
-                silent=(not verbose),
-            )
-        else:
-            raise
+
     output_processed = output.replace("\\u0000", "")
-    return return_code, json.loads(output_processed)
+
+    try:
+        json_data = json.loads(output_processed)
+    except JSONDecodeError as e:
+        raise Failure(f"Failed to make JSON from pdal output: {output_processed}. {e}")
+
+    return return_code, json_data
 
 
 def geojson_poly_to_wkt(geometry) -> str:
