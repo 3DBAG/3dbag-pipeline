@@ -115,7 +115,7 @@ class AppImage:
         local_path: Path = None,
         silent=False,
         cwd: str = None,
-        output_logging: str = "STREAM"
+        output_logging: str = "STREAM",
     ) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.

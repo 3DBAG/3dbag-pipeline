@@ -72,8 +72,11 @@ def ogrinfo(
     for feature_type in feature_types:
         kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
         return_code, output = gdal.execute(
-            "ogrinfo", command=cmd, kwargs=kwargs, local_path=extract_path,
-            output_logging="BUFFER"
+            "ogrinfo",
+            command=cmd,
+            kwargs=kwargs,
+            local_path=extract_path,
+            output_logging="BUFFER",
         )
         if return_code == 0:
             layername, layerinfo = parse_ogrinfo(output, feature_type)
@@ -234,8 +237,11 @@ def ogr2postgres(
         "dataset": dataset,
     }
     return_code, output = gdal.execute(
-        "ogr2ogr", command=cmd, kwargs=kwargs, local_path=extract_path,
-        output_logging="BUFFER"
+        "ogr2ogr",
+        command=cmd,
+        kwargs=kwargs,
+        local_path=extract_path,
+        output_logging="BUFFER",
     )
     if return_code == 0:
         return postgrestable_metadata(context, new_table)
@@ -267,7 +273,7 @@ def pdal_info(
             command=" ".join(cmd_list),
             local_path=file_path,
             silent=(not verbose),
-            output_logging="BUFFER"
+            output_logging="BUFFER",
         )
     except Exception as e:
         if "Global encoding WKT flag" in str(e):
