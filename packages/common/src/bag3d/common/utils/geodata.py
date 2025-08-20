@@ -269,6 +269,7 @@ def pdal_info(
     ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
+
     return_code, output = pdal.execute(
         "pdal",
         command=" ".join(cmd_list),
@@ -277,17 +278,30 @@ def pdal_info(
         output_logging="BUFFER",
     )
 
+    logger.info(f"PDAL info output: {output}")
+    logger.info(f"PDAL info return code: {return_code}")
+
     if "Global encoding WKT flag" in str(output):
         logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
-        logger.warning("Setting --readers.las.nosrs true")
-        cmd_list.append("--readers.las.nosrs true")
-        return_code, output = pdal.execute(
-            "pdal",
-            command=" ".join(cmd_list),
-            local_path=file_path,
-            silent=(not verbose),
-            output_logging="BUFFER",
-        )
+        # logger.warning("Setting --readers.las.nosrs true")
+        # cmd_list.append("--readers.las.nosrs true")
+        # return_code, output = pdal.execute(
+        #     "pdal",
+        #     command=" ".join(cmd_list),
+        #     local_path=file_path,
+        #     silent=(not verbose),
+        #     output_logging="BUFFER",
+        # )
+        #  # Remove the first line
+        output_lines = output.split("\n")
+        if len(output_lines) > 1:
+            logger.warning(f"Removing first line from PDAL output : {output_lines[0]}")
+            output = "\n".join(output_lines[1:])
+        else:
+            output = ""
+
+    logger.info(f"PDAL info output: {output}")
+    logger.info(f"PDAL info return code: {return_code}")
 
     output_processed = output.replace("\\u0000", "")
 
