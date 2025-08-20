@@ -20,11 +20,6 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
 def gdal():
     yield GDALResource(
         exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
@@ -58,7 +53,7 @@ def file_store(tmp_path):
 
 
 @pytest.fixture
-def context(database, wkt_testarea, file_store, gdal, pdal):
+def context(database, wkt_testarea, file_store, gdal):
     yield build_op_context(
         op_config={
             "geofilter": wkt_testarea,
@@ -67,7 +62,6 @@ def context(database, wkt_testarea, file_store, gdal, pdal):
             ],
         },
         resources={
-            "pdal": pdal,
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
