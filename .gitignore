@@ -14,7 +14,6 @@
 # Test data
 tmp/*
 tests/test_data/
-tests/test_data2/
 
 # Local DAGSTER_HOME
 tests/dagster_home/.logs_queue/
@@ -41,4 +40,3 @@ docs/reference
 .coverage
 *.ruff_cache
 *.python-version
-local_data/
