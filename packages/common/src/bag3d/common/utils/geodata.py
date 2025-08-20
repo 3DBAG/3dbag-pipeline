@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 from typing import List, Tuple
+from json.decoder import JSONDecodeError
 
 from dagster import (
     OpExecutionContext,
@@ -10,6 +11,7 @@ from dagster import (
     TableColumnConstraints,
     TableColumn,
     get_dagster_logger,
+    Failure,
 )
 from pgutils import PostgresTableIdentifier
 
@@ -280,7 +282,13 @@ def pdal_info(
         else:
             raise
     output_processed = output.replace("\\u0000", "")
-    return return_code, json.loads(output_processed)
+
+    try:
+        json_data = json.loads(output_processed)
+    except JSONDecodeError as e:
+        raise Failure(f"Failed to make JSON from pdal output: {output}. {e}")
+
+    return return_code, json_data
 
 
 def geojson_poly_to_wkt(geometry) -> str:
