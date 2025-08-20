@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 from typing import List, Tuple
+from json.decoder import JSONDecodeError
 
 from dagster import (
     OpExecutionContext,
@@ -10,6 +11,7 @@ from dagster import (
     TableColumnConstraints,
     TableColumn,
     get_dagster_logger,
+    Failure,
 )
 from pgutils import PostgresTableIdentifier
 
@@ -72,7 +74,11 @@ def ogrinfo(
     for feature_type in feature_types:
         kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
         return_code, output = gdal.execute(
-            "ogrinfo", command=cmd, kwargs=kwargs, local_path=extract_path
+            "ogrinfo",
+            command=cmd,
+            kwargs=kwargs,
+            local_path=extract_path,
+            output_logging="BUFFER",
         )
         if return_code == 0:
             layername, layerinfo = parse_ogrinfo(output, feature_type)
@@ -233,7 +239,11 @@ def ogr2postgres(
         "dataset": dataset,
     }
     return_code, output = gdal.execute(
-        "ogr2ogr", command=cmd, kwargs=kwargs, local_path=extract_path
+        "ogr2ogr",
+        command=cmd,
+        kwargs=kwargs,
+        local_path=extract_path,
+        output_logging="BUFFER",
     )
     if return_code == 0:
         return postgrestable_metadata(context, new_table)

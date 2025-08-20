@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 
 import pytz
-from dagster import asset, Output, Field
+from dagster import asset, Output, Field, get_dagster_logger
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
@@ -198,11 +198,12 @@ def compute_load_metadata(
     Returns:
         None
     """
+    logger = get_dagster_logger()
     tile_id = context.partition_key
     conn = context.resources.db_connection.connect
     if not laz_files_ahn.new:
         if not context.op_execution_context.op_execution_context.op_config["force"]:
-            context.log.info(
+            logger.info(
                 f"Metadata for this LAZ tile {tile_id} already exists, "
                 f"skipping computation."
             )
@@ -241,7 +242,7 @@ def compute_load_metadata(
             ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
         );
         """).format(**query_params)
-    context.log.debug(conn.print_query(query))
+    logger.debug(conn.print_query(query))
     conn.send_query(query)
     # Cannot index the table here, because this is a partitioned assed. This means that
     # this function is called for each partition, which would index the table after
@@ -250,11 +251,12 @@ def compute_load_metadata(
 
 
 def metadata_table_ahn(context, ahn_version: int) -> PostgresTableIdentifier:
+    logger = get_dagster_logger()
     conn = context.resources.db_connection.connect
     new_schema = "ahn"
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
     query = load_sql(query_params={"new_table": new_table})
-    context.log.info(conn.print_query(query))
+    logger.info(conn.print_query(query))
     conn.send_query(query)
     return new_table

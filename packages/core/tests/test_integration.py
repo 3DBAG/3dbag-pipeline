@@ -83,7 +83,7 @@ def test_integration_ahn(database, core_file_store):
                                 "config": {"force_download": False, "check_hash": False}
                             },
                             f"metadata_{ahn_version}": {
-                                "config": {"force": True, "all": True}
+                                "config": {"force": True, "all": True, "verbose": True}
                             },
                             f"lasindex_{ahn_version}": {"config": {"force": True}},
                         }
