@@ -47,12 +47,11 @@ services:
         target: /var/lib/postgresql/data
         volume:
           subpath: pgdata
-      - ~/postgreslogs:/var/log/postgresql
-      # - type: volume
-      #   source: bag3d-data-postgresql
-      #   target: /var/log/postgresql
-      #   volume:
-      #     subpath: pglog
+      - type: volume
+        source: bag3d-data-postgresql
+        target: /var/log/postgresql
+        volume:
+          subpath: pglog
     restart: always
     networks:
       - bag3d-network
