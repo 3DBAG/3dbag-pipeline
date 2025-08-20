@@ -83,6 +83,12 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             is_required=False,
             default_value="info",
         ),
+        "concurrency": Field(
+            int,
+            description="Roofer --jobs",
+            is_required=False,
+            default_value=10,
+        ),
     },
 )
 def reconstructed_building_models_nl(
@@ -114,7 +120,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']} --skip-pc-check",
+            command=f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_config['concurrency']} --loglevel {context.op_config['loglevel']} --skip-pc-check",
             local_path=roofer_toml,
             silent=False,
         )
