@@ -115,6 +115,7 @@ class AppImage:
         local_path: Path = None,
         silent=False,
         cwd: str = None,
+        output_logging: str = "STREAM"
     ) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
@@ -149,6 +150,9 @@ class AppImage:
                 mounted on the ``mount_point`` as
                 ``local_path : mount_point/local_path.name``.
             silent: If False, send execution messages to the logger, else do not log.
+            output_logging: The logging mode to use. Supports STREAM, BUFFER, and NONE.
+                STREAM: Stream back logs as they are emitted. BUFFER: Collect and
+                buffer all logs, then emit.
 
         Returns:
              The return code and STDOUT from the command execution.
@@ -200,7 +204,7 @@ class AppImage:
                 output, return_code = execute_shell_command(
                     shell_command=command.format(**kwargs_with_exe),
                     log=self.logger,
-                    output_logging="STREAM",
+                    output_logging=output_logging,
                     cwd=cwd,
                 )
         if return_code != 0:
