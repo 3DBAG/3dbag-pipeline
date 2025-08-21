@@ -269,33 +269,29 @@ def pdal_info(
     ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
-    try:
-        return_code, output = pdal.execute(
-            "pdal",
-            command=" ".join(cmd_list),
-            local_path=file_path,
-            silent=(not verbose),
-            output_logging="BUFFER",
-        )
-    except Exception as e:
-        if "Global encoding WKT flag" in str(e):
-            logger.warning(f"Pdal failed for tile {file_path} with error {e}.")
-            logger.warning("Setting --readers.las.nosrs true")
-            cmd_list.append("--readers.las.nosrs true")
-            return_code, output = pdal.execute(
-                "pdal",
-                command=" ".join(cmd_list),
-                local_path=file_path,
-                silent=(not verbose),
-            )
-        else:
-            raise
+
+    return_code, output = pdal.execute(
+        "pdal",
+        command=" ".join(cmd_list),
+        local_path=file_path,
+        silent=(not verbose),
+        output_logging="BUFFER",
+    )
+
+    if "Global encoding WKT flag" in str(output):
+        logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
+        # Remove the first line
+        output_lines = output.split("\n")
+        if len(output_lines) > 1:
+            logger.warning(f"Removing first line from PDAL output : {output_lines[0]}")
+            output = "\n".join(output_lines[1:])
+
     output_processed = output.replace("\\u0000", "")
 
     try:
         json_data = json.loads(output_processed)
     except JSONDecodeError as e:
-        raise Failure(f"Failed to make JSON from pdal output: {output}. {e}")
+        raise Failure(f"Failed to make JSON from pdal output: {output_processed}. {e}")
 
     return return_code, json_data
 
