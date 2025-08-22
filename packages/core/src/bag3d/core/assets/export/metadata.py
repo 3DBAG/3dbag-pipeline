@@ -199,7 +199,7 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
     required_resource_keys={"file_store", "version"},
 )
 def metadata(context: AssetExecutionContext):
-    """3D BAG metadata for distribution.
+    """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
 
@@ -263,15 +263,15 @@ def metadata(context: AssetExecutionContext):
     metadata = {
         "identificationInfo": {
             "citation": {
-                "title": "3D BAG",
+                "title": "3DBAG",
                 "date": date_3dbag,
                 "dateType": "creation",
                 "edition": version_3dbag,
                 "identifier": uuid_3dbag,
             },
-            "abstract": "De 3D BAG is een up-to-date landsdekkende dataset met 3D gebouwmodellen van Nederland. De 3D BAG is open data. Het bevat 3D modellen op verscheidene detailniveaus welke zijn gegenereerd door de combinatie van twee open datasets: de pand-gegevens uit de BAG en de hoogtegegevens uit de AHN. De 3D BAG wordt regelmatig geüpdatet met de meest recente openlijk beschikbare pand- en hoogtegegevens.",
+            "abstract": "De 3DBAG is een up-to-date landsdekkende dataset met 3D gebouwmodellen van Nederland. De 3DBAG is open data. Het bevat 3D modellen op verscheidene detailniveaus welke zijn gegenereerd door de combinatie van twee open datasets: de pand-gegevens uit de BAG en de hoogtegegevens uit de AHN. De 3DBAG wordt regelmatig geüpdatet met de meest recente openlijk beschikbare pand- en hoogtegegevens.",
             "pointOfContact": {
-                "organisationName": "3D BAG",
+                "organisationName": "3DBAG",
                 "contactInfo": {
                     "address": {
                         "country": "Nederland",
@@ -287,7 +287,7 @@ def metadata(context: AssetExecutionContext):
                     "otherConstraints": [
                         {
                             "href": "http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1",
-                            "text": "Naamensvermelding verplicht, 3D BAG door de 3D geoinformation onderzoeksgroep (TU Delft) en 3DGI",
+                            "text": "Naamensvermelding verplicht, 3DBAG door de 3D geoinformation onderzoeksgroep (TU Delft) en 3DGI",
                         }
                     ],
                 }
