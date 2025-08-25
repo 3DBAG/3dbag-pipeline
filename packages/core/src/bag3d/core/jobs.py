@@ -135,7 +135,8 @@ job_nl_export = define_asset_job(
 job_nl_export_after_floors = define_asset_job(
     name="nl_export_after_floors",
     description="Run the tyler export and 3D Tiles steps for the Netherlands. To be run after the floors_estimation package's jobs.",
-    selection=AssetSelection.assets(["export", "export_index"])
+    selection=AssetSelection.assets(["export", "feature_evaluation"])
+    | AssetSelection.assets(["export", "export_index"])
     | AssetSelection.assets(["export", "metadata"])
     | AssetSelection.assets(["export", "reconstruction_output_multitiles_nl"])
     | AssetSelection.assets(["export", "geopackage_nl"])
