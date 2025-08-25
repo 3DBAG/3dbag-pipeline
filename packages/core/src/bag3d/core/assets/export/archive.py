@@ -111,7 +111,7 @@ def geopackage_nl(context):
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
-    cmd = ["{exe}", str(path_nl_zip), str(path_nl)]
+    cmd = ["{exe}", "--junk-paths", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
     context.resources.gdal.app.execute("sozip", cmd)
 
