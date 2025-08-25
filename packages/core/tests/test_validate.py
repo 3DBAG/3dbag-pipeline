@@ -58,6 +58,8 @@ def test_cityjson(context, test_data_dir):
     assert res.zip_ok
     assert res.sha256 is not None
     assert not res.file_ok
+    assert res.schema_valid
+    assert res.schema_warnings
 
 
 def test_obj_missing(context_missing, test_data_dir):
