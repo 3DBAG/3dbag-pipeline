@@ -56,7 +56,7 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --clean
 
 ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV PROJ_DATA=/usr/share/proj
+ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 RUN echo $BAG3D_PIPELINE_LOCATION/tools/lib >> /etc/ld.so.conf.d/3dbag-pipeline-tools.conf
 
 FROM tools AS tyler
@@ -64,14 +64,15 @@ ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 COPY --from=3dgi/tyler:0.3.13 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=3dgi/tyler:0.3.13 /usr/local/share/proj /usr/local/share/proj
 COPY --from=3dgi/tyler:0.3.13 /lib/ /tyler/lib/
 COPY --from=3dgi/tyler:0.3.13 /lib64/ /tyler/lib64/
 COPY --from=3dgi/tyler:0.3.13 /usr/ /tyler/usr/
 COPY --from=3dgi/tyler:0.3.13 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+# Include Dutch transformation grids
+COPY --from=3dgi/tyler:0.3.13 /usr/local/share/proj/nl_nsgi_nlgeo2018.tif $PROJ_DATA/nl_nsgi_nlgeo2018.tif
+COPY --from=3dgi/tyler:0.3.13 /usr/local/share/proj/nl_nsgi_rdtrans2018.tif $PROJ_DATA/nl_nsgi_rdtrans2018.tif
 
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/local/share/proj /usr/local/share/proj
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /lib/ /tyler/lib/
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /lib64/ /tyler/lib64/
 COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/ /tyler/usr/
@@ -102,8 +103,6 @@ ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 COPY --from=3dgi/roofer:v1.0.0-beta.3 /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
 COPY --from=3dgi/roofer:v1.0.0-beta.3 /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
 COPY --from=3dgi/roofer:v1.0.0-beta.3 /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
 # We only need this until we replace the old geoflow with roofer
 FROM roofer AS geoflow-old

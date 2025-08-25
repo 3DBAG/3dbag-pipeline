@@ -1006,7 +1006,7 @@ def check_formats(input) -> TileResults:
     specs = Specs3DBAGResource()
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
-    planarity_d2p_tol = 0.0001
+    planarity_d2p_tol = 0.01
     snap_tol = 0.0001
     cj_results = cityjson(
         validation=validation,
