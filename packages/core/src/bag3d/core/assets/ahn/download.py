@@ -409,31 +409,30 @@ def download_laz(
     file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
 ):
     for i in range(nr_retries):
-        try:
-            fpath = download_file(
-                url=url,
-                target_path=fpath,
-                chunk_size=1024 * 1024,
-                verify=verify_ssl,
-            )
-            if fpath is None:
-                # Download failed
-                logger.warning(format_laz_log(fpath, "Downloading failed!"))
-                url_laz = None
-                fpath = Path()
-                success = False
-                is_new = False
-                file_size = 0.0
-            else:
-                success = True
-                is_new = True
-                file_size = round(fpath.stat().st_size / 1e6, 2)
-                break
-        except ConnectionError as e:
-            if i == 4:
-                raise e
-            else:
-                logger.warning(f"Retrying ({i + 1}/5) due to {e}")
+
+      fpath = download_file(
+          url=url,
+          target_path=fpath,
+          chunk_size=1024 * 1024,
+          verify=verify_ssl,
+      )
+      if fpath is None:
+          # Download failed
+          if i == 4:
+              url_laz = None
+              fpath = Path()
+              success = False
+              is_new = False
+              file_size = 0.0
+              logger.error(f"Download failed after {i + 1} retries")
+          else:
+              logger.warning(f"Retrying ({i + 1}/5) due to {e}")
+      else:
+          success = True
+          is_new = True
+          file_size = round(fpath.stat().st_size / 1e6, 2)
+          break
+
     return file_size, fpath, is_new, success, url_laz
 
 
