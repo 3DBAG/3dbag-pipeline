@@ -360,7 +360,9 @@ def metadata(context: AssetExecutionContext):
                 "software": [
                     {
                         "name": "geoflow-bundle",
-                        "version": resource_defs["geoflow"].app.version("geof"),
+                        "version": resource_defs["geoflow"].app.version(
+                            "geof", version_cmd="--list-plugins --verbose"
+                        ),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
                         "description": "3D building model reconstruction",
                     },
