@@ -426,7 +426,7 @@ def download_laz(
               file_size = 0.0
               logger.error(f"Download failed after {i + 1} retries")
           else:
-              logger.warning(f"Retrying ({i + 1}/5) due to {e}")
+              logger.warning(f"Retrying ({i + 1}/5)")
       else:
           success = True
           is_new = True
