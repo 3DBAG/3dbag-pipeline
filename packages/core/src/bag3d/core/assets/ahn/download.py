@@ -408,32 +408,32 @@ def download_ahn_laz(
 def download_laz(
     file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
 ):
+    fpath_download = Path()
     for i in range(nr_retries):
+        fpath_download = download_file(
+            url=url,
+            target_path=fpath,
+            chunk_size=1024 * 1024,
+            verify=verify_ssl,
+        )
+        if fpath_download is None:
+            # Download failed
+            if i == nr_retries - 1:
+                url_laz = None
+                fpath_download = Path()
+                success = False
+                is_new = False
+                file_size = 0.0
+                logger.error(f"Download failed after {i + 1} retries")
+            else:
+                logger.warning(f"Retrying ({i + 1}/{nr_retries})")
+        else:
+            success = True
+            is_new = True
+            file_size = round(fpath_download.stat().st_size / 1e6, 2)
+            break
 
-      fpath = download_file(
-          url=url,
-          target_path=fpath,
-          chunk_size=1024 * 1024,
-          verify=verify_ssl,
-      )
-      if fpath is None:
-          # Download failed
-          if i == 4:
-              url_laz = None
-              fpath = Path()
-              success = False
-              is_new = False
-              file_size = 0.0
-              logger.error(f"Download failed after {i + 1} retries")
-          else:
-              logger.warning(f"Retrying ({i + 1}/5)")
-      else:
-          success = True
-          is_new = True
-          file_size = round(fpath.stat().st_size / 1e6, 2)
-          break
-
-    return file_size, fpath, is_new, success, url_laz
+    return file_size, fpath_download, is_new, success, url_laz
 
 
 def match_sha(
