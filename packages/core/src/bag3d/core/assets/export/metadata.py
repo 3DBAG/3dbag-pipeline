@@ -364,7 +364,7 @@ def metadata(context: AssetExecutionContext):
                             "geof", version_cmd="--list-plugins --verbose"
                         ),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
-                        "description": "3D building model reconstruction",
+                        "description": "Format conversion to CityJSON, OBJ, GeoPackage, glTF",
                     },
                     {
                         "name": "roofer",
