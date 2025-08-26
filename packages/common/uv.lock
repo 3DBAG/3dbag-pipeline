@@ -88,7 +88,7 @@ requires-dist = [
 [[package]]
 name = "bag3d-specs"
 version = "2025.7.24"
-source = { git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop#87464cb127e45e4d53b650cb0bd4ccd23fd2ef44" }
+source = { git = "https://github.com/3DBAG/3dbag-specs.git?branch=develop#bb85d2f67a93e4718ce8022b75e57fe86f00967a" }
 dependencies = [
     { name = "jsonschema" },
 ]
