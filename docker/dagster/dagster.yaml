@@ -1,6 +1,10 @@
 run_coordinator:
   module: dagster.core.run_coordinator
   class: QueuedRunCoordinator
+  tag_concurrency_limits:
+    - key: "dagster/concurrency_key"
+      value: "laz_download"
+      limit: 1
 
 run_launcher:
   module: dagster.core.launcher
