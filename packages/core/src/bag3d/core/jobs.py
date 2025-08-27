@@ -21,6 +21,9 @@ job_ahn3 = define_asset_job(
     name="ahn3",
     description="Make sure that the available AHN 3 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN3", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_ahn3"])
     | AssetSelection.assets(["ahn", "lasindex_ahn3"]),
@@ -30,6 +33,9 @@ job_ahn4 = define_asset_job(
     name="ahn4",
     description="Make sure that the available AHN 4 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN4", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_ahn4"])
     | AssetSelection.assets(["ahn", "lasindex_ahn4"]),
@@ -39,6 +45,9 @@ job_ahn5 = define_asset_job(
     name="ahn5",
     description="Make sure that the available AHN 5 LAZ files are present on disk, "
     "and their metadata is recorded.",
+    executor_def=multiprocess_executor.configured(
+        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_AHN5", 1))}
+    ),
     selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
