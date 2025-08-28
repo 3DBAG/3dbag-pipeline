@@ -157,7 +157,8 @@ class LazFilesConfig(Config):
 @asset(
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
-    op_tags={"dagster/concurrency_key": "laz_download"},
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download"
 )
 def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -211,7 +212,8 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
 @asset(
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
-    op_tags={"dagster/concurrency_key": "laz_download"},
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download"
 )
 def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -268,7 +270,8 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
 @asset(
     required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
-    op_tags={"dagster/concurrency_key": "laz_download"},
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download"
 )
 def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn):
     """AHN5 LAZ files as they are downloaded from PDOK.
