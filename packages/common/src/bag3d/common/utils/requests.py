@@ -96,16 +96,7 @@ def download_file(
                                 f"{percent}% ({bytes_written}/{remote_size} bytes)"
                             )
                             last_logged_percent = percent
-
-        r = session.get(url, params=parameters, stream=True, verify=verify)
-        if r.ok:
-            with fpath.open("wb") as fd:
-                for chunk in r.iter_content(chunk_size=chunk_size):
-                    fd.write(chunk)
-            return fpath
-        else:  # pragma: no cover
-            r.raise_for_status()
-        r.close()
+                return fpath
     except (
         requests.RequestException,
         requests.exceptions.BaseHTTPError,
