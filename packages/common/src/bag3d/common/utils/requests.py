@@ -3,6 +3,7 @@ from pathlib import Path
 from time import sleep
 from typing import Mapping, Union
 from urllib.parse import urlparse, urljoin
+import os
 
 import requests
 from dagster import (
@@ -35,6 +36,7 @@ def download_file(
     chunk_size: int = 1024,
     parameters: Mapping = None,
     verify: bool = True,
+    attempt_resume: bool = False,
 ) -> Union[Path, None]:
     """Download a large file and save it to disk.
 
@@ -59,6 +61,42 @@ def download_file(
     session = requests.Session()  # https://stackoverflow.com/a/63417213
 
     try:
+        head = session.head(url, allow_redirects=True)
+        head.raise_for_status()
+        remote_size = int(head.headers.get("content-length", 0))
+        headers = {}
+        if attempt_resume and os.path.exists(fpath):
+            local_size = os.path.getsize(fpath)
+            headers = {"Range": f"bytes={local_size}-"}
+            logger.info(f"Resuming download at {local_size}/{remote_size} bytes")
+        else:
+            local_size = 0
+            logger.info(f"Starting download of {remote_size} bytes")
+
+        with fpath.open("ab") as fd:
+            with session.get(
+                url, headers=headers, stream=True, verify=verify, params=parameters
+            ) as r:
+                if local_size and r.status_code != 206:
+                    raise ValueError("Server does not support range requests")
+                elif r.status_code not in (200, 206):
+                    r.raise_for_status()
+
+                bytes_written = local_size
+                last_logged_percent = (
+                    int((bytes_written / remote_size) * 100) if remote_size else 0
+                )
+                for data in r.iter_content(chunk_size=chunk_size):
+                    fd.write(data)
+                    bytes_written += len(data)
+                    if remote_size:
+                        percent = int((bytes_written / remote_size) * 100)
+                        if percent > last_logged_percent and percent % 10 == 0:
+                            logger.info(
+                                f"{percent}% ({bytes_written}/{remote_size} bytes)"
+                            )
+                            last_logged_percent = percent
+
         r = session.get(url, params=parameters, stream=True, verify=verify)
         if r.ok:
             with fpath.open("wb") as fd:
@@ -69,9 +107,11 @@ def download_file(
             r.raise_for_status()
         r.close()
     except (
+        requests.RequestException,
         requests.exceptions.BaseHTTPError,
         requests.exceptions.HTTPError,
         requests.exceptions.ChunkedEncodingError,
+        ValueError,
     ) as e:  # pragma: no cover
         logger.exception(e)
         return None
