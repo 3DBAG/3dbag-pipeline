@@ -1,4 +1,6 @@
 import json
+import time
+import random
 from pathlib import Path
 from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
@@ -414,6 +416,15 @@ def download_ahn_laz(
 def download_laz(
     file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
 ):
+    if url is None:
+        url_laz = None
+        fpath_download = Path()
+        success = False
+        is_new = False
+        file_size = 0.0
+        logger.error("Cannot download from url with value None")
+        return file_size, fpath, is_new, success, url_laz
+
     fpath_download = Path()
     for i in range(nr_retries):
         fpath_download = download_file(
@@ -434,6 +445,7 @@ def download_laz(
                 logger.error(f"Download failed after {i + 1} retries")
             else:
                 logger.warning(f"Retrying ({i + 1}/{nr_retries})")
+                time.sleep(random.randrange(1, 5))
         else:
             success = True
             is_new = True
