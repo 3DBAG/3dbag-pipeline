@@ -98,7 +98,7 @@ def party_walls_nl(
         break_on_error=True,
     )
     if df is None:
-        context.log.warning("CityStats returned None")
+        context.log.warning(f"No meshes were found for tile_id {tile_id}.")
         df = DataFrame()
 
     context.add_output_metadata(
