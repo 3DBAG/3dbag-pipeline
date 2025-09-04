@@ -97,6 +97,10 @@ def party_walls_nl(
         dsn=context.resources.db_connection.connect.dsn,
         break_on_error=True,
     )
+    if df is None:
+        context.log.warning("CityStats returned None")
+        df = DataFrame()
+    
     context.add_output_metadata(
         metadata={
             "Rows": len(df),
