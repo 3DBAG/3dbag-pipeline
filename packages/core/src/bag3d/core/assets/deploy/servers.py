@@ -162,7 +162,7 @@ def webservice_godzilla(
             f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
         )
 
-    deploy_dir = transfer_to_godzilla
+    deploy_dir, _ = transfer_to_godzilla
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join(
@@ -177,7 +177,7 @@ def webservice_godzilla(
                 "-f",
                 "PostgreSQL",
                 f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
-                f"/vsizip/{deploy_dir}/3dbag_nl.gpkg.zip",
+                f"/vsizip/{str(deploy_dir)}/3dbag_nl.gpkg.zip",
                 layer,
                 "-nln",
                 layer + "_tmp",
