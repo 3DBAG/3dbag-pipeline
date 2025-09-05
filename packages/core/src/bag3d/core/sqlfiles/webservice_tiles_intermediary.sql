@@ -11,6 +11,7 @@ CREATE TABLE ${validate_compressed_files}
 (
     tile_id                           text,
     cj_zip_ok                         text,
+    cj_file_ok                        text,
     cj_nr_building                    text,
     cj_nr_buildingpart                text,
     cj_nr_invalid_building            text,
@@ -26,9 +27,11 @@ CREATE TABLE ${validate_compressed_files}
     cj_lod                            text,
     cj_schema_valid                   text,
     cj_schema_warnings                text,
+    cj_attributes_with_errors         text,
     cj_download                       text,
     cj_sha256                         text,
     obj_zip_ok                        text,
+    obj_file_ok                       text,
     obj_nr_building                   text,
     obj_nr_buildingpart               text,
     obj_nr_invalid_building           text,
@@ -45,6 +48,7 @@ CREATE TABLE ${validate_compressed_files}
     gpkg_nr_building                  text,
     gpkg_nr_buildingpart              text,
     gpkg_nr_invalid_2d_geom           text,
+    gpkg_attributes_with_errors       text,
     gpkg_download                     text,
     gpkg_sha256                       text
 );
