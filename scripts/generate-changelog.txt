@@ -1,0 +1,5 @@
+git log 9e01ff013c4d3b858b44fc6b4cdb0026df865d86..HEAD --pretty=format:"%h%n%s%n%b%n----" > commits_full.txt
+
+gh pr list --state all --limit 100 --json number,title,body,mergedAt,closedAt,createdAt --jq ".[] | \"#\" + (.number|tostring) + \" \" + .title + \"\n\" + .body + \"\n----\"" > prs_full.txt
+
+Generate a condensed changelog from the attached commit and pr messages since the git commit 9e01ff013c4d3b858b44fc6b4cdb0026df865d86 . The changelog should focus on the github pull requests, and link each major pull request since the mentioned git commit. The change descriptions should be terse. There are commits that are small changes such as updating docker images, formatting, typo fixes and other fixes with minimal or missing description. These commits should be listed under the collective "Other updates".
