@@ -4,7 +4,9 @@ For the changes in the 3DBAG data set, see the [3DBAG release notes](https://doc
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [unreleased]
+## [2025.09.03]
+
+Release that produced the 3DBAG data set version 2025.09.03.
 
 - **[#324](https://github.com/3DBAG/3dbag-pipeline/pull/324)** - Fix dagster concurrency: Refactored AHN LAZ file download concurrency management using Dagster's tag-based concurrency limits
 - **[#316](https://github.com/3DBAG/3dbag-pipeline/pull/316)** - Updated Docker base images and improved projection data handling
@@ -38,6 +40,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Dependency upgrades
 - Small bug fixes and typo corrections
 - Configuration adjustments
+
+### Docker images
+
+The docker images for this release:
+- `3dgi/3dbag-pipeline-dagster:2025.09.03`
+- `3dgi/3dbag-pipeline-core:2025.09.03`
+- `3dgi/3dbag-pipeline-floors-estimation:2025.09.03`
+- `3dgi/3dbag-pipeline-party-walls:2025.09.03`
 
 ## [2024.12.16]
 
