@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Dict, Optional
-from math import ceil
+from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
@@ -8,10 +7,7 @@ from bag3d.core import AHN_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
-
-class PartitionDefinitionAHN(StaticPartitionsDefinition):
-    def __init__(self):
-        super().__init__(partition_keys=sorted(list(AHN_TILE_IDS)))
+partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
@@ -40,12 +36,38 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
         )
 
 
+def invert_geometry_coordinates(geometry):
+    """Invert x and y coordinates in the JSON geometry."""
+    if geometry["type"] == "Polygon":
+        inverted_coords = []
+        for ring in geometry["coordinates"]:
+            inverted_ring = [[coord[1], coord[0]] for coord in ring]
+            inverted_coords.append(inverted_ring)
+        return {"type": "Polygon", "coordinates": inverted_coords}
+    elif geometry["type"] == "MultiPolygon":
+        inverted_coords = []
+        for polygon in geometry["coordinates"]:
+            inverted_polygon = []
+            for ring in polygon:
+                inverted_ring = [[coord[1], coord[0]] for coord in ring]
+                inverted_polygon.append(inverted_ring)
+            inverted_coords.append(inverted_polygon)
+        return {"type": "MultiPolygon", "coordinates": inverted_coords}
+    elif geometry["type"] == "Point":
+        return {
+            "type": "Point",
+            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]],
+        }
+    else:
+        # Return original geometry for unsupported types
+        return geometry
+
+
 def download_ahn_index(
     with_geom: bool = False,
 ) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
     """Downloads the AHN 3/4/5 tile index.
     Args:
-        ahn_version: The AHN version, either 3 or 4 or 5.
         with_geom: If False, request only the AHN tile ids. Else also request the
             tile boundaries as geojson.
     Returns:
@@ -64,7 +86,7 @@ def download_ahn_index(
         "requestedEpsg": "28992",
         "outputFormat": "application/json",
         "CountDefault": "2000",
-        "typeName": "layerId_1e56b6d6-3802-4246-a7ed-8f49824b85db",
+        "typeName": "layerId_05931403-2510-43af-9cc3-f60a066d4482",
     }
     logger.info(f"Downloading the AHN tile boundaries from {service_url}")
 
@@ -90,49 +112,10 @@ def download_ahn_index(
                     "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
                     "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
                     "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
-                    "geometry": f["geometry"],
+                    "geometry": invert_geometry_coordinates(f["geometry"]),
                 }
         else:
             for f in returned_features:
                 features[f["properties"]["AHN"].lower()] = None
 
     return features
-
-
-def tile_index_origin() -> Tuple[float, float, float, float]:  # pragma: no cover
-    """Computes the BBOX of the AHN tile index."""
-    tindex = download_ahn_index(True)
-    minx, miny = tindex["01cz1"]["geometry"]["coordinates"][0][0]
-    maxx, maxy = minx, miny
-    for feature in tindex.values():
-        exterior = feature["geometry"]["coordinates"][0]
-        for x, y in exterior:
-            minx = x if x < minx else minx
-            miny = y if y < miny else miny
-            maxx = x if x > maxx else maxx
-            maxy = y if y > maxy else maxy
-    # Dunno why, but need to swap x-y here to get the correct coordinates
-    return miny, minx, maxy, maxx
-
-
-def generate_grid(bbox: Tuple[float, float, float, float], cellsize: int):
-    """Generates a grid of fixed cell-size for a BBOX.
-    The origin of the grid is the BBOX min coordinates.
-
-    Args:
-        bbox: (minx, miny, maxx, maxy)
-        cellsize: Cell size.
-
-    Returns:
-        The bbox of the generated grid, nr. of cells in X-direction,
-        nr. of cells in Y-direction.
-    """
-    origin = bbox[:2]
-    nr_cells_x = ceil((bbox[2] - bbox[0]) / cellsize)
-    nr_cells_y = ceil((bbox[3] - bbox[1]) / cellsize)
-    bbox_new = (
-        *origin,
-        origin[0] + nr_cells_x * cellsize,
-        origin[1] + nr_cells_y * cellsize,
-    )
-    return bbox_new, nr_cells_x, nr_cells_y

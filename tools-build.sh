@@ -20,14 +20,18 @@ build_lastools=false
 build_gdal=false
 build_geotiff=false
 build_pdal=false
+build_val3dity=false
+build_cjval=false
+build_cjio=false
 
 geos_version="3.12.1"
 geotiff_version="1.7.3"
 proj_version="9.4.0"
 lastools_version="2.0.3"
 gdal_version="3.8.5"
-pdal_version="2.8.0"
+pdal_version="2.8.4"
 geoflow_bundle_version="2024.08.09"
+val3dity_version="2.4.0"
 
 jobs=8
 root_dir=$PWD
@@ -52,6 +56,9 @@ usage() {
  echo " --build-gdal              Build GDAL"
  echo " --build-geotiff           Build GeoTIFF"
  echo " --build-pdal              Build PDAL"
+ echo " --build-val3dity          Build Val3dity"
+ echo " --build-cjval             Build cjval"
+ echo " --build-cjio              Build cjio"
 }
 
 has_argument() {
@@ -101,6 +108,9 @@ handle_options() {
         build_gdal=true
         build_geotiff=true
         build_pdal=true
+        build_val3dity=true
+        build_cjval=true
+        build_cjio=true
         ;;
       --build-tyler)
         build_tyler=true
@@ -129,6 +139,15 @@ handle_options() {
       --build-pdal)
         build_pdal=true
         ;;
+      --build-val3dity)
+        build_val3dity=true
+        ;;
+      --build-cjval)
+        build_cjval=true
+        ;;
+      --build-cjio)
+        build_cjio=true
+        ;;
       *)
         echo "Invalid option: $1" >&2
         usage
@@ -142,6 +161,7 @@ handle_options() {
 # Main script execution
 handle_options "$@"
 cd $root_dir || exit
+
 
 if [ "$build_tyler" = true ] ; then
   printf "\n\nInstalling Tyler...\n\n"
@@ -258,6 +278,9 @@ if [ "$build_gdal" = true ] ; then
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$root_dir \
     -DCMAKE_PREFIX_PATH=$root_dir \
+    -DGDAL_USE_SQLITE3=ON \
+    -DGDAL_USE_GEOS=ON \
+    -DSQLITE_ENABLE_LOAD_EXTENSION=ON \
     -S gdal-${gdal_version} \
     -B gdal-${gdal_version}/build
   cmake --build gdal-${gdal_version}/build -j $jobs --target install --config Release
@@ -321,6 +344,39 @@ if [ "$build_geoflow_roofer" = true ] ; then
   rm -rf geoflow-roofer
 fi
 
+if [ "$build_val3dity" = true ] ; then
+  printf "\n\nInstalling Val3dity...\n\n"
+  cd $root_dir || exit
+  wget --no-verbose https://github.com/tudelft3d/val3dity/archive/refs/tags/${val3dity_version}.zip -O ${val3dity_version}.zip
+  unzip -q ${val3dity_version}.zip
+  mkdir val3dity-${val3dity_version}/build
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=$root_dir \
+    -S val3dity-${val3dity_version} \
+    -B val3dity-${val3dity_version}/build
+  cmake --build val3dity-${val3dity_version}/build -j $jobs --target install --config Release
+  rm -rf val3dity-${val3dity_version}
+  rm ${val3dity_version}.zip
+fi
+
+if [ "$build_cjval" = true ] ; then
+  printf "\n\nInstalling cjval...\n\n"
+  cd $root_dir || exit
+  cargo install \
+    --root . \
+    cjval \
+    --features build-binary
+fi
+
+if [ "$build_cjio" = true ] ; then
+  printf "\n\nInstalling cjio...\n\n"
+  export PIPX_HOME="$root_dir/.pipx"
+  export PIPX_BIN_DIR="$root_dir/bin"
+  pipx install cjio
+  pipx ensurepath
+fi
+
 if [ "$clean_up" = true ] ; then
   cd $root_dir || exit
   printf "\n\nDeleting build artifacts...\n\n"
@@ -339,6 +395,7 @@ if [ "$clean_up" = true ] ; then
   rm -rf libgeotiff-${geotiff_version} || true
   rm PDAL-${pdal_version}-src.tar.gz || true
   rm -rf PDAL-${pdal_version}-src || true
+  rm -rf val3dity-${val3dity_version} || true
   rm -rf build || true
   rm -rf geoflow-bundle-src || true
   rm -rf geoflow-roofer || true

@@ -1,25 +1,28 @@
+import json
+import time
+import random
 from pathlib import Path
-from typing import Tuple, Mapping, Union, Any
+from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
-from dagster import asset, Output, get_dagster_logger
+from dagster import asset, Output, get_dagster_logger, Config, Failure
 
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
-    PartitionDefinitionAHN,
     format_laz_log,
     download_ahn_index,
     ahn_laz_dir,
+    partition_definition_ahn,
 )
 
 logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
-    "ahn5": "https://gist.githubusercontent.com/GinaStavropoulou/4f6b70bd6d356c3a06434916bfa627e0/raw/a87213a9643446b485d5a1b8f5c7416bad1a05f5/01_LAZ.SHA256",
-    "ahn4": "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
-    "ahn3": "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
+    5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
+    4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
+    3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
 }
 
 
@@ -100,16 +103,25 @@ class LAZDownload:
             "Size [Mb]": self.size,
         }
 
+    def compute_sha(self, sha_func: HashChunkwise):
+        """Compute and store the SHA of the local file."""
+        if not self.path.is_file():  # pragma: no cover
+            raise FileNotFoundError(self.path)
+        sha = sha_func.compute(self.path)
+        self.hash_name = sha.name
+        self.hash_hexdigest = sha.hexdigest()
+
     def validate(
         self, sha_reference: Mapping[str, str], sha_func: HashChunkwise
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
-        match, sha = match_sha(
-            fpath=self.path, sha_reference=sha_reference, sha_func=sha_func
+        self.compute_sha(sha_func=sha_func)
+        match = match_sha(
+            fpath=self.path,
+            sha_reference=sha_reference,
+            hash_name=self.hash_name,
+            hash_hexdigest=self.hash_hexdigest,
         )
-
-        self.hash_name = sha.name
-        self.hash_hexdigest = sha.hexdigest()
         if match:
             logger.debug(format_laz_log(self.path, "OK"))
         return match
@@ -118,19 +130,19 @@ class LAZDownload:
 @asset
 def md5_ahn3(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
-    return get_checksums(URL_LAZ_SHA["ahn3"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset
 def md5_ahn4(context):
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
-    return get_checksums(URL_LAZ_SHA["ahn4"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset
 def sha256_ahn5(context):
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
-    return get_checksums(URL_LAZ_SHA["ahn5"])
+    return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset
@@ -139,11 +151,18 @@ def tile_index_ahn(context):
     return download_ahn_index(with_geom=True)
 
 
+class LazFilesConfig(Config):
+    force_download: bool = False
+    check_hash: bool = True
+
+
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download",
 )
-def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
+def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -162,43 +181,43 @@ def laz_files_ahn3(context, md5_ahn3, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
-    )
-
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
-        )
-        second_validation = lazdownload.validate(
+    lazdownload.compute_sha(HashChunkwise("md5"))
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(
+                format_laz_log(
+                    fpath, "First validation failed. Removing and retrying..."
+                )
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
+            )
+            second_validation = lazdownload.validate(
+                sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+            )
+            if not second_validation:
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
+        else:
+            logger.debug(format_laz_log(fpath, "Validation OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download",
 )
-def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
+def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -218,45 +237,45 @@ def laz_files_ahn4(context, md5_ahn4, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
-    )
-
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
-            verify_ssl=verify_ssl,
-        )
-        second_validation = lazdownload.validate(
+    lazdownload.compute_sha(HashChunkwise("md5"))
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(
+                format_laz_log(
+                    fpath, "First validation failed. Removing and retrying..."
+                )
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath,
+                url_laz=url_laz,
+                verify_ssl=verify_ssl,
+            )
+            second_validation = lazdownload.validate(
+                sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+            )
+            if not second_validation:
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
+        else:
+            logger.debug(format_laz_log(fpath, "Validation OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
 @asset(
     required_resource_keys={"file_store"},
-    partitions_def=PartitionDefinitionAHN(),
+    partitions_def=partition_definition_ahn,
+    tags={"dagster/concurrency_key": "laz_download"},
+    pool="laz_download",
 )
-def laz_files_ahn5(context, sha256_ahn5, tile_index_ahn):
+def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn):
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -274,60 +293,81 @@ def laz_files_ahn5(context, sha256_ahn5, tile_index_ahn):
         fpath=fpath,
         url_laz=url_laz,
         verify_ssl=verify_ssl,
+        force_download=config.force_download,
     )
-    first_validation = lazdownload.validate(
-        sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
-    )
-    # Let's try to re-download the file once
-    if not first_validation:
-        logger.info(format_laz_log(fpath, "Removing"))
-        fpath.unlink()
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
-            verify_ssl=verify_ssl,
-        )
-        second_validation = lazdownload.validate(
+    lazdownload.compute_sha(HashChunkwise("md5"))
+    if config.check_hash:
+        first_validation = lazdownload.validate(
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
         )
-        if not second_validation:
-            logger.error(format_laz_log(fpath, "ERROR"))
-            lazdownload = LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
+        # Let's try to re-download the file once
+        if not first_validation:
+            logger.info(
+                format_laz_log(
+                    fpath, "First validation failed. Removing and retrying..."
+                )
             )
-    else:
-        logger.debug(format_laz_log(fpath, "OK"))
+            fpath.unlink()
+            lazdownload = download_ahn_laz(
+                fpath=fpath,
+                url_laz=url_laz,
+                verify_ssl=verify_ssl,
+            )
+            second_validation = lazdownload.validate(
+                sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+            )
+            if not second_validation:
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
+        else:
+            logger.debug(format_laz_log(fpath, "Validation OK"))
 
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-def get_checksums(url: str) -> Mapping[str, str]:
-    """Download the checksums of AHN3/4/5 LAZ files.
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, str]:
+    """
+    Get the AHN LAZ file checksums for the given AHN version.
+
+    Args:
+        url_map (Mapping[int, str]): A mapping between AHN versions as keys and
+            their corresponding checksum file URL as values.
+        ahn_version (int): The version of AHN.
 
     Returns:
-         { filename: checksum }
+        Mapping[str, str]: A dictionary where the keys are filenames and the values
+            are their corresponding SHA-256 or MD5 checksums.
     """
+    url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    for tile in _hashes.strip().split("\n"):
-        sha, file = tile.split()
-        checksums[file] = sha
+    if ahn_version == 5:
+        # We have a GeoJSON FeatureCollection
+        for feature in json.loads(_hashes)["features"]:
+            if properties := feature.get("properties"):
+                if file_url := properties.get("file"):
+                    filename = file_url.split("/")[-1]
+                    checksums[filename] = properties.get("sha256")
+    else:
+        for tile in _hashes.strip().split("\n"):
+            sha, file = tile.split()
+            checksums[file] = sha
     return checksums
 
 
 def download_ahn_laz(
-    fpath: Path, url_laz: str = None, url_base: str = None, verify_ssl: bool = False
+    fpath: Path,
+    url_laz: str = None,
+    url_base: str = None,
+    verify_ssl: bool = False,
+    nr_retries: int = 5,
+    force_download: bool = False,
 ) -> LAZDownload:
     """Download an AHN LAZ file from the input url to the given path,
     if the file does not exists.
 
     Args:
+        force_download: Force downloading the file even if it exists on disk.
+        nr_retries: The number of retries to download the file.
         fpath: Path to the LAZ file that may exist locally. If not it will be downloaded.
         url_laz: Complete URL of the file to download. If provided, 'url_base' is
             ignored.
@@ -340,64 +380,103 @@ def download_ahn_laz(
 
     url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
 
+    success = False
+    file_size = 0.0
+    is_new = False
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        fpath = download_file(
-            url=url, target_path=fpath, chunk_size=1024 * 1024, verify=verify_ssl
+        file_size, fpath, is_new, success, url_laz = download_laz(
+            file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
         )
-        if fpath is None:
-            # Download failed
-            logger.warning(format_laz_log(fpath, "Downloading failed!"))
-            return LAZDownload(
-                url=None,
-                path=Path(),
-                success=False,
-                hash_name=None,
-                hash_hexdigest=None,
-                new=False,
-                size=0.0,
-            )
-        else:
-            is_new = True
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, "File already downloaded"))
+        success = True
+        file_size = round(fpath.stat().st_size / 1e6, 2)
         is_new = False
+        if force_download:
+            logger.info(format_laz_log(fpath, "Forcing re-download"))
+            file_size, fpath, is_new, success, url_laz = download_laz(
+                file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
+            )
+
+    if not success:
+        raise Failure(format_laz_log(fpath, "Downloading failed!"))
+
     return LAZDownload(
         url=url_laz,
         path=fpath,
-        success=True,
+        success=success,
         hash_name=None,
         hash_hexdigest=None,
         new=is_new,
-        size=round(fpath.stat().st_size / 1e6, 2),
+        size=file_size,
     )
 
 
+def download_laz(
+    file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
+):
+    if url is None:
+        url_laz = None
+        fpath_download = Path()
+        success = False
+        is_new = False
+        file_size = 0.0
+        logger.error("Cannot download from url with value None")
+        return file_size, fpath, is_new, success, url_laz
+
+    fpath_download = Path()
+    for i in range(nr_retries):
+        fpath_download = download_file(
+            url=url,
+            target_path=fpath,
+            chunk_size=1024 * 1024,
+            verify=verify_ssl,
+            attempt_resume=True,
+        )
+        if fpath_download is None:
+            # Download failed
+            if i == nr_retries - 1:
+                url_laz = None
+                fpath_download = Path()
+                success = False
+                is_new = False
+                file_size = 0.0
+                logger.error(f"Download failed after {i + 1} retries")
+            else:
+                logger.warning(f"Retrying ({i + 1}/{nr_retries})")
+                time.sleep(random.randrange(1, 5))
+        else:
+            success = True
+            is_new = True
+            file_size = round(fpath_download.stat().st_size / 1e6, 2)
+            break
+
+    return file_size, fpath_download, is_new, success, url_laz
+
+
 def match_sha(
-    fpath: Path, sha_reference: Mapping[str, str], sha_func: HashChunkwise
-) -> Tuple[bool, Any]:
+    fpath: Path, sha_reference: Mapping[str, str], hash_name: str, hash_hexdigest: str
+) -> bool:
     """Verify the SHA of a file against a reference.
 
     Args:
+        hash_hexdigest: The hexadecimal digest of the data passed through the hasher
+        hash_name: Hash function name
         fpath: Path to the file
         sha_reference: Reference SHA sums to match against,
             as { filename : SHA }
-        sha_func: An SHA function object
-
     Returns:
-        Tuple of (success, SHA).
+        True on matching hashes
     """
-    if not fpath.is_file():  # pragma: no cover
-        raise FileNotFoundError(fpath)
-    sha = sha_func.compute(fpath)
     if not sha_reference[fpath.name]:
         # this check if for ensuring that new AHN5 tiles which do not have a
         # checksum yet will still be downloaded.
-        logger.info(format_laz_log(fpath, f"{sha.name} doesn't have a hash"))
-        return True, sha
-    elif sha.hexdigest() == sha_reference[fpath.name]:
-        logger.info(format_laz_log(fpath, f"{sha.name} OK"))
-        return True, sha
+        logger.info(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
+        return True
+    elif hash_hexdigest == sha_reference[fpath.name]:
+        logger.info(format_laz_log(fpath, f"{hash_name} OK"))
+        return True
     else:  # pragma: no cover
-        logger.info(format_laz_log(fpath, f"{sha.name} mismatch"))
-        return False, sha
+        logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
+        return False

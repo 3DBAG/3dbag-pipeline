@@ -20,12 +20,20 @@ WITH repair AS (SELECT ogc_fid                                                AS
                      , tijdstipnietbaglv
                      , st_makevalid((st_dump(st_force2d(wkb_geometry))).geom) AS geometrie
                 FROM ${pand_tbl}
-                WHERE begingeldigheid <= NOW()
-                  AND (eindgeldigheid IS NULL OR eindgeldigheid >= NOW())
-                  AND (tijdstipinactief ISNULL OR tijdstipinactief <= NOW())
-                  AND (status <> 'Niet gerealiseerd pand'
-                    AND status <> 'Pand gesloopt'
-                    AND status <> 'Bouwvergunning verleend'))
+                WHERE (tijdstipinactieflv > ${reference_date} OR
+                       tijdstipinactieflv ISNULL)
+                  AND (tijdstipnietbaglv > ${reference_date} OR
+                       tijdstipnietbaglv ISNULL)
+                  AND (tijdstipregistratielv <= ${reference_date} AND
+                       (tijdstipeindregistratielv > ${reference_date} OR
+                        tijdstipeindregistratielv ISNULL))
+                  AND (begingeldigheid <= ${reference_date} AND
+                       (eindgeldigheid = begingeldigheid OR
+                        eindgeldigheid > ${reference_date} OR eindgeldigheid ISNULL))
+                  AND (status <> 'Niet gerealiseerd pand' AND
+                       status <> 'Pand gesloopt' AND
+                       status <> 'Bouwvergunning verleend' AND
+                       status <> 'Pand ten onrechte opgevoerd'))
    , duplicates AS (SELECT fid
                          , oorspronkelijkbouwjaar
                          , identificatie

@@ -1,4 +1,5 @@
 FROM ubuntu:24.04 AS dependencies
+
 ARG VERSION=latest
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
@@ -9,6 +10,7 @@ LABEL org.opencontainers.image.title="3dbag-pipeline-tools"
 LABEL org.opencontainers.image.description="Builder image for building the 3dbag-pipeline workflow images, also containing all the external tools that are required by the pipeline (roofer, GDAL etc.). Plus, it contains the dagster packages and the virtual environment for running a dagster grpc server for the workflow packages."
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
+
 
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
@@ -25,9 +27,11 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     apt-get -y install libgeos-dev libgeos++-dev sqlite3 \
     libsqlite3-dev libtiff-dev libproj-dev libproj25 libpq5 libpq-dev libpqxx-dev \
     libgeotiff-dev nlohmann-json3-dev openssh-client openssl ca-certificates \
-    libxml++2.6-dev parallel
+    libxml++2.6-dev parallel libeigen3-dev libcgal-dev build-essential libboost-all-dev\
+    libspatialite-dev libspatialite8t64 spatialite-bin \
+    pipx
 
-COPY --from=ghcr.io/astral-sh/uv:0.5.27 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.8.2 /uv /bin/uv
 # Python 3.11 is currently required by the party_walls package
 RUN uv python install 3.11 3.12
 
@@ -46,24 +50,33 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-gdal \
     --build-lastools \
     --build-pdal \
+    --build-val3dity \
+    --build-cjio \
     --jobs $JOBS \
     --clean
 
 ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV PROJ_DATA=/usr/share/proj
+ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 RUN echo $BAG3D_PIPELINE_LOCATION/tools/lib >> /etc/ld.so.conf.d/3dbag-pipeline-tools.conf
-
 
 FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/share/proj /usr/local/share/proj
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib/ /tyler/lib/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /lib64/ /tyler/lib64/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/ /tyler/usr/
-COPY --from=3dgi/tyler-multiformat:0.4.0-alpha8 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+COPY --from=3dgi/tyler:0.3.13 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler:0.3.13 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler:0.3.13 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler:0.3.13 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler:0.3.13 /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+# Include Dutch transformation grids
+COPY --from=3dgi/tyler:0.3.13 /usr/local/share/proj/nl_nsgi_nlgeo2018.tif $PROJ_DATA/nl_nsgi_nlgeo2018.tif
+COPY --from=3dgi/tyler:0.3.13 /usr/local/share/proj/nl_nsgi_rdtrans2018.tif $PROJ_DATA/nl_nsgi_rdtrans2018.tif
+
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /lib/ /tyler/lib/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /lib64/ /tyler/lib64/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/ /tyler/usr/
+COPY --from=3dgi/tyler-multiformat:0.4.0-alpha10 /usr/local/bin/tyler-multiformat $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-multiformat
 
 COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib/ /tyler/lib/
 COPY --from=3dgi/tyler-db:0.3.4-db-alpha5 /lib64/ /tyler/lib64/
@@ -76,10 +89,10 @@ RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     ldconfig
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/master/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createMulti.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/metadata.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/master/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature_multi.json
 
 
@@ -90,21 +103,19 @@ ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 COPY --from=3dgi/roofer:develop /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
 COPY --from=3dgi/roofer:develop /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
 COPY --from=3dgi/roofer:develop /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV GDAL_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/gdal
-ENV PROJ_DATA=$BAG3D_PIPELINE_LOCATION/tools/share/proj
 
 # We only need this until we replace the old geoflow with roofer
 FROM roofer AS geoflow-old
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /export /export
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/LASlib /export/usr/local/lib/
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/gdalplugins /export/usr/local/lib/
-COPY --from=3dgi/geoflow-bundle-builder:2024.12.16 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /export /export
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/lib/LASlib /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/lib/gdalplugins /export/usr/local/lib/
+COPY --from=3dgi/geoflow-bundle-builder:2025.09.01 /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
 
 RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \
@@ -116,6 +127,7 @@ RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts && \
 
 
 FROM geoflow-old AS dagster
+
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 # Activate the virtual environment
@@ -126,10 +138,6 @@ ENV DAGSTER_HOME=/opt/dagster/dagster_home/
 
 RUN mkdir -p $DAGSTER_HOME && \
     touch $DAGSTER_HOME/dagster.yaml
-#RUN useradd -ms /bin/sh -u 1001 bag3d && \
-#    chown -R bag3d /opt/3dbag-pipeline && \
-#    chown -R bag3d $DAGSTER_HOME
-#USER bag3d
 
 # Create a virtual environment, otherwise python complains
 RUN uv venv --python 3.12 $VIRTUAL_ENV
@@ -138,9 +146,13 @@ COPY docker/tools/requirements.txt .
 RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
 
 
+FROM dagster AS cjval
 
-FROM dagster AS test-tools
+ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
+COPY --from=tudelft3d/cjval:0.8.2 /usr/local/bin/cjval $BAG3D_PIPELINE_LOCATION/tools/bin/cjval
+
+FROM cjval AS test-tools
 # Clean up the image
 RUN rm -rf $HOME/.cache/*; \
     apt-get -y remove \

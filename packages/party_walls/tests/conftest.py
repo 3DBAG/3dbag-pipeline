@@ -1,13 +1,19 @@
 import os
-import pickle
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource
-from dagster import AssetKey, IOManager, SourceAsset, build_op_context
+from bag3d.common.types import ExportResult
+from bag3d.party_walls.assets.party_walls import (
+    TilesFilesIndex,
+)
+from dagster import build_op_context
 import pandas as pd
+from shapely import STRtree, from_wkt
+import numpy as np
+
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
@@ -17,12 +23,6 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 VERSION = "test_version"
 
-# update quadtree
-og_quadtree = Path(LOCAL_DIR) / "quadtree.tsv"
-export_dir = Path(LOCAL_DIR) / "reconstruction_input" / "3DBAG" / ("export_" + VERSION)
-export_dir.mkdir(exist_ok=True, parents=True)
-os.system(f"cp {og_quadtree} {export_dir}")
-
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -30,15 +30,20 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def input_data_dir(test_data_dir) -> Path:
-    """Root directory path for test data"""
-    return test_data_dir / "reconstruction_input"
+def party_walls_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_party_walls"
 
 
 @pytest.fixture(scope="session")
-def fastssd_data_dir(test_data_dir) -> Path:
+def party_walls_file_store_fastssd(party_walls_integration_test_dir) -> Path:
     """Root directory path for test data"""
-    return test_data_dir / "integration_party_walls"
+    return party_walls_integration_test_dir / "file_store_fastssd"
+
+
+@pytest.fixture(scope="session")
+def party_walls_file_store(party_walls_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return party_walls_integration_test_dir / "file_store"
 
 
 @pytest.fixture(scope="session")
@@ -56,13 +61,15 @@ def database():
 
 
 @pytest.fixture
-def context(database, input_data_dir, fastssd_data_dir):
+def context(database, party_walls_file_store, party_walls_file_store_fastssd):
     yield build_op_context(
-        partition_key="10/564/624",
+        partition_key="0/0/0",
         resources={
             "db_connection": database,
-            "file_store": FileStoreResource(data_dir=str(input_data_dir)),
-            "file_store_fastssd": FileStoreResource(data_dir=str(fastssd_data_dir)),
+            "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
+            "file_store_fastssd": FileStoreResource(
+                data_dir=str(party_walls_file_store_fastssd)
+            ),
             "version": VersionResource(VERSION),
         },
     )
@@ -107,70 +114,50 @@ def mock_party_walls_nl(intermediate_data_dir) -> pd.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def mock_features_file_index(intermediate_data_dir, fastssd_data_dir):
-    data = pickle.load(open(intermediate_data_dir / "features_file_index.pkl", "rb"))
-    for k, v in data.items():
-        data[k] = Path(
-            str(v)
-            .replace(str(v.parents[8]), str(fastssd_data_dir))
-            .replace("export", "export_test_version")
-        )
-    return data
+def mock_features_file_index(party_walls_file_store_fastssd):
+    return {
+        "NL.IMBAG.Pand.0307100000308298": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000308298/reconstruct/NL.IMBAG.Pand.0307100000308298.city.jsonl",
+        "NL.IMBAG.Pand.0307100000368987": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000368987/reconstruct/NL.IMBAG.Pand.0307100000368987.city.jsonl",
+        "NL.IMBAG.Pand.0307100000547663": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000547663/reconstruct/NL.IMBAG.Pand.0307100000547663.city.jsonl",
+        "NL.IMBAG.Pand.0307100000536600": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000536600/reconstruct/NL.IMBAG.Pand.0307100000536600.city.jsonl",
+        "NL.IMBAG.Pand.0307100000313420": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000313420/reconstruct/NL.IMBAG.Pand.0307100000313420.city.jsonl",
+        "NL.IMBAG.Pand.0307100000332591": party_walls_file_store_fastssd
+        / "3DBAG/crop_reconstruct/10/564/624/objects/NL.IMBAG.Pand.0307100000332591/reconstruct/NL.IMBAG.Pand.0307100000332591.city.jsonl",
+    }
 
 
 @pytest.fixture(scope="session")
-def mock_distribution_tiles_files_index(intermediate_data_dir, input_data_dir):
-    data = pickle.load(
-        open(intermediate_data_dir / "distribution_tiles_files_index.pkl", "rb")
-    )
-    for i, d in enumerate(data.paths_array):
-        data.paths_array[i] = Path(
-            str(d)
-            .replace(str(d.parents[6]), str(input_data_dir))
-            .replace("export", "export_test_version")
+def mock_distribution_tiles_files_index(party_walls_file_store):
+    export_results = {
+        "0/0/0": ExportResult(
+            tile_id="0/0/0",
+            cityjson_path=PosixPath(
+                f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0.city.json"
+            ),
+            gpkg_path=PosixPath(
+                f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0.gpkg"
+            ),
+            obj_paths=(
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD13-3D.obj"
+                ),
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD12-3D.obj"
+                ),
+                PosixPath(
+                    f"{party_walls_file_store}/3DBAG/export_test_version/tiles/0/0/0/0-0-0-LoD22-3D.obj"
+                ),
+            ),
+            wkt="POLYGON((154565.241 462855.414, 155565.241 462855.414, 155565.241 463855.414, 154565.241 463855.414, 154565.241 462855.414))",
         )
-    for k, v in data.export_results.items():
-        cj_path = data.export_results[k].cityjson_path
-        data.export_results[k].cityjson_path = Path(
-            str(cj_path)
-            .replace(str(cj_path.parents[6]), str(input_data_dir))
-            .replace("export", "export_test_version")
-        )
-        gpkg_path = data.export_results[k].gpkg_path
-        data.export_results[k].gpkg_path = Path(
-            str(gpkg_path)
-            .replace(str(gpkg_path.parents[6]), str(input_data_dir))
-            .replace("export", "export_test_version")
-        )
-        # TODO: fix data.export_results[k].obj_paths
-    return data
-
-
-@pytest.fixture(scope="session")
-def mock_asset_features_file_index(mock_features_file_index):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return mock_features_file_index
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", "features_file_index"]),
-        io_manager_def=MockIOManager(),
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_distribution_tiles_files_index(mock_distribution_tiles_files_index):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return mock_distribution_tiles_files_index
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["party_walls", "distribution_tiles_files_index"]),
-        io_manager_def=MockIOManager(),
+    }
+    tree = STRtree(tuple(from_wkt(t.wkt) for t in export_results.values()))
+    paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
+    return TilesFilesIndex(
+        export_results=export_results, tree=tree, paths_array=paths_array
     )

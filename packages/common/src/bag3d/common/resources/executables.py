@@ -115,6 +115,7 @@ class AppImage:
         local_path: Path = None,
         silent=False,
         cwd: str = None,
+        output_logging: str = "STREAM",
     ) -> Tuple[int, str]:
         """Execute a command in a docker container if an image is available, otherwise
         execute with the local executable.
@@ -149,20 +150,20 @@ class AppImage:
                 mounted on the ``mount_point`` as
                 ``local_path : mount_point/local_path.name``.
             silent: If False, send execution messages to the logger, else do not log.
+            output_logging: The logging mode to use. Supports STREAM, BUFFER, and NONE.
+                STREAM: Stream back logs as they are emitted. BUFFER: Collect and
+                buffer all logs, then emit.
 
         Returns:
-             The STDOUT and return code from the command execution.
+             The return code and STDOUT from the command execution.
 
         Examples:
+            >>> # Pass the name of the exe first, then the command, including the
+            ... # 'exe' placeholder.
+            ... self.execute("ogrinfo", "{exe} --version")
 
-            .. code-block:: python
-
-                # Pass the name of the exe first, then the command, including the
-                # 'exe' placeholder.
-                self.execute("ogrinfo", "{exe} --version")
-
-                self.execute("ogrinfo", "{exe} -so -al {local_path}",
-                             local_path=Path("/tmp/myfile.gml"))
+            >>> self.execute("ogrinfo", "{exe} -so -al {local_path}",
+            ...              local_path=Path("/tmp/myfile.gml"))
         """
         if kwargs:
             if "exe" in kwargs:
@@ -203,7 +204,7 @@ class AppImage:
                 output, return_code = execute_shell_command(
                     shell_command=command.format(**kwargs_with_exe),
                     log=self.logger,
-                    output_logging="STREAM",
+                    output_logging=output_logging,
                     cwd=cwd,
                 )
         if return_code != 0:
@@ -244,8 +245,9 @@ class AppImage:
                 "executable resource was not initialized with a docker image"
             )
 
-    def version(self, exe: str):
-        version, returncode = execute_shell_command_silent(f"{exe} --version")
+    def version(self, exe: str, version_cmd: str = "--version"):
+        exe_path = self.exes[exe]
+        version, returncode = execute_shell_command_silent(f"{exe_path} {version_cmd}")
         return format_version_stdout(version)
 
 
@@ -412,10 +414,53 @@ class TylerResource(ConfigurableResource):
 
     exe_tyler: Optional[str] = None
     exe_tyler_db: Optional[str] = None
+    exe_tyler_multiformat: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {"tyler": self.exe_tyler, "tyler-db": self.exe_tyler_db}
+        return {
+            "tyler": self.exe_tyler,
+            "tyler-db": self.exe_tyler_db,
+            "tyler-multiformat": self.exe_tyler_multiformat,
+        }
+
+    @property
+    def with_docker(self) -> bool:
+        return False
+
+    @property
+    def app(self) -> AppImage:
+        return AppImage(exes=self.exes, with_docker=self.with_docker)
+
+
+class ValidationResource(ConfigurableResource):
+    """
+    A ValidationResource can be configured by providing the paths to
+    the val3dity, cjval and cjio executables on the local system.
+
+    For the local exes you can use:
+
+        validation_resource = ValidationResource(exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
+                                                 exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+                                                 exe_cjio=os.getenv("EXE_PATH_CJIO"))
+
+    After the resource has been instantiated, val3dity (AppImage) can
+    be acquired with the `app` property:
+
+        validation = validation_resource.app
+    """
+
+    exe_val3dity: Optional[str] = None
+    exe_cjval: Optional[str] = None
+    exe_cjio: Optional[str] = None
+
+    @property
+    def exes(self) -> Dict[str, str]:
+        return {
+            "val3dity": self.exe_val3dity,
+            "cjval": self.exe_cjval,
+            "cjio": self.exe_cjio,
+        }
 
     @property
     def with_docker(self) -> bool:

@@ -29,13 +29,39 @@ jobs:
       run: |
         make download
         make docker_volume_create
-        make docker_up
+    - name: Start containers
+      id: start-containers
+      continue-on-error: true
+      run: make docker_up
+    - name: Restart containers (attempt 1)
+      if: steps.start-containers.outcome == 'failure'
+      id: restart-1
+      continue-on-error: true
+      run: make docker_up
+    - name: Restart containers (attempt 2)
+      if: steps.start-containers.outcome == 'failure' && steps.restart-1.outcome == 'failure'
+      run: make docker_up
+
     - name: Run unit tests
       run: make test
+
     - name: Recreate volumes
       run: |
         make docker_down
         make docker_volume_recreate
+    - name: Recreate services
+      id: recreate-services
+      continue-on-error: true
+      run: |
         make docker_up_nobuild
+    - name: Restart containers (attempt 1)
+      if: steps.recreate-services.outcome == 'failure'
+      id: restart-3
+      continue-on-error: true
+      run: make docker_restart_containers
+    - name: Restart containers (attempt 2)
+      if: steps.recreate-services.outcome == 'failure' && steps.restart-3.outcome == 'failure'
+      run: make docker_restart_containers
+
     - name: Run integration tests
       run: make test_integration

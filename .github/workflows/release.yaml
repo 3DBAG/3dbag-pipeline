@@ -57,7 +57,7 @@ jobs:
       - name: Create Pull Request to develop
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: merge-release-back-to-develop
+          branch: master
           base: develop
           title: 'Merge release ${{ github.event.inputs.version }} back to develop'
           body: |
@@ -65,10 +65,7 @@ jobs:
 
             Changes included in this release:
 
-            ```
             $(cat RELEASE_NOTES.md)
-            ```
           labels: |
             release
             automated pr
-          delete-branch: true

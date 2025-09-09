@@ -19,7 +19,16 @@ plugins:
   - literate-nav:
       nav_file: SUMMARY.md
   - section-index
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [packages/common/src]
+          options:
+            show_source: true
+            docstring_style: google
+            show_docstring_parameters: true
+            show_docstring_returns: true
+            show_docstring_examples: true
 #  - navigation.instant
 #  - navigation.tracking
 #  - navigation.sections
@@ -31,17 +40,11 @@ plugins:
 #  - content.tabs.link
 
 markdown_extensions:
+  - admonition
   - markdown_include.include:
       base_path: docs
   - toc:
       permalink: true
-  # Python Markdown Extensions
-  - pymdownx.highlight
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - admonition
-  - pymdownx.details
 
 nav:
   - Overview:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-common"
-version = "2024.12.16"
+version = "2025.09.03"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,6 +27,8 @@ dependencies = [
     "requests==2.31.0",
     "pgutils",
     "psycopg[binary]~=3.2.3",
+    "bag3d-specs",
+    "fabric~=3.2.2",
 ]
 
 [project.optional-dependencies]
@@ -40,4 +42,11 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2025.1015" }
+bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", rev = "2025.09.03" }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*is not a Python type.*:UserWarning",
+    "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+]

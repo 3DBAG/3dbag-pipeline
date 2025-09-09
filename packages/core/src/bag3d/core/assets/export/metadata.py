@@ -99,17 +99,17 @@ def feature_evaluation(context):
     attributes_to_include = (
         "b3_pw_selectie_reden",
         "b3_pw_bron",
-        "b3_puntdichtheid_AHN3",
-        "b3_puntdichtheid_AHN4",
-        "b3_puntdichtheid_AHN5",
-        "b3_mutatie_AHN3_AHN4",
-        "b3_mutatie_AHN4_AHN5",
-        "b3_nodata_fractie_AHN3",
-        "b3_nodata_fractie_AHN4",
-        "b3_nodata_fractie_AHN5",
-        "b3_nodata_radius_AHN3",
-        "b3_nodata_radius_AHN4",
-        "b3_nodata_radius_AHN5",
+        "b3_puntdichtheid_ahn3",
+        "b3_puntdichtheid_ahn4",
+        "b3_puntdichtheid_ahn5",
+        "b3_mutatie_ahn3_ahn4",
+        "b3_mutatie_ahn4_ahn5",
+        "b3_nodata_fractie_ahn3",
+        "b3_nodata_fractie_ahn4",
+        "b3_nodata_fractie_ahn5",
+        "b3_nodata_radius_ahn3",
+        "b3_nodata_radius_ahn4",
+        "b3_nodata_radius_ahn5",
     )
     cityobject_info = {lod: 0 for lod in lods}
     cityobject_info["has_geometry"] = False
@@ -140,6 +140,15 @@ def feature_evaluation(context):
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
     context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
+    # Save not_reconstructed buildings to a text file
+    not_reconstructed_file = output_dir.joinpath("not_reconstructed_buildings.txt")
+    with not_reconstructed_file.open("w") as f:
+        for building_id in sorted(not_reconstructed):
+            f.write(f"{building_id}\n")
+    context.log.info(
+        f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}"
+    )
+
     for feature in not_reconstructed:
         cityobjects[feature] = cityobject_info
 
@@ -152,7 +161,7 @@ def feature_evaluation(context):
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
     required_resource_keys={"file_store", "version"},
 )
-def export_index(context):
+def export_index(context) -> Path:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
@@ -190,7 +199,7 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
     required_resource_keys={"file_store", "version"},
 )
 def metadata(context: AssetExecutionContext):
-    """3D BAG metadata for distribution.
+    """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
 
@@ -254,15 +263,15 @@ def metadata(context: AssetExecutionContext):
     metadata = {
         "identificationInfo": {
             "citation": {
-                "title": "3D BAG",
+                "title": "3DBAG",
                 "date": date_3dbag,
                 "dateType": "creation",
                 "edition": version_3dbag,
                 "identifier": uuid_3dbag,
             },
-            "abstract": "De 3D BAG is een up-to-date landsdekkende dataset met 3D gebouwmodellen van Nederland. De 3D BAG is open data. Het bevat 3D modellen op verscheidene detailniveaus welke zijn gegenereerd door de combinatie van twee open datasets: de pand-gegevens uit de BAG en de hoogtegegevens uit de AHN. De 3D BAG wordt regelmatig geüpdatet met de meest recente openlijk beschikbare pand- en hoogtegegevens.",
+            "abstract": "De 3DBAG is een up-to-date landsdekkende dataset met 3D gebouwmodellen van Nederland. De 3DBAG is open data. Het bevat 3D modellen op verscheidene detailniveaus welke zijn gegenereerd door de combinatie van twee open datasets: de pand-gegevens uit de BAG en de hoogtegegevens uit de AHN. De 3DBAG wordt regelmatig geüpdatet met de meest recente openlijk beschikbare pand- en hoogtegegevens.",
             "pointOfContact": {
-                "organisationName": "3D BAG",
+                "organisationName": "3DBAG",
                 "contactInfo": {
                     "address": {
                         "country": "Nederland",
@@ -278,7 +287,7 @@ def metadata(context: AssetExecutionContext):
                     "otherConstraints": [
                         {
                             "href": "http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1",
-                            "text": "Naamensvermelding verplicht, 3D BAG door de 3D geoinformation onderzoeksgroep (TU Delft) en 3DGI",
+                            "text": "Naamensvermelding verplicht, 3DBAG door de 3D geoinformation onderzoeksgroep (TU Delft) en 3DGI",
                         }
                     ],
                 }
@@ -351,27 +360,37 @@ def metadata(context: AssetExecutionContext):
                 "software": [
                     {
                         "name": "geoflow-bundle",
-                        "version": resource_defs["geoflow"].app.version("geof"),
+                        "version": resource_defs["geoflow"].app.version(
+                            "geof", version_cmd="--list-plugins --verbose"
+                        ),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
-                        "description": "3D building model reconstruction",
+                        "description": "Format conversion to CityJSON, OBJ, GeoPackage, glTF",
                     },
                     {
                         "name": "roofer",
-                        "version": resource_defs["roofer"].app.version("crop"),
-                        "repository": "https://github.com/3DGI/roofer",
-                        "description": "Point cloud selection and cropping",
+                        "version": resource_defs["roofer"].app.version("roofer"),
+                        "repository": "https://github.com/3DBAG/roofer",
+                        "description": "Point cloud selection and building reconstruction",
                     },
                     {
                         "name": "tyler",
                         "version": resource_defs["tyler"].app.version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
-                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
+                        "description": "Generating Cesium 3DTiles",
                     },
                     {
                         "name": "tyler-db",
                         "version": resource_defs["tyler"].app.version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
+                    },
+                    {
+                        "name": "tyler-multiformat",
+                        "version": resource_defs["tyler"].app.version(
+                            "tyler-multiformat"
+                        ),
+                        "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
+                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
                     },
                     {
                         "name": "GDAL",
@@ -381,13 +400,18 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "PDAL",
-                        "version": resource_defs["pdal"].app.version("pdal"),
+                        "version": resource_defs["pdal"]
+                        .app.version("pdal")
+                        .replace("-", "")
+                        .replace(",", ""),
                         "repository": "https://pdal.io",
                         "description": "Computing point cloud metadata",
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].app.version("lasindex"),
+                        "version": resource_defs["lastools"].app.version(
+                            "lasindex", version_cmd="-version"
+                        ),
                         "repository": "https://lastools.github.io/",
                         "description": "Point cloud tiling and indexing",
                     },

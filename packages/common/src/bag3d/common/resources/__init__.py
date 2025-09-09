@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -8,10 +7,13 @@ from bag3d.common.resources.executables import (
     TylerResource,
     RooferResource,
     GeoflowResource,
+    ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
 
 from dagster import EnvVar, get_dagster_logger
 
@@ -19,6 +21,7 @@ logger = get_dagster_logger()
 
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
+specs = Specs3DBAGResource()
 
 gdal = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
@@ -40,19 +43,21 @@ db_connection = DatabaseResource(
 )
 
 
+godzilla_server = ServerTransferResource(
+    host=EnvVar("BAG3D_GODZILLA_HOST").get_value(),
+    user=EnvVar("BAG3D_GODZILLA_USER").get_value(),
+    target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value(),
+    public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
+)
+
+podzilla_server = ServerTransferResource(
+    host=EnvVar("BAG3D_PODZILLA_HOST").get_value(),
+    user=EnvVar("BAG3D_PODZILLA_USER").get_value(),
+    target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value(),
+)
+
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD"))
-
-file_store_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input")
-)
-file_store_fastssd_test = FileStoreResource(
-    data_dir=str(Path(os.getenv("BAG3D_FILESTORE")) / "integration_core")
-)
-
-# Configure for  gilfoyle
-file_store_gilfoyle = FileStoreResource(data_dir="/data")
-file_store_gilfoyle_fastssd = FileStoreResource(data_dir="/fastssd/data")
 
 
 lastools = LASToolsResource(
@@ -61,7 +66,9 @@ lastools = LASToolsResource(
 )
 
 tyler = TylerResource(
-    exe_tyler=os.getenv("EXE_PATH_TYLER"), exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB")
+    exe_tyler=os.getenv("EXE_PATH_TYLER"),
+    exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+    exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
 )
 
 roofer = RooferResource(
@@ -74,6 +81,12 @@ geoflow = GeoflowResource(
     flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
 )
 
+validation = ValidationResource(
+    exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
+    exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+    exe_cjio=os.getenv("EXE_PATH_CJIO"),
+)
+
 
 resource_defs = {
     "gdal": gdal,
@@ -84,24 +97,15 @@ resource_defs = {
     "lastools": lastools,
     "tyler": tyler,
     "geoflow": geoflow,
+    "validation": validation,
     "roofer": roofer,
     "version": version,
+    "specs": specs,
+    "godzilla_server": godzilla_server,
+    "podzilla_server": podzilla_server,
 }
 
 
-# RESOURCES_TEST = {
-#     "gdal": gdal,
-#     "file_store": file_store_test,
-#     "file_store_fastssd": file_store_fastssd_test,
-#     "db_connection": db_connection,
-#     "pdal": pdal,
-#     "lastools": lastools,
-#     "tyler": tyler,
-#     "geoflow": geoflow,
-#     "roofer": roofer,
-#     "version": version,
-# }
-#
 # RESOURCES_PROD = {
 #     "gdal": gdal,
 #     "file_store": file_store_gilfoyle,
@@ -111,8 +115,12 @@ resource_defs = {
 #     "lastools": lastools,
 #     "tyler": tyler,
 #     "geoflow": geoflow,
+#     "validation": validation,
 #     "roofer": roofer,
 #     "version": version,
+#     "specs": specs,
+#     "godzilla_server": godzilla_server,
+#     "podzilla_server": podzilla_server,
 # }
 #
 # RESOURCES_DEFAULT = {
@@ -124,8 +132,12 @@ resource_defs = {
 #     "lastools": LASToolsResource(),
 #     "tyler": TylerResource(),
 #     "geoflow": GeoflowResource(),
+#     "validation": ValidationResource(),
 #     "roofer": RooferResource(),
 #     "version": VersionResource(),
+#     "specs": specs,
+#     "godzilla_server": ServerTransferResource(),
+#     "podzilla_server": ServerTransferResource(),
 # }
 #
 #

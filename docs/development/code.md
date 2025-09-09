@@ -84,7 +84,17 @@ The `docker_watch` and `docker_up` targets will set the docker compose project n
 
 ### Docker setup in PyCharm (professional)
 
+#### Running the services
+
 Create run configuration that uses the docker compose file.
+You need to set the `docker/.env` environment variables file and set two environment variables manually.
+These two environment variables are the same that the `makefile` sets, when using the make-based setup:
+
+```shell
+COMPOSE_PROJECT_NAME=bag3d-dev
+BAG3D_DOCKER_IMAGE_TAG=develop
+```
+
 For example, see the screenshot below. 
 ![](../images/docker_compose_run_config.png)
 
@@ -92,20 +102,37 @@ Start the services by running the configuration from the compose file.
 For example, see the screenshot below. 
 ![](../images/docker_compose_start.png)
 
-Set up the python interpreter in the docker container as the project interpreter, using PyCharm's docker-compose interpreter setup.
-Note here that you need to use the matching service for the 3dbag-pipeline package. 
-For example, for working on the `core` package, you need to configure the `bag3d-core` service for the python interpreter.
+#### Running tests
+
+Make sure that the docker volumes are created (see above), but the [docker services](#Running-the-services) are not running and the containers are removed.
+
+You need to add a python interpreter per workflow package (core, floors_estimation, party_walls). 
+Set up the python interpreter in the docker container of the workflow packages as the project interpreter, using PyCharm's docker-compose interpreter setup (`Add Interpreter` / `On Docker Compose...`).
+Note here that you need to use the matching service for the 3dbag-pipeline package, and set the two environment variables just as when configuring the [docker services](#Running-the-services). 
+For example, for working on the `core` package, you need to configure the `bag3d-core` service for the python interpreter.\
+After clicking 'Next', you might need to manually set the path to the python executable, which is `/opt/3dbag-pipeline/venv/bin/python`. The python installation is configured in the [tools docker image](deployment/docker.md).
+
+![](../images/docker_compose_interpreter.png)
 
 To run a specific test, set up a run configuration with the python interpreter in docker and make sure to use the environment variables from the `docker/.env` file.
 ![](../images/docker_compose_test_config.png)
 
 For further details, see the [PyCharm documentation](https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run).
 
+#### Python interpreter in a container
+
+To set up a Python interpreter for getting correct code analysis in the editor and being able to run a python console, you need to add a new interpreter in a docker container.
+
+1. Build the docker images from the local source code with `make docker_up`.
+2. Add a new python interpreter with `Add New Interpreter` > `On Docker...` (instead of `On Docker Compose...`).
+3. Set `Pull or use existing` image (instead of `Build`).
+4. Set image to `3dbag-pipeline-core:develop`. This image should have been built by the `make docker_up` step.
+
 ### Code formatting
 
 In you have a local installation of `uv`, you can format you code with:
 
-```
+```shell
 make format
 ```
 
@@ -118,28 +145,28 @@ Some tests take a long time to execute. These are marked with the `@pytest.mark.
 The tests use the sample data that are downloaded as shown above.
 
 You can run the fast unit test for all packages with:
- 
- ```shell
- make test
- ```
+
+```shell
+make test
+```
 
 For running also the slow tests (which require more time) you can run:
 
-  ```shell
- make test_slow
- ```
+```shell
+make test_slow
+```
 
- For running the integration tests you can use:
+For running the integration tests you can use:
 
-  ```shell
- make test_integration
- ```
+```shell
+make test_integration
+```
 
- For running all tests, you can run:
+For running all tests, you can run:
 
- ```shell
- make test_all
- ```
+```shell
+make test_all
+```
 
 ## Installing requirements without the Docker setup
 

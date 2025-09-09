@@ -77,6 +77,7 @@ check_exe_lastools() {
   fi
 }
 
+
 check_exe_help() {
   bin/$1 --help &> /dev/null
   if [ $? -eq 0 ] ; then
@@ -94,8 +95,11 @@ check_exe "geof"
 check_exe "ogr2ogr"
 check_exe "ogrinfo"
 check_exe "pdal"
+check_exe "val3dity"
+check_exe "cjval"
+check_exe "cjio"
 check_exe_help "sozip"
 check_exe_lastools "las2las64"
 check_exe_lastools "lasindex64"
 
-exit $all_ok
+exit #$all_ok

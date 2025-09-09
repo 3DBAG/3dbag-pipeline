@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common import resources
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.specs import Specs3DBAGResource
 from dagster import EnvVar
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -9,6 +10,12 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
 )
 from bag3d.common.utils.geodata import pdal_info
+
+
+def test_specs_3dbag():
+    """Can we load the 3DBAG attributes specs?"""
+    specs = Specs3DBAGResource()
+    assert len(specs.attributes) > 0
 
 
 def test_gdal_local(test_data_dir):
@@ -30,16 +37,15 @@ def test_gdal_local(test_data_dir):
     assert return_code == 0
 
 
-def test_pdal_local(laz_files_ahn3_dir):
+def test_pdal_local(sample_laz_file):
     """Use local PDAL installation"""
     pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
     assert not pdal.with_docker
-    filepath = laz_files_ahn3_dir / "t_1042098.laz"
-    return_code, output = pdal_info(pdal.app, filepath, with_all=True)
+    return_code, output = pdal_info(pdal.app, sample_laz_file, with_all=True)
     assert return_code == 0
 
 
-def test_lastools(laz_files_ahn3_dir):
+def test_lastools(sample_laz_file):
     lastools_resource = LASToolsResource(
         exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value(),
         exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value(),
@@ -47,8 +53,6 @@ def test_lastools(laz_files_ahn3_dir):
     assert not lastools_resource.with_docker
 
     lastools = lastools_resource.app
-
-    filepath = laz_files_ahn3_dir / "t_1042098.laz"
 
     cmd_list = [
         "{exe}",
@@ -59,7 +63,7 @@ def test_lastools(laz_files_ahn3_dir):
         "-dont_reindex",
     ]
     return_code, output = lastools.execute(
-        "lasindex", " ".join(cmd_list), local_path=filepath
+        "lasindex", " ".join(cmd_list), local_path=sample_laz_file
     )
 
     assert return_code == 0
@@ -68,7 +72,7 @@ def test_lastools(laz_files_ahn3_dir):
 def test_file_store_init_temp():
     """Can we create a local temporary directory with random id
     with the correct permissions?"""
-    res = resources.files.FileStoreResource().file_store
+    res = FileStoreResource().file_store
     path = Path(res.data_dir)
     assert path.exists()
     with (res.data_dir / "file.txt").open("w") as fo:
@@ -82,7 +86,7 @@ def test_file_store_init_temp():
 
 def test_file_store_init_data_dir(tmp_path):
     """Can we use an existing directory?"""
-    res = resources.files.FileStoreResource(data_dir=tmp_path).file_store
+    res = FileStoreResource(data_dir=tmp_path).file_store
     path = Path(res.data_dir)
     assert path.exists()
     assert path == tmp_path

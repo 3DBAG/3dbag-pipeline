@@ -26,6 +26,10 @@ tests/dagster_home/storage/
 
 # Virtual env
 .venv/
+packages/common/.venv
+packages/core/.venv
+packages/floors_estimation/.venv
+packages/party_walls/.venv
 
 # Documentation
 site

@@ -6,6 +6,10 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                                        THEN NULL::boolean
                                                    ELSE cj_zip_ok::boolean END                     AS cj_zip_ok
                                              , CASE
+                                                   WHEN cj_file_ok ISNULL OR length(cj_file_ok) = 0
+                                                       THEN NULL::boolean
+                                                   ELSE cj_file_ok::boolean END                     AS cj_file_ok
+                                             , CASE
                                                    WHEN cj_nr_building ISNULL OR length(cj_nr_building) = 0
                                                        THEN NULL::int
                                                    ELSE cj_nr_building::int END                    AS cj_nr_building
@@ -93,6 +97,13 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                                        THEN NULL::boolean
                                                    ELSE cj_schema_warnings::boolean END            AS cj_schema_warnings
                                              , CASE
+                                                   WHEN cj_attributes_with_errors ISNULL OR
+                                                         length(cj_attributes_with_errors) = 0
+                                                         THEN NULL::text[]
+                                                   ELSE string_to_array(
+                                                           replace(replace(cj_attributes_with_errors, '[', ''), ']', ''),
+                                                           ',')::text[] END         AS cj_attributes_with_errors
+                                             , CASE
                                                    WHEN cj_lod ISNULL OR length(cj_lod) = 0
                                                        THEN NULL::text[]
                                                    ELSE string_to_array(
@@ -104,6 +115,11 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                                    WHEN obj_zip_ok ISNULL OR length(obj_zip_ok) = 0
                                                        THEN NULL::boolean
                                                    ELSE obj_zip_ok::boolean END                    AS obj_zip_ok
+                                             , CASE
+                                                   WHEN obj_file_ok ISNULL OR
+                                                        length(obj_file_ok) = 0
+                                                       THEN NULL::boolean
+                                                   ELSE obj_file_ok::boolean END               AS obj_file_ok
                                              , CASE
                                                    WHEN obj_nr_building ISNULL OR
                                                         length(obj_nr_building) = 0
@@ -185,6 +201,18 @@ WITH validate_compressed_files_cast AS (SELECT tile_id::text
                                                         length(gpkg_nr_buildingpart) = 0
                                                        THEN NULL::int
                                                    ELSE gpkg_nr_buildingpart::int END              AS gpkg_nr_buildingpart
+                                             , CASE
+                                                   WHEN gpkg_nr_invalid_2d_geom ISNULL OR
+                                                        length(gpkg_nr_invalid_2d_geom) = 0
+                                                       THEN NULL::int
+                                                   ELSE gpkg_nr_invalid_2d_geom::int END           AS gpkg_nr_invalid_2d_geom
+                                            , CASE
+                                                   WHEN gpkg_attributes_with_errors ISNULL OR
+                                                         length(gpkg_attributes_with_errors) = 0
+                                                         THEN NULL::text[]
+                                                   ELSE string_to_array(
+                                                           replace(replace(gpkg_attributes_with_errors, '[', ''), ']', ''),
+                                                           ',')::text[] END         AS gpkg_attributes_with_errors
                                              , gpkg_download::text
                                              , gpkg_sha256::text
                                         FROM ${validate_compressed_files})

@@ -39,21 +39,22 @@ Additionally, this organization makes it easier to install and test the workflow
 ## Deployment
 
 Deploying the 3dbag-pipeline is complex, because of its many components and dependencies.
-You can read about the details on how can you deploy it in the [deployment section](deployment/index.md).
+You can read about the details on how can you deploy it in the [deployment section](docs/deployment/index.md).
 
 ## Production
 
 ## Integration as a library
 
 The 3dbag-pipeline can be used as a library in other projects.
-The packages can be installed directly from GitHub using specific release versions:
+The packages can be installed directly from GitHub using specific release versions.
+Note that you must use the [uv](https://docs.astral.sh/uv/) package manager to install the packages, because *pip* cannot resolve the relative package paths within this repository.
 
 ```bash
 # Install specific release version of the common package
-pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@v2024.12.16#egg=bag3d-common&subdirectory=packages/common"
+uv pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@v2024.12.16#egg=bag3d-common&subdirectory=packages/common"
 
 # Install specific commit of the common package
-pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@<commit-hash>#egg=bag3d-common&subdirectory=packages/common"
+uv pip install "bag3d-common @ git+https://github.com/3DBAG/3dbag-pipeline.git@<commit-hash>#egg=bag3d-common&subdirectory=packages/common"
 ```
 
 ## License
@@ -68,8 +69,7 @@ at your option.
 ## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
-additional terms or conditions.
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
 ## 3DBAG organisation
 

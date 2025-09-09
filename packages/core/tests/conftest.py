@@ -2,10 +2,16 @@ import os
 from pathlib import Path
 
 import pytest
+
+from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
+    ValidationResource,
 )
+from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
+
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -21,6 +27,49 @@ DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
 @pytest.fixture(scope="session")
+def deployment_server():
+    """Connection to the dockerized deployment setup.
+    The dockerized deployment setup is in the 3dbag-admin repo and it needs to be
+    managed manually, similar to the 3dbag-pipeline docker setup.
+    These credentials provide access to the ``deployment-server`` service of the
+    deployment setup.
+    """
+    server = ServerTransferResource(
+        host="3dbag.docker.internal",
+        port=2222,
+        user="deploy",
+        password="deploy",
+        target_dir="/data/3DBAG",
+        public_dir="/data/3DBAG/public",
+    )
+
+    yield server
+    #
+    # with server.connection as conn:
+    #     conn.run(f"rm -rf {server.target_dir}")
+    #     conn.run(f"rm -rf {server.public_dir}")
+    #     conn.run(f"mkdir -p {server.target_dir}")
+    #     conn.run(f"mkdir -p {server.public_dir}")
+
+
+@pytest.fixture(scope="session")
+def godzilla_server(deployment_server):
+    yield deployment_server
+
+
+@pytest.fixture(scope="session")
+def podzilla_server():
+    yield ServerTransferResource(
+        host="3dbag.docker.internal",
+        port=2222,
+        user="deploy",
+        password="deploy",
+        target_dir="/tmp",
+        public_dir="/tmp/podzilla_public",
+    )
+
+
+@pytest.fixture(scope="session")
 def gdal():
     exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
     exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
@@ -29,6 +78,42 @@ def gdal():
         exe_ogr2ogr=exe_ogr2ogr,
         exe_ogrinfo=exe_ogrinfo,
         exe_sozip=exe_sozip,
+    )
+
+
+@pytest.fixture(scope="session")
+def gdal_missing():
+    exe_ogr2ogr = "/does/not/exist/ogr2ogr"
+    exe_ogrinfo = "/does/not/exist/ogrinfo"
+    exe_sozip = "/does/not/exist/sozip"
+    yield GDALResource(
+        exe_ogr2ogr=exe_ogr2ogr,
+        exe_ogrinfo=exe_ogrinfo,
+        exe_sozip=exe_sozip,
+    )
+
+
+@pytest.fixture(scope="session")
+def validation():
+    exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
+    exe_cjval = os.getenv("EXE_PATH_CJVAL")
+    exe_cjio = os.getenv("EXE_PATH_CJIO")
+    yield ValidationResource(
+        exe_val3dity=exe_val3dity,
+        exe_cjval=exe_cjval,
+        exe_cjio=exe_cjio,
+    )
+
+
+@pytest.fixture(scope="session")
+def validation_missing():
+    exe_val3dity = "/does/not/exist/val3dity"
+    exe_cjval = "/does/not/exist/cjval"
+    exe_cjio = "/does/not/exist/cjio"
+    yield ValidationResource(
+        exe_val3dity=exe_val3dity,
+        exe_cjval=exe_cjval,
+        exe_cjio=exe_cjio,
     )
 
 
@@ -52,7 +137,15 @@ def file_store(tmp_path):
 
 
 @pytest.fixture
-def context(database, wkt_testarea, file_store, gdal):
+def context(
+    database,
+    wkt_testarea,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -64,9 +157,60 @@ def context(database, wkt_testarea, file_store, gdal):
         },
         resources={
             "gdal": gdal,
+            "validation": validation,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
+            "godzilla_server": godzilla_server,
+            "podzilla_server": podzilla_server,
+            "specs": Specs3DBAGResource(),
+        },
+    )
+
+
+@pytest.fixture
+def context_ahn(
+    database,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
+    yield build_op_context(
+        partition_key="01cz1",
+        resources={
+            "gdal": gdal,
+            "validation": validation,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
+            "godzilla_server": godzilla_server,
+            "podzilla_server": podzilla_server,
+            "specs": Specs3DBAGResource(),
+        },
+    )
+
+
+@pytest.fixture
+def context_missing(
+    database, wkt_testarea, file_store, gdal_missing, validation_missing
+):
+    yield build_op_context(
+        partition_key="01cz1",
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": [
+                "gebouw",
+            ],
+            "parallel": True,
+        },
+        resources={
+            "gdal": gdal_missing,
+            "validation": validation_missing,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
         },
     )
 
@@ -85,7 +229,7 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
-            "version": "test_version",
+            "version": VersionResource("test_version"),
         },
     )
 
@@ -93,6 +237,12 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
 def pytest_addoption(parser):
     parser.addoption(
         "--run-slow", action="store_true", default=False, help="run slow tests"
+    )
+    parser.addoption(
+        "--run-deploy",
+        action="store_true",
+        default=False,
+        help="run deployment tests that require the dockerized deployment setup",
     )
     parser.addoption(
         "--run-all",
@@ -106,6 +256,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow to run")
     config.addinivalue_line(
         "markers", "needs_tools: mark test as needing local builds of tools"
+    )
+    config.addinivalue_line(
+        "markers", "needs_deploy: mark test as needing the dockerized deployment setup"
     )
 
 
@@ -122,10 +275,35 @@ def pytest_collection_modifyitems(config, items):
             if "needs_tools" in item.keywords:
                 item.add_marker(skip_needs_tools)
 
+    if not config.getoption("--run-deploy"):  # pragma: no cover
+        skip_needs_deploy = pytest.mark.skip(
+            reason="needs the --run-deploy option to run"
+        )
+        for item in items:
+            if "needs_deploy" in item.keywords:
+                item.add_marker(skip_needs_deploy)
+
 
 @pytest.fixture(scope="session")
 def test_data_dir():
     yield Path(LOCAL_DIR)
+
+
+@pytest.fixture(scope="session")
+def core_integration_test_dir(test_data_dir):
+    yield test_data_dir / "integration_core"
+
+
+@pytest.fixture(scope="session")
+def core_file_store_fastssd(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store_fastssd"
+
+
+@pytest.fixture(scope="session")
+def core_file_store(core_integration_test_dir) -> Path:
+    """Root directory path for test data"""
+    return core_integration_test_dir / "file_store"
 
 
 @pytest.fixture(scope="session")
@@ -149,9 +327,9 @@ def sha256_ahn5_fix():
 def tile_index_ahn_fix():
     yield {
         "01cz1": {
-            "AHN3_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
-            "AHN4_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
-            "AHN5_LAZ": "https://ns_hwh.fundaments.nl/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
+            "AHN3_LAZ": "https://basisdata.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
+            "AHN4_LAZ": "https://basisdata.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ//2023_C_01CZ1.LAZ",
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [
@@ -220,16 +398,234 @@ def mock_asset_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_regular_grid_200m():
+def mock_asset_metadata_ahn3_index():
     class MockIOManager(IOManager):
         def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "regular_grid_200m")
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn3")
             return new_table
 
         def handle_output(self, context, obj):  # pragma: no cover
             raise NotImplementedError()
 
     return SourceAsset(
-        key=AssetKey(["ahn", "regular_grid_200m"]),
+        key=AssetKey(["ahn", "metadata_ahn3_index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_metadata_ahn4_index():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn4")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "metadata_ahn4_index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_metadata_ahn5_index():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            new_table = PostgresTableIdentifier("ahn", "metadata_ahn5")
+            return new_table
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["ahn", "metadata_ahn5_index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_compressed_tiles():
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return None
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "compressed_tiles"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_compressed_tiles_validation(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "validate_compressed_files.csv"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "compressed_tiles_validation"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_export_index(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "export_index.csv"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "export_index"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_geopackage_nl(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "3dbag_nl.gpkg.zip"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "geopackage_nl"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_metadata(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "metadata.json"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "metadata"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_reconstruction_output_3dtiles_lod12_nl(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "cesium3dtiles"
+                / "lod12"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod12_nl"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_reconstruction_output_3dtiles_lod13_nl(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "cesium3dtiles"
+                / "lod13"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod13_nl"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_reconstruction_output_3dtiles_lod22_nl(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "cesium3dtiles"
+                / "lod22"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod22_nl"]),
+        io_manager_def=MockIOManager(),
+    )
+
+
+@pytest.fixture(scope="session")
+def mock_asset_reconstruction_output_multitiles_nl(test_data_dir):
+    class MockIOManager(IOManager):
+        def load_input(self, context):
+            return (
+                test_data_dir
+                / "integration_deploy_release"
+                / "3DBAG"
+                / "export_test_version"
+                / "tiles"
+            )
+
+        def handle_output(self, context, obj):  # pragma: no cover
+            raise NotImplementedError()
+
+    return SourceAsset(
+        key=AssetKey(["export", "reconstruction_output_multitiles_nl"]),
         io_manager_def=MockIOManager(),
     )

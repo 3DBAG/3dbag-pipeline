@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 from typing import List, Tuple
+from json.decoder import JSONDecodeError
 
 from dagster import (
     OpExecutionContext,
@@ -9,11 +10,15 @@ from dagster import (
     TableSchema,
     TableColumnConstraints,
     TableColumn,
+    get_dagster_logger,
+    Failure,
 )
 from pgutils import PostgresTableIdentifier
 
 from bag3d.common.utils.database import postgrestable_metadata
 from bag3d.common.resources.executables import AppImage
+
+logger = get_dagster_logger()
 
 
 def wkt_from_bbox(bbox):
@@ -69,7 +74,11 @@ def ogrinfo(
     for feature_type in feature_types:
         kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
         return_code, output = gdal.execute(
-            "ogrinfo", command=cmd, kwargs=kwargs, local_path=extract_path
+            "ogrinfo",
+            command=cmd,
+            kwargs=kwargs,
+            local_path=extract_path,
+            output_logging="BUFFER",
         )
         if return_code == 0:
             layername, layerinfo = parse_ogrinfo(output, feature_type)
@@ -230,18 +239,23 @@ def ogr2postgres(
         "dataset": dataset,
     }
     return_code, output = gdal.execute(
-        "ogr2ogr", command=cmd, kwargs=kwargs, local_path=extract_path
+        "ogr2ogr",
+        command=cmd,
+        kwargs=kwargs,
+        local_path=extract_path,
+        output_logging="BUFFER",
     )
     if return_code == 0:
         return postgrestable_metadata(context, new_table)
 
 
 def pdal_info(
-    pdal: AppImage, file_path: Path, with_all: bool = False
+    pdal: AppImage, file_path: Path, with_all: bool = False, verbose: bool = False
 ) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:
+        verbose: Return stdout/stderr from pdal
         pdal (AppImage): The pdal AppImage executable.
         file_path: Path to the point cloud file.
         with_all: If true, run ``pdal info --all``, else run ``pdal info --metadata``.
@@ -255,11 +269,31 @@ def pdal_info(
     ]
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
+
     return_code, output = pdal.execute(
-        "pdal", command=" ".join(cmd_list), local_path=file_path
+        "pdal",
+        command=" ".join(cmd_list),
+        local_path=file_path,
+        silent=(not verbose),
+        output_logging="BUFFER",
     )
 
-    return return_code, json.loads(output)
+    if "Global encoding WKT flag" in str(output):
+        logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
+        # Remove the first line
+        output_lines = output.split("\n")
+        if len(output_lines) > 1:
+            logger.warning(f"Removing first line from PDAL output : {output_lines[0]}")
+            output = "\n".join(output_lines[1:])
+
+    output_processed = output.replace("\\u0000", "")
+
+    try:
+        json_data = json.loads(output_processed)
+    except JSONDecodeError as e:
+        raise Failure(f"Failed to make JSON from pdal output: {output_processed}. {e}")
+
+    return return_code, json_data
 
 
 def geojson_poly_to_wkt(geometry) -> str:

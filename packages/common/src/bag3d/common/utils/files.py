@@ -101,7 +101,9 @@ def get_export_tile_ids() -> Sequence[str]:
 
     env = os.getenv("DAGSTER_ENVIRONMENT", "test")
     if env == "test":
-        root_dir = Path(os.getenv("BAG3D_FILESTORE")) / "reconstruction_input"
+        root_dir = (
+            Path(os.getenv("BAG3D_FILESTORE")) / "integration_party_walls/file_store"
+        )
         version = "test_version"
     else:
         root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))

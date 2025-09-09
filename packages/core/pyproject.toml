@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-core"
-version = "2024.12.16"
+version = "2025.09.03"
 description = "Workflow for producing the 3D BAG core data set"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,7 +26,6 @@ dependencies = [
     "dagster-postgres~=0.25.4",
     "dagster-shell~=0.25.4",
     "docker~=7.1.0",
-    "fabric~=3.2.2",
     "lxml~=5.3.0",
     "bag3d-common",
 ]
@@ -42,5 +41,11 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2024.1013" }
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2025.1015" }
 bag3d-common = { path = "../common", editable = true }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*is not a Python type.*:UserWarning",
+    "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+]

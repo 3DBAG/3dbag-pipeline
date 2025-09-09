@@ -1,7 +1,7 @@
 import time
+from copy import deepcopy
 from datetime import date
 from hashlib import sha1
-from pathlib import Path
 
 from dagster import (
     asset,
@@ -17,9 +17,10 @@ from psycopg.sql import SQL
 from bag3d.common.resources import resource_defs
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import geoflow_crop_dir
-from bag3d.core.assets.ahn.core import ahn_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
+
+logger = get_dagster_logger()
 
 
 def generate_3dbag_version_date(context):
@@ -55,7 +56,9 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         schema=RECONSTRUCTION_INPUT_SCHEMA, table_tiles="tiles"
     ),
     ins={
-        "regular_grid_200m": AssetIn(key_prefix="ahn"),
+        "metadata_ahn3_index": AssetIn(key_prefix="ahn"),
+        "metadata_ahn4_index": AssetIn(key_prefix="ahn"),
+        "metadata_ahn5_index": AssetIn(key_prefix="ahn"),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -80,25 +83,22 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
             is_required=False,
             default_value="info",
         ),
-        "dir_tiles_200m_ahn3": Field(
-            str,
-            description="Directory of the 200m tiles of AHN3. Used if the tiles are stored in a non-standard location.",
+        "concurrency": Field(
+            int,
+            description="Roofer --jobs",
             is_required=False,
-        ),
-        "dir_tiles_200m_ahn4": Field(
-            str,
-            description="Directory of the 200m tiles of AHN4. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
-        ),
-        "dir_tiles_200m_ahn5": Field(
-            str,
-            description="Directory of the 200m tiles of AHN5. Used if the tiles are stored in a non-standard location.",
-            is_required=False,
+            default_value=10,
         ),
     },
 )
 def reconstructed_building_models_nl(
-    context, regular_grid_200m, tiles, index, reconstruction_input
+    context,
+    tiles,
+    index,
+    reconstruction_input,
+    metadata_ahn3_index,
+    metadata_ahn4_index,
+    metadata_ahn5_index,
 ):
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
@@ -106,19 +106,12 @@ def reconstructed_building_models_nl(
 
     roofer_toml, output_dir, tile_view = create_roofer_config(
         context,
-        index,
-        reconstruction_input,
-        regular_grid_200m,
-        tiles,
-        dir_tiles_200m_ahn3=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn3"
-        ),
-        dir_tiles_200m_ahn4=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn4"
-        ),
-        dir_tiles_200m_ahn5=context.op_execution_context.op_config.get(
-            "dir_tiles_200m_ahn5"
-        ),
+        reconstruction_input=reconstruction_input,
+        index=index,
+        tiles=tiles,
+        metadata_ahn3=metadata_ahn3_index,
+        metadata_ahn4=metadata_ahn4_index,
+        metadata_ahn5=metadata_ahn5_index,
     )
 
     context.log.info(f"{roofer_toml=}")
@@ -127,7 +120,7 @@ def reconstructed_building_models_nl(
     try:
         return_code, output = context.resources.roofer.app.execute(
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir} --loglevel {context.op_config['loglevel']} --skip-pc-check --no-tiling",
+            command=f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_config['concurrency']} --loglevel {context.op_config['loglevel']} --skip-pc-check",
             local_path=roofer_toml,
             silent=False,
         )
@@ -144,13 +137,12 @@ def reconstructed_building_models_nl(
 
 def create_roofer_config(
     context,
-    index,
     reconstruction_input,
-    regular_grid_200m,
+    index,
     tiles,
-    dir_tiles_200m_ahn3=None,
-    dir_tiles_200m_ahn4=None,
-    dir_tiles_200m_ahn5=None,
+    metadata_ahn3,
+    metadata_ahn4,
+    metadata_ahn5,
 ):
     toml_template = """
     polygon-source = "{footprint_file}"
@@ -158,30 +150,36 @@ def create_roofer_config(
     force-lod11-attribute = "b3_kas_warenhuis"
     yoc-attribute = "oorspronkelijkbouwjaar"
     lod11-fallback-area = 30000
-    
+
     split-cjseq = true
     omit-metadata = true
     cj-translate = [171800.0,472700.0,0.0]
     cj-scale = [0.001, 0.001, 0.001]
     output-directory = "{output_path}"
-    
+
+    lod12 = true
+    lod13 = true
+    lod22 = true
+
     [[pointclouds]]
-    name = "AHN3"
+    name = "ahn3"
     quality = 2
     source = {ahn3_files}
-    
+
     [[pointclouds]]
-    name = "AHN4"
+    name = "ahn4"
     quality = 1
     source = {ahn4_files}
-    
+
     [[pointclouds]]
-    name = "AHN5"
+    name = "ahn5"
     quality = 0
     source = {ahn5_files}
 
     [output-attributes]
-    success = "b3_succes"
+    success = ""
+    force_lod11 = ""
+    h_pc_98p = ""
     reconstruction_time = "b3_t_run"
     val3dity_lod12 = "b3_val3dity_lod12"
     val3dity_lod13 = "b3_val3dity_lod13"
@@ -194,7 +192,6 @@ def create_roofer_config(
     pc_select = "b3_pw_selectie_reden"
     pc_source = "b3_pw_bron"
     pc_year = "b3_pw_datum"
-    force_lod11 = ""
     roof_type = "b3_dak_type"
     h_roof_50p = "b3_h_dak_50p"
     h_roof_70p = "b3_h_dak_70p"
@@ -212,44 +209,54 @@ def create_roofer_config(
     azimuth = "b3_azimut"
     extrusion_mode = "b3_extrusie"
     pointcloud_unusable = "b3_pw_onvoldoende"
+    h_roof_ridge = "b3_h_nok"
+    roof_n_ridgelines = "b3_n_nok"
     """
     tile_id = context.partition_key
-    query_laz_tiles = SQL("""    
-    SELECT DISTINCT g.id
-    FROM {tile_index} AS i
-             JOIN {reconstruction_input} USING (fid)
-             JOIN {tiles_ahn} g ON st_intersects(geometrie, g.geom)
-    WHERE i.tile_id = {tile_id};
+    query_laz_tiles = SQL("""
+    SELECT DISTINCT ON (m.tile_id) m.tile_id, m.pdal_info ->> 'filename' AS filename
+    FROM {metadata_ahn} m
+             JOIN {reconstruction_input} r
+                  ON st_intersects(r.geometrie, m.boundary)
+             JOIN {tile_index} AS i USING (fid)
+    WHERE i.tile_id = {tile_id}
+      AND NULLIF(m.pdal_info ->> 'filename', '') IS NOT NULL
+      AND m.hash IS NOT NULL
+    ORDER BY m.tile_id, m.insert_time DESC;
     """)
-    res = context.resources.db_connection.connect.get_query(
-        query_laz_tiles,
-        query_params={
-            "tiles_ahn": regular_grid_200m,
-            "reconstruction_input": reconstruction_input,
-            "tile_index": index,
-            "tile_id": tile_id,
-        },
-    )
-    if dir_tiles_200m_ahn3 is not None:
-        out_dir_ahn3 = Path(dir_tiles_200m_ahn3)
-    else:
-        out_dir_ahn3 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=3
-        ).joinpath("tiles_200m")
+    query_params = {
+        "metadata_ahn": None,
+        "reconstruction_input": reconstruction_input,
+        "tile_index": index,
+        "tile_id": tile_id,
+    }
+    query_params_ahn3 = deepcopy(query_params)
+    query_params_ahn3["metadata_ahn"] = metadata_ahn3
+    query_params_ahn4 = deepcopy(query_params)
+    query_params_ahn4["metadata_ahn"] = metadata_ahn4
+    query_params_ahn5 = deepcopy(query_params)
+    query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
-        str(out_dir_ahn3 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
+            query_laz_tiles,
+            query_params=query_params_ahn3,
+        )
     ]
-    # TODO: probably should take the tiles_200m directory from the asset output
-    if dir_tiles_200m_ahn4 is not None:
-        out_dir_ahn4 = Path(dir_tiles_200m_ahn4)
-    else:
-        out_dir_ahn4 = ahn_dir(
-            context.resources.file_store.file_store.data_dir, ahn_version=4
-        ).joinpath("tiles_200m")
-    # TODO: same with the laz filename pattern
     laz_files_ahn4 = [
-        str(out_dir_ahn4 / f"t_{tile_id_ahn[0]}.laz") for tile_id_ahn in res
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
+            query_laz_tiles, query_params=query_params_ahn4
+        )
     ]
+    laz_files_ahn5 = [
+        r["filename"]
+        for r in context.resources.db_connection.connect.get_dict(
+            query_laz_tiles,
+            query_params=query_params_ahn5,
+        )
+    ]
+
     # Would be neater if we could use -sql in the OGR connection to do this query,
     # instead of creating a view.
     tile_view = PostgresTableIdentifier(tiles.schema, f"t_{tile_id}")
@@ -277,13 +284,7 @@ def create_roofer_config(
         footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
-        ahn5_files=[
-            str(
-                ahn_dir(
-                    context.resources.file_store.file_store.data_dir, ahn_version=5
-                ).joinpath("as_downloaded/LAZ")
-            )
-        ],
+        ahn5_files=laz_files_ahn5,
         output_path=output_dir,
     )
     path_toml = output_dir / "roofer.toml"

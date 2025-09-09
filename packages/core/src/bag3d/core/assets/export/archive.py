@@ -5,9 +5,12 @@ import gzip
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
-from dagster import asset, Output, AssetKey
+from dagster import asset, Output, AssetKey, Config
 
 from bag3d.common.utils.files import bag3d_export_dir
+from dagster import get_dagster_logger
+
+logger = get_dagster_logger()
 
 
 @asset(
@@ -98,9 +101,9 @@ def geopackage_nl(context):
         cmd = [
             "OGR_SQLITE_SYNCHRONOUS=OFF",
             "{exe}",
-            str(path_nl),
             "-sql",
             f"\"SELECT CreateSpatialIndex('{name_layer}','geom')\"",
+            str(path_nl),
         ]
         cmd = " ".join(cmd)
         context.resources.gdal.app.execute("ogrinfo", cmd)
@@ -108,7 +111,7 @@ def geopackage_nl(context):
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
-    cmd = ["{exe}", str(path_nl_zip), str(path_nl)]
+    cmd = ["{exe}", "--junk-paths", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
     context.resources.gdal.app.execute("sozip", cmd)
 
@@ -129,32 +132,9 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_lod12_2d
 
 
-@asset(
-    deps={AssetKey("geopackage_nl")}, required_resource_keys={"file_store", "version"}
-)
-def compressed_tiles(context, export_index):
-    """Each format is gzipped individually in each tile, for better transfer over the
-    web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
-    )
-    path_tiles_dir = path_export_dir.joinpath("tiles")
-    with export_index.open("r") as fo:
-        csvreader = csv.reader(fo)
-        _ = next(csvreader)  # skip header
-        tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
-
-    dagster_max_concurrent_runs = (
-        context.instance.run_coordinator.inst_data.config_dict["max_concurrent_runs"]
-    )
-    with ProcessPoolExecutor(max_workers=dagster_max_concurrent_runs) as executor:
-        for result in executor.map(compress_files, tile_ids):
-            pass
-
-
 def compress_files(input):
     tile_id, path_tiles_dir = input
+    logger.debug(f"Compressing tile {tile_id}")
     path_tile_dir = path_tiles_dir.joinpath(tile_id)
     lid_in_filename = tile_id.replace("/", "-")
     # OBJ
@@ -176,6 +156,8 @@ def compress_files(input):
             with gzip.open(cj_zip, "wb") as f_out:
                 copyfileobj(f_in, f_out)
         cj_file.unlink()
+    else:
+        logger.warning(f"CityJSON file {cj_file} does not exist, skipping compression.")
     # GPKG
     gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
     gpkg_zip = str(gpkg_file) + ".gz"
@@ -184,3 +166,33 @@ def compress_files(input):
             with gzip.open(gpkg_zip, "wb") as f_out:
                 copyfileobj(f_in, f_out)
         gpkg_file.unlink()
+    else:
+        logger.warning(f"GPKG file {gpkg_file} does not exist, skipping compression.")
+
+
+class CompressionConfig(Config):
+    concurrency: int
+
+
+@asset(
+    deps={
+        AssetKey("geopackage_nl"),
+    },
+    required_resource_keys={"file_store", "version"},
+)
+def compressed_tiles(context, config: CompressionConfig, export_index):
+    """Each format is gzipped individually in each tile, for better transfer over the
+    web. The OBJ files are collected into a single .zip file."""
+    path_export_dir = bag3d_export_dir(
+        context.resources.file_store.file_store.data_dir,
+        version=context.resources.version.version,
+    )
+    path_tiles_dir = path_export_dir.joinpath("tiles")
+    with export_index.open("r") as fo:
+        csvreader = csv.reader(fo)
+        _ = next(csvreader)  # skip header
+        tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
+
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
+        for result in executor.map(compress_files, tile_ids):
+            pass

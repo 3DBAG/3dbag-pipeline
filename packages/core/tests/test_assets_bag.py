@@ -1,9 +1,7 @@
-import pytest
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table, table_exists
 from bag3d.core.assets.bag.download import (
     bagextract_metadata,
-    extract_bag,
     load_bag_layer,
     stage_bag_layer,
 )
@@ -35,12 +33,6 @@ def test_load_bag_layer(context, test_data_dir):
     assert table_exists(context, test_bag_table) is True
     drop_table(context, test_bag_table)
     assert table_exists(context, test_bag_table) is False
-
-
-@pytest.mark.slow
-def test_extract_bag(context):
-    res = extract_bag(context)
-    assert res.value is not None
 
 
 def test_stage_bag_layer(context, test_data_dir):

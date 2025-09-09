@@ -31,3 +31,10 @@ local_artifact_storage:
   config:
     base_dir:
       env: DAGSTER_HOME
+
+concurrency:
+  runs:
+    tag_concurrency_limits:
+      - key: "dagster/concurrency_key"
+        value: "laz_download"
+        limit: 1

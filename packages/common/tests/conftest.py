@@ -109,5 +109,8 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="session")
-def laz_files_ahn3_dir(test_data_dir):
-    yield test_data_dir / "reconstruction_input/pointcloud/AHN3/tiles_200m/"
+def sample_laz_file(test_data_dir):
+    yield (
+        test_data_dir
+        / "integration_core/file_store/pointcloud/AHN3/as_downloaded/LAZ/C_32BZ2.LAZ"
+    )
