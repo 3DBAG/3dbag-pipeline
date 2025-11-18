@@ -49,6 +49,7 @@ def test_lastools(sample_laz_file):
     lastools_resource = LASToolsResource(
         exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value(),
         exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value(),
+        exe_lasinfo=EnvVar("EXE_PATH_LASINFO").get_value(),
     )
     assert not lastools_resource.with_docker
 

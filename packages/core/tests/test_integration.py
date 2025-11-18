@@ -42,6 +42,7 @@ def test_integration_ahn(database, core_file_store):
         "lastools": LASToolsResource(
             exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
             exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+            exe_lasinfo=os.getenv("EXE_PATH_LASINFO"),
         ),
         "pdal": PDALResource(
             exe_pdal=os.getenv("EXE_PATH_PDAL"),
