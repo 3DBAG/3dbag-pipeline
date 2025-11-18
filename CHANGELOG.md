@@ -4,6 +4,23 @@ For the changes in the 3DBAG data set, see the [3DBAG release notes](https://doc
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2025.11.18]
+
+Minor update.
+
+- **[#324](https://github.com/3DBAG/3dbag-pipeline/pull/354)** - Add lasinfo exe and update lastools to v2.0.4
+
+### Other Updates
+- Docker image updates and tool version bumps
+
+### Docker images
+
+The docker images for this release:
+- `3dgi/3dbag-pipeline-dagster:2025.11.18`
+- `3dgi/3dbag-pipeline-core:2025.11.18`
+- `3dgi/3dbag-pipeline-floors-estimation:2025.11.18`
+- `3dgi/3dbag-pipeline-party-walls:2025.11.18`
+
 ## [2025.09.03]
 
 Release that produced the 3DBAG data set version 2025.09.03.
