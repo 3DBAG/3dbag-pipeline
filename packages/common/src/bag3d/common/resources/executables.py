@@ -372,7 +372,8 @@ class LASToolsResource(ConfigurableResource):
     Example:
 
         lastools_resource = LASToolsResource(exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-                                             exe_las2las=s.getenv("EXE_PATH_LAS2LAS"))
+                                             exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+                                             exe_lasinfo=os.getenv("EXE_PATH_LASINFO"))
 
     After the resource has been instantiated, lastools (AppImage) can
     be acquired with the `app` property:
@@ -382,10 +383,15 @@ class LASToolsResource(ConfigurableResource):
 
     exe_lasindex: Optional[str] = None
     exe_las2las: Optional[str] = None
+    exe_lasinfo: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        return {"lasindex": self.exe_lasindex, "las2las": self.exe_las2las}
+        return {
+            "lasindex": self.exe_lasindex,
+            "las2las": self.exe_las2las,
+            "lasinfo": self.exe_lasinfo,
+        }
 
     @property
     def with_docker(self) -> bool:
