@@ -225,6 +225,8 @@ if [ "$build_lastools" = true ] ; then
     -S LAStools-${lastools_version} \
     -B LAStools-${lastools_version}/build
   cmake --build LAStools-${lastools_version}/build -j $jobs --target install --config Release
+  # ensure the serf directory is also installed, it is needed for correct operation of lasinfo
+  cp -R LAStools-${lastools_version}/bin/serf $root_dir/bin
 
   rm -rf LAStools-${lastools_version}
   rm LAStools.zip
