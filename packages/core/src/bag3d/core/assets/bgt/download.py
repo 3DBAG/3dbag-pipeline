@@ -40,7 +40,7 @@ def extract_bgt(context) -> Output[Path]:
             context,
             dataset="bgt",
             extract_path=extract_path,
-            feature_types=context.op_config["featuretypes"],
+            feature_types=context.op_execution_context.op_config["featuretypes"],
             xsd=metadata["XSD"],
         )
     )
