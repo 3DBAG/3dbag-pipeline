@@ -50,7 +50,11 @@ There can always be some variation in the point density between buildings and ev
 
 ## BGT
 
-TBD
+The [Basisregistratie Grootschalige Topografie (BGT)](https://www.kadaster.nl/zakelijk/registraties/basisregistraties/bgt) is the Key Register for Large-scale Topography of the Netherlands. It provides detailed topographic information with geometric accuracy of 30 centimeters or better, covering roads, water bodies, terrain, buildings, and other topographic features.
+
+The dataset is maintained collaboratively by municipalities, provinces, water boards, and Rijkswaterstaat, ensuring comprehensive and up-to-date topographic coverage across the Netherlands.
+
+For the 3DBAG pipeline, BGT data is used to provide additional context and validation for building footprints and to enhance the topographic understanding of the environment surrounding buildings. 
 
 ## TOP10NL
 
