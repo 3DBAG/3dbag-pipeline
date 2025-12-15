@@ -4,6 +4,7 @@ They are downloaded with the `source_input` job and they are:
 
 - BAG  
 - AHN
+- BGT     ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/imgeo/))
 - TOP10NL ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/top10nl/20190708))
 
 
@@ -46,6 +47,10 @@ For the 3DBAG we use a smart combination of AHN3, AHN4 and AHN5. AHN4 was acaqui
 For the latest versions of the 3DBAG we use both AHN3 and AHN4 but also recently AHN5 when available. This is to guarantee the best possible 3D reconstruction for each building. If a building has no mutation since the acquisition of AHN3, we pick the pointcloud with the best point coverage. This reduces the odds that a building contains small errors due to large no data gaps in the point cloud.
 
 There can always be some variation in the point density between buildings and even within one building. There can be no data gaps in the point cloud, caused by an occlusion through objects, water ponds on roofs and scan angle. The number of available points, their distribution and accurate classification has a very significant impact on the quality of the reconstructed models. The quality attributes that we calculate for and assign to each model provide an indication of this quality.
+
+## BGT
+
+TBD
 
 ## TOP10NL
 
