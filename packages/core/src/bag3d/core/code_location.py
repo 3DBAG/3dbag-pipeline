@@ -10,6 +10,7 @@ from bag3d.core.asset_groups import (
     release_assets,
 )
 from bag3d.core.jobs import (
+    job_bgt,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
