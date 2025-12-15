@@ -34,6 +34,7 @@ all_assets = [
 ]
 
 all_jobs = [
+    job_bgt,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
