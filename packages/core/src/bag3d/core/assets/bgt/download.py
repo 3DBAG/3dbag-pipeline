@@ -20,7 +20,7 @@ from bag3d.common.types import Path
     required_resource_keys={"gdal", "file_store"},
 )
 def extract_bgt(context) -> Output[Path]:
-    """The TOP10NL extract downloaded from the PDOK API, containing the 'pand' and
+    """The BGT extract downloaded from the PDOK API, containing the 'pand' and
     'wegdeel' layers."""
     metadata = download_extract(
         dataset="bgt",

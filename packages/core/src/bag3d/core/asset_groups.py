@@ -38,7 +38,7 @@ top10nl_assets = load_assets_from_package_module(
     package_module=top10nl, key_prefix="top10nl", group_name=TOP10NL
 )
 
-source_assets = ahn_assets + bag_assets + bgt_assets + top10nl_assets
+source_assets = ahn_assets + bag_assets + top10nl_assets
 
 input_assets = load_assets_from_package_module(
     package_module=input, key_prefix="input", group_name=INPUT
