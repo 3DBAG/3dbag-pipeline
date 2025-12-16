@@ -131,7 +131,7 @@ def attributes_dict(attributes_str: str) -> List[dict]:
         # Skip empty lines
         if not i.strip():
             continue
-            
+
         adict = {}
         aname, specs = i.split(":")
         try:
