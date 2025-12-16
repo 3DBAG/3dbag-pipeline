@@ -33,7 +33,7 @@ def extract_bgt(context) -> Output[Path]:
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")
     context.log.info("Starting ogrinfo to extract metadata...")
-    context.log.info({context.op_execution_context.op_config["featuretypes"]})
+    context.log.info(context.op_execution_context.op_config["featuretypes"])
     metadata["XSD"] = (
         "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
     )
