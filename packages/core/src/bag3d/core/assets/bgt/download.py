@@ -25,10 +25,10 @@ def extract_bgt(context) -> Output[Path]:
     metadata = download_extract(
         dataset="bgt",
         url_api="https://api.pdok.nl/lv/bgt/download/v1_0",
-        featuretypes=context.op_config["featuretypes"],
+        featuretypes=context.op_execution_context.op_config["featuretypes"],
         data_format="gmllight",
         geofilter=context.op_execution_context.op_config.get("geofilter"),
-        download_dir=context.resources.file_store.data_dir,
+        download_dir=context.resources.file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")

@@ -128,6 +128,10 @@ def attributes_dict(attributes_str: str) -> List[dict]:
     ret = []
     _astr = attributes_str.strip("\n").strip().split("\n")
     for i in _astr:
+        # Skip empty lines
+        if not i.strip():
+            continue
+            
         adict = {}
         aname, specs = i.split(":")
         try:
@@ -136,7 +140,7 @@ def attributes_dict(attributes_str: str) -> List[dict]:
         except ValueError:
             # 'inOnderzoek: Integer(Boolean) (0.0)'
             atype, contstraints = specs.strip(), ""
-        adict["name"] = aname
+        adict["name"] = aname.strip()
         adict["type"] = atype + ")"
         if contstraints == "":
             adict["constraints"] = None
