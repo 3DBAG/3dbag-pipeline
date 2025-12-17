@@ -44,12 +44,6 @@ def deployment_server():
     )
 
     yield server
-    #
-    # with server.connection as conn:
-    #     conn.run(f"rm -rf {server.target_dir}")
-    #     conn.run(f"rm -rf {server.public_dir}")
-    #     conn.run(f"mkdir -p {server.target_dir}")
-    #     conn.run(f"mkdir -p {server.public_dir}")
 
 
 @pytest.fixture(scope="session")
@@ -223,6 +217,25 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
             "geofilter": wkt_testarea,
             "featuretypes": [
                 "gebouw",
+            ],
+        },
+        resources={
+            "gdal": gdal,
+            "db_connection": database,
+            "file_store": file_store,
+            "version": VersionResource("test_version"),
+        },
+    )
+
+
+@pytest.fixture
+def context_bgt(database, wkt_testarea, file_store, gdal):
+    yield build_op_context(
+        partition_key="01cz1",
+        op_config={
+            "geofilter": wkt_testarea,
+            "featuretypes": [
+                "pand",
             ],
         },
         resources={
