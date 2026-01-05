@@ -16,6 +16,7 @@ WITH dump AS (SELECT ogc_fid
                WHERE geometrytype(dumpgeom) = 'POLYGON')
    , fixed AS (SELECT ogc_fid
                     , st_multi(geometrie)::geometry(MultiPolygon, 28992)
+                    as geometrie
                FROM lines
                WHERE geometrytype(geometrie) = 'POLYGON'
                   OR geometrytype(geometrie) = 'MULTIPOLYGON'
@@ -39,6 +40,7 @@ WITH dump AS (SELECT ogc_fid
                        , bgt_status
                        , plus_status
                        , identificatiebagpnd
+                       , fixed.geometrie
                   FROM ${pand_tbl} p
                            LEFT JOIN fixed USING (ogc_fid)
                   WHERE p.eindregistratie ISNULL
