@@ -2,6 +2,7 @@ from dagster import Definitions
 
 from bag3d.common.resources import resource_defs
 from bag3d.core.asset_groups import (
+    bgt_assets,
     source_assets,
     input_assets,
     reconstruction_assets,
@@ -10,6 +11,7 @@ from bag3d.core.asset_groups import (
     release_assets,
 )
 from bag3d.core.jobs import (
+    job_bgt,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
@@ -25,6 +27,7 @@ from bag3d.core.jobs import (
 )
 
 all_assets = [
+    *bgt_assets,
     *source_assets,
     *input_assets,
     *reconstruction_assets,
@@ -34,6 +37,7 @@ all_assets = [
 ]
 
 all_jobs = [
+    job_bgt,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,

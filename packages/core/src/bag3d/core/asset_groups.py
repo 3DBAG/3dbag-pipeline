@@ -3,6 +3,7 @@ from dagster import load_assets_from_package_module
 from bag3d.core.assets import (
     ahn,
     bag,
+    bgt,
     top10nl,
     input,
     reconstruction,
@@ -12,6 +13,7 @@ from bag3d.core.assets import (
 )
 
 BAG = "bag"
+BGT = "bgt"
 TOP10NL = "top10nl"
 AHN = "ahn"
 INPUT = "input"
@@ -26,6 +28,10 @@ ahn_assets = load_assets_from_package_module(
 
 bag_assets = load_assets_from_package_module(
     package_module=bag, key_prefix="bag", group_name=BAG
+)
+
+bgt_assets = load_assets_from_package_module(
+    package_module=bgt, key_prefix="bgt", group_name=BGT
 )
 
 top10nl_assets = load_assets_from_package_module(

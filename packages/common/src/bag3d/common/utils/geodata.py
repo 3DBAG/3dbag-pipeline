@@ -128,24 +128,56 @@ def attributes_dict(attributes_str: str) -> List[dict]:
     ret = []
     _astr = attributes_str.strip("\n").strip().split("\n")
     for i in _astr:
+        # Skip empty lines
+        if not i.strip():
+            continue
+
         adict = {}
-        aname, specs = i.split(":")
+
+        # Split on first colon to get attribute name and rest
+        parts = i.split(":", 1)
+
+        # reject lines without at least one colon
+        if len(parts) != 2:
+            continue
+
+        # get the name
+        aname = parts[0].strip()
+        specs_full = parts[1].strip()
+
+        # Check if there's a comment and remove it
+        if ", comment=" in specs_full:
+            specs = specs_full.split(", comment=", 1)[0]
+        else:
+            specs = specs_full
+
         try:
+            # Handle different formats:
             # 'String (0.0) NOT NULL'
-            atype, contstraints = specs.strip().split(")")
+            # 'Date'
+            # 'Integer(Boolean) (0.0)'
+            if ")" in specs and " " in specs:
+                # Find the last closing parenthesis and split there
+                last_paren = specs.rfind(")")
+                atype = specs[: last_paren + 1]
+                constraints = specs[last_paren + 1 :].strip()
+            else:
+                # Simple type like 'Date', 'DateTime'
+                atype = specs.strip()
+                constraints = ""
+
         except ValueError:
             # 'inOnderzoek: Integer(Boolean) (0.0)'
-            atype, contstraints = specs.strip(), ""
+            atype = specs.strip()
+            constraints = ""
+
         adict["name"] = aname
-        adict["type"] = atype + ")"
-        if contstraints == "":
+        adict["type"] = atype
+
+        if constraints == "" or constraints is None:
             adict["constraints"] = None
         else:
-            adict["constraints"] = TableColumnConstraints(
-                other=[
-                    contstraints.strip(),
-                ]
-            )
+            adict["constraints"] = TableColumnConstraints(other=[constraints.strip()])
         ret.append(adict)
     return ret
 

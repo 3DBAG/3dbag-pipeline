@@ -2,6 +2,12 @@ from os import getenv
 from dagster import define_asset_job, AssetSelection, multiprocess_executor
 
 
+job_bgt = define_asset_job(
+    name="bgt",
+    description="Load the latest BGT Pand, Wegdeel layers.",
+    selection=AssetSelection.groups("bgt"),
+)
+
 job_ahn_tile_index = define_asset_job(
     name="ahn_tile_index",
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
