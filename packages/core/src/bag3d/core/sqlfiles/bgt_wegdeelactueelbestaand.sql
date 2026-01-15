@@ -3,47 +3,38 @@ CREATE SEQUENCE bgt_wegdeelactueelbestaand_fid_seq;
 
 DROP TABLE IF EXISTS ${new_table} CASCADE;
 CREATE TABLE ${new_table} AS
-WITH dump AS (SELECT ogc_fid, (st_dump(geometrie2d)).geom AS dumpgeom
-              FROM ${wegdeel_tbl})
-   , lines AS (SELECT ogc_fid, st_makevalid(st_curvetoline(dumpgeom)) AS geometrie
-               FROM dump
-               WHERE geometrytype(dumpgeom) = 'CURVEPOLYGON')
-   , polys AS (SELECT ogc_fid, st_makevalid(dumpgeom) AS geometrie
-               FROM dump
-               WHERE geometrytype(dumpgeom) = 'POLYGON')
-   , fixed AS (SELECT ogc_fid, st_multi(geometrie)::geometry(MultiPolygon, 28992)
-               FROM lines
-               WHERE geometrytype(geometrie) = 'POLYGON'
-                  OR geometrytype(geometrie) = 'MULTIPOLYGON'
-               UNION
-               SELECT ogc_fid, st_multi(geometrie)::geometry(MultiPolygon, 28992)
-               FROM polys
-               WHERE geometrytype(geometrie) = 'POLYGON'
-                  OR geometrytype(geometrie) = 'MULTIPOLYGON')
-   , withgeom AS (SELECT gml_id
-                       , objectbegintijd
-                       , objecteindtijd
-                       , "identificatie.namespace" AS namespace
-                       , "identificatie.lokaalid"  AS locaalid
-                       , tijdstipregistratie
-                       , eindregistratie
-                       , lv_publicatiedatum
-                       , bronhouder
-                       , inonderzoek
-                       , relatievehoogteligging
-                       , bgt_status
-                       , plus_status
-                       , bgt_functie
-                       , plus_functie
-                       , optalud
-                       , bgt_fysiekvoorkomen
-                       , plus_fysiekvoorkomen
-                  FROM ${wegdeel_tbl} p
-                           LEFT JOIN fixed USING (ogc_fid)
-                  WHERE p.eindregistratie ISNULL
-                    AND p.objecteindtijd ISNULL
-                    AND p.bgt_status = 'bestaand')
-SELECT NEXTVAL('bgt_wegdeelactueelbestaand_fid_seq') AS fid, withgeom.*
-FROM withgeom;
+SELECT NEXTVAL('bgt_wegdeelactueelbestaand_fid_seq') AS fid
+     , gml_id
+     , objectbegintijd
+     , objecteindtijd
+     , "identificatie.namespace" AS namespace
+     , "identificatie.lokaalid"  AS lokaalid
+     , tijdstipregistratie
+     , eindregistratie
+     , lv_publicatiedatum
+     , bronhouder
+     , inonderzoek
+     , relatievehoogteligging
+     , bgt_status
+     , plus_status
+     , bgt_functie
+     , plus_functie
+     , optalud
+     , bgt_fysiekvoorkomen
+     , plus_fysiekvoorkomen
+     , CASE 
+         WHEN geometrytype(geometrie2d) = 'CURVEPOLYGON' THEN
+             st_multi(st_makevalid(st_curvetoline(geometrie2d)))::geometry(MultiPolygon, 28992)
+         WHEN geometrytype(geometrie2d) = 'MULTICURVEPOLYGON' THEN
+             st_multi(st_makevalid(st_curvetoline(geometrie2d)))::geometry(MultiPolygon, 28992)
+         WHEN geometrytype(geometrie2d) = 'MULTISURFACE' THEN
+             st_multi(st_makevalid(st_collectionextract(st_curvetoline(geometrie2d), 3)))::geometry(MultiPolygon, 28992)
+         ELSE
+             st_multi(st_makevalid(geometrie2d))::geometry(MultiPolygon, 28992)
+       END as geometrie
+FROM ${wegdeel_tbl}
+WHERE eindregistratie IS NULL
+  AND objecteindtijd IS NULL
+  AND bgt_status = 'bestaand';
 
 DROP SEQUENCE IF EXISTS bgt_wegdeelactueelbestaand_fid_seq;
