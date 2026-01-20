@@ -41,5 +41,3 @@ def bgt_pandactueelbestaand(context, stage_bgt_pand) -> Output[PostgresTableIden
     query = load_sql(query_params={"pand_tbl": stage_bgt_pand, "new_table": new_table})
     metadata = postgrestable_from_query(context, query, new_table)
     return Output(new_table, metadata=metadata)
-
-
