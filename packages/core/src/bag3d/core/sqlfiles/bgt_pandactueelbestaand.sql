@@ -25,6 +25,8 @@ SELECT NEXTVAL('bgt_pandactueelbestaand_fid_seq') AS fid
              st_multi(st_makevalid(st_curvetoline(geometrie2d)))::geometry(MultiPolygon, 28992)
          WHEN geometrytype(geometrie2d) = 'MULTISURFACE' THEN
              st_multi(st_makevalid(st_collectionextract(st_curvetoline(geometrie2d), 3)))::geometry(MultiPolygon, 28992)
+         WHEN geometrytype(geometrie2d) = 'GEOMETRYCOLLECTION' THEN
+             st_multi(st_makevalid(st_collectionextract(geometrie2d, 3)))::geometry(MultiPolygon, 28992)
          ELSE
              st_multi(st_makevalid(geometrie2d))::geometry(MultiPolygon, 28992)
        END as geometrie
