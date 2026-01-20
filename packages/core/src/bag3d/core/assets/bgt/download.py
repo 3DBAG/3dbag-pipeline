@@ -9,7 +9,7 @@ from bag3d.common.types import Path
     config_schema={
         "featuretypes": Field(
             list,
-            default_value=["pand", "wegdeel"],
+            default_value=["pand"],
             description="The feature types to download.",
             is_required=False,
         ),
@@ -20,8 +20,7 @@ from bag3d.common.types import Path
     required_resource_keys={"gdal", "file_store"},
 )
 def extract_bgt(context) -> Output[Path]:
-    """The BGT extract downloaded from the PDOK API, containing the 'pand' and
-    'wegdeel' layers."""
+    """The BGT extract downloaded from the PDOK API, containing the 'pand' layer."""
     metadata = download_extract(
         dataset="bgt",
         url_api="https://api.pdok.nl/lv/bgt/download/v1_0",

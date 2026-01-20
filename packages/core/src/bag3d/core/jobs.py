@@ -4,7 +4,7 @@ from dagster import define_asset_job, AssetSelection, multiprocess_executor
 
 job_bgt = define_asset_job(
     name="bgt",
-    description="Load the latest BGT Pand, Wegdeel layers.",
+    description="Load the latest BGT Pand layer.",
     selection=AssetSelection.groups("bgt"),
 )
 
