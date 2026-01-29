@@ -24,7 +24,6 @@ dependencies = [
     "psycopg[binary]~=3.2.3",
     "dagster~=1.9.4",
     "dagster-postgres~=0.25.4",
-    "dagster-shell~=0.25.4",
     "docker~=7.1.0",
     "lxml~=5.3.0",
     "bag3d-common",
