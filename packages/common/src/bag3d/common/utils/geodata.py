@@ -278,8 +278,11 @@ def ogr2postgres(
         local_path=extract_path,
         context=context,
     )
-    if result.success and context:
-        return postgrestable_metadata(context, new_table)
+    if result.success:
+        if context:
+            return postgrestable_metadata(context, new_table)
+        else:
+            return {"Database.Schema.Table": f"{new_table.schema}.{new_table.table}"}
 
 
 def pdal_info(

@@ -121,29 +121,41 @@ class CommandRunner:
             stderr=stderr,
         )
 
-    def _run_with_pipes(
+    def _run_with_logging(
         self,
         command: str,
         cwd: str = None,
         env: dict = None,
         context: OpExecutionContext = None,
     ) -> CommandResult:
-        """Execute with Dagster Pipes integration."""
-        from dagster._core.pipes.subprocess import PipesSubprocessClient
+        """Execute subprocess with Dagster logging integration."""
+        logger = context.log if context else get_dagster_logger()
+        logger.info(f"Executing: {command}")
 
-        pipes_client = PipesSubprocessClient()
-        # Convert command string to list for subprocess
-        cmd_list = shlex.split(command)
-        result = pipes_client.run(
-            command=cmd_list,
+        sub_process = Popen(
+            command,
+            shell=True,
+            stdout=PIPE,
+            stderr=PIPE,
             cwd=cwd,
             env=env,
-            context=context,
+            preexec_fn=self._pre_exec,
+            encoding="UTF-8",
         )
+        stdout, stderr = sub_process.communicate()
+
+        # Log to Dagster UI for debugging
+        if stdout.strip():
+            logger.info(f"stdout:\n{stdout}")
+        if stderr.strip():
+            logger.warning(f"stderr:\n{stderr}")
+        if sub_process.returncode != 0:
+            logger.error(f"Command failed with exit code {sub_process.returncode}")
+
         return CommandResult(
-            returncode=result.returncode,
-            stdout=result.stdout,
-            stderr=result.stderr,
+            returncode=sub_process.returncode,
+            stdout=stdout,
+            stderr=stderr,
         )
 
     def _run_docker(self, command: str, local_path: Path = None) -> CommandResult:
@@ -209,7 +221,7 @@ class CommandRunner:
         if self.with_docker:
             return self._run_docker(final_command, local_path)
         elif context is not None:
-            return self._run_with_pipes(final_command, cwd, env, context)
+            return self._run_with_logging(final_command, cwd, env, context)
         else:
             return self._run_direct(final_command, cwd, env)
 
