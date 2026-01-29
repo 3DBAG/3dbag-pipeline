@@ -44,7 +44,11 @@ def reconstruction_input_tiles(context, reconstruction_input):
         f"--primary-key {primary_key}",
         f"--output-schema {output_schema}",
     ]
-    context.resources.tyler.app.execute("tyler-db", " ".join(cmd))
+    context.resources.tyler.runner.run(
+        " ".join(cmd),
+        exe_name="tyler-db",
+        context=context,
+    )
 
     conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
     conn.send_query(

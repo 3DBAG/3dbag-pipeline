@@ -25,7 +25,6 @@ class LasIndexConfig(Config):
 def run_lasindex(
     context: AssetExecutionContext, config: LasIndexConfig, lazdownload: LAZDownload
 ):
-    silent = not config.verbose
     cmd_list = [
         "{exe}",
         "-i {local_path}",
@@ -34,8 +33,11 @@ def run_lasindex(
     ]
     if not config.force:
         cmd_list.append("-dont_reindex")
-    context.resources.lastools.app.execute(
-        "lasindex", " ".join(cmd_list), local_path=lazdownload.path, silent=silent
+    context.resources.lastools.runner.run(
+        " ".join(cmd_list),
+        exe_name="lasindex",
+        local_path=lazdownload.path,
+        context=context,
     )
 
 

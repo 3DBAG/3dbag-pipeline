@@ -334,10 +334,14 @@ def load_bag_layer(
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append(str(layer_dir))
         cmd = " ".join(cmd)
-        return_code, output = context.resources.gdal.app.execute(
-            "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
+        result = context.resources.gdal.runner.run(
+            cmd,
+            exe_name="ogr2ogr",
+            kwargs=kwargs,
+            local_path=extract_dir,
+            context=context,
         )
-        if return_code != 0:
+        if not result.success:
             return False
         # Parallel insert
         cmd = [
@@ -375,10 +379,14 @@ def load_bag_layer(
         cmd = " ".join(cmd)
 
     # Execute
-    return_code, output = context.resources.gdal.app.execute(
-        "ogr2ogr", cmd, kwargs=kwargs, local_path=extract_dir
+    result = context.resources.gdal.runner.run(
+        cmd,
+        exe_name="ogr2ogr",
+        kwargs=kwargs,
+        local_path=extract_dir,
+        context=context,
     )
-    return True if return_code == 0 else False
+    return result.success
 
 
 def bagextract_metadata(

@@ -145,7 +145,12 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     )
     cmd.extend(cli_params)
     context.log.debug(" ".join(cmd))
-    context.resources.tyler.app.execute(exe_name, " ".join(cmd), cwd=str(output_dir))
+    context.resources.tyler.runner.run(
+        " ".join(cmd),
+        exe_name=exe_name,
+        cwd=str(output_dir),
+        context=context,
+    )
     return output_dir
 
 

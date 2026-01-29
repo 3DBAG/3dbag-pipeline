@@ -60,7 +60,9 @@ def geopackage_nl(context):
         str(first_path_with_data),
     ]
     cmd = " ".join(cmd)
-    return_code, output = context.resources.gdal.app.execute("ogr2ogr", cmd)
+    result = context.resources.gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+    if not result.success:
+        raise ValueError(f"ogr2ogr failed: {result.stderr}")
 
     failed = []
     for lid in leaf_ids[first_i_with_data + 1 :]:
@@ -80,13 +82,11 @@ def geopackage_nl(context):
         ]
         cmd = " ".join(cmd)
         try:
-            return_code, output = context.resources.gdal.app.execute(
-                "ogr2ogr", cmd, silent=True
-            )
-            if return_code != 0:
-                failed.append((lid, output))
+            result = context.resources.gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+            if not result.success:
+                failed.append((lid, result.stderr))
         except Exception:
-            failed.append((lid, output))
+            failed.append((lid, result.stderr if 'result' in locals() else ""))
 
     layers = [
         "pand",
@@ -106,14 +106,14 @@ def geopackage_nl(context):
             str(path_nl),
         ]
         cmd = " ".join(cmd)
-        context.resources.gdal.app.execute("ogrinfo", cmd)
+        context.resources.gdal.runner.run(cmd, exe_name="ogrinfo", context=context)
 
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
     cmd = ["{exe}", "--junk-paths", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
-    context.resources.gdal.app.execute("sozip", cmd)
+    context.resources.gdal.runner.run(cmd, exe_name="sozip", context=context)
 
     metadata = {}
     metadata["nr_failed"] = len(failed)
