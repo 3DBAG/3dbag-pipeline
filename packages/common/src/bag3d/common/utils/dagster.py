@@ -5,8 +5,6 @@ from datetime import date
 from dagster import (
     TableColumn,
     TableSchema,
-    AssetExecutionContext,
-    AssetKey,
     StaticPartitionsDefinition,
     get_dagster_logger,
 )
@@ -47,16 +45,6 @@ def format_date(input_date: date, version: bool = True) -> str:
         return input_date.strftime("%Y.%m.%d")
     else:
         return input_date.strftime("%Y-%m-%d")
-
-
-def get_upstream_data_version(
-    context: AssetExecutionContext, asset_key: AssetKey
-) -> str:
-    """Get the data version of an upstream asset.
-    The upstream asset must be a dependency of the current asset that passes its
-    execution context into this function."""
-    step_execution_context = context.get_step_execution_context()
-    return str(step_execution_context.input_asset_records[asset_key].data_version.value)
 
 
 class PartitionDefinition3DBagDistribution(StaticPartitionsDefinition):
