@@ -102,6 +102,7 @@ def stage_bag_woonplaats(context, extract_bag) -> Output[PostgresTableIdentifier
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "woonplaats"
+    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -109,6 +110,8 @@ def stage_bag_woonplaats(context, extract_bag) -> Output[PostgresTableIdentifier
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
+        with_parallel=config.get("with_parallel", True),
+        geofilter=config.get("geofilter"),
     )
     return Output(new_table, metadata=metadata)
 
@@ -134,6 +137,7 @@ def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdent
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "verblijfsobject"
+    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -141,6 +145,8 @@ def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdent
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
+        with_parallel=config.get("with_parallel", True),
+        geofilter=config.get("geofilter"),
     )
     return Output(new_table, metadata=metadata)
 
@@ -166,6 +172,7 @@ def stage_bag_pand(context, extract_bag) -> Output[PostgresTableIdentifier]:
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "pand"
+    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -173,6 +180,8 @@ def stage_bag_pand(context, extract_bag) -> Output[PostgresTableIdentifier]:
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
+        with_parallel=config.get("with_parallel", True),
+        geofilter=config.get("geofilter"),
     )
     return Output(new_table, metadata=metadata)
 
@@ -198,6 +207,7 @@ def stage_bag_openbareruimte(context, extract_bag) -> Output[PostgresTableIdenti
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "openbareruimte"
+    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -205,6 +215,8 @@ def stage_bag_openbareruimte(context, extract_bag) -> Output[PostgresTableIdenti
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
+        with_parallel=config.get("with_parallel", True),
+        geofilter=config.get("geofilter"),
     )
     return Output(new_table, metadata=metadata)
 
@@ -230,6 +242,7 @@ def stage_bag_nummeraanduiding(context, extract_bag) -> Output[PostgresTableIden
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "nummeraanduiding"
+    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -237,6 +250,8 @@ def stage_bag_nummeraanduiding(context, extract_bag) -> Output[PostgresTableIden
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
+        with_parallel=config.get("with_parallel", True),
+        geofilter=config.get("geofilter"),
     )
     return Output(new_table, metadata=metadata)
 
@@ -249,6 +264,8 @@ def stage_bag_layer(
     shortdate: str,
     extract_dir: Path,
     remove_zip: bool = True,
+    with_parallel: bool = False,
+    geofilter: str | None = None,
 ):
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, layer)
@@ -260,6 +277,8 @@ def stage_bag_layer(
         new_table=new_table,
         shortdate=shortdate,
         remove_zip=remove_zip,
+        with_parallel=with_parallel,
+        geofilter=geofilter,
     )
     _m = postgrestable_metadata(context, new_table)
     metadata.update(_m)
@@ -273,6 +292,8 @@ def load_bag_layer(
     shortdate: str,
     new_table: PostgresTableIdentifier,
     remove_zip: bool = True,
+    with_parallel: bool = False,
+    geofilter: str | None = None,
 ) -> bool:
     """Load a single LVBAG Extract 2.0 layer into a PostgreSQL table with ogr2ogr.
     This function expects that the LVBAG Extract is uncompressed one level deep, as it
@@ -292,6 +313,8 @@ def load_bag_layer(
         shortdate: Date of the LVBAG Extract, as it is stored in the `StandTechnischeDatum` of the Extract metadata, for example `08102022`.
         new_table: Name of the target database table.
         remove_zip: Whether to remove the zipfile or not.
+        with_parallel: Use GNU Parallel with ogr2ogr for loading.
+        geofilter: WKT of the polygonal extent. Will be converted to a BBOX.
 
     Returns:
         True on success, False otherwise.
@@ -317,7 +340,7 @@ def load_bag_layer(
     }
 
     # Create the ogr2ogr command. The order of parameters is important!
-    if context.op_execution_context.op_config.get("with_parallel"):
+    if with_parallel:
         # Decompress the layer archive
         layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
         layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
@@ -352,7 +375,6 @@ def load_bag_layer(
             "-lco UNLOGGED=ON",
             "-lco SPATIAL_INDEX=NONE",
         ]
-        geofilter = context.op_execution_context.op_config.get("geofilter")
         if geofilter:
             bbox = bbox_from_wkt(geofilter)
             cmd.append("-spat {bbox}")
@@ -362,7 +384,7 @@ def load_bag_layer(
         cmd.append(f"::: {layer_dir}/*.xml")
         cmd = " ".join(cmd)
     else:
-        if context.op_execution_context.op_config.get("geofilter") is not None:
+        if geofilter is not None:
             logger.error(
                 "Must use parallel if geofilter is set for loading a BAG layer."
             )
