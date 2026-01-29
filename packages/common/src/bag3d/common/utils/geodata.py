@@ -15,8 +15,8 @@ from dagster import (
 )
 from pgutils import PostgresTableIdentifier
 
+from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.utils.database import postgrestable_metadata
-from bag3d.common.resources.executables import AppImage
 
 logger = get_dagster_logger()
 
@@ -51,14 +51,14 @@ def bbox_from_wkt(wkt):
 
 
 def ogrinfo(
-    context: OpExecutionContext,
+    gdal_runner: CommandRunner,
     dataset: str,
     extract_path: Path,
     feature_types: list,
     xsd: str,
+    context: OpExecutionContext = None,
 ):
     """Runs ogrinfo on the zipped extract."""
-    gdal = context.resources.gdal.app
     cmd = " ".join(
         [
             "{exe}",
@@ -73,15 +73,15 @@ def ogrinfo(
     info = {}
     for feature_type in feature_types:
         kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
-        return_code, output = gdal.execute(
-            "ogrinfo",
-            command=cmd,
+        result = gdal_runner.run(
+            cmd,
+            exe_name="ogrinfo",
             kwargs=kwargs,
             local_path=extract_path,
-            output_logging="BUFFER",
+            context=context,
         )
-        if return_code == 0:
-            layername, layerinfo = parse_ogrinfo(output, feature_type)
+        if result.success:
+            layername, layerinfo = parse_ogrinfo(result.stdout, feature_type)
             info[str(layername)] = layerinfo
     return info
 
@@ -221,12 +221,14 @@ def add_info(metadata: dict, info: dict) -> None:
 
 
 def ogr2postgres(
-    context: OpExecutionContext,
+    gdal_runner: CommandRunner,
+    dsn: str,
     dataset: str,
     extract_path: Path,
     feature_type: str,
     xsd: str,
     new_table: PostgresTableIdentifier,
+    context: OpExecutionContext = None,
 ) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
@@ -234,19 +236,18 @@ def ogr2postgres(
     the PDOK API.
 
     Args:
-        context: Op execution context from Dagster.
+        gdal_runner: CommandRunner for GDAL tools.
+        dsn: PostgreSQL connection string.
         dataset: Name of the dataset ('top10nl', 'bgt').
         extract_path: Local path to the zipped extract.
         feature_type: The feature layer to load from the ``dataset``
         xsd: Path (URL) to the XSD file.
         new_table: The name of the new Postgres table to load the data into.
+        context: Optional op execution context from Dagster for metadata retrieval.
     Returns:
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
     """
-    gdal = context.resources.gdal.app
-    dsn = context.resources.db_connection.connect.dsn
-
     cmd = " ".join(
         [
             "{exe}",
@@ -270,28 +271,32 @@ def ogr2postgres(
         "xsd": xsd,
         "dataset": dataset,
     }
-    return_code, output = gdal.execute(
-        "ogr2ogr",
-        command=cmd,
+    result = gdal_runner.run(
+        cmd,
+        exe_name="ogr2ogr",
         kwargs=kwargs,
         local_path=extract_path,
-        output_logging="BUFFER",
+        context=context,
     )
-    if return_code == 0:
-        return postgrestable_metadata(context, new_table)
+    if result.success:
+        if context:
+            return postgrestable_metadata(context, new_table)
+        else:
+            return {"Database.Schema.Table": f"{new_table.schema}.{new_table.table}"}
 
 
 def pdal_info(
-    pdal: AppImage, file_path: Path, with_all: bool = False, verbose: bool = False
+    pdal, file_path: Path, with_all: bool = False, verbose: bool = False, context=None
 ) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:
         verbose: Return stdout/stderr from pdal
-        pdal (AppImage): The pdal AppImage executable.
+        pdal: The pdal runner or AppImage executable.
         file_path: Path to the point cloud file.
         with_all: If true, run ``pdal info --all``, else run ``pdal info --metadata``.
             Defaults to ``False``.
+        context: Optional Dagster context for Pipes support.
     Returns:
         A tuple of (pdal's return code, parsed pdal info output)
     """
@@ -302,14 +307,14 @@ def pdal_info(
     cmd_list.append("--all") if with_all else cmd_list.append("--metadata")
     cmd_list.append("{local_path}")
 
-    return_code, output = pdal.execute(
-        "pdal",
-        command=" ".join(cmd_list),
+    result = pdal.run(
+        " ".join(cmd_list),
+        exe_name="pdal",
         local_path=file_path,
-        silent=(not verbose),
-        output_logging="BUFFER",
+        context=context,
     )
 
+    output = result.stdout
     if "Global encoding WKT flag" in str(output):
         logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
         # Remove the first line
@@ -325,7 +330,7 @@ def pdal_info(
     except JSONDecodeError as e:
         raise Failure(f"Failed to make JSON from pdal output: {output_processed}. {e}")
 
-    return return_code, json_data
+    return result.returncode, json_data
 
 
 def geojson_poly_to_wkt(geometry) -> str:

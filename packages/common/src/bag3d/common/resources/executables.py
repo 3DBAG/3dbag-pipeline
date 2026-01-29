@@ -1,13 +1,11 @@
 import os
 from pathlib import Path
-from typing import Tuple
-from copy import deepcopy
+from dataclasses import dataclass
 import signal
-from subprocess import PIPE, STDOUT, Popen
+from subprocess import PIPE, Popen
 from typing import Dict, Optional
 
-from dagster import get_dagster_logger, Failure, ConfigurableResource, Config
-from dagster_shell import execute_shell_command
+from dagster import get_dagster_logger, OpExecutionContext, ConfigurableResource, Config
 import docker
 from docker.errors import ImageNotFound
 
@@ -15,61 +13,23 @@ DOCKER_PDAL_IMAGE = "pdal/pdal:sha-cfa827b6"  # PDAL 2.4.3
 DOCKER_GDAL_IMAGE = "ghcr.io/osgeo/gdal:ubuntu-small-latest"
 
 
-def execute_shell_command_silent(shell_command: str, cwd=None, env=None):
-    """Execute a shell command without sending the output to the logger, and without
-    writing the command to a script file first.
+@dataclass(frozen=True)
+class CommandResult:
+    """Immutable result of a command execution."""
 
-    NOTE: This function is based on the execute_script_file dagster_shell function,
-    which can be found here: https://github.com/dagster-io/dagster/blob/master/python_modules/libraries/dagster-shell/dagster_shell/utils.py
+    returncode: int
+    stdout: str
+    stderr: str = ""
 
-    Args:
-        shell_command (str): The shell script to execute.
-        cwd (str, optional): Working directory for the shell command to use.
-        env (Dict[str, str], optional): Environment dictionary to pass to ``subprocess.Popen``.
-            Unused by default.
+    @property
+    def success(self) -> bool:
+        return self.returncode == 0
 
-    Returns:
-        Tuple[str, int]: A tuple where the first element is the combined
-        stdout/stderr output of running the shell command and the second element is
-        the return code.
-    """
-
-    def pre_exec():
-        # Restore default signal disposition and invoke setsid
-        for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
-            if hasattr(signal, sig):
-                signal.signal(getattr(signal, sig), signal.SIG_DFL)
-        os.setsid()
-
-    sub_process = None
-    try:
-        stdout_pipe = PIPE
-        stderr_pipe = STDOUT
-
-        sub_process = Popen(
-            shell_command,
-            shell=True,
-            stdout=stdout_pipe,
-            stderr=stderr_pipe,
-            cwd=cwd,
-            env=env,
-            preexec_fn=pre_exec,
-            encoding="UTF-8",
-        )
-
-        # Stream back logs as they are emitted
-        lines = []
-        for line in sub_process.stdout:
-            lines.append(line)
-        output = "".join(lines)
-
-        sub_process.wait()
-
-        return output, sub_process.returncode
-    finally:
-        # Always terminate subprocess, including in cases where the run is terminated
-        if sub_process:
-            sub_process.terminate()
+    @property
+    def has_error_in_output(self) -> bool:
+        """Heuristic check - caller decides how to handle."""
+        combined = (self.stdout + self.stderr).lower()
+        return "error" in combined or "fatal" in combined or "critical" in combined
 
 
 def format_version_stdout(version: str) -> str:
@@ -81,20 +41,21 @@ class DockerConfig(Config):
     mount_point: str
 
 
-class AppImage:
-    """An application, either as paths of executables, or as a docker image."""
+class CommandRunner:
+    """Unified command execution interface.
+
+    Supports configured executables, raw commands, and Docker containers.
+    Works with or without Dagster context.
+    """
 
     def __init__(
         self,
-        exes: dict,
+        exes: dict[str, str] = None,
         docker_cfg: DockerConfig = None,
         with_docker: bool = False,
-        kwargs: dict = None,
     ):
-        self.logger = get_dagster_logger()
-        self.exes = exes
+        self.exes = exes or {}
         self.with_docker = with_docker
-        self.kwargs = kwargs
         if self.with_docker:
             self.docker_client = docker.from_env()
             try:
@@ -107,148 +68,171 @@ class AppImage:
             self.docker_image = None
             self.container_mount_point = None
 
-    def execute(
+    def _pre_exec(self):
+        """Restore default signal disposition and invoke setsid."""
+        for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
+            if hasattr(signal, sig):
+                signal.signal(getattr(signal, sig), signal.SIG_DFL)
+        os.setsid()
+
+    def _build_command(
         self,
-        exe_name: str,
         command: str,
+        exe_name: str = None,
         kwargs: dict = None,
         local_path: Path = None,
-        silent=False,
+    ) -> str:
+        """Build final command string with substitutions."""
+        format_dict = {}
+
+        if exe_name:
+            format_dict["exe"] = self.exes[exe_name]
+
+        if kwargs:
+            format_dict.update(kwargs)
+
+        if local_path:
+            if self.with_docker:
+                if local_path.is_dir():
+                    format_dict["local_path"] = self.container_mount_point
+                else:
+                    format_dict["local_path"] = (
+                        self.container_mount_point / local_path.name
+                    )
+            else:
+                format_dict["local_path"] = local_path
+
+        return command.format(**format_dict)
+
+    def _run_direct(
+        self, command: str, cwd: str = None, env: dict = None
+    ) -> CommandResult:
+        """Execute subprocess without Dagster context."""
+        sub_process = Popen(
+            command,
+            shell=True,
+            stdout=PIPE,
+            stderr=PIPE,
+            cwd=cwd,
+            env=env,
+            preexec_fn=self._pre_exec,
+            encoding="UTF-8",
+        )
+        stdout, stderr = sub_process.communicate()
+        return CommandResult(
+            returncode=sub_process.returncode,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    def _run_with_logging(
+        self,
+        command: str,
         cwd: str = None,
-        output_logging: str = "STREAM",
-    ) -> Tuple[int, str]:
-        """Execute a command in a docker container if an image is available, otherwise
-        execute with the local executable.
+        env: dict = None,
+        context: OpExecutionContext = None,
+    ) -> CommandResult:
+        """Execute subprocess with Dagster logging integration."""
+        logger = context.log if context else get_dagster_logger()
+        logger.info(f"Executing: {command}")
 
-        Since ``execute`` selects the correct executable, based on the availability of
-        a docker image, you always need to pass an ``exe`` placeholder in the
-        ``command`` string. The ``exe`` will be substituted internally by ``execute``.
-        For instance ``"{exe} --version"``, to get the version of an executable.
+        sub_process = Popen(
+            command,
+            shell=True,
+            stdout=PIPE,
+            stderr=PIPE,
+            cwd=cwd,
+            env=env,
+            preexec_fn=self._pre_exec,
+            encoding="UTF-8",
+        )
+        stdout, stderr = sub_process.communicate()
 
-        If the command needs access to a path, the second placeholder that must be in
-        the ``command`` string is ``local_path``.
-        The ``local_path`` in the command string will be substituted with the
-        ``local_path`` parameter value, if the executable is local.
-        If the command runs in docker, the ``local_path`` in the command string takes
-        the value of the ``container_path``.
+        # Log to Dagster UI for debugging
+        if stdout.strip():
+            logger.info(f"stdout:\n{stdout}")
+        if stderr.strip():
+            logger.warning(f"stderr:\n{stderr}")
+        if sub_process.returncode != 0:
+            logger.error(f"Command failed with exit code {sub_process.returncode}")
 
-        The ``container_path`` is computed from the ``local_path`` parameter and the
-        ``mount_point`` configuration value, such that
-        ``container_path = mount_point / local_path.name``.
+        return CommandResult(
+            returncode=sub_process.returncode,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    def _run_docker(self, command: str, local_path: Path = None) -> CommandResult:
+        """Execute in Docker container with proper exit code capture."""
+        volumes = None
+        if local_path:
+            if local_path.is_dir():
+                container_path = self.container_mount_point
+            else:
+                container_path = self.container_mount_point / local_path.name
+            volumes = [f"{local_path}:{container_path}"]
+
+        container = self.docker_client.containers.run(
+            self.docker_image,
+            command=command,
+            volumes=volumes,
+            network_mode="host",
+            detach=True,
+            remove=False,
+            stdout=True,
+            stderr=True,
+        )
+
+        result = container.wait()
+        exit_code = result.get("StatusCode", 1)
+        stdout = container.logs(stdout=True, stderr=False).decode("utf-8")
+        stderr = container.logs(stdout=False, stderr=True).decode("utf-8")
+        container.remove()
+
+        return CommandResult(
+            returncode=exit_code,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+    def run(
+        self,
+        command: str,
+        *,
+        exe_name: str = None,
+        kwargs: dict = None,
+        local_path: Path = None,
+        cwd: str = None,
+        context: OpExecutionContext = None,
+        env: dict = None,
+    ) -> CommandResult:
+        """Execute command and return structured result.
 
         Args:
-            exe_name: Name of the executable to run (as defined in the resource config
-                { "exes": { <name>: ...} }). This is because an AppImage can use
-                multiple executables, and you need to select the one that needs to be
-                run.
-            command: The command to be executed. It is formatted with the ``kwargs``
-                and the executable. Therefore, it must contain a placeholder for
-                ``exe``, which is substitued from ``self.exe``.
-            kwargs: Keyword arguments to pass as command parameters.
-            local_path: If ``local_path`` is a directory, then it is mounted on the
-                ``mount_point`` directly. If ``local_path`` is a file, then it is
-                mounted on the ``mount_point`` as
-                ``local_path : mount_point/local_path.name``.
-            silent: If False, send execution messages to the logger, else do not log.
-            output_logging: The logging mode to use. Supports STREAM, BUFFER, and NONE.
-                STREAM: Stream back logs as they are emitted. BUFFER: Collect and
-                buffer all logs, then emit.
+            command: The command to execute. Can contain {exe} and {local_path} placeholders.
+            exe_name: Name of the executable to substitute for {exe}.
+            kwargs: Additional keyword arguments for command formatting.
+            local_path: Path to mount in Docker or use in command.
+            cwd: Working directory for command execution.
+            context: Optional Dagster context for Pipes integration.
+            env: Environment variables for subprocess.
 
         Returns:
-             The return code and STDOUT from the command execution.
-
-        Examples:
-            >>> # Pass the name of the exe first, then the command, including the
-            ... # 'exe' placeholder.
-            ... self.execute("ogrinfo", "{exe} --version")
-
-            >>> self.execute("ogrinfo", "{exe} -so -al {local_path}",
-            ...              local_path=Path("/tmp/myfile.gml"))
+            CommandResult with returncode, stdout, and stderr.
         """
-        if kwargs:
-            if "exe" in kwargs:
-                raise ValueError(
-                    "Cannot include 'exe' in the kwargs. Pass the exe in "
-                    "the 'exe_name' parameter."
-                )
-            if "local_path" in kwargs:
-                raise ValueError(
-                    "Cannot include 'local_path' in the kwargs. Pass the "
-                    "path in the 'local path' parameter."
-                )
-        kwargs_with_exe = deepcopy(kwargs) if kwargs else dict()
-        kwargs_with_exe["exe"] = self.exes[exe_name]
+        final_command = self._build_command(command, exe_name, kwargs, local_path)
+
         if self.with_docker:
-            if local_path:
-                if local_path.is_dir():
-                    container_path = self.container_mount_point
-                else:
-                    container_path = self.container_mount_point / local_path.name
-                kwargs_with_exe["local_path"] = container_path
-                volumes = [
-                    f"{local_path}:{container_path}",
-                ]
-            else:
-                volumes = None
-            output = self._docker_run(
-                command.format(**kwargs_with_exe), volumes=volumes
-            )
-            return_code = 1 if "error" in output.lower() else 0
+            return self._run_docker(final_command, local_path)
+        elif context is not None:
+            return self._run_with_logging(final_command, cwd, env, context)
         else:
-            kwargs_with_exe["local_path"] = local_path
-            if silent:
-                output, return_code = execute_shell_command_silent(
-                    shell_command=command.format(**kwargs_with_exe), cwd=cwd
-                )
-            else:
-                output, return_code = execute_shell_command(
-                    shell_command=command.format(**kwargs_with_exe),
-                    log=self.logger,
-                    output_logging=output_logging,
-                    cwd=cwd,
-                )
-        if return_code != 0:
-            raise Failure(f"{kwargs_with_exe['exe']} failed with output:\n{output}")
-        elif "error" in output.lower():
-            self.logger.error(f"Error in subprocess output: {output}")
-            return return_code, output
-        else:
-            return return_code, output
+            return self._run_direct(final_command, cwd, env)
 
-    def _docker_run(self, command, volumes=None, silent=False) -> str:
-        """Executes a `command` with 'docker run'.
-
-        The `host_path` is mounted at `mount_point` that is provided in the resource
-            configuration.
-        The `--network` is set to `host`.
-        Removes the container when finished.
-
-        Returns the STDOUT from the container.
-        """
-        if self.with_docker:
-            if not silent:
-                logger = get_dagster_logger()
-                logger.info(f"Executing `{command}` in {self.docker_image.tags}")
-            stdout = self.docker_client.containers.run(
-                self.docker_image,
-                command=command,
-                volumes=volumes,
-                network_mode="host",
-                remove=True,
-                detach=False,
-                stdout=True,
-                stderr=True,
-            )
-            return stdout.decode("utf-8")
-        else:
-            raise RuntimeError(
-                "executable resource was not initialized with a docker image"
-            )
-
-    def version(self, exe: str, version_cmd: str = "--version"):
-        exe_path = self.exes[exe]
-        version, returncode = execute_shell_command_silent(f"{exe_path} {version_cmd}")
-        return format_version_stdout(version)
+    def version(self, exe: str, version_cmd: str = "--version") -> str:
+        """Get version of an executable."""
+        result = self.run(f"{{exe}} {version_cmd}", exe_name=exe)
+        return format_version_stdout(result.stdout)
 
 
 class GDALResource(ConfigurableResource):
@@ -270,10 +254,10 @@ class GDALResource(ConfigurableResource):
                                 mount_point="/tmp"))
 
     If instantiated with GDALResource() then the Docker image is used by
-    default. After the resource has been instantiated, gdal (AppImage) can
-    be acquired with the `app` property:
+    default. After the resource has been instantiated, gdal (CommandRunner) can
+    be acquired with the `runner` property:
 
-        gdal_resource.app
+        gdal_resource.runner
     """
 
     exe_ogrinfo: Optional[str] = None
@@ -308,8 +292,8 @@ class GDALResource(ConfigurableResource):
             return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(
+    def runner(self) -> CommandRunner:
+        return CommandRunner(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
 
@@ -330,10 +314,10 @@ class PDALResource(ConfigurableResource):
                                         mount_point="/tmp"))
 
     If instantiated with PDALResource() then the Docker image is used by
-    default. After the resource has been instantiated, pdal (AppImage) can
-    be acquired with the `app` property:
+    default. After the resource has been instantiated, pdal (CommandRunner) can
+    be acquired with the `runner` property:
 
-        pdal_resource.app
+        pdal_resource.runner
     """
 
     exe_pdal: Optional[str] = None
@@ -358,8 +342,8 @@ class PDALResource(ConfigurableResource):
             return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(
+    def runner(self) -> CommandRunner:
+        return CommandRunner(
             exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
         )
 
@@ -375,10 +359,10 @@ class LASToolsResource(ConfigurableResource):
                                              exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
                                              exe_lasinfo=os.getenv("EXE_PATH_LASINFO"))
 
-    After the resource has been instantiated, lastools (AppImage) can
-    be acquired with the `app` property:
+    After the resource has been instantiated, lastools (CommandRunner) can
+    be acquired with the `runner` property:
 
-        lastools_resource.app
+        lastools_resource.runner
     """
 
     exe_lasindex: Optional[str] = None
@@ -398,8 +382,8 @@ class LASToolsResource(ConfigurableResource):
         return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(exes=self.exes, with_docker=self.with_docker)
+    def runner(self) -> CommandRunner:
+        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
 
 
 class TylerResource(ConfigurableResource):
@@ -412,10 +396,10 @@ class TylerResource(ConfigurableResource):
         tyler_resource = TylerResource(exe_tyler=os.getenv("EXE_PATH_TYLER"),
                                        exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"))
 
-    After the resource has been instantiated, tyler (AppImage) can
-    be acquired with the `app` property:
+    After the resource has been instantiated, tyler (CommandRunner) can
+    be acquired with the `runner` property:
 
-        tyler = tyler_resource.app
+        tyler = tyler_resource.runner
     """
 
     exe_tyler: Optional[str] = None
@@ -435,8 +419,8 @@ class TylerResource(ConfigurableResource):
         return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(exes=self.exes, with_docker=self.with_docker)
+    def runner(self) -> CommandRunner:
+        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
 
 
 class ValidationResource(ConfigurableResource):
@@ -450,10 +434,10 @@ class ValidationResource(ConfigurableResource):
                                                  exe_cjval=os.getenv("EXE_PATH_CJVAL"),
                                                  exe_cjio=os.getenv("EXE_PATH_CJIO"))
 
-    After the resource has been instantiated, val3dity (AppImage) can
-    be acquired with the `app` property:
+    After the resource has been instantiated, val3dity (CommandRunner) can
+    be acquired with the `runner` property:
 
-        validation = validation_resource.app
+        validation = validation_resource.runner
     """
 
     exe_val3dity: Optional[str] = None
@@ -473,8 +457,8 @@ class ValidationResource(ConfigurableResource):
         return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(exes=self.exes, with_docker=self.with_docker)
+    def runner(self) -> CommandRunner:
+        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
 
 
 class RooferResource(ConfigurableResource):
@@ -487,10 +471,10 @@ class RooferResource(ConfigurableResource):
         roofer_resource = RooferResource(exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
                                          exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"))
 
-    After the resource has been instantiated, roofer (AppImage) can
-    be acquired with the `app` property:
+    After the resource has been instantiated, roofer (CommandRunner) can
+    be acquired with the `runner` property:
 
-        roofer = roofer_resource.app
+        roofer = roofer_resource.runner
     """
 
     exe_crop: Optional[str] = None
@@ -508,8 +492,8 @@ class RooferResource(ConfigurableResource):
         return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(exes=self.exes, with_docker=self.with_docker)
+    def runner(self) -> CommandRunner:
+        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
 
 
 class GeoflowResource(ConfigurableResource):
@@ -523,10 +507,10 @@ class GeoflowResource(ConfigurableResource):
         geoflow_resource = GeoflowResource(exe_geoflow = os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
                                            flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"))
 
-    After the resource has been instantiated, geoflow (AppImage) can
-    be acquired with the `app` property:
+    After the resource has been instantiated, geoflow (CommandRunner) can
+    be acquired with the `runner` property:
 
-        geoflow = geoflow_resource.app
+        geoflow = geoflow_resource.runner
     """
 
     exe_geoflow: Optional[str] = None
@@ -541,9 +525,5 @@ class GeoflowResource(ConfigurableResource):
         return False
 
     @property
-    def app(self) -> AppImage:
-        return AppImage(
-            exes=self.exes,
-            with_docker=self.with_docker,
-            kwargs={"flowcharts": {"reconstruct": self.flowchart}},
-        )
+    def runner(self) -> CommandRunner:
+        return CommandRunner(exes=self.exes, with_docker=self.with_docker)

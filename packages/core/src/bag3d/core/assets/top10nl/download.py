@@ -37,11 +37,12 @@ def extract_top10nl(context) -> Output[Path]:
         "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     )
     info = ogrinfo(
-        context,
+        gdal_runner=context.resources.gdal.runner,
         dataset="top10nl",
         extract_path=extract_path,
         feature_types=context.op_execution_context.op_config["featuretypes"],
         xsd=metadata["XSD"],
+        context=context,
     )
     add_info(metadata, info)
     return Output(

@@ -69,7 +69,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].app.version("roofer"),
+    code_version=resource_defs["roofer"].runner.version("roofer"),
     config_schema={
         "drop_views": Field(
             bool,
@@ -118,15 +118,15 @@ def reconstructed_building_models_nl(
     context.log.info(f"{tile_view=}")
 
     try:
-        return_code, output = context.resources.roofer.app.execute(
+        result = context.resources.roofer.runner.run(
+            f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_config['concurrency']} --loglevel {context.op_config['loglevel']} --skip-pc-check",
             exe_name="roofer",
-            command=f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_config['concurrency']} --loglevel {context.op_config['loglevel']} --skip-pc-check",
             local_path=roofer_toml,
-            silent=False,
+            context=context,
         )
-        context.log.debug(f"{return_code=} {output=}")
-        if return_code != 0 or "error" in output.lower():
-            context.log.error(output)
+        context.log.debug(f"{result.returncode=}")
+        if not result.success or "error" in result.stdout.lower():
+            context.log.error(result.stdout)
             raise Failure
     finally:
         if context.op_execution_context.op_config["drop_views"]:

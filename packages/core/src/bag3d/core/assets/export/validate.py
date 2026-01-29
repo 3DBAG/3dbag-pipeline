@@ -11,7 +11,7 @@ from typing import Generator
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation
-from bag3d.common.resources.executables import execute_shell_command_silent, AppImage
+from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
 
@@ -339,7 +339,8 @@ def cityobject_validate_attributes(
 
 
 def cityjson(
-    validation: AppImage,
+    system: CommandRunner,
+    validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -352,7 +353,8 @@ def cityjson(
     """Validate a single CityJSON file.
 
     Args:
-        validation: Validation resource
+        system: CommandRunner for system tools
+        validation_runner: CommandRunner for validation tools
         dirpath: Directory with the compressed cityjson file
         file_id: File name without extension
         planarity_n_tol: Val3dity ``planarity_n_tol`` parameter
@@ -372,10 +374,8 @@ def cityjson(
     # test zip
     try:
         cmd = " ".join(["gunzip", "-t", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        results.zip_ok = True if len(output) == 0 else False
+        result = system.run(cmd, cwd=str(dirpath))
+        results.zip_ok = True if result.success and len(result.stdout) == 0 else False
     except Exception:
         logger.error(f"Failed to test zip with file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
@@ -384,7 +384,7 @@ def cityjson(
     # unzip
     try:
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+        system.run(cmd, cwd=str(dirpath))
     except Exception:
         logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
@@ -393,10 +393,8 @@ def cityjson(
     # download link and sha256
     try:
         cmd = " ".join(["sha256sum", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        sha256 = output.split(" ")[0]
+        result = system.run(cmd, cwd=str(dirpath))
+        sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
             url_root=url_root, format="cityjson", file_id=file_id, version=version
@@ -416,25 +414,25 @@ def cityjson(
                 "--long",
             ]
         )
-        returncode, output = validation.execute(
-            "cjio", command=cmd, local_path=dirpath, silent=True
-        )
+        result = validation_runner.run(cmd, exe_name="cjio", local_path=dirpath)
         try:
             results.nr_building = int(
-                re.search(r"(?<=Building \()\d+", output).group(0)
+                re.search(r"(?<=Building \()\d+", result.stdout).group(0)
             )
         except Exception:
             logger.warning("Failed to extract number of buildings from output")
             results.nr_building = -1
         try:
             results.nr_buildingpart = int(
-                re.search(r"(?<=BuildingPart \()\d+", output).group(0)
+                re.search(r"(?<=BuildingPart \()\d+", result.stdout).group(0)
             )
         except Exception:
             logger.warning("Failed to extract number of building parts from output")
             results.nr_buildingpart = -1
         try:
-            results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", output).group(0))
+            results.lod = ast.literal_eval(
+                re.search(r"(?<=LoD = ).+", result.stdout).group(0)
+            )
         except Exception:
             logger.warning("Failed to extract LoD from output")
             results.lod = [
@@ -471,11 +469,9 @@ def cityjson(
             ]
         )
 
-        returncode, output = validation.execute(
-            "val3dity", command=cmd, local_path=dirpath, silent=True
-        )
+        result = validation_runner.run(cmd, exe_name="val3dity", local_path=dirpath)
         results.file_ok = (
-            False if returncode != 0 or "error" in output.lower() else True
+            False if not result.success or "error" in result.stdout.lower() else True
         )
         with reportfile.open("r") as fo:
             report = json.load(fo)
@@ -565,11 +561,9 @@ def cityjson(
     # cjval
     try:
         cmd = " ".join(["{exe}", str(inputfile), "-v"])
-        returncode, output = validation.execute(
-            "cjval", command=cmd, local_path=dirpath, silent=True
-        )
-        pos = output.find("SUMMARY")
-        summary = output[pos:]
+        result = validation_runner.run(cmd, exe_name="cjval", local_path=dirpath)
+        pos = result.stdout.find("SUMMARY")
+        summary = result.stdout[pos:]
         results.schema_valid = True if summary.find("valid") > 0 else False
         results.schema_warnings = True if summary.find("warnings") > 0 else False
     except Exception as e:
@@ -583,7 +577,8 @@ def cityjson(
 
 
 def obj(
-    validation: AppImage,
+    system: CommandRunner,
+    validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
     planarity_n_tol: float,
@@ -608,10 +603,8 @@ def obj(
     # test zip
     try:
         cmd = " ".join(["unzip", "-t", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        results.zip_ok = True if output.count("OK") == 6 else False
+        result = system.run(cmd, cwd=str(dirpath))
+        results.zip_ok = True if result.stdout.count("OK") == 6 else False
     except Exception:
         logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
@@ -621,10 +614,8 @@ def obj(
     # download link and sha256
     try:
         cmd = " ".join(["sha256sum", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        sha256 = output.split(" ")[0]
+        result = system.run(cmd, cwd=str(dirpath))
+        sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
             url_root=url_root, format="obj", file_id=file_id, version=version
@@ -638,7 +629,7 @@ def obj(
     # unzip
     try:
         cmd = " ".join(["unzip", "-o", str(inputzipfile)])
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+        system.run(cmd, cwd=str(dirpath))
     except Exception:
         logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
@@ -697,11 +688,13 @@ def obj(
                     ]
                 )
 
-                returncode, output = validation.execute(
-                    "val3dity", command=cmd, local_path=dirpath, silent=True
+                result = validation_runner.run(
+                    cmd, exe_name="val3dity", local_path=dirpath
                 )
                 results.file_ok = (
-                    False if returncode != 0 or "error" in output.lower() else True
+                    False
+                    if not result.success or "error" in result.stdout.lower()
+                    else True
                 )
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
@@ -823,7 +816,8 @@ def gpkg_validate_attributes(
 
 
 def gpkg(
-    gdal: AppImage,
+    system: CommandRunner,
+    gdal_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
     url_root: str,
@@ -838,10 +832,8 @@ def gpkg(
     # test zip
     try:
         cmd = " ".join(["gunzip", "-t", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        results.zip_ok = True if len(output) == 0 else False
+        result = system.run(cmd, cwd=str(dirpath))
+        results.zip_ok = True if result.success and len(result.stdout) == 0 else False
     except Exception:
         logger.error(f"Failed to test zip with file {inputzipfile}")
         return results
@@ -849,7 +841,7 @@ def gpkg(
     # unzip
     try:
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
-        execute_shell_command_silent(shell_command=cmd, cwd=str(dirpath))
+        system.run(cmd, cwd=str(dirpath))
     except Exception:
         logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
@@ -858,10 +850,8 @@ def gpkg(
     # download link and sha256
     try:
         cmd = " ".join(["sha256sum", str(inputzipfile)])
-        output, returncode = execute_shell_command_silent(
-            shell_command=cmd, cwd=str(dirpath)
-        )
-        sha256 = output.split(" ")[0]
+        result = system.run(cmd, cwd=str(dirpath))
+        sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
             url_root=url_root, format="gpkg", file_id=file_id, version=version
@@ -892,16 +882,16 @@ def gpkg(
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath, silent=True
-            )
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
             results.file_ok = (
-                False if returncode != 0 or "error" in output.lower() else True
+                False
+                if not result.success or "error" in result.stdout.lower()
+                else True
             )
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
 
             try:
-                n = int(re.search(re_buildingpart_count, output).group(0))
+                n = int(re.search(re_buildingpart_count, result.stdout).group(0))
                 nr_buildingpart_all.append(n)
 
             except Exception:
@@ -918,14 +908,12 @@ def gpkg(
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath, silent=True
-            )
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
             try:
-                n = int(re.search(re_building_count, output).group(0))
+                n = int(re.search(re_building_count, result.stdout).group(0))
                 nr_building_all.append(n)
             except Exception:
                 logger.warning(
@@ -943,12 +931,10 @@ def gpkg(
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            returncode, output = gdal.execute(
-                "ogrinfo", command=cmd, local_path=dirpath, silent=True
-            )
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
-                n = int(re.search(re_invalid_count, output).group(0))
+                n = int(re.search(re_invalid_count, result.stdout).group(0))
                 nr_invalid_2d_geom_all.append(n)
             except Exception:
                 logger.warning(
@@ -965,11 +951,9 @@ def gpkg(
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        returncode, output = gdal.execute(
-            "ogrinfo", command=cmd, local_path=dirpath, silent=True
-        )
+        result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
         try:
-            gpkg_info = json.loads(output)
+            gpkg_info = json.loads(result.stdout)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
                 results.attributes_with_errors.add_error(res_one)
         except Exception:
@@ -1002,14 +986,20 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
 
 
 def check_formats(input) -> TileResults:
-    gdal, validation, dirpath, tile_id, url_root, version = input
+    """Worker function - no Dagster context available."""
+    validation_runner, gdal_runner, dirpath, tile_id, url_root, version = input
+
+    # System tools runner (no configured exes needed)
+    system = CommandRunner()
+
     specs = Specs3DBAGResource()
     file_id = tile_id.replace("/", "-")
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.0001
     snap_tol = 0.0001
     cj_results = cityjson(
-        validation=validation,
+        system=system,
+        validation_runner=validation_runner,
         dirpath=dirpath,
         file_id=file_id,
         planarity_n_tol=planarity_n_tol,
@@ -1020,7 +1010,8 @@ def check_formats(input) -> TileResults:
         specs=specs,
     )
     obj_results = obj(
-        validation,
+        system,
+        validation_runner,
         dirpath,
         file_id,
         planarity_n_tol=planarity_n_tol,
@@ -1030,7 +1021,13 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     gpkg_results = gpkg(
-        gdal, dirpath, file_id, url_root=url_root, version=version, specs=specs
+        system,
+        gdal_runner,
+        dirpath,
+        file_id,
+        url_root=url_root,
+        version=version,
+        specs=specs,
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
@@ -1074,15 +1071,15 @@ def compressed_tiles_validation(
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
         context.log.debug(f"{version=}")
-    gdal = context.resources.gdal.app
-    validation = context.resources.validation.app
+    validation_runner = context.resources.validation.runner
+    gdal_runner = context.resources.gdal.runner
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
         tileids = [
             (
-                gdal,
-                validation,
+                validation_runner,
+                gdal_runner,
                 path_export_dir.joinpath("tiles", row[0]),
                 row[0],
                 url_root,

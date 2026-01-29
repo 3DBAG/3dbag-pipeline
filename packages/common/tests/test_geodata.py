@@ -11,12 +11,12 @@ from bag3d.common.utils.geodata import (
 from pgutils import PostgresTableIdentifier
 
 
-def test_info_exes(context, test_data_dir):
+def test_info_exes(gdal, test_data_dir):
     """Run ogrinfo with local exe and with docker"""
     p = Path(f"{test_data_dir}/top10nl.zip")
     res = dict(
         ogrinfo(
-            context=context,
+            gdal_runner=gdal.runner,
             dataset="top10nl",
             extract_path=p,
             feature_types=[
@@ -42,7 +42,7 @@ def test_info_exes(context, test_data_dir):
     ),
     ids=lambda val: val[1],
 )
-def test_info_data(data, context, test_data_dir):
+def test_info_data(data, gdal, test_data_dir):
     """Can we run ogrinfo on all datasets?"""
     path, dataset, feature_types, xsd = data
     metadata = {
@@ -52,7 +52,7 @@ def test_info_data(data, context, test_data_dir):
         "timeliness": {"2022-10-08": feature_types},
     }
     res = ogrinfo(
-        context=context,
+        gdal_runner=gdal.runner,
         dataset=dataset,
         extract_path=Path(f"{test_data_dir}/{path}"),
         feature_types=feature_types,
@@ -169,20 +169,19 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     ),
     ids=lambda val: val[1],
 )
-def test_ogr2postgres(data, context, test_data_dir):
+def test_ogr2postgres(data, gdal, database, test_data_dir):
     """Testing only for top10NL since we no longer use bgt"""
     path, dataset, feature_types, xsd = data
     res = ogr2postgres(
-        context=context,
+        gdal_runner=gdal.runner,
+        dsn=database.connect.dsn,
         dataset=dataset,
         extract_path=Path(f"{test_data_dir}/{path}"),
         feature_type=feature_types[0],
         xsd=xsd,
         new_table=PostgresTableIdentifier("public", feature_types[0]),
     )
-    assert (
-        res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
-    )
+    assert res["Database.Schema.Table"] == f"public.{feature_types[0]}"
 
 
 def test_geojson_poly_to_wkt():

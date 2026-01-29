@@ -38,11 +38,12 @@ def extract_bgt(context) -> Output[Path]:
     )
     info = dict(
         ogrinfo(
-            context,
+            gdal_runner=context.resources.gdal.runner,
             dataset="bgt",
             extract_path=extract_path,
             feature_types=context.op_execution_context.op_config["featuretypes"],
             xsd=metadata["XSD"],
+            context=context,
         )
     )
     add_info(metadata, info)

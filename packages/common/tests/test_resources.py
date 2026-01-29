@@ -28,20 +28,22 @@ def test_gdal_local(test_data_dir):
 
     assert not gdal_resource.with_docker
 
-    gdal = gdal_resource.app
+    gdal = gdal_resource.runner
 
     local_path = test_data_dir / Path("top10nl.zip")
-    return_code, output = gdal.execute(
-        "ogrinfo", "{exe} -so -al /vsizip/{local_path}", local_path=local_path
+    result = gdal.run(
+        "{exe} -so -al /vsizip/{local_path}",
+        exe_name="ogrinfo",
+        local_path=local_path,
     )
-    assert return_code == 0
+    assert result.success
 
 
 def test_pdal_local(sample_laz_file):
     """Use local PDAL installation"""
     pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
     assert not pdal.with_docker
-    return_code, output = pdal_info(pdal.app, sample_laz_file, with_all=True)
+    return_code, output = pdal_info(pdal.runner, sample_laz_file, with_all=True)
     assert return_code == 0
 
 
@@ -53,7 +55,7 @@ def test_lastools(sample_laz_file):
     )
     assert not lastools_resource.with_docker
 
-    lastools = lastools_resource.app
+    lastools = lastools_resource.runner
 
     cmd_list = [
         "{exe}",
@@ -63,11 +65,13 @@ def test_lastools(sample_laz_file):
         "100",
         "-dont_reindex",
     ]
-    return_code, output = lastools.execute(
-        "lasindex", " ".join(cmd_list), local_path=sample_laz_file
+    result = lastools.run(
+        " ".join(cmd_list),
+        exe_name="lasindex",
+        local_path=sample_laz_file,
     )
 
-    assert return_code == 0
+    assert result.success
 
 
 def test_file_store_init_temp():

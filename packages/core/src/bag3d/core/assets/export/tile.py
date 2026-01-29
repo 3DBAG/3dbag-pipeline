@@ -127,7 +127,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
         "--features",
         str(reconstructed_root_dir),
         "--exe-geof",
-        str(context.resources.geoflow.app.exes["geof"]),
+        str(context.resources.geoflow.runner.exes["geof"]),
     ]
     if data_format == "multi":
         exe_name = "tyler-multiformat"
@@ -145,7 +145,12 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
     )
     cmd.extend(cli_params)
     context.log.debug(" ".join(cmd))
-    context.resources.tyler.app.execute(exe_name, " ".join(cmd), cwd=str(output_dir))
+    context.resources.tyler.runner.run(
+        " ".join(cmd),
+        exe_name=exe_name,
+        cwd=str(output_dir),
+        context=context,
+    )
     return output_dir
 
 
@@ -156,7 +161,7 @@ class TylerConfig(Config):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler-multiformat"),
+    code_version=resource_defs["tyler"].runner.version("tyler-multiformat"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -184,7 +189,7 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -212,7 +217,7 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -240,7 +245,7 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",

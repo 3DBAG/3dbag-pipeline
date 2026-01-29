@@ -13,7 +13,7 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 @multi_asset(
     outs={"tiles": AssetOut(), "index": AssetOut()},
     required_resource_keys={"tyler", "db_connection"},
-    code_version=resource_defs["tyler"].app.version("tyler-db"),
+    code_version=resource_defs["tyler"].runner.version("tyler-db"),
 )
 def reconstruction_input_tiles(context, reconstruction_input):
     """The reconstruction input partitioned into tiles where a tile is produced in about
@@ -44,7 +44,11 @@ def reconstruction_input_tiles(context, reconstruction_input):
         f"--primary-key {primary_key}",
         f"--output-schema {output_schema}",
     ]
-    context.resources.tyler.app.execute("tyler-db", " ".join(cmd))
+    context.resources.tyler.runner.run(
+        " ".join(cmd),
+        exe_name="tyler-db",
+        context=context,
+    )
 
     conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
     conn.send_query(
