@@ -56,16 +56,13 @@ def test_download_file_2(tmp_path):
     assert res == tmp_path / "AHN4.md5"
 
 
-def test_download_extra(context):
+@pytest.mark.slow
+def test_download_extra(file_store, wkt_testarea):
     _ = download_extract(
         dataset="top10nl",
         url_api="https://api.pdok.nl/brt/top10nl/download/v1_0",
-        featuretypes=context.op_execution_context.op_execution_context.op_config[
-            "featuretypes"
-        ],
+        featuretypes=["gebouw"],
         data_format="gml",
-        geofilter=context.op_execution_context.op_execution_context.op_config.get(
-            "geofilter"
-        ),
-        download_dir=context.resources.file_store.file_store.data_dir,
+        geofilter=wkt_testarea,
+        download_dir=file_store.file_store.data_dir,
     )
