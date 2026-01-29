@@ -1,4 +1,5 @@
 import os
+import shlex
 from pathlib import Path
 from dataclasses import dataclass
 import signal
@@ -131,8 +132,10 @@ class CommandRunner:
         from dagster._core.pipes.subprocess import PipesSubprocessClient
 
         pipes_client = PipesSubprocessClient()
+        # Convert command string to list for subprocess
+        cmd_list = shlex.split(command)
         result = pipes_client.run(
-            command=command,
+            command=cmd_list,
             cwd=cwd,
             env=env,
             context=context,

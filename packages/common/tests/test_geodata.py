@@ -169,7 +169,7 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
     ),
     ids=lambda val: val[1],
 )
-def test_ogr2postgres(data, gdal, database, context, test_data_dir):
+def test_ogr2postgres(data, gdal, database, test_data_dir):
     """Testing only for top10NL since we no longer use bgt"""
     path, dataset, feature_types, xsd = data
     res = ogr2postgres(
@@ -180,7 +180,6 @@ def test_ogr2postgres(data, gdal, database, context, test_data_dir):
         feature_type=feature_types[0],
         xsd=xsd,
         new_table=PostgresTableIdentifier("public", feature_types[0]),
-        context=context,
     )
     assert (
         res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
