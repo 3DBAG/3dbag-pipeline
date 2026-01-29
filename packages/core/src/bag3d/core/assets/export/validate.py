@@ -11,7 +11,7 @@ from typing import Generator
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation
-from bag3d.common.resources.executables import CommandRunner, CommandResult
+from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.utils.files import bag3d_export_dir
 
@@ -430,7 +430,9 @@ def cityjson(
             logger.warning("Failed to extract number of building parts from output")
             results.nr_buildingpart = -1
         try:
-            results.lod = ast.literal_eval(re.search(r"(?<=LoD = ).+", result.stdout).group(0))
+            results.lod = ast.literal_eval(
+                re.search(r"(?<=LoD = ).+", result.stdout).group(0)
+            )
         except Exception:
             logger.warning("Failed to extract LoD from output")
             results.lod = [
@@ -686,9 +688,13 @@ def obj(
                     ]
                 )
 
-                result = validation_runner.run(cmd, exe_name="val3dity", local_path=dirpath)
+                result = validation_runner.run(
+                    cmd, exe_name="val3dity", local_path=dirpath
+                )
                 results.file_ok = (
-                    False if not result.success or "error" in result.stdout.lower() else True
+                    False
+                    if not result.success or "error" in result.stdout.lower()
+                    else True
                 )
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
@@ -878,7 +884,9 @@ def gpkg(
             )
             result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
             results.file_ok = (
-                False if not result.success or "error" in result.stdout.lower() else True
+                False
+                if not result.success or "error" in result.stdout.lower()
+                else True
             )
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
 
@@ -1013,7 +1021,13 @@ def check_formats(input) -> TileResults:
         version=version,
     )
     gpkg_results = gpkg(
-        system, gdal_runner, dirpath, file_id, url_root=url_root, version=version, specs=specs
+        system,
+        gdal_runner,
+        dirpath,
+        file_id,
+        url_root=url_root,
+        version=version,
+        specs=specs,
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 

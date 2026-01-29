@@ -1,4 +1,3 @@
-import pytest
 from dagster import build_op_context
 
 from bag3d.common.types import PostgresTableIdentifier

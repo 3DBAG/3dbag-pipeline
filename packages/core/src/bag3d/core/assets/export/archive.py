@@ -82,11 +82,13 @@ def geopackage_nl(context):
         ]
         cmd = " ".join(cmd)
         try:
-            result = context.resources.gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+            result = context.resources.gdal.runner.run(
+                cmd, exe_name="ogr2ogr", context=context
+            )
             if not result.success:
                 failed.append((lid, result.stderr))
         except Exception:
-            failed.append((lid, result.stderr if 'result' in locals() else ""))
+            failed.append((lid, result.stderr if "result" in locals() else ""))
 
     layers = [
         "pand",

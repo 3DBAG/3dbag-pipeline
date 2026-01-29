@@ -1,5 +1,4 @@
 import os
-import shlex
 from pathlib import Path
 from dataclasses import dataclass
 import signal
@@ -17,6 +16,7 @@ DOCKER_GDAL_IMAGE = "ghcr.io/osgeo/gdal:ubuntu-small-latest"
 @dataclass(frozen=True)
 class CommandResult:
     """Immutable result of a command execution."""
+
     returncode: int
     stdout: str
     stderr: str = ""
@@ -96,13 +96,17 @@ class CommandRunner:
                 if local_path.is_dir():
                     format_dict["local_path"] = self.container_mount_point
                 else:
-                    format_dict["local_path"] = self.container_mount_point / local_path.name
+                    format_dict["local_path"] = (
+                        self.container_mount_point / local_path.name
+                    )
             else:
                 format_dict["local_path"] = local_path
 
         return command.format(**format_dict)
 
-    def _run_direct(self, command: str, cwd: str = None, env: dict = None) -> CommandResult:
+    def _run_direct(
+        self, command: str, cwd: str = None, env: dict = None
+    ) -> CommandResult:
         """Execute subprocess without Dagster context."""
         sub_process = Popen(
             command,
