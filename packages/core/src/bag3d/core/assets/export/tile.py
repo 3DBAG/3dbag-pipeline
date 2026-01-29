@@ -127,7 +127,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
         "--features",
         str(reconstructed_root_dir),
         "--exe-geof",
-        str(context.resources.geoflow.app.exes["geof"]),
+        str(context.resources.geoflow.runner.exes["geof"]),
     ]
     if data_format == "multi":
         exe_name = "tyler-multiformat"

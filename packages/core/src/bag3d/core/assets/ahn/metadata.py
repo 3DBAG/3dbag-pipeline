@@ -210,7 +210,7 @@ def compute_load_metadata(
             return Output(None)
 
     ret_code, out_info = pdal_info(
-        context.resources.pdal.app,
+        context.resources.pdal.runner,
         file_path=laz_files_ahn.path,
         with_all=context.op_execution_context.op_config["all"],
         verbose=verbose,

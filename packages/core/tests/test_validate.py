@@ -1,5 +1,6 @@
 import pytest
 
+from bag3d.common.resources.executables import CommandRunner
 from bag3d.core.assets.export.validate import (
     obj,
     gpkg,
@@ -14,9 +15,10 @@ from bag3d.core.assets.export.validate import (
 
 def test_obj(context, test_data_dir):
     res = obj(
-        context.resources.validation.app,
-        test_data_dir / "validation_input/",
-        "0-0-0",
+        system=CommandRunner(),
+        validation_runner=context.resources.validation.runner,
+        dirpath=test_data_dir / "validation_input/",
+        file_id="0-0-0",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
         snap_tol=0.0001,
@@ -29,11 +31,12 @@ def test_obj(context, test_data_dir):
 
 def test_gpkg(context, test_data_dir):
     res = gpkg(
-        context.resources.gdal.app,
-        test_data_dir / "validation_input/",
-        "0-0-0",
-        "https://data.3dbag.nl",
-        "test",
+        system=CommandRunner(),
+        gdal_runner=context.resources.gdal.runner,
+        dirpath=test_data_dir / "validation_input/",
+        file_id="0-0-0",
+        url_root="https://data.3dbag.nl",
+        version="test",
         specs=context.resources.specs,
     )
     assert res.zip_ok
@@ -45,9 +48,10 @@ def test_gpkg(context, test_data_dir):
 
 def test_cityjson(context, test_data_dir):
     res = cityjson(
-        context.resources.validation.app,
-        test_data_dir / "validation_input/",
-        "0-0-0",
+        system=CommandRunner(),
+        validation_runner=context.resources.validation.runner,
+        dirpath=test_data_dir / "validation_input/",
+        file_id="0-0-0",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
         url_root="https://data.3dbag.nl",
@@ -65,9 +69,10 @@ def test_cityjson(context, test_data_dir):
 def test_obj_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = obj(
-            context_missing.resources.validation.app,
-            test_data_dir / "validation_input/",
-            "0-0-0",
+            system=CommandRunner(),
+            validation_runner=context_missing.resources.validation.runner,
+            dirpath=test_data_dir / "validation_input/",
+            file_id="0-0-0",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
             snap_tol=0.0001,
@@ -79,11 +84,12 @@ def test_obj_missing(context_missing, test_data_dir):
 def test_gpkg_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = gpkg(
-            context_missing.resources.gdal.app,
-            test_data_dir / "validation_input/",
-            "0-0-0",
-            "https://data.3dbag.nl",
-            "test",
+            system=CommandRunner(),
+            gdal_runner=context_missing.resources.gdal.runner,
+            dirpath=test_data_dir / "validation_input/",
+            file_id="0-0-0",
+            url_root="https://data.3dbag.nl",
+            version="test",
             specs=context_missing.resources.specs,
         )
 
@@ -91,9 +97,10 @@ def test_gpkg_missing(context_missing, test_data_dir):
 def test_cityjson_missing(context_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = cityjson(
-            context_missing.resources.validation.app,
-            test_data_dir / "validation_input/",
-            "0-0-0",
+            system=CommandRunner(),
+            validation_runner=context_missing.resources.validation.runner,
+            dirpath=test_data_dir / "validation_input/",
+            file_id="0-0-0",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
             url_root="https://data.3dbag.nl",
