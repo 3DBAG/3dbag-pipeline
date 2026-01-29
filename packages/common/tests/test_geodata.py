@@ -182,7 +182,7 @@ def test_ogr2postgres(data, gdal, database, test_data_dir):
         new_table=PostgresTableIdentifier("public", feature_types[0]),
     )
     assert (
-        res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
+        res["Database.Schema.Table"] == f"public.{feature_types[0]}"
     )
 
 
