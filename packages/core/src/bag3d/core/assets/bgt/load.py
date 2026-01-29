@@ -22,12 +22,14 @@ def stage_bgt_pand(context, extract_bgt) -> Output[PostgresTableIdentifier]:
     # Need to explicitly drop the table just in case (...couz GDAL...)
     drop_table(context, new_table)
     metadata = ogr2postgres(
-        context=context,
+        gdal_runner=context.resources.gdal.runner,
+        dsn=context.resources.db_connection.connect.dsn,
         dataset="bgt",
         xsd=xsd,
         feature_type="pand",
         extract_path=extract_bgt,
         new_table=new_table,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 

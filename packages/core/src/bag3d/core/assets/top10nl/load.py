@@ -20,12 +20,14 @@ def stage_top10nl_gebouw(context, extract_top10nl) -> Output[PostgresTableIdenti
     # Need to explicitly drop the table just in case (...couz GDAL...)
     drop_table(context, new_table)
     metadata = ogr2postgres(
-        context=context,
+        gdal_runner=context.resources.gdal.runner,
+        dsn=context.resources.db_connection.connect.dsn,
         dataset="top10nl",
         xsd=xsd,
         extract_path=extract_top10nl,
         feature_type="gebouw",
         new_table=new_table,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 

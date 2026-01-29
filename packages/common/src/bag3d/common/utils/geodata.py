@@ -15,6 +15,7 @@ from dagster import (
 )
 from pgutils import PostgresTableIdentifier
 
+from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.utils.database import postgrestable_metadata
 
 logger = get_dagster_logger()
@@ -50,14 +51,14 @@ def bbox_from_wkt(wkt):
 
 
 def ogrinfo(
-    context: OpExecutionContext,
+    gdal_runner: CommandRunner,
     dataset: str,
     extract_path: Path,
     feature_types: list,
     xsd: str,
+    context: OpExecutionContext = None,
 ):
     """Runs ogrinfo on the zipped extract."""
-    gdal = context.resources.gdal.runner
     cmd = " ".join(
         [
             "{exe}",
@@ -72,7 +73,7 @@ def ogrinfo(
     info = {}
     for feature_type in feature_types:
         kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
-        result = gdal.run(
+        result = gdal_runner.run(
             cmd,
             exe_name="ogrinfo",
             kwargs=kwargs,
@@ -220,12 +221,14 @@ def add_info(metadata: dict, info: dict) -> None:
 
 
 def ogr2postgres(
-    context: OpExecutionContext,
+    gdal_runner: CommandRunner,
+    dsn: str,
     dataset: str,
     extract_path: Path,
     feature_type: str,
     xsd: str,
     new_table: PostgresTableIdentifier,
+    context: OpExecutionContext = None,
 ) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
@@ -233,19 +236,18 @@ def ogr2postgres(
     the PDOK API.
 
     Args:
-        context: Op execution context from Dagster.
+        gdal_runner: CommandRunner for GDAL tools.
+        dsn: PostgreSQL connection string.
         dataset: Name of the dataset ('top10nl', 'bgt').
         extract_path: Local path to the zipped extract.
         feature_type: The feature layer to load from the ``dataset``
         xsd: Path (URL) to the XSD file.
         new_table: The name of the new Postgres table to load the data into.
+        context: Optional op execution context from Dagster for metadata retrieval.
     Returns:
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
     """
-    gdal = context.resources.gdal.runner
-    dsn = context.resources.db_connection.connect.dsn
-
     cmd = " ".join(
         [
             "{exe}",
@@ -269,14 +271,14 @@ def ogr2postgres(
         "xsd": xsd,
         "dataset": dataset,
     }
-    result = gdal.run(
+    result = gdal_runner.run(
         cmd,
         exe_name="ogr2ogr",
         kwargs=kwargs,
         local_path=extract_path,
         context=context,
     )
-    if result.success:
+    if result.success and context:
         return postgrestable_metadata(context, new_table)
 
 
