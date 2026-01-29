@@ -9,7 +9,7 @@ from bag3d.common.resources.executables import (
     PDALResource,
 )
 from bag3d.common.resources.files import FileStoreResource
-from dagster import build_op_context
+from dagster import build_asset_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
@@ -54,13 +54,7 @@ def file_store(tmp_path):
 
 @pytest.fixture
 def context(database, wkt_testarea, file_store, gdal):
-    yield build_op_context(
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": [
-                "gebouw",
-            ],
-        },
+    yield build_asset_context(
         resources={
             "gdal": gdal,
             "db_connection": database,

@@ -161,7 +161,7 @@ class TylerConfig(Config):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler-multiformat"),
+    code_version=resource_defs["tyler"].runner.version("tyler-multiformat"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -189,7 +189,7 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -217,7 +217,7 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -245,7 +245,7 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].app.version("tyler"),
+    code_version=resource_defs["tyler"].runner.version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",

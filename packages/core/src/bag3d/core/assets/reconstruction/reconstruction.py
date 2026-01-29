@@ -69,7 +69,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].app.version("roofer"),
+    code_version=resource_defs["roofer"].runner.version("roofer"),
     config_schema={
         "drop_views": Field(
             bool,

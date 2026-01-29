@@ -360,7 +360,7 @@ def metadata(context: AssetExecutionContext):
                 "software": [
                     {
                         "name": "geoflow-bundle",
-                        "version": resource_defs["geoflow"].app.version(
+                        "version": resource_defs["geoflow"].runner.version(
                             "geof", version_cmd="--list-plugins --verbose"
                         ),
                         "repository": "https://github.com/geoflow3d/geoflow-bundle",
@@ -368,25 +368,25 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "roofer",
-                        "version": resource_defs["roofer"].app.version("roofer"),
+                        "version": resource_defs["roofer"].runner.version("roofer"),
                         "repository": "https://github.com/3DBAG/roofer",
                         "description": "Point cloud selection and building reconstruction",
                     },
                     {
                         "name": "tyler",
-                        "version": resource_defs["tyler"].app.version("tyler"),
+                        "version": resource_defs["tyler"].runner.version("tyler"),
                         "repository": "https://github.com/3DGI/tyler",
                         "description": "Generating Cesium 3DTiles",
                     },
                     {
                         "name": "tyler-db",
-                        "version": resource_defs["tyler"].app.version("tyler-db"),
+                        "version": resource_defs["tyler"].runner.version("tyler-db"),
                         "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
                         "description": "Input tiling",
                     },
                     {
                         "name": "tyler-multiformat",
-                        "version": resource_defs["tyler"].app.version(
+                        "version": resource_defs["tyler"].runner.version(
                             "tyler-multiformat"
                         ),
                         "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
@@ -394,14 +394,14 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "GDAL",
-                        "version": resource_defs["gdal"].app.version("ogr2ogr"),
+                        "version": resource_defs["gdal"].runner.version("ogr2ogr"),
                         "repository": "https://gdal.org/",
                         "description": "Data loading with ogr2ogr",
                     },
                     {
                         "name": "PDAL",
                         "version": resource_defs["pdal"]
-                        .app.version("pdal")
+                        .runner.version("pdal")
                         .replace("-", "")
                         .replace(",", ""),
                         "repository": "https://pdal.io",
@@ -409,7 +409,7 @@ def metadata(context: AssetExecutionContext):
                     },
                     {
                         "name": "LASTools",
-                        "version": resource_defs["lastools"].app.version(
+                        "version": resource_defs["lastools"].runner.version(
                             "lasindex", version_cmd="-version"
                         ),
                         "repository": "https://lastools.github.io/",
