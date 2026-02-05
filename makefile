@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+.SHELLFLAGS := -ec
+
 include docker/.env
 
 export COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),bag3d-dev)

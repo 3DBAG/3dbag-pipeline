@@ -113,6 +113,97 @@ def parse_warnings(log_content):
     return result
 
 
+def parse_errors(log_content):
+    """Extract errors from pytest FAILURES section.
+
+    Parses the FAILURES section to extract error information including
+    error type and traceback details.
+
+    Args:
+        log_content: Full log file content as string
+
+    Returns:
+        list of tuples: (test_name, error_type, error_message)
+    """
+    errors = []
+
+    # Find FAILURES section
+    failures_pattern = r"={10,} FAILURES ={10,}"
+    failures_match = re.search(failures_pattern, log_content)
+
+    if not failures_match:
+        return errors
+
+    failures_start = failures_match.end()
+    # Find end of failures section (next separator like "===")
+    rest = log_content[failures_start:]
+    end_pattern = r"^={10,}"
+    end_match = re.search(end_pattern, rest, re.MULTILINE)
+
+    if end_match:
+        failures_end = failures_start + end_match.start()
+    else:
+        failures_end = len(log_content)
+
+    failures_text = log_content[failures_start:failures_end]
+
+    # Extract individual test failures
+    # Pattern: "__ test_name __" or similar
+    test_pattern = r"^_{2,}\s+(.+?)\s+_{2,}"
+    lines = failures_text.split("\n")
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        test_match = re.match(test_pattern, line)
+
+        if test_match:
+            test_name = test_match.group(1)
+            # Look for the error line with "E" prefix
+            error_type = ""
+            error_message = ""
+
+            # Scan forward for error lines (starting with "E" followed by whitespace)
+            # Keep searching until we find a line starting with "E", hit another test,
+            # or reach end of lines
+            j = i + 1
+            while j < len(lines):
+                error_line = lines[j]
+
+                # Stop if we hit another test failure
+                if re.match(test_pattern, error_line):
+                    break
+
+                # Check if this is an error line
+                if error_line.startswith("E ") or (error_line.startswith("E") and len(error_line) > 1 and error_line[1].isspace()):
+                    # Extract error type and message
+                    error_content = error_line.lstrip("E").strip()
+                    # Format: "module.ErrorType: message" - find the error type part
+                    # Error types are typically after a dot and before the first colon
+                    if ":" in error_content:
+                        # Split on first colon to get error class and message
+                        parts = error_content.split(":", 1)
+                        error_type_full = parts[0].strip()
+                        error_message = parts[1].strip() if len(parts) > 1 else ""
+
+                        # Extract just the error type name (last part after dot)
+                        if "." in error_type_full:
+                            error_type = error_type_full.split(".")[-1]
+                        else:
+                            error_type = error_type_full
+
+                        break
+
+                j += 1
+
+            if error_type:
+                errors.append((test_name, error_type, error_message))
+
+        i += 1
+
+    return errors
+
+
 def format_color(text, color_code):
     """Apply ANSI color code to text."""
     return f"\033[{color_code}m{text}\033[0m"
@@ -148,43 +239,66 @@ def main():
         print("No warnings or errors found (empty log file)")
         return 0
 
-    # Parse warnings
+    # Parse warnings and errors
     warnings = parse_warnings(log_content)
+    errors = parse_errors(log_content)
 
-    if not warnings:
-        print("No warnings found in test log")
+    if not warnings and not errors:
+        print("No warnings or errors found in test log")
         return 0
-
-    # Sort by count (descending)
-    warnings_sorted = sorted(warnings, key=lambda x: x[3], reverse=True)
 
     # Format output
     use_color = not args.no_color
 
     if use_color:
         header = format_color(f"=== Test Log Analysis: {args.log_file} ===", "1")
-        section_header = format_color("WARNINGS", "1;34")  # Bold blue
+        warnings_header = format_color("WARNINGS", "1;34")  # Bold blue
+        errors_header = format_color("ERRORS", "1;31")  # Bold red
         count_fmt = lambda c: format_color(f"[{c} occurrence{'s' if c > 1 else ''}]", "1")  # Bold
         location_fmt = lambda l: format_color(l, "36")  # Cyan
+        test_fmt = lambda t: format_color(t, "1;33")  # Bold yellow
     else:
         header = f"=== Test Log Analysis: {args.log_file} ==="
-        section_header = "WARNINGS"
+        warnings_header = "WARNINGS"
+        errors_header = "ERRORS"
         count_fmt = lambda c: f"[{c} occurrence{'s' if c > 1 else ''}]"
         location_fmt = lambda l: l
+        test_fmt = lambda t: t
 
     print(header)
     print()
-    print(f"{section_header} ({len(warnings_sorted)} unique):")
-    print("─" * 50)
 
-    for warning_type, message, location, count in warnings_sorted:
-        print(f"{count_fmt(count)} {warning_type}")
-        print(f"  Location: {location_fmt(location)}")
-        print(f"  Message: {message}")
-        print()
+    # Display errors first
+    if errors:
+        print(f"{errors_header} ({len(errors)}):")
+        print("─" * 50)
+        for test_name, error_type, error_message in errors:
+            print(f"{test_fmt(test_name)}")
+            print(f"  Error: {error_type}")
+            if error_message:
+                print(f"  Message: {error_message}")
+            print()
+
+    # Display warnings
+    if warnings:
+        warnings_sorted = sorted(warnings, key=lambda x: x[3], reverse=True)
+        print(f"{warnings_header} ({len(warnings_sorted)} unique):")
+        print("─" * 50)
+
+        for warning_type, message, location, count in warnings_sorted:
+            print(f"{count_fmt(count)} {warning_type}")
+            print(f"  Location: {location_fmt(location)}")
+            print(f"  Message: {message}")
+            print()
 
     # Print summary
-    summary = f"Summary: {len(warnings_sorted)} unique warnings"
+    summary_parts = []
+    if errors:
+        summary_parts.append(f"{len(errors)} error{'s' if len(errors) > 1 else ''}")
+    if warnings:
+        summary_parts.append(f"{len(warnings)} unique warning{'s' if len(warnings) > 1 else ''}")
+
+    summary = f"Summary: {', '.join(summary_parts)}"
     if use_color:
         summary = format_color(summary, "1")  # Bold
     print(summary)
