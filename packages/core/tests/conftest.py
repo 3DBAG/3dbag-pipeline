@@ -16,7 +16,7 @@ from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from dagster import AssetKey, IOManager, SourceAsset, build_op_context
+from dagster import AssetKey, asset, build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
@@ -362,283 +362,203 @@ def tile_index_ahn_fix():
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_input():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(
-                RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
-            )
-            return new_table
+    @asset(key_prefix=["input"])
+    def reconstruction_input():
+        return PostgresTableIdentifier(
+            RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
+        )
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", "reconstruction_input"]),
-        io_manager_def=MockIOManager(),
-    )
+    return reconstruction_input
 
 
 @pytest.fixture(scope="session")
 def mock_asset_tiles():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
-            return new_table
+    @asset(key_prefix=["input"])
+    def tiles():
+        return PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", "tiles"]),
-        io_manager_def=MockIOManager(),
-    )
+    return tiles
 
 
 @pytest.fixture(scope="session")
 def mock_asset_index():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
-            return new_table
+    @asset(key_prefix=["input"])
+    def index():
+        return PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["input", "index"]),
-        io_manager_def=MockIOManager(),
-    )
+    return index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn3_index():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "metadata_ahn3")
-            return new_table
+    @asset(key_prefix=["ahn"])
+    def metadata_ahn3_index():
+        return PostgresTableIdentifier("ahn", "metadata_ahn3")
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn3_index"]),
-        io_manager_def=MockIOManager(),
-    )
+    return metadata_ahn3_index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn4_index():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "metadata_ahn4")
-            return new_table
+    @asset(key_prefix=["ahn"])
+    def metadata_ahn4_index():
+        return PostgresTableIdentifier("ahn", "metadata_ahn4")
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn4_index"]),
-        io_manager_def=MockIOManager(),
-    )
+    return metadata_ahn4_index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn5_index():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            new_table = PostgresTableIdentifier("ahn", "metadata_ahn5")
-            return new_table
+    @asset(key_prefix=["ahn"])
+    def metadata_ahn5_index():
+        return PostgresTableIdentifier("ahn", "metadata_ahn5")
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["ahn", "metadata_ahn5_index"]),
-        io_manager_def=MockIOManager(),
-    )
+    return metadata_ahn5_index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_compressed_tiles():
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return None
+    @asset(key_prefix=["export"])
+    def compressed_tiles():
+        return None
 
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "compressed_tiles"]),
-        io_manager_def=MockIOManager(),
-    )
+    return compressed_tiles
 
 
 @pytest.fixture(scope="session")
 def mock_asset_compressed_tiles_validation(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "validate_compressed_files.csv"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "compressed_tiles_validation"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "validate_compressed_files.csv"
     )
+
+    @asset(key_prefix=["export"])
+    def compressed_tiles_validation():
+        return path
+
+    return compressed_tiles_validation
 
 
 @pytest.fixture(scope="session")
 def mock_asset_export_index(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "export_index.csv"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "export_index"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "export_index.csv"
     )
+
+    @asset(key_prefix=["export"])
+    def export_index():
+        return path
+
+    return export_index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_geopackage_nl(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "3dbag_nl.gpkg.zip"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "geopackage_nl"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "3dbag_nl.gpkg.zip"
     )
+
+    @asset(key_prefix=["export"])
+    def geopackage_nl():
+        return path
+
+    return geopackage_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "metadata.json"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "metadata"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "metadata.json"
     )
+
+    @asset(key_prefix=["export"])
+    def metadata():
+        return path
+
+    return metadata
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod12_nl(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "cesium3dtiles"
-                / "lod12"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod12_nl"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "cesium3dtiles"
+        / "lod12"
     )
+
+    @asset(key_prefix=["export"])
+    def reconstruction_output_3dtiles_lod12_nl():
+        return path
+
+    return reconstruction_output_3dtiles_lod12_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod13_nl(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "cesium3dtiles"
-                / "lod13"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod13_nl"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "cesium3dtiles"
+        / "lod13"
     )
+
+    @asset(key_prefix=["export"])
+    def reconstruction_output_3dtiles_lod13_nl():
+        return path
+
+    return reconstruction_output_3dtiles_lod13_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod22_nl(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "cesium3dtiles"
-                / "lod22"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod22_nl"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "cesium3dtiles"
+        / "lod22"
     )
+
+    @asset(key_prefix=["export"])
+    def reconstruction_output_3dtiles_lod22_nl():
+        return path
+
+    return reconstruction_output_3dtiles_lod22_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_multitiles_nl(test_data_dir):
-    class MockIOManager(IOManager):
-        def load_input(self, context):
-            return (
-                test_data_dir
-                / "integration_deploy_release"
-                / "3DBAG"
-                / "export_test_version"
-                / "tiles"
-            )
-
-        def handle_output(self, context, obj):  # pragma: no cover
-            raise NotImplementedError()
-
-    return SourceAsset(
-        key=AssetKey(["export", "reconstruction_output_multitiles_nl"]),
-        io_manager_def=MockIOManager(),
+    path = (
+        test_data_dir
+        / "integration_deploy_release"
+        / "3DBAG"
+        / "export_test_version"
+        / "tiles"
     )
+
+    @asset(key_prefix=["export"])
+    def reconstruction_output_multitiles_nl():
+        return path
+
+    return reconstruction_output_multitiles_nl
