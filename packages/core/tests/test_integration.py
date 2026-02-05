@@ -115,6 +115,7 @@ def test_integration_reconstruction_and_export(
     mock_asset_metadata_ahn3_index,
     mock_asset_metadata_ahn4_index,
     mock_asset_metadata_ahn5_index,
+    configured_mock_asset_io_manager,
 ):
     # update quadtree
     og_quadtree = test_data_dir / "quadtree.tsv"
@@ -151,6 +152,7 @@ def test_integration_reconstruction_and_export(
             exe_cjio=os.getenv("EXE_PATH_CJIO"),
         ),
         "specs": Specs3DBAGResource(),
+        "mock_asset_io_manager": configured_mock_asset_io_manager,
     }
 
     all_reconstruction_assets = load_assets_from_package_module(
@@ -237,6 +239,7 @@ def test_integration_deploy_release(
     mock_asset_reconstruction_output_3dtiles_lod13_nl,
     mock_asset_reconstruction_output_3dtiles_lod22_nl,
     mock_asset_reconstruction_output_multitiles_nl,
+    configured_mock_asset_io_manager,
 ):
     """Can we deploy and release the 3DBAG, everything included?"""
 
@@ -245,6 +248,7 @@ def test_integration_deploy_release(
         "godzilla_server": godzilla_server,
         "podzilla_server": podzilla_server,
         "db_connection": database,
+        "mock_asset_io_manager": configured_mock_asset_io_manager,
     }
 
     all_deploy_assets = load_assets_from_package_module(

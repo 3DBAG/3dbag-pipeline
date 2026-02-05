@@ -16,7 +16,7 @@ from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from dagster import AssetKey, asset, build_op_context
+from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
@@ -24,6 +24,32 @@ PORT = os.getenv("BAG3D_PG_PORT")
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+
+
+class MockAssetIOManager(IOManager):
+    """IO manager that returns pre-configured values for mock assets."""
+
+    def __init__(self, values: dict):
+        self._values = values
+
+    def load_input(self, context):
+        key = tuple(context.asset_key.path)
+        if key not in self._values:
+            raise KeyError(f"No mock value configured for asset {key}")
+        return self._values[key]
+
+    def handle_output(self, context, obj):
+        # No-op for mock assets - they don't produce outputs
+        pass
+
+
+@io_manager
+def mock_asset_io_manager(init_context):
+    """Factory for creating mock IO managers with configured values."""
+    values = init_context.resource_config.get("values", {})
+    # Convert string keys back to tuples
+    values = {tuple(k.split("/")): v for k, v in values.items()}
+    return MockAssetIOManager(values)
 
 
 @pytest.fixture(scope="session")
@@ -362,203 +388,200 @@ def tile_index_ahn_fix():
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_input():
-    @asset(key_prefix=["input"])
-    def reconstruction_input():
-        return PostgresTableIdentifier(
-            RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
-        )
-
-    return reconstruction_input
+    return AssetSpec(
+        key=AssetKey(["input", "reconstruction_input"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_tiles():
-    @asset(key_prefix=["input"])
-    def tiles():
-        return PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles")
-
-    return tiles
+    return AssetSpec(
+        key=AssetKey(["input", "tiles"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_index():
-    @asset(key_prefix=["input"])
-    def index():
-        return PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index")
-
-    return index
+    return AssetSpec(
+        key=AssetKey(["input", "index"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn3_index():
-    @asset(key_prefix=["ahn"])
-    def metadata_ahn3_index():
-        return PostgresTableIdentifier("ahn", "metadata_ahn3")
-
-    return metadata_ahn3_index
+    return AssetSpec(
+        key=AssetKey(["ahn", "metadata_ahn3_index"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn4_index():
-    @asset(key_prefix=["ahn"])
-    def metadata_ahn4_index():
-        return PostgresTableIdentifier("ahn", "metadata_ahn4")
-
-    return metadata_ahn4_index
+    return AssetSpec(
+        key=AssetKey(["ahn", "metadata_ahn4_index"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata_ahn5_index():
-    @asset(key_prefix=["ahn"])
-    def metadata_ahn5_index():
-        return PostgresTableIdentifier("ahn", "metadata_ahn5")
-
-    return metadata_ahn5_index
+    return AssetSpec(
+        key=AssetKey(["ahn", "metadata_ahn5_index"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_compressed_tiles():
-    @asset(key_prefix=["export"])
-    def compressed_tiles():
-        return None
-
-    return compressed_tiles
+    return AssetSpec(
+        key=AssetKey(["export", "compressed_tiles"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
+    )
 
 
 @pytest.fixture(scope="session")
 def mock_asset_compressed_tiles_validation(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "validate_compressed_files.csv"
+    return AssetSpec(
+        key=AssetKey(["export", "compressed_tiles_validation"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def compressed_tiles_validation():
-        return path
-
-    return compressed_tiles_validation
 
 
 @pytest.fixture(scope="session")
 def mock_asset_export_index(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "export_index.csv"
+    return AssetSpec(
+        key=AssetKey(["export", "export_index"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def export_index():
-        return path
-
-    return export_index
 
 
 @pytest.fixture(scope="session")
 def mock_asset_geopackage_nl(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "3dbag_nl.gpkg.zip"
+    return AssetSpec(
+        key=AssetKey(["export", "geopackage_nl"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def geopackage_nl():
-        return path
-
-    return geopackage_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_metadata(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "metadata.json"
+    return AssetSpec(
+        key=AssetKey(["export", "metadata"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def metadata():
-        return path
-
-    return metadata
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod12_nl(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "cesium3dtiles"
-        / "lod12"
+    return AssetSpec(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod12_nl"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def reconstruction_output_3dtiles_lod12_nl():
-        return path
-
-    return reconstruction_output_3dtiles_lod12_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod13_nl(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "cesium3dtiles"
-        / "lod13"
+    return AssetSpec(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod13_nl"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def reconstruction_output_3dtiles_lod13_nl():
-        return path
-
-    return reconstruction_output_3dtiles_lod13_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_3dtiles_lod22_nl(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "cesium3dtiles"
-        / "lod22"
+    return AssetSpec(
+        key=AssetKey(["export", "reconstruction_output_3dtiles_lod22_nl"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
-
-    @asset(key_prefix=["export"])
-    def reconstruction_output_3dtiles_lod22_nl():
-        return path
-
-    return reconstruction_output_3dtiles_lod22_nl
 
 
 @pytest.fixture(scope="session")
 def mock_asset_reconstruction_output_multitiles_nl(test_data_dir):
-    path = (
-        test_data_dir
-        / "integration_deploy_release"
-        / "3DBAG"
-        / "export_test_version"
-        / "tiles"
+    return AssetSpec(
+        key=AssetKey(["export", "reconstruction_output_multitiles_nl"]),
+        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
     )
 
-    @asset(key_prefix=["export"])
-    def reconstruction_output_multitiles_nl():
-        return path
 
-    return reconstruction_output_multitiles_nl
+@pytest.fixture(scope="session")
+def mock_asset_values(test_data_dir):
+    """Values to be returned by the mock IO manager for each asset key."""
+    return {
+        "input/reconstruction_input": PostgresTableIdentifier(
+            RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
+        ),
+        "input/tiles": PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "tiles"),
+        "input/index": PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "index"),
+        "ahn/metadata_ahn3_index": PostgresTableIdentifier("ahn", "metadata_ahn3"),
+        "ahn/metadata_ahn4_index": PostgresTableIdentifier("ahn", "metadata_ahn4"),
+        "ahn/metadata_ahn5_index": PostgresTableIdentifier("ahn", "metadata_ahn5"),
+        "export/compressed_tiles": None,
+        "export/compressed_tiles_validation": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "validate_compressed_files.csv"
+        ),
+        "export/export_index": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "export_index.csv"
+        ),
+        "export/geopackage_nl": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "3dbag_nl.gpkg.zip"
+        ),
+        "export/metadata": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "metadata.json"
+        ),
+        "export/reconstruction_output_3dtiles_lod12_nl": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "cesium3dtiles"
+            / "lod12"
+        ),
+        "export/reconstruction_output_3dtiles_lod13_nl": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "cesium3dtiles"
+            / "lod13"
+        ),
+        "export/reconstruction_output_3dtiles_lod22_nl": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "cesium3dtiles"
+            / "lod22"
+        ),
+        "export/reconstruction_output_multitiles_nl": (
+            test_data_dir
+            / "integration_deploy_release"
+            / "3DBAG"
+            / "export_test_version"
+            / "tiles"
+        ),
+    }
+
+
+@pytest.fixture(scope="session")
+def configured_mock_asset_io_manager(mock_asset_values):
+    """Configured IO manager resource with pre-set values for mock assets."""
+    return mock_asset_io_manager.configured({"values": mock_asset_values})
