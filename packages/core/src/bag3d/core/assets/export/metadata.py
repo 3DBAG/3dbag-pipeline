@@ -233,7 +233,9 @@ def metadata(context: AssetExecutionContext):
                     "name": ".".join(asset_key.path),
                     "runId": event_record.run_id,
                     "featureCount": rows.value if rows is not None else None,
-                    "dateTime": datetime.fromtimestamp(event_record.event_log_entry.timestamp)
+                    "dateTime": datetime.fromtimestamp(
+                        event_record.event_log_entry.timestamp
+                    )
                     .date()
                     .isoformat(),
                     "dataVersion": event_record.asset_materialization.tags[
