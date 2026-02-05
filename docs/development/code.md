@@ -168,6 +168,40 @@ For running all tests, you can run:
 make test_all
 ```
 
+### Analyzing Test Results
+
+After running tests, you can analyze the warnings and errors with the test log parser:
+
+```shell
+make test_report
+```
+
+This command parses `tests/test.log` and displays a summary of unique warnings and errors, grouped by type and sorted by frequency. This is useful for identifying systematic issues across test runs.
+
+**Example output:**
+
+```
+=== Test Log Analysis: tests/test.log ===
+
+WARNINGS (8 unique):
+──────────────────────────────────────────────────
+[146 occurrences] PydanticDeprecatedSince20
+  Location: .../dagster/_model/pydantic_compat_layer.py:70
+  Message: The `__fields__` attribute is deprecated, use the `model_fields` class property instead...
+
+[10 occurrences] DeprecationWarning
+  Location: .../dagster/_utils/__init__.py:691
+  Message: Function `DagsterInstance.get_event_records` is deprecated and will be removed in 2.0.
+
+Summary: 8 unique warnings
+```
+
+For more options, see `scripts/README.md` or run:
+
+```shell
+python3 scripts/parse_test_log.py --help
+```
+
 ## Installing requirements without the Docker setup
 
 The pipeline has the following requirements:

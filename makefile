@@ -113,6 +113,9 @@ test_all:
 	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
     exit $$FAILED
 
+test_report:
+	python3 scripts/parse_test_log.py
+
 include .env
 
 download:
