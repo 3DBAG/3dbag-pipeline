@@ -11,8 +11,7 @@ from dagster import (
     Output,
     asset,
     AssetExecutionContext,
-    DagsterEventType,
-    EventRecordsFilter,
+    AssetRecordsFilter,
 )
 from psycopg.sql import SQL
 
@@ -217,9 +216,8 @@ def metadata(context: AssetExecutionContext):
     # is has succeeded.
     process_step_list = []
     for asset_key in asset_keys:
-        event_record_list = instance.get_event_records(
-            event_records_filter=EventRecordsFilter(
-                event_type=DagsterEventType.ASSET_MATERIALIZATION,
+        event_record_list = instance.fetch_materializations(
+            records_filter=AssetRecordsFilter(
                 asset_key=asset_key,
             ),
             limit=1,
