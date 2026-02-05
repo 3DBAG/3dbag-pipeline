@@ -119,7 +119,7 @@ def reconstructed_building_models_nl(
 
     try:
         result = context.resources.roofer.runner.run(
-            f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_config['concurrency']} --loglevel {context.op_config['loglevel']} --skip-pc-check",
+            f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_execution_context.op_config['concurrency']} --loglevel {context.op_execution_context.op_config['loglevel']} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
             context=context,

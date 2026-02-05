@@ -202,7 +202,7 @@ def compute_load_metadata(
     tile_id = context.partition_key
     conn = context.resources.db_connection.connect
     if not laz_files_ahn.new:
-        if not context.op_execution_context.op_execution_context.op_config["force"]:
+        if not context.op_execution_context.op_config["force"]:
             logger.info(
                 f"Metadata for this LAZ tile {tile_id} already exists, "
                 f"skipping computation."
