@@ -1,8 +1,8 @@
-from typing import Optional, Mapping
+from typing import Optional
 
 from dagster import ConfigurableResource, Permissive
 
-from pgutils import PostgresConnection, PostgresFunctions
+from pgutils import PostgresConnection
 
 DatabaseConnection = PostgresConnection
 
@@ -12,11 +12,11 @@ class DatabaseResource(ConfigurableResource):
     Database connection.
     """
 
-    host: Optional[str] = None
-    user: Optional[str] = None
+    host: str
+    user: str
     password: Optional[str] = None
-    dbname: Optional[str] = None
-    port: Optional[str] = None
+    dbname: str
+    port: int
     other_params: Optional[Permissive()] = None
 
     @property

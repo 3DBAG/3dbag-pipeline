@@ -18,7 +18,7 @@ from psycopg.sql import SQL
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
-from bag3d.common.resources import resource_defs
+from bag3d.core.code_location import resource_defs
 
 
 def get_info_per_cityobject(

@@ -1,5 +1,8 @@
 import os
 
+from dagster import EnvVar, get_dagster_logger
+
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
     PDALResource,
@@ -10,12 +13,11 @@ from bag3d.common.resources.executables import (
     ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.version import VersionResource
-from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
+from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.version import VersionResource
 
-from dagster import EnvVar, get_dagster_logger
+# NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 
 logger = get_dagster_logger()
 
@@ -29,36 +31,33 @@ gdal = GDALResource(
     exe_sozip=os.getenv("EXE_PATH_SOZIP"),
 )
 
-
 pdal = PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
 
-
-db_connection = DatabaseResource(
-    host=EnvVar("BAG3D_PG_HOST").get_value(),
-    user=EnvVar("BAG3D_PG_USER").get_value(),
-    password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
-    port=EnvVar("BAG3D_PG_PORT").get_value(),
-    dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
-    other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value()},
-)
+# db_connection = DatabaseResource(
+#     host=EnvVar("BAG3D_PG_HOST"),
+#     user=EnvVar("BAG3D_PG_USER"),
+#     password=EnvVar("BAG3D_PG_PASSWORD"),
+#     port=EnvVar("BAG3D_PG_PORT"),
+#     dbname=EnvVar("BAG3D_PG_DATABASE"),
+#     other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE")},
+# )
 
 
 godzilla_server = ServerTransferResource(
-    host=EnvVar("BAG3D_GODZILLA_HOST").get_value(),
-    user=EnvVar("BAG3D_GODZILLA_USER").get_value(),
-    target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value(),
-    public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
+    host=EnvVar("BAG3D_GODZILLA_HOST"),
+    user=EnvVar("BAG3D_GODZILLA_USER"),
+    target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR"),
+    public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR"),
 )
 
 podzilla_server = ServerTransferResource(
-    host=EnvVar("BAG3D_PODZILLA_HOST").get_value(),
-    user=EnvVar("BAG3D_PODZILLA_USER").get_value(),
-    target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value(),
+    host=EnvVar("BAG3D_PODZILLA_HOST"),
+    user=EnvVar("BAG3D_PODZILLA_USER"),
+    target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR"),
 )
 
 file_store = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE"))
 file_store_fastssd = FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD"))
-
 
 lastools = LASToolsResource(
     exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
@@ -89,22 +88,22 @@ validation = ValidationResource(
 )
 
 
-resource_defs = {
-    "gdal": gdal,
-    "file_store": file_store,
-    "file_store_fastssd": file_store_fastssd,
-    "db_connection": db_connection,
-    "pdal": pdal,
-    "lastools": lastools,
-    "tyler": tyler,
-    "geoflow": geoflow,
-    "validation": validation,
-    "roofer": roofer,
-    "version": version,
-    "specs": specs,
-    "godzilla_server": godzilla_server,
-    "podzilla_server": podzilla_server,
-}
+# resource_defs = {
+#     "gdal": gdal,
+#     "file_store": file_store,
+#     "file_store_fastssd": file_store_fastssd,
+#     "db_connection": db_connection,
+#     "pdal": pdal,
+#     "lastools": lastools,
+#     "tyler": tyler,
+#     "geoflow": geoflow,
+#     "validation": validation,
+#     "roofer": roofer,
+#     "version": version,
+#     "specs": specs,
+#     "godzilla_server": godzilla_server,
+#     "podzilla_server": podzilla_server,
+# }
 
 
 # RESOURCES_PROD = {
@@ -123,35 +122,30 @@ resource_defs = {
 #     "godzilla_server": godzilla_server,
 #     "podzilla_server": podzilla_server,
 # }
-#
-# RESOURCES_DEFAULT = {
-#     "gdal": GDALResource(),
-#     "file_store": FileStoreResource(),
-#     "file_store_fastssd": FileStoreResource(),
-#     "db_connection": DatabaseResource(),
-#     "pdal": PDALResource(),
-#     "lastools": LASToolsResource(),
-#     "tyler": TylerResource(),
-#     "geoflow": GeoflowResource(),
-#     "validation": ValidationResource(),
-#     "roofer": RooferResource(),
-#     "version": VersionResource(),
-#     "specs": specs,
-#     "godzilla_server": ServerTransferResource(),
-#     "podzilla_server": ServerTransferResource(),
-# }
-#
-#
-# resource_defs_by_env_name = {
-#     "prod": RESOURCES_PROD,
-#     "local": RESOURCES_LOCAL,
-#     "test": RESOURCES_TEST,
-#     "default": RESOURCES_DEFAULT,
-# }
-#
-# env_name = os.getenv("DAGSTER_ENVIRONMENT", "default").lower()
-# if env_name not in resource_defs_by_env_name:
-#     logger.warning(f"Invalid environment: {env_name}, setting to default")
-#     env_name = "default"
-#
-# resource_defs = resource_defs_by_env_name[env_name]
+
+
+def resources_by_deployment() -> dict:
+    return {
+        "default": {
+            "gdal": GDALResource.configure_at_launch(),
+            "file_store": FileStoreResource.configure_at_launch(),
+            "file_store_fastssd": FileStoreResource.configure_at_launch(),
+            "db_connection": DatabaseResource.configure_at_launch(),
+            "pdal": PDALResource.configure_at_launch(),
+            "lastools": LASToolsResource.configure_at_launch(),
+            "tyler": TylerResource.configure_at_launch(),
+            "geoflow": GeoflowResource.configure_at_launch(),
+            "validation": ValidationResource.configure_at_launch(),
+            "roofer": RooferResource.configure_at_launch(),
+            "version": VersionResource(),
+            "specs": specs,
+            "godzilla_server": ServerTransferResource.configure_at_launch(),
+            "podzilla_server": ServerTransferResource.configure_at_launch(),
+        },
+        "production": {},
+        "test_docker": {},
+    }
+
+
+env_name = os.getenv("DAGSTER_DEPLOYMENT", "default").lower()
+resource_defs = resources_by_deployment()[env_name]
