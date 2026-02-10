@@ -30,7 +30,7 @@ dependencies = [
     "fabric~=3.2.2",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "coverage~=7.6.9",
     "pytest~=8.3.4",
@@ -41,7 +41,7 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2025.1015" }
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1016" }
 bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", rev = "2025.09.03" }
 
 [tool.pytest.ini_options]

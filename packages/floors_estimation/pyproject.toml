@@ -28,7 +28,7 @@ dependencies = [
     "sklearn-pandas~=2.2.0",
 ]
 
-[project.optional-dependencies] 
+[dependency-groups]
 dev = [
     "coverage~=7.6.8",
     "pytest~=8.3.4",

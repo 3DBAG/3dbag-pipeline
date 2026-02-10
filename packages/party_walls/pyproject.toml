@@ -29,7 +29,7 @@ dependencies = [
     "bag3d-common",
 ]
 
-[project.optional-dependencies] 
+[dependency-groups]
 dev = [
     "coverage~=7.6.8",
     "pytest~=8.3.4",
