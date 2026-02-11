@@ -5,6 +5,8 @@ from dagster import get_dagster_logger, OpExecutionContext, MarkdownMetadataValu
 from psycopg.sql import SQL, Composed, Identifier
 from pgutils import inject_parameters, PostgresTableIdentifier
 
+from bag3d.common.resources.database import DatabaseResource
+
 
 def load_sql(filename: str = None, query_params: dict = None):  # pragma: no cover
     """Load SQL from a file and inject parameters if provided.
@@ -70,20 +72,21 @@ def summary_md(fields, null_count):
 
 
 def postgrestable_from_query(
-    context: OpExecutionContext, query: Composed, table: PostgresTableIdentifier
+    db_connection: DatabaseResource, query: Composed, table: PostgresTableIdentifier, logger=None
 ) -> dict:
-    conn = context.resources.db_connection.connect
+    logger = logger or get_dagster_logger()
+    conn = db_connection.connect
     # log the query
-    context.log.info(conn.print_query(query))
+    logger.info(conn.print_query(query))
     # execute the query
     conn.send_query(query)
-    return postgrestable_metadata(context, table)
+    return postgrestable_metadata(db_connection, table)
 
 
 def postgrestable_metadata(
-    context: OpExecutionContext, table: PostgresTableIdentifier
+    db_connection: DatabaseResource, table: PostgresTableIdentifier
 ) -> dict:
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     # row count
     row_count = conn.get_count(table)
     # schema
@@ -100,30 +103,32 @@ def postgrestable_metadata(
     }
 
 
-def drop_table(context, new_table):
+def drop_table(db_connection: DatabaseResource, new_table, logger=None):
     """DROP TABLE IF EXISTS new_table CASCADE"""
-    conn = context.resources.db_connection.connect
+    logger = logger or get_dagster_logger()
+    conn = db_connection.connect
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
-    context.log.info(conn.print_query(q))
+    logger.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def create_schema(context, new_schema):
+def create_schema(db_connection: DatabaseResource, new_schema, logger=None):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
-    conn = context.resources.db_connection.connect
+    logger = logger or get_dagster_logger()
+    conn = db_connection.connect
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
-    context.log.info(conn.print_query(q))
+    logger.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def table_exists(context, table) -> bool:
+def table_exists(db_connection: DatabaseResource, table) -> bool:
     """CHECKS IF TABLE EXISTS"""
     query = SQL("""SELECT EXISTS (
-                   SELECT FROM 
+                   SELECT FROM
                         pg_tables
-                   WHERE 
-                        schemaname = {schema} AND 
+                   WHERE
+                        schemaname = {schema} AND
                         tablename  = {table}
                     );""").format(schema=table.schema.str, table=table.table.str)
-    res = context.resources.db_connection.connect.get_dict(query)
+    res = db_connection.connect.get_dict(query)
     return res[0]["exists"]

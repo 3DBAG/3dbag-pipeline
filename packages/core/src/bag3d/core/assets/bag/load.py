@@ -34,7 +34,7 @@ def bag_woonplaatsactueelbestaand(
 ):
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
@@ -47,7 +47,7 @@ def bag_woonplaatsactueelbestaand(
             "reference_date": reference_date,
         },
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     return Output(new_table, metadata=metadata)
 
 
@@ -63,7 +63,7 @@ def bag_verblijfsobjectactueelbestaand(
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     table_name = "verblijfsobjectactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
@@ -77,14 +77,14 @@ def bag_verblijfsobjectactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.connect.send_query(
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
     )
     return Output(new_table, metadata=metadata)
@@ -99,7 +99,7 @@ def bag_pandactueelbestaand(
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     table_name = "pandactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
@@ -113,18 +113,18 @@ def bag_pandactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.connect.send_query(
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     geom_idx_name = f"{table_name}_geometrie_idx"
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CLUSTER {new_table} USING {geom_idx_name}"
     )
     return Output(new_table, metadata=metadata)
@@ -142,7 +142,7 @@ def bag_openbareruimteactueelbestaand(
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
@@ -155,7 +155,7 @@ def bag_openbareruimteactueelbestaand(
             "reference_date": reference_date,
         },
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     return Output(new_table, metadata=metadata)
 
 
@@ -171,7 +171,7 @@ def bag_nummeraanduidingactueelbestaand(
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
@@ -184,5 +184,5 @@ def bag_nummeraanduidingactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     return Output(new_table, metadata=metadata)

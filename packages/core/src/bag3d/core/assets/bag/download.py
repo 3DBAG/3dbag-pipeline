@@ -110,7 +110,8 @@ def stage_bag_woonplaats(
     new_schema = "stage_lvbag"
     layer = "woonplaats"
     metadata, new_table = stage_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         layer=layer,
         new_schema=new_schema,
         metadata=metadata,
@@ -118,6 +119,7 @@ def stage_bag_woonplaats(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 
@@ -136,7 +138,8 @@ def stage_bag_verblijfsobject(
     new_schema = "stage_lvbag"
     layer = "verblijfsobject"
     metadata, new_table = stage_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         layer=layer,
         new_schema=new_schema,
         metadata=metadata,
@@ -144,6 +147,7 @@ def stage_bag_verblijfsobject(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 
@@ -162,7 +166,8 @@ def stage_bag_pand(
     new_schema = "stage_lvbag"
     layer = "pand"
     metadata, new_table = stage_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         layer=layer,
         new_schema=new_schema,
         metadata=metadata,
@@ -170,6 +175,7 @@ def stage_bag_pand(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 
@@ -188,7 +194,8 @@ def stage_bag_openbareruimte(
     new_schema = "stage_lvbag"
     layer = "openbareruimte"
     metadata, new_table = stage_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         layer=layer,
         new_schema=new_schema,
         metadata=metadata,
@@ -196,6 +203,7 @@ def stage_bag_openbareruimte(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 
@@ -214,7 +222,8 @@ def stage_bag_nummeraanduiding(
     new_schema = "stage_lvbag"
     layer = "nummeraanduiding"
     metadata, new_table = stage_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         layer=layer,
         new_schema=new_schema,
         metadata=metadata,
@@ -222,12 +231,14 @@ def stage_bag_nummeraanduiding(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
+        context=context,
     )
     return Output(new_table, metadata=metadata)
 
 
 def stage_bag_layer(
-    context: OpExecutionContext,
+    db_connection: DatabaseResource,
+    gdal: GDALResource,
     layer: str,
     new_schema: str,
     metadata: dict,
@@ -236,12 +247,14 @@ def stage_bag_layer(
     remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
+    context: OpExecutionContext = None,
 ):
-    create_schema(context, new_schema)
+    create_schema(db_connection, new_schema, logger=context.log if context else None)
     new_table = PostgresTableIdentifier(new_schema, layer)
-    drop_table(context, new_table)
+    drop_table(db_connection, new_table, logger=context.log if context else None)
     _ = load_bag_layer(
-        context=context,
+        db_connection=db_connection,
+        gdal=gdal,
         extract_dir=extract_dir,
         layer=layer,
         new_table=new_table,
@@ -249,14 +262,16 @@ def stage_bag_layer(
         remove_zip=remove_zip,
         with_parallel=with_parallel,
         geofilter=geofilter,
+        context=context,
     )
-    _m = postgrestable_metadata(context, new_table)
+    _m = postgrestable_metadata(db_connection, new_table)
     metadata.update(_m)
     return metadata, new_table
 
 
 def load_bag_layer(
-    context,
+    db_connection: DatabaseResource,
+    gdal: GDALResource,
     extract_dir: Path,
     layer: str,
     shortdate: str,
@@ -264,6 +279,7 @@ def load_bag_layer(
     remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
+    context: OpExecutionContext = None,
 ) -> bool:
     """Load a single LVBAG Extract 2.0 layer into a PostgreSQL table with ogr2ogr.
     This function expects that the LVBAG Extract is uncompressed one level deep, as it
@@ -277,7 +293,8 @@ def load_bag_layer(
     - gnu parallel (if `with_parallel` is True)
 
     Args:
-        context:
+        db_connection: Database resource for PostgreSQL connection.
+        gdal: GDAL resource for ogr2ogr execution.
         extract_dir: Path to the directory with the extract.
         layer: Name of the layer to load (e.g. `Pand`).
         shortdate: Date of the LVBAG Extract, as it is stored in the `StandTechnischeDatum` of the Extract metadata, for example `08102022`.
@@ -285,6 +302,7 @@ def load_bag_layer(
         remove_zip: Whether to remove the zipfile or not.
         with_parallel: Use GNU Parallel with ogr2ogr for loading.
         geofilter: WKT of the polygonal extent. Will be converted to a BBOX.
+        context: Optional OpExecutionContext for Dagster Pipes integration.
 
     Returns:
         True on success, False otherwise.
@@ -306,7 +324,7 @@ def load_bag_layer(
         "layer_dir": layer_id,
         "shortdate": shortdate,
         "new_table": new_table,
-        "dsn": context.resources.db_connection.connect.dsn,
+        "dsn": db_connection.connect.dsn,
     }
 
     # Create the ogr2ogr command. The order of parameters is important!
@@ -327,7 +345,7 @@ def load_bag_layer(
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append(str(layer_dir))
         cmd = " ".join(cmd)
-        result = context.resources.gdal.runner.run(
+        result = gdal.runner.run(
             cmd,
             exe_name="ogr2ogr",
             kwargs=kwargs,
@@ -371,7 +389,7 @@ def load_bag_layer(
         cmd = " ".join(cmd)
 
     # Execute
-    result = context.resources.gdal.runner.run(
+    result = gdal.runner.run(
         cmd,
         exe_name="ogr2ogr",
         kwargs=kwargs,

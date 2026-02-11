@@ -18,14 +18,14 @@ def stage_top10nl_gebouw(
 ) -> Output[PostgresTableIdentifier]:
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
-    create_schema(context, new_schema)
+    create_schema(db_connection, new_schema, logger=context.log)
     xsd = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     new_table = PostgresTableIdentifier(new_schema, "gebouw")
     # Need to explicitly drop the table just in case (...couz GDAL...)
-    drop_table(context, new_table)
+    drop_table(db_connection, new_table, logger=context.log)
     metadata = ogr2postgres(
-        gdal_runner=context.resources.gdal.runner,
-        dsn=context.resources.db_connection.connect.dsn,
+        gdal_runner=gdal.runner,
+        dsn=db_connection.connect.dsn,
         dataset="top10nl",
         xsd=xsd,
         extract_path=extract_top10nl,
@@ -43,24 +43,24 @@ def top10nl_gebouw(
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
     new_schema = "top10nl"
-    create_schema(context, new_schema)
+    create_schema(db_connection, new_schema, logger=context.log)
     table_name = "gebouw"
     new_table = PostgresTableIdentifier("top10nl", table_name)
     query = load_sql(
         query_params={"gebouw_tbl": stage_top10nl_gebouw, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.connect.send_query(
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    db_connection.connect.send_query(
         f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
     )
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_typegebouw_idx ON {new_table} USING gin (typegebouw)"
     )
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         f"CLUSTER {new_table} USING {geom_idx_name}"
     )
     return Output(new_table, metadata=metadata)

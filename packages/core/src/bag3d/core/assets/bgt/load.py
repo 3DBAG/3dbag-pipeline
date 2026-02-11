@@ -20,14 +20,14 @@ def stage_bgt_pand(
     context, db_connection: DatabaseResource, gdal: GDALResource, extract_bgt
 ) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer, loaded as-is from the extract."""
-    create_schema(context, SCHEMA_STAGE)
+    create_schema(db_connection, SCHEMA_STAGE, logger=context.log)
     xsd = "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
     new_table = PostgresTableIdentifier(SCHEMA_STAGE, "pand")
     # Need to explicitly drop the table just in case (...couz GDAL...)
-    drop_table(context, new_table)
+    drop_table(db_connection, new_table, logger=context.log)
     metadata = ogr2postgres(
-        gdal_runner=context.resources.gdal.runner,
-        dsn=context.resources.db_connection.connect.dsn,
+        gdal_runner=gdal.runner,
+        dsn=db_connection.connect.dsn,
         dataset="bgt",
         xsd=xsd,
         feature_type="pand",
@@ -44,8 +44,8 @@ def bgt_pandactueelbestaand(
 ) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer that only contains the current (timely) and physically
     existing objects, and repaired polygons."""
-    create_schema(context, SCHEMA_PROD)
+    create_schema(db_connection, SCHEMA_PROD, logger=context.log)
     new_table = PostgresTableIdentifier(SCHEMA_PROD, "pandactueelbestaand")
     query = load_sql(query_params={"pand_tbl": stage_bgt_pand, "new_table": new_table})
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     return Output(new_table, metadata=metadata)

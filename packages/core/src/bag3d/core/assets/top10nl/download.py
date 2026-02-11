@@ -35,7 +35,7 @@ def extract_top10nl(
         featuretypes=config.featuretypes,
         data_format="gml",
         geofilter=config.geofilter,
-        download_dir=context.resources.file_store.file_store.data_dir,
+        download_dir=file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")
@@ -43,7 +43,7 @@ def extract_top10nl(
         "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     )
     info = ogrinfo(
-        gdal_runner=context.resources.gdal.runner,
+        gdal_runner=gdal.runner,
         dataset="top10nl",
         extract_path=extract_path,
         feature_types=config.featuretypes,

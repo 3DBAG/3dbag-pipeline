@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb, set_json_dumps
 from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import PDALResource
 from bag3d.common.types import PostgresTable
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
@@ -54,6 +55,7 @@ def metadata_ahn3(
     metadata_table_ahn3,
     tile_index_ahn,
     db_connection: DatabaseResource,
+    pdal: PDALResource,
 ):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -65,6 +67,7 @@ def metadata_ahn3(
         metadata_table_ahn3,
         tile_index_ahn,
         db_connection,
+        pdal,
         verbose=config.verbose,
     )
 
@@ -77,6 +80,7 @@ def metadata_ahn4(
     metadata_table_ahn4,
     tile_index_ahn,
     db_connection: DatabaseResource,
+    pdal: PDALResource,
 ):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -88,6 +92,7 @@ def metadata_ahn4(
         metadata_table_ahn4,
         tile_index_ahn,
         db_connection,
+        pdal,
         verbose=config.verbose,
     )
 
@@ -100,6 +105,7 @@ def metadata_ahn5(
     metadata_table_ahn5,
     tile_index_ahn,
     db_connection: DatabaseResource,
+    pdal: PDALResource,
 ):
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -110,6 +116,8 @@ def metadata_ahn5(
         laz_files_ahn5,
         metadata_table_ahn5,
         tile_index_ahn,
+        db_connection,
+        pdal,
         verbose=config.verbose,
     )
 
@@ -165,6 +173,7 @@ def compute_load_metadata(
     metadata_table_ahn,
     tile_index_ahn_pdok,
     db_connection: DatabaseResource,
+    pdal: PDALResource,
     verbose: bool = False,
 ):
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
@@ -179,6 +188,7 @@ def compute_load_metadata(
             indentifier.
         tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
         db_connection (DatabaseResource): Database connection resource.
+        pdal (PDALResource): PDAL resource for executing pdal info.
         verbose (bool): Forward the stdout/stderr from pdal.
 
     Returns:
@@ -196,7 +206,7 @@ def compute_load_metadata(
             return Output(None)
 
     ret_code, out_info = pdal_info(
-        context.resources.pdal.runner,
+        pdal.runner,
         file_path=laz_files_ahn.path,
         with_all=config.all,
         verbose=verbose,
@@ -242,7 +252,7 @@ def metadata_table_ahn(
     logger = get_dagster_logger()
     conn = db_connection.connect
     new_schema = "ahn"
-    create_schema(context, new_schema)
+    create_schema(db_connection, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
     query = load_sql(query_params={"new_table": new_table})
     logger.info(conn.print_query(query))

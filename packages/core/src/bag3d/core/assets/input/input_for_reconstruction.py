@@ -29,7 +29,7 @@ def reconstruction_input(
     """The input for the building reconstruction, where:
     - duplicates are removed
     """
-    create_schema(context, RECONSTRUCTION_INPUT_SCHEMA)
+    create_schema(db_connection, RECONSTRUCTION_INPUT_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(
         RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
     )
@@ -41,7 +41,7 @@ def reconstruction_input(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     db_connection.connect.send_query(
         SQL("ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"),
         query_params={"new_table": new_table},

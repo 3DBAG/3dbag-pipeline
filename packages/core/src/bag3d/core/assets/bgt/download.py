@@ -35,7 +35,7 @@ def extract_bgt(
         featuretypes=config.featuretypes,
         data_format="gmllight",
         geofilter=config.geofilter,
-        download_dir=context.resources.file_store.file_store.data_dir,
+        download_dir=file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
     context.log.info(f"Downloaded {extract_path}")
@@ -46,7 +46,7 @@ def extract_bgt(
     )
     info = dict(
         ogrinfo(
-            gdal_runner=context.resources.gdal.runner,
+            gdal_runner=gdal.runner,
             dataset="bgt",
             extract_path=extract_path,
             feature_types=config.featuretypes,

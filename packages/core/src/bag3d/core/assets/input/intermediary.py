@@ -25,7 +25,7 @@ def bag_kas_warenhuis(
 ):
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_kas_warenhuis")
     query = load_sql(
         query_params={
@@ -34,7 +34,7 @@ def bag_kas_warenhuis(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     return Output(new_table, metadata=metadata)
 
@@ -49,11 +49,11 @@ def bag_kas_warenhuis(
 def bag_bag_overlap(context, bag_pandactueelbestaand, db_connection: DatabaseResource):
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
-    create_schema(context, NEW_SCHEMA)
+    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bag_overlap")
     query = load_sql(
         query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
     db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     return Output(new_table, metadata=metadata)
