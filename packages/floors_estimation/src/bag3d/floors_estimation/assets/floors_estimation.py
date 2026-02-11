@@ -13,6 +13,8 @@ from bag3d.common.utils.database import (
     postgrestable_from_query,
 )
 from bag3d.common.utils.files import geoflow_crop_dir
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.database import DatabaseResource
 from dagster import Output, asset
 from joblib import load
 from pgutils import inject_parameters
@@ -113,13 +115,13 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
         yield {k: data[k] for k in islice(it, SIZE)}
 
 
-@asset(required_resource_keys={"file_store_fastssd"})
-def features_file_index(context) -> dict[str, Path]:
+@asset
+def features_file_index(context, file_store_fastssd: FileStoreResource) -> dict[str, Path]:
     """
     Returns a dict of {feature ID: feature file path}.
     """
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
+        file_store_fastssd.file_store.data_dir
     )
 
     reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
@@ -131,9 +133,9 @@ def features_file_index(context) -> dict[str, Path]:
     return res
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
+@asset(op_tags={"compute_kind": "sql"})
 def bag3d_features(
-    context, features_file_index: dict[str, Path]
+    context, features_file_index: dict[str, Path], db_connection: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
     Extracts 3DBAG features from the cityJSONL files,
@@ -154,7 +156,7 @@ def bag3d_features(
         processing = {
             pool.submit(
                 process_chunk,
-                context.resources.db_connection.connect,
+                db_connection.connect,
                 chunk,
                 cid,
                 bag3d_features_table,
@@ -171,8 +173,8 @@ def bag3d_features(
     return Output(bag3d_features_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
-def external_features(context) -> Output[PostgresTableIdentifier]:
+@asset(op_tags={"compute_kind": "sql"})
+def external_features(context, db_connection: DatabaseResource) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
@@ -184,11 +186,12 @@ def external_features(context) -> Output[PostgresTableIdentifier]:
     return Output(external_features_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
+@asset(op_tags={"compute_kind": "sql"})
 def all_features(
     context,
     external_features: PostgresTableIdentifier,
     bag3d_features: PostgresTableIdentifier,
+    db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
     create_schema(context, SCHEMA)
@@ -205,9 +208,9 @@ def all_features(
     return Output(all_features, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"})
+@asset
 def preprocessed_features(
-    context, all_features: Output[PostgresTableIdentifier]
+    context, all_features: Output[PostgresTableIdentifier], db_connection: DatabaseResource
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
@@ -224,7 +227,7 @@ def preprocessed_features(
     }
 
     query = inject_parameters(query, query_params)
-    res = context.resources.db_connection.connect.get_dict(query)
+    res = db_connection.connect.get_dict(query)
     data = pd.DataFrame.from_records(res)
     context.log.info(f"Retrieved {len(data)} buildings.")
     data.set_index("identificatie", inplace=True, drop=True)
@@ -235,11 +238,12 @@ def preprocessed_features(
     return data
 
 
-@asset(required_resource_keys={"model_store"})
+@asset
 def inferenced_floors(context, preprocessed_features: pd.DataFrame) -> pd.DataFrame:
     """Runs the inference on the features."""
-    context.log.info(f"Loading model from {context.resources.model_store}")
-    pipeline = load(context.resources.model_store)
+    model_store = context.resources.model_store
+    context.log.info(f"Loading model from {model_store}")
+    pipeline = load(model_store)
     context.log.info("Running the inference.")
     labels = pipeline.predict(preprocessed_features)
     preprocessed_features["floors"] = labels
@@ -248,9 +252,9 @@ def inferenced_floors(context, preprocessed_features: pd.DataFrame) -> pd.DataFr
     return preprocessed_features
 
 
-@asset(required_resource_keys={"db_connection"})
+@asset
 def predictions_table(
-    context, inferenced_floors: pd.DataFrame
+    context, inferenced_floors: pd.DataFrame, db_connection: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """Saves the floor predictions to the
     'floors_estimation.predictions' table."""
@@ -268,7 +272,7 @@ def predictions_table(
     query = f"""INSERT INTO {predictions_table}
                 VALUES (%s, %s);"""
 
-    with connect(context.resources.db_connection.connect.dsn) as connection:
+    with connect(db_connection.connect.dsn) as connection:
         with connection.cursor() as cur:
             cur.executemany(query, data, returning=True)
             connection.commit()
@@ -300,13 +304,13 @@ def save_cjfile(
         json.dump(feature_json, fo, separators=(",", ":"))
 
 
-@asset(required_resource_keys={"file_store_fastssd"})
+@asset
 def save_cjfiles(
-    context, inferenced_floors: pd.DataFrame, features_file_index: dict[str, Path]
+    context, inferenced_floors: pd.DataFrame, features_file_index: dict[str, Path], file_store_fastssd: FileStoreResource
 ) -> None:
     """Saves the new cj files."""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
+        file_store_fastssd.file_store.data_dir
     )
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"
