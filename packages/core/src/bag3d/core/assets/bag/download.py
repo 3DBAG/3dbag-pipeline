@@ -1,15 +1,16 @@
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Optional
 from copy import deepcopy
 
 from dagster import (
     asset,
     Output,
     OpExecutionContext,
-    Field,
+    Config,
     DataVersion,
     get_dagster_logger,
 )
+from pydantic import Field
 from lxml import objectify
 
 from bag3d.common.utils.geodata import bbox_from_wkt
@@ -23,6 +24,19 @@ from bag3d.common.utils.database import (
 from bag3d.common.types import PostgresTableIdentifier, Path
 
 logger = get_dagster_logger("bag.download")
+
+
+class BagDownloadConfig(Config):
+    """Configuration for BAG download/stage assets."""
+
+    geofilter: Optional[str] = Field(
+        default=None,
+        description="WKT of the polygonal extent. Will be converted to a BBOX.",
+    )
+    with_parallel: bool = Field(
+        default=True,
+        description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
+    )
 
 
 # TODO: The LVBAG schemas are at
@@ -82,27 +96,15 @@ def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
 
 
 @asset(
-    config_schema={
-        "geofilter": Field(
-            str,
-            description="WKT of the polygonal extent. Will be converted to a BBOX.",
-            is_required=False,
-        ),
-        "with_parallel": Field(
-            bool,
-            default_value=True,
-            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
-            is_required=False,
-        ),
-    },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
-def stage_bag_woonplaats(context, extract_bag) -> Output[PostgresTableIdentifier]:
+def stage_bag_woonplaats(
+    context, config: BagDownloadConfig, extract_bag
+) -> Output[PostgresTableIdentifier]:
     """Load the Woonplaats layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "woonplaats"
-    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -110,34 +112,22 @@ def stage_bag_woonplaats(context, extract_bag) -> Output[PostgresTableIdentifier
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
-        with_parallel=config.get("with_parallel", True),
-        geofilter=config.get("geofilter"),
+        with_parallel=config.with_parallel,
+        geofilter=config.geofilter,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset(
-    config_schema={
-        "geofilter": Field(
-            str,
-            description="WKT of the polygonal extent. Will be converted to a BBOX.",
-            is_required=False,
-        ),
-        "with_parallel": Field(
-            bool,
-            default_value=True,
-            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
-            is_required=False,
-        ),
-    },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
-def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdentifier]:
+def stage_bag_verblijfsobject(
+    context, config: BagDownloadConfig, extract_bag
+) -> Output[PostgresTableIdentifier]:
     """Load the Verblijfsobject layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "verblijfsobject"
-    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -145,34 +135,22 @@ def stage_bag_verblijfsobject(context, extract_bag) -> Output[PostgresTableIdent
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
-        with_parallel=config.get("with_parallel", True),
-        geofilter=config.get("geofilter"),
+        with_parallel=config.with_parallel,
+        geofilter=config.geofilter,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset(
-    config_schema={
-        "geofilter": Field(
-            str,
-            description="WKT of the polygonal extent. Will be converted to a BBOX. Must set `with_parallel` to True if using a geofilter.",
-            is_required=False,
-        ),
-        "with_parallel": Field(
-            bool,
-            default_value=True,
-            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
-            is_required=False,
-        ),
-    },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
-def stage_bag_pand(context, extract_bag) -> Output[PostgresTableIdentifier]:
+def stage_bag_pand(
+    context, config: BagDownloadConfig, extract_bag
+) -> Output[PostgresTableIdentifier]:
     """Load the Pand layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "pand"
-    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -180,34 +158,22 @@ def stage_bag_pand(context, extract_bag) -> Output[PostgresTableIdentifier]:
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
-        with_parallel=config.get("with_parallel", True),
-        geofilter=config.get("geofilter"),
+        with_parallel=config.with_parallel,
+        geofilter=config.geofilter,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset(
-    config_schema={
-        "geofilter": Field(
-            str,
-            description="WKT of the polygonal extent. Will be converted to a BBOX.",
-            is_required=False,
-        ),
-        "with_parallel": Field(
-            bool,
-            default_value=True,
-            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
-            is_required=False,
-        ),
-    },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
-def stage_bag_openbareruimte(context, extract_bag) -> Output[PostgresTableIdentifier]:
+def stage_bag_openbareruimte(
+    context, config: BagDownloadConfig, extract_bag
+) -> Output[PostgresTableIdentifier]:
     """Load the Openbareruimte layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "openbareruimte"
-    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -215,34 +181,22 @@ def stage_bag_openbareruimte(context, extract_bag) -> Output[PostgresTableIdenti
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
-        with_parallel=config.get("with_parallel", True),
-        geofilter=config.get("geofilter"),
+        with_parallel=config.with_parallel,
+        geofilter=config.geofilter,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset(
-    config_schema={
-        "geofilter": Field(
-            str,
-            description="WKT of the polygonal extent. Will be converted to a BBOX.",
-            is_required=False,
-        ),
-        "with_parallel": Field(
-            bool,
-            default_value=True,
-            description="Use GNU Parallel with ogr2ogr for loading the XML files from the LVBAG Extract.",
-            is_required=False,
-        ),
-    },
     required_resource_keys={"file_store", "db_connection", "gdal"},
 )
-def stage_bag_nummeraanduiding(context, extract_bag) -> Output[PostgresTableIdentifier]:
+def stage_bag_nummeraanduiding(
+    context, config: BagDownloadConfig, extract_bag
+) -> Output[PostgresTableIdentifier]:
     """Load the Nummeraanduiding layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
     new_schema = "stage_lvbag"
     layer = "nummeraanduiding"
-    config = context.op_execution_context.op_config
     metadata, new_table = stage_bag_layer(
         context=context,
         layer=layer,
@@ -250,8 +204,8 @@ def stage_bag_nummeraanduiding(context, extract_bag) -> Output[PostgresTableIden
         metadata=metadata,
         shortdate=shortdate,
         extract_dir=extract_dir,
-        with_parallel=config.get("with_parallel", True),
-        geofilter=config.get("geofilter"),
+        with_parallel=config.with_parallel,
+        geofilter=config.geofilter,
     )
     return Output(new_table, metadata=metadata)
 
