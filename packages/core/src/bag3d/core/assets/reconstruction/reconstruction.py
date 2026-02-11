@@ -16,6 +16,9 @@ from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
 from bag3d.common.resources import resource_defs, tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.executables import RooferResource
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
@@ -74,17 +77,15 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
     },
-    required_resource_keys={
-        "db_connection",
-        "roofer",
-        "file_store",
-        "file_store_fastssd",
-    },
     code_version=tool_versions.get_version("roofer"),
 )
 def reconstructed_building_models_nl(
     context,
     config: RooferConfig,
+    db_connection: DatabaseResource,
+    roofer: RooferResource,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
     tiles,
     index,
     reconstruction_input,
@@ -110,7 +111,7 @@ def reconstructed_building_models_nl(
     context.log.info(f"{tile_view=}")
 
     try:
-        result = context.resources.roofer.runner.run(
+        result = roofer.runner.run(
             f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
@@ -129,6 +130,9 @@ def reconstructed_building_models_nl(
 
 def create_roofer_config(
     context,
+    db_connection,
+    file_store,
+    file_store_fastssd,
     reconstruction_input,
     index,
     tiles,
