@@ -3,6 +3,8 @@ from typing import Optional
 from dagster import asset, Output, Config, DataVersion
 from pydantic import Field
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.requests import download_extract
 from bag3d.common.utils.geodata import ogrinfo, add_info
 from bag3d.common.types import Path
@@ -19,10 +21,8 @@ class Top10nlDownloadConfig(Config):
     )
 
 
-@asset(
-    required_resource_keys={"gdal", "file_store"},
-)
-def extract_top10nl(context, config: Top10nlDownloadConfig) -> Output[Path]:
+@asset
+def extract_top10nl(context, config: Top10nlDownloadConfig, file_store: FileStoreResource, gdal: GDALResource) -> Output[Path]:
     """The TOP10NL extract downloaded from the PDOK API, containing the Gebouw layer."""
     metadata = download_extract(
         dataset="top10nl",

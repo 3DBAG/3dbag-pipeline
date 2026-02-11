@@ -3,6 +3,8 @@ from typing import Optional
 from dagster import asset, Output, Config
 from pydantic import Field
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.requests import download_extract
 from bag3d.common.utils.geodata import ogrinfo, add_info
 from bag3d.common.types import Path
@@ -19,10 +21,8 @@ class BgtDownloadConfig(Config):
     )
 
 
-@asset(
-    required_resource_keys={"gdal", "file_store"},
-)
-def extract_bgt(context, config: BgtDownloadConfig) -> Output[Path]:
+@asset
+def extract_bgt(context, config: BgtDownloadConfig, file_store: FileStoreResource, gdal: GDALResource) -> Output[Path]:
     """The BGT extract downloaded from the PDOK API, containing the 'pand' layer."""
     metadata = download_extract(
         dataset="bgt",
