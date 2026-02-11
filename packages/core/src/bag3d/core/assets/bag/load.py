@@ -3,6 +3,7 @@ from typing import Optional
 
 from dagster import asset, Output, Config
 
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.database import (
     load_sql,
     postgrestable_from_query,
@@ -23,10 +24,9 @@ class BagLoadConfig(Config):
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
 )
-def bag_woonplaatsactueelbestaand(context, config: BagLoadConfig, stage_bag_woonplaats):
+def bag_woonplaatsactueelbestaand(context, config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_woonplaats):
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
     create_schema(context, NEW_SCHEMA)
@@ -47,10 +47,9 @@ def bag_woonplaatsactueelbestaand(context, config: BagLoadConfig, stage_bag_woon
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
 )
-def bag_verblijfsobjectactueelbestaand(context, config: BagLoadConfig, stage_bag_verblijfsobject):
+def bag_verblijfsobjectactueelbestaand(context, config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_verblijfsobject):
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -82,10 +81,9 @@ def bag_verblijfsobjectactueelbestaand(context, config: BagLoadConfig, stage_bag
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
 )
-def bag_pandactueelbestaand(context, config: BagLoadConfig, stage_bag_pand):
+def bag_pandactueelbestaand(context, config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_pand):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -121,10 +119,9 @@ def bag_pandactueelbestaand(context, config: BagLoadConfig, stage_bag_pand):
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
 )
-def bag_openbareruimteactueelbestaand(context, config: BagLoadConfig, stage_bag_openbareruimte):
+def bag_openbareruimteactueelbestaand(context, config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_openbareruimte):
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -146,10 +143,9 @@ def bag_openbareruimteactueelbestaand(context, config: BagLoadConfig, stage_bag_
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     op_tags={"compute_kind": "sql"},
 )
-def bag_nummeraanduidingactueelbestaand(context, config: BagLoadConfig, stage_bag_nummeraanduiding):
+def bag_nummeraanduidingactueelbestaand(context, config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_nummeraanduiding):
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
