@@ -5,23 +5,24 @@ import gzip
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
-from dagster import asset, Output, AssetKey, Config
+from dagster import asset, Output, AssetKey, Config, get_dagster_logger
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.executables import GDALResource
+from bag3d.common.resources.version import VersionResource
 from bag3d.common.utils.files import bag3d_export_dir
-from dagster import get_dagster_logger
 
 logger = get_dagster_logger()
 
 
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
-    required_resource_keys={"file_store", "gdal", "version"},
 )
-def geopackage_nl(context):
+def geopackage_nl(context, file_store: FileStoreResource, gdal: GDALResource, version: VersionResource):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
@@ -60,7 +61,7 @@ def geopackage_nl(context):
         str(first_path_with_data),
     ]
     cmd = " ".join(cmd)
-    result = context.resources.gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+    result = gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
     if not result.success:
         raise ValueError(f"ogr2ogr failed: {result.stderr}")
 
@@ -82,7 +83,7 @@ def geopackage_nl(context):
         ]
         cmd = " ".join(cmd)
         try:
-            result = context.resources.gdal.runner.run(
+            result = gdal.runner.run(
                 cmd, exe_name="ogr2ogr", context=context
             )
             if not result.success:
@@ -108,14 +109,14 @@ def geopackage_nl(context):
             str(path_nl),
         ]
         cmd = " ".join(cmd)
-        context.resources.gdal.runner.run(cmd, exe_name="ogrinfo", context=context)
+        gdal.runner.run(cmd, exe_name="ogrinfo", context=context)
 
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
     cmd = ["{exe}", "--junk-paths", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
-    context.resources.gdal.runner.run(cmd, exe_name="sozip", context=context)
+    gdal.runner.run(cmd, exe_name="sozip", context=context)
 
     metadata = {}
     metadata["nr_failed"] = len(failed)
@@ -180,14 +181,13 @@ class CompressionConfig(Config):
     deps={
         AssetKey("geopackage_nl"),
     },
-    required_resource_keys={"file_store", "version"},
 )
-def compressed_tiles(context, config: CompressionConfig, export_index):
+def compressed_tiles(context, config: CompressionConfig, file_store: FileStoreResource, version: VersionResource, export_index):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:
