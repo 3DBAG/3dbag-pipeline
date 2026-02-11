@@ -155,9 +155,8 @@ def feature_evaluation(context, file_store: FileStoreResource, file_store_fastss
 
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
-    required_resource_keys={"file_store", "version"},
 )
-def export_index(context) -> Path:
+def export_index(context, file_store: FileStoreResource, version: VersionResource) -> Path:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
@@ -165,8 +164,8 @@ def export_index(context) -> Path:
     Output it written to export_index.csv.
     """
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
@@ -192,9 +191,10 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
 
 @asset(
     deps=ASSET_DEPENDENCIES_FOR_METADATA,
-    required_resource_keys={"file_store", "version"},
 )
-def metadata(context: AssetExecutionContext):
+def metadata(
+    context: AssetExecutionContext, file_store: FileStoreResource, version: VersionResource
+):
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
@@ -417,8 +417,8 @@ def metadata(context: AssetExecutionContext):
         },
     }
     output_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:

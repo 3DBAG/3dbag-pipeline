@@ -77,7 +77,13 @@ def test_laz_files_ahn3(context_ahn, md5_ahn3_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn3(context_ahn, config, md5_ahn3_fix, tile_index_ahn_fix)
+    res = laz_files_ahn3(
+        context_ahn,
+        config,
+        context_ahn.resources.file_store,
+        md5_ahn3_fix,
+        tile_index_ahn_fix,
+    )
     assert res.value.url is not None
     assert res is not None
     print(res.value)
@@ -88,7 +94,13 @@ def test_laz_files_ahn4(context_ahn, md5_ahn4_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn4(context_ahn, config, md5_ahn4_fix, tile_index_ahn_fix)
+    res = laz_files_ahn4(
+        context_ahn,
+        config,
+        context_ahn.resources.file_store,
+        md5_ahn4_fix,
+        tile_index_ahn_fix,
+    )
     assert res.value.url is not None
     assert res is not None
 
@@ -98,7 +110,13 @@ def test_laz_files_ahn5(context_ahn, sha256_ahn5_fix, tile_index_ahn_fix):
     laz_dir = ahn_laz_dir(context_ahn.resources.file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = laz_files_ahn5(context_ahn, config, sha256_ahn5_fix, tile_index_ahn_fix)
+    res = laz_files_ahn5(
+        context_ahn,
+        config,
+        context_ahn.resources.file_store,
+        sha256_ahn5_fix,
+        tile_index_ahn_fix,
+    )
     assert res.value.url is not None
     assert res is not None
 

@@ -28,30 +28,27 @@ class MetadataConfig(Config):
     )
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn3(context) -> PostgresTableIdentifier:
+@asset
+def metadata_table_ahn3(context, db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=3)
+    return metadata_table_ahn(context, db_connection, ahn_version=3)
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn4(context):
+@asset
+def metadata_table_ahn4(context, db_connection: DatabaseResource):
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=4)
+    return metadata_table_ahn(context, db_connection, ahn_version=4)
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn5(context):
+@asset
+def metadata_table_ahn5(context, db_connection: DatabaseResource):
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=5)
+    return metadata_table_ahn(context, db_connection, ahn_version=5)
 
 
-@asset(
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
+@asset(partitions_def=partition_definition_ahn)
 def metadata_ahn3(
-    context, config: MetadataConfig, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn
+    context, config: MetadataConfig, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn, db_connection: DatabaseResource
 ):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -62,16 +59,14 @@ def metadata_ahn3(
         laz_files_ahn3,
         metadata_table_ahn3,
         tile_index_ahn,
+        db_connection,
         verbose=config.verbose,
     )
 
 
-@asset(
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
+@asset(partitions_def=partition_definition_ahn)
 def metadata_ahn4(
-    context, config: MetadataConfig, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn
+    context, config: MetadataConfig, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn, db_connection: DatabaseResource
 ):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -82,16 +77,14 @@ def metadata_ahn4(
         laz_files_ahn4,
         metadata_table_ahn4,
         tile_index_ahn,
+        db_connection,
         verbose=config.verbose,
     )
 
 
-@asset(
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
+@asset(partitions_def=partition_definition_ahn)
 def metadata_ahn5(
-    context, config: MetadataConfig, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn
+    context, config: MetadataConfig, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn, db_connection: DatabaseResource
 ):
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
@@ -156,6 +149,7 @@ def compute_load_metadata(
     laz_files_ahn,
     metadata_table_ahn,
     tile_index_ahn_pdok,
+    db_connection: DatabaseResource,
     verbose: bool = False,
 ):
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
@@ -169,6 +163,7 @@ def compute_load_metadata(
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
         tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
+        db_connection (DatabaseResource): Database connection resource.
         verbose (bool): Forward the stdout/stderr from pdal.
 
     Returns:
@@ -176,7 +171,7 @@ def compute_load_metadata(
     """
     logger = get_dagster_logger()
     tile_id = context.partition_key
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     if not laz_files_ahn.new:
         if not config.force:
             logger.info(
@@ -226,9 +221,9 @@ def compute_load_metadata(
     return Output(None, metadata={**out_info})
 
 
-def metadata_table_ahn(context, ahn_version: int) -> PostgresTableIdentifier:
+def metadata_table_ahn(context, db_connection: DatabaseResource, ahn_version: int) -> PostgresTableIdentifier:
     logger = get_dagster_logger()
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     new_schema = "ahn"
     create_schema(context, new_schema)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
