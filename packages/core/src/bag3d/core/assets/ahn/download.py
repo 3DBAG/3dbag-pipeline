@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from dagster import asset, Output, get_dagster_logger, Config, Failure
 
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     format_laz_log,
@@ -157,12 +158,11 @@ class LazFilesConfig(Config):
 
 
 @asset(
-    required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
+def laz_files_ahn3(context, config: LazFilesConfig, file_store: FileStoreResource, md5_ahn3, tile_index_ahn):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -170,7 +170,7 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
     match the reference.
     """
     tile_id = context.partition_key
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 3)
+    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
@@ -212,12 +212,11 @@ def laz_files_ahn3(context, config: LazFilesConfig, md5_ahn3, tile_index_ahn):
 
 
 @asset(
-    required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
+def laz_files_ahn4(context, config: LazFilesConfig, file_store: FileStoreResource, md5_ahn4, tile_index_ahn):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -226,7 +225,7 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
     """
     tile_id = context.partition_key
 
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 4)
+    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
@@ -270,19 +269,18 @@ def laz_files_ahn4(context, config: LazFilesConfig, md5_ahn4, tile_index_ahn):
 
 
 @asset(
-    required_resource_keys={"file_store"},
     partitions_def=partition_definition_ahn,
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn5(context, config: LazFilesConfig, sha256_ahn5, tile_index_ahn):
+def laz_files_ahn5(context, config: LazFilesConfig, file_store: FileStoreResource, sha256_ahn5, tile_index_ahn):
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
     Only downloads a file if it does not exist locally.
     """
     tile_id = context.partition_key
-    laz_dir = ahn_laz_dir(context.resources.file_store.file_store.data_dir, 5)
+    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
