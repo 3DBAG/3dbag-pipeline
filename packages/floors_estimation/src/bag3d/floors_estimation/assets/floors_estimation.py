@@ -145,7 +145,7 @@ def bag3d_features(
     bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     context.log.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
-    metadata = postgrestable_from_query(context, query, bag3d_features_table)
+    metadata = postgrestable_from_query(db_connection, query, bag3d_features_table)
     context.log.info(
         f"Extracting 3DBAG features for {len(features_file_index)} buildings."
     )
@@ -180,11 +180,11 @@ def external_features(
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
-    create_schema(context, SCHEMA)
+    create_schema(db_connection, SCHEMA)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features": external_features_table})
-    metadata = postgrestable_from_query(context, query, external_features_table)
+    metadata = postgrestable_from_query(db_connection, query, external_features_table)
     return Output(external_features_table, metadata=metadata)
 
 
@@ -196,7 +196,7 @@ def all_features(
     db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
-    create_schema(context, SCHEMA)
+    create_schema(db_connection, SCHEMA)
     table_name = "building_features_all"
     all_features = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(
@@ -206,7 +206,7 @@ def all_features(
             "bag3d_features": bag3d_features,
         }
     )
-    metadata = postgrestable_from_query(context, query, all_features)
+    metadata = postgrestable_from_query(db_connection, query, all_features)
     return Output(all_features, metadata=metadata)
 
 
@@ -268,7 +268,7 @@ def predictions_table(
     predictions_table = PostgresTableIdentifier(SCHEMA, table_name)
     context.log.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"predictions_table": predictions_table})
-    metadata = postgrestable_from_query(context, query, predictions_table)
+    metadata = postgrestable_from_query(db_connection, query, predictions_table)
 
     inferenced_floors.reset_index(inplace=True)
     data = [tuple(v) for v in inferenced_floors[["identificatie", "floors"]].to_numpy()]

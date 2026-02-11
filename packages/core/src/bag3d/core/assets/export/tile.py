@@ -166,7 +166,7 @@ def reconstruction_output_tiles_func(
 
 
 class TylerConfig(Config):
-    concurrency: int
+    concurrency: int = 1
     verbose: bool = False
 
 

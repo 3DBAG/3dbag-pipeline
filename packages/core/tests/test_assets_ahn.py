@@ -80,7 +80,6 @@ def test_laz_files_ahn3(context_ahn, md5_ahn3_fix, tile_index_ahn_fix):
     res = laz_files_ahn3(
         context_ahn,
         config,
-        context_ahn.resources.file_store,
         md5_ahn3_fix,
         tile_index_ahn_fix,
     )
@@ -97,7 +96,6 @@ def test_laz_files_ahn4(context_ahn, md5_ahn4_fix, tile_index_ahn_fix):
     res = laz_files_ahn4(
         context_ahn,
         config,
-        context_ahn.resources.file_store,
         md5_ahn4_fix,
         tile_index_ahn_fix,
     )
@@ -113,7 +111,6 @@ def test_laz_files_ahn5(context_ahn, sha256_ahn5_fix, tile_index_ahn_fix):
     res = laz_files_ahn5(
         context_ahn,
         config,
-        context_ahn.resources.file_store,
         sha256_ahn5_fix,
         tile_index_ahn_fix,
     )
