@@ -14,7 +14,7 @@ from dagster import (
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import resource_defs, tool_versions
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
@@ -69,7 +69,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store",
         "file_store_fastssd",
     },
-    code_version=resource_defs["roofer"].runner.version("roofer"),
+    code_version=tool_versions.get_version("roofer"),
     config_schema={
         "drop_views": Field(
             bool,

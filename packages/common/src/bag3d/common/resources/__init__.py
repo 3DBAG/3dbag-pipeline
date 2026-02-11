@@ -16,6 +16,7 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.tool_versions import ToolVersionsResource
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 
@@ -24,6 +25,18 @@ logger = get_dagster_logger()
 version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 specs = Specs3DBAGResource()
+
+# Tool versions resource - instantiated at import time for code_version access
+tool_versions = ToolVersionsResource(
+    exe_tyler=os.getenv("EXE_PATH_TYLER"),
+    exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+    exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
+    exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+    exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
+    exe_pdal=os.getenv("EXE_PATH_PDAL"),
+    exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+    exe_geof=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+)
 
 gdal = GDALResource(
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),

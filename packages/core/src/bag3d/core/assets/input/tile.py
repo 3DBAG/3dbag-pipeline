@@ -6,14 +6,14 @@ from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
 
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import resource_defs, tool_versions
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @multi_asset(
     outs={"tiles": AssetOut(), "index": AssetOut()},
     required_resource_keys={"tyler", "db_connection"},
-    code_version=resource_defs["tyler"].runner.version("tyler-db"),
+    code_version=tool_versions.get_version("tyler-db"),
 )
 def reconstruction_input_tiles(context, reconstruction_input):
     """The reconstruction input partitioned into tiles where a tile is produced in about

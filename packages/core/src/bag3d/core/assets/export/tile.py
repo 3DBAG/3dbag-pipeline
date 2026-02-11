@@ -6,7 +6,7 @@ from typing import Union
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
 from dagster import AssetKey, asset, Config
 
-from bag3d.common.resources import resource_defs, Specs3DBAGResource
+from bag3d.common.resources import resource_defs, tool_versions, Specs3DBAGResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 
 
@@ -161,7 +161,7 @@ class TylerConfig(Config):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler-multiformat"),
+    code_version=tool_versions.get_version("tyler-multiformat"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -189,7 +189,7 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
+    code_version=tool_versions.get_version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -217,7 +217,7 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
+    code_version=tool_versions.get_version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
@@ -245,7 +245,7 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
+    code_version=tool_versions.get_version("tyler"),
     required_resource_keys={
         "tyler",
         "geoflow",
