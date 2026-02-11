@@ -174,7 +174,7 @@ def compress_files(input):
 
 
 class CompressionConfig(Config):
-    concurrency: int
+    concurrency: int = 1
 
 
 @asset(

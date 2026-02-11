@@ -69,6 +69,9 @@ def test_postgrestable_metadata(context):
 def test_postgrestable_from_query(context):
     create_schema(context.resources.db_connection, TEST_SCHEMA_NAME)
     tbl = PostgresTableIdentifier("public", "test_table")
+    # Clean up if table exists from previous run
+    if table_exists(context.resources.db_connection, tbl):
+        drop_table(context.resources.db_connection, tbl)
     assert table_exists(context.resources.db_connection, tbl) is False
 
     query = SQL(
