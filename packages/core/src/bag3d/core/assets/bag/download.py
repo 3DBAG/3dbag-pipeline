@@ -13,6 +13,9 @@ from dagster import (
 from pydantic import Field
 from lxml import objectify
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.geodata import bbox_from_wkt
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
@@ -45,8 +48,8 @@ class BagDownloadConfig(Config):
 #  3D BAG (eg viewer).
 
 
-@asset(required_resource_keys={"file_store"})
-def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
+@asset
+def extract_bag(context, file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]:
     """Download the latest LVBAG extract from PDOK.
 
     Extract URL: https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip
@@ -72,10 +75,10 @@ def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
     """
     extract_url = "https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip"
     extract_zip = Path(
-        context.resources.file_store.file_store.data_dir / "lvbag-extract-nl.zip"
+        file_store.file_store.data_dir / "lvbag-extract-nl.zip"
     )
     extract_dir = Path(
-        context.resources.file_store.file_store.data_dir / "lvbag-extract"
+        file_store.file_store.data_dir / "lvbag-extract"
     )
     # chunk_size: https://stackoverflow.com/a/23397581
     download_file(extract_url, extract_zip, chunk_size=1024 * 1024)
@@ -95,11 +98,9 @@ def extract_bag(context) -> Output[Tuple[Path, dict, str]]:
     )
 
 
-@asset(
-    required_resource_keys={"file_store", "db_connection", "gdal"},
-)
+@asset
 def stage_bag_woonplaats(
-    context, config: BagDownloadConfig, extract_bag
+    context, config: BagDownloadConfig, file_store: FileStoreResource, db_connection: DatabaseResource, gdal: GDALResource, extract_bag
 ) -> Output[PostgresTableIdentifier]:
     """Load the Woonplaats layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
@@ -118,11 +119,9 @@ def stage_bag_woonplaats(
     return Output(new_table, metadata=metadata)
 
 
-@asset(
-    required_resource_keys={"file_store", "db_connection", "gdal"},
-)
+@asset
 def stage_bag_verblijfsobject(
-    context, config: BagDownloadConfig, extract_bag
+    context, config: BagDownloadConfig, file_store: FileStoreResource, db_connection: DatabaseResource, gdal: GDALResource, extract_bag
 ) -> Output[PostgresTableIdentifier]:
     """Load the Verblijfsobject layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
@@ -141,11 +140,9 @@ def stage_bag_verblijfsobject(
     return Output(new_table, metadata=metadata)
 
 
-@asset(
-    required_resource_keys={"file_store", "db_connection", "gdal"},
-)
+@asset
 def stage_bag_pand(
-    context, config: BagDownloadConfig, extract_bag
+    context, config: BagDownloadConfig, file_store: FileStoreResource, db_connection: DatabaseResource, gdal: GDALResource, extract_bag
 ) -> Output[PostgresTableIdentifier]:
     """Load the Pand layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
@@ -164,11 +161,9 @@ def stage_bag_pand(
     return Output(new_table, metadata=metadata)
 
 
-@asset(
-    required_resource_keys={"file_store", "db_connection", "gdal"},
-)
+@asset
 def stage_bag_openbareruimte(
-    context, config: BagDownloadConfig, extract_bag
+    context, config: BagDownloadConfig, file_store: FileStoreResource, db_connection: DatabaseResource, gdal: GDALResource, extract_bag
 ) -> Output[PostgresTableIdentifier]:
     """Load the Openbareruimte layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
@@ -187,11 +182,9 @@ def stage_bag_openbareruimte(
     return Output(new_table, metadata=metadata)
 
 
-@asset(
-    required_resource_keys={"file_store", "db_connection", "gdal"},
-)
+@asset
 def stage_bag_nummeraanduiding(
-    context, config: BagDownloadConfig, extract_bag
+    context, config: BagDownloadConfig, file_store: FileStoreResource, db_connection: DatabaseResource, gdal: GDALResource, extract_bag
 ) -> Output[PostgresTableIdentifier]:
     """Load the Nummeraanduiding layer from the BAG extract."""
     extract_dir, metadata, shortdate = extract_bag
