@@ -1,11 +1,16 @@
 import os
+from logging import Logger
 from pathlib import Path
 from dataclasses import dataclass
 import signal
 from subprocess import PIPE, Popen
 from typing import Dict, Optional
 
-from dagster import get_dagster_logger, OpExecutionContext, ConfigurableResource, Config
+from dagster import (
+    get_dagster_logger,
+    ConfigurableResource,
+    Config,
+)
 import docker
 from docker.errors import ImageNotFound
 
@@ -68,7 +73,8 @@ class CommandRunner:
             self.docker_image = None
             self.container_mount_point = None
 
-    def _pre_exec(self):
+    @staticmethod
+    def _pre_exec():
         """Restore default signal disposition and invoke setsid."""
         for sig in ("SIGPIPE", "SIGXFZ", "SIGXFSZ"):
             if hasattr(signal, sig):
@@ -130,11 +136,11 @@ class CommandRunner:
         command: str,
         cwd: str = None,
         env: dict = None,
-        context: OpExecutionContext = None,
+        logger: Logger = None,
     ) -> CommandResult:
         """Execute subprocess with Dagster logging integration."""
-        logger = context.log if context else get_dagster_logger()
-        logger.info(f"Executing: {command}")
+        _logger = logger if logger else get_dagster_logger()
+        _logger.info(f"Executing: {command}")
 
         sub_process = Popen(
             command,
@@ -150,11 +156,11 @@ class CommandRunner:
 
         # Log to Dagster UI for debugging
         if stdout.strip():
-            logger.info(f"stdout:\n{stdout}")
+            _logger.info(f"stdout:\n{stdout}")
         if stderr.strip():
-            logger.warning(f"stderr:\n{stderr}")
+            _logger.warning(f"stderr:\n{stderr}")
         if sub_process.returncode != 0:
-            logger.error(f"Command failed with exit code {sub_process.returncode}")
+            _logger.error(f"Command failed with exit code {sub_process.returncode}")
 
         return CommandResult(
             returncode=sub_process.returncode,
@@ -203,18 +209,18 @@ class CommandRunner:
         kwargs: dict = None,
         local_path: Path = None,
         cwd: str = None,
-        context: OpExecutionContext = None,
+        logger: Logger = None,
         env: dict = None,
     ) -> CommandResult:
         """Execute command and return structured result.
 
         Args:
+            logger:
             command: The command to execute. Can contain {exe} and {local_path} placeholders.
             exe_name: Name of the executable to substitute for {exe}.
             kwargs: Additional keyword arguments for command formatting.
             local_path: Path to mount in Docker or use in command.
             cwd: Working directory for command execution.
-            context: Optional Dagster context for Pipes integration.
             env: Environment variables for subprocess.
 
         Returns:
@@ -224,8 +230,8 @@ class CommandRunner:
 
         if self.with_docker:
             return self._run_docker(final_command, local_path)
-        elif context is not None:
-            return self._run_with_logging(final_command, cwd, env, context)
+        elif logger is not None:
+            return self._run_with_logging(final_command, cwd, env, logger)
         else:
             return self._run_direct(final_command, cwd, env)
 

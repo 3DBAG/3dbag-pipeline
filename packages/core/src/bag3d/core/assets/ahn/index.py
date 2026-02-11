@@ -41,7 +41,7 @@ def run_lasindex(
         " ".join(cmd_list),
         exe_name="lasindex",
         local_path=lazdownload.path,
-        context=context,
+        logger=logger,
     )
 
 

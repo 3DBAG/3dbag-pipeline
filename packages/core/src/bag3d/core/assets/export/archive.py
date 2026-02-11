@@ -9,7 +9,7 @@ from dagster import asset, Output, AssetKey, Config, get_dagster_logger
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import GDALResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger()
@@ -19,7 +19,7 @@ logger = get_dagster_logger()
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
 )
 def geopackage_nl(
-    context, file_store: FileStoreResource, gdal: GDALResource, version: VersionResource
+    file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
 ):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = bag3d_export_dir(
@@ -63,7 +63,7 @@ def geopackage_nl(
         str(first_path_with_data),
     ]
     cmd = " ".join(cmd)
-    result = gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+    result = gdal.runner.run(cmd, exe_name="ogr2ogr", logger=logger)
     if not result.success:
         raise ValueError(f"ogr2ogr failed: {result.stderr}")
 
@@ -85,7 +85,7 @@ def geopackage_nl(
         ]
         cmd = " ".join(cmd)
         try:
-            result = gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
+            result = gdal.runner.run(cmd, exe_name="ogr2ogr", logger=logger)
             if not result.success:
                 failed.append((lid, result.stderr))
         except Exception:
@@ -109,14 +109,14 @@ def geopackage_nl(
             str(path_nl),
         ]
         cmd = " ".join(cmd)
-        gdal.runner.run(cmd, exe_name="ogrinfo", context=context)
+        gdal.runner.run(cmd, exe_name="ogrinfo", logger=logger)
 
     path_nl_zip = path_nl.with_suffix(".gpkg.zip")
     # Remove existing
     path_nl_zip.unlink(missing_ok=True)
     cmd = ["{exe}", "--junk-paths", str(path_nl_zip), str(path_nl)]
     cmd = " ".join(cmd)
-    gdal.runner.run(cmd, exe_name="sozip", context=context)
+    gdal.runner.run(cmd, exe_name="sozip", logger=logger)
 
     metadata = {}
     metadata["nr_failed"] = len(failed)
@@ -135,8 +135,8 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_lod12_2d
 
 
-def compress_files(input):
-    tile_id, path_tiles_dir = input
+def compress_files(input_tile_path):
+    tile_id, path_tiles_dir = input_tile_path
     logger.debug(f"Compressing tile {tile_id}")
     path_tile_dir = path_tiles_dir.joinpath(tile_id)
     lid_in_filename = tile_id.replace("/", "-")
@@ -183,10 +183,9 @@ class CompressionConfig(Config):
     },
 )
 def compressed_tiles(
-    context,
     config: CompressionConfig,
     file_store: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     export_index,
 ):
     """Each format is gzipped individually in each tile, for better transfer over the
@@ -202,5 +201,5 @@ def compressed_tiles(
         tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
 
     with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
-        for result in executor.map(compress_files, tile_ids):
+        for _ in executor.map(compress_files, tile_ids):
             pass

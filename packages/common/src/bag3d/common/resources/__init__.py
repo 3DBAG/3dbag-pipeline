@@ -15,14 +15,13 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
-from bag3d.common.resources.tool_versions import ToolVersionsResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 
 logger = get_dagster_logger()
 
-version = VersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
+version = ReleaseVersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 specs = Specs3DBAGResource()
 

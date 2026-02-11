@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 
 import pytz
-from dagster import asset, Output, Config, get_dagster_logger
+from dagster import asset, Output, Config, get_dagster_logger, AssetExecutionContext
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
@@ -28,28 +28,26 @@ class MetadataConfig(Config):
 
 
 @asset
-def metadata_table_ahn3(
-    context, db_connection: DatabaseResource
-) -> PostgresTableIdentifier:
+def metadata_table_ahn3(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, db_connection, ahn_version=3)
+    return metadata_table_ahn(db_connection, ahn_version=3)
 
 
 @asset
-def metadata_table_ahn4(context, db_connection: DatabaseResource):
+def metadata_table_ahn4(db_connection: DatabaseResource):
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, db_connection, ahn_version=4)
+    return metadata_table_ahn(db_connection, ahn_version=4)
 
 
 @asset
-def metadata_table_ahn5(context, db_connection: DatabaseResource):
+def metadata_table_ahn5(db_connection: DatabaseResource):
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, db_connection, ahn_version=5)
+    return metadata_table_ahn(db_connection, ahn_version=5)
 
 
 @asset(partitions_def=partition_definition_ahn)
 def metadata_ahn3(
-    context,
+    context: AssetExecutionContext,
     config: MetadataConfig,
     laz_files_ahn3,
     metadata_table_ahn3,
@@ -61,20 +59,19 @@ def metadata_ahn3(
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
         config,
         laz_files_ahn3,
         metadata_table_ahn3,
         tile_index_ahn,
         db_connection,
         pdal,
-        verbose=config.verbose,
     )
 
 
 @asset(partitions_def=partition_definition_ahn)
 def metadata_ahn4(
-    context,
+    context: AssetExecutionContext,
     config: MetadataConfig,
     laz_files_ahn4,
     metadata_table_ahn4,
@@ -86,20 +83,19 @@ def metadata_ahn4(
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
         config,
         laz_files_ahn4,
         metadata_table_ahn4,
         tile_index_ahn,
         db_connection,
         pdal,
-        verbose=config.verbose,
     )
 
 
 @asset(partitions_def=partition_definition_ahn)
 def metadata_ahn5(
-    context,
+    context: AssetExecutionContext,
     config: MetadataConfig,
     laz_files_ahn5,
     metadata_table_ahn5,
@@ -111,14 +107,13 @@ def metadata_ahn5(
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
         config,
         laz_files_ahn5,
         metadata_table_ahn5,
         tile_index_ahn,
         db_connection,
         pdal,
-        verbose=config.verbose,
     )
 
 
@@ -167,20 +162,19 @@ def create_indices_metadata_table(
 
 
 def compute_load_metadata(
-    context,
-    config,
+    partition_key: str,
+    config: MetadataConfig,
     laz_files_ahn,
     metadata_table_ahn,
     tile_index_ahn_pdok,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-    verbose: bool = False,
 ):
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 
     Args:
-        context (OpExecutionContext): Op context.
+        partition_key:
         config (MetadataConfig): Asset configuration.
         laz_files_ahn (LAZDownload): The LAZ file download result, produced by the
             `laz_files_ahn*` asset.
@@ -189,13 +183,12 @@ def compute_load_metadata(
         tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
         db_connection (DatabaseResource): Database connection resource.
         pdal (PDALResource): PDAL resource for executing pdal info.
-        verbose (bool): Forward the stdout/stderr from pdal.
 
     Returns:
         None
     """
     logger = get_dagster_logger()
-    tile_id = context.partition_key
+    tile_id = partition_key
     conn = db_connection.connect
     if not laz_files_ahn.new:
         if not config.force:
@@ -209,7 +202,6 @@ def compute_load_metadata(
         pdal.runner,
         file_path=laz_files_ahn.path,
         with_all=config.all,
-        verbose=verbose,
     )
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
@@ -247,7 +239,7 @@ def compute_load_metadata(
 
 
 def metadata_table_ahn(
-    context, db_connection: DatabaseResource, ahn_version: int
+    db_connection: DatabaseResource, ahn_version: int
 ) -> PostgresTableIdentifier:
     logger = get_dagster_logger()
     conn = db_connection.connect

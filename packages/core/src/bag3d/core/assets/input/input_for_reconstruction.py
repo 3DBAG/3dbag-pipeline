@@ -1,4 +1,4 @@
-from dagster import asset, Output, AssetIn
+from dagster import asset, Output, AssetIn, get_dagster_logger
 from psycopg.sql import SQL
 
 from bag3d.common.utils.database import (
@@ -11,6 +11,9 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
+logger = get_dagster_logger("input.input_for_reconstruction")
+
+
 @asset(
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
@@ -20,7 +23,6 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
     op_tags={"compute_kind": "sql"},
 )
 def reconstruction_input(
-    context,
     bag_pandactueelbestaand,
     bag_kas_warenhuis,
     bag_bag_overlap,
@@ -29,7 +31,7 @@ def reconstruction_input(
     """The input for the building reconstruction, where:
     - duplicates are removed
     """
-    create_schema(db_connection, RECONSTRUCTION_INPUT_SCHEMA, logger=context.log)
+    create_schema(db_connection, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(
         RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
     )
@@ -41,9 +43,7 @@ def reconstruction_input(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(
-        db_connection, query, new_table, logger=context.log
-    )
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connect.send_query(
         SQL("ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"),
         query_params={"new_table": new_table},

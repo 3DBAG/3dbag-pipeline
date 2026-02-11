@@ -7,12 +7,13 @@ from dagster import (
     TableSchema,
     StaticPartitionsDefinition,
     get_dagster_logger,
+    AssetExecutionContext,
 )
 
 from bag3d.common.utils.files import get_export_tile_ids
 
 
-def get_run_id(context, short=True):
+def get_run_id(context: AssetExecutionContext, short=True):
     """Return the Run ID from the execution context.
 
     Args:

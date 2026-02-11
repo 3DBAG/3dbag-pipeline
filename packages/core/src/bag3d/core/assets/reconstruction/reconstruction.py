@@ -10,6 +10,7 @@ from dagster import (
     Failure,
     get_dagster_logger,
     Config,
+    AssetExecutionContext,
 )
 from pydantic import Field
 from pgutils import PostgresTableIdentifier
@@ -24,7 +25,7 @@ from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 
-logger = get_dagster_logger()
+logger = get_dagster_logger("reconstruction.reconstruction")
 
 
 class RooferConfig(Config):
@@ -37,14 +38,14 @@ class RooferConfig(Config):
     concurrency: int = Field(default=10, description="Roofer --jobs")
 
 
-def generate_3dbag_version_date(context):
+def generate_3dbag_version_date():
     """Generate a version from today's date and current timestamp hash."""
     sha1().update(str(time.time()).encode("utf-8"))
     hs = sha1().hexdigest()
     dt = date.today().strftime("%Y%m%d")
     template = "v_{date}_{hash}"
     version = template.format(date=dt, hash=hs)
-    context.log.info(f"Generated version: {version}")
+    logger.info(f"Generated version: {version}")
     return version
 
 
@@ -80,11 +81,10 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     code_version=tool_versions.get_version("roofer"),
 )
 def reconstructed_building_models_nl(
-    context,
+    context: AssetExecutionContext,
     config: RooferConfig,
     db_connection: DatabaseResource,
     roofer: RooferResource,
-    file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
     tiles,
     index,
@@ -109,19 +109,19 @@ def reconstructed_building_models_nl(
         metadata_ahn5=metadata_ahn5_index,
     )
 
-    context.log.info(f"{roofer_toml=}")
-    context.log.info(f"{tile_view=}")
+    logger.info(f"{roofer_toml=}")
+    logger.info(f"{tile_view=}")
 
     try:
         result = roofer.runner.run(
             f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
-            context=context,
+            logger=logger,
         )
-        context.log.debug(f"{result.returncode=}")
+        logger.debug(f"{result.returncode=}")
         if not result.success or "error" in result.stdout.lower():
-            context.log.error(result.stdout)
+            logger.error(result.stdout)
             raise Failure
     finally:
         if config.drop_views:
@@ -131,7 +131,7 @@ def reconstructed_building_models_nl(
 
 
 def create_roofer_config(
-    context,
+    context: AssetExecutionContext,
     db_connection: DatabaseResource,
     file_store_fastssd: FileStoreResource,
     reconstruction_input,

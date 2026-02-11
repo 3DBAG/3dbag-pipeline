@@ -1,7 +1,7 @@
 import pytest
 from dagster import Definitions, DagsterInstance, define_asset_job
 
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.core.assets.bgt.download import extract_bgt
 
 
@@ -12,7 +12,7 @@ def test_extract_bgt(database, file_store, gdal, wkt_testarea):
         "gdal": gdal,
         "file_store": file_store,
         "db_connection": database,
-        "version": VersionResource("test_version"),
+        "version": ReleaseVersionResource("test_version"),
     }
 
     defs = Definitions(

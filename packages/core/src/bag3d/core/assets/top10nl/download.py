@@ -1,6 +1,6 @@
 from typing import Optional
 
-from dagster import asset, Output, Config, DataVersion
+from dagster import asset, Output, Config, DataVersion, get_dagster_logger
 from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
@@ -8,6 +8,8 @@ from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.requests import download_extract
 from bag3d.common.utils.geodata import ogrinfo, add_info
 from bag3d.common.types import Path
+
+logger = get_dagster_logger("top10nl.download")
 
 
 class Top10nlDownloadConfig(Config):
@@ -23,7 +25,6 @@ class Top10nlDownloadConfig(Config):
 
 @asset
 def extract_top10nl(
-    context,
     config: Top10nlDownloadConfig,
     file_store: FileStoreResource,
     gdal: GDALResource,
@@ -38,7 +39,7 @@ def extract_top10nl(
         download_dir=file_store.file_store.data_dir,
     )
     extract_path = Path(metadata["Extract Path"].value)
-    context.log.info(f"Downloaded {extract_path}")
+    logger.info(f"Downloaded {extract_path}")
     metadata["XSD"] = (
         "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     )
@@ -48,7 +49,6 @@ def extract_top10nl(
         extract_path=extract_path,
         feature_types=config.featuretypes,
         xsd=metadata["XSD"],
-        context=context,
     )
     add_info(metadata, info)
     return Output(

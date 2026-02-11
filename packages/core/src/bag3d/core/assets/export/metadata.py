@@ -12,16 +12,19 @@ from dagster import (
     asset,
     AssetExecutionContext,
     AssetRecordsFilter,
+    get_dagster_logger,
 )
 from psycopg.sql import SQL
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
 from bag3d.common.resources import resource_defs
+
+logger = get_dagster_logger("export.metadata")
 
 
 def get_info_per_cityobject(
@@ -78,11 +81,10 @@ def features_to_csv(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
 )
 def feature_evaluation(
-    context,
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
     db_connection: DatabaseResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
 ):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
@@ -125,8 +127,8 @@ def feature_evaluation(
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )
         cityobjects.update(codata)
-    context.log.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
-    context.log.debug(f"len(cityobjects)={len(cityobjects)}")
+    logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
+    logger.debug(f"len(cityobjects)={len(cityobjects)}")
 
     res = conn.get_query(
         SQL("""
@@ -135,17 +137,17 @@ def feature_evaluation(
         """)
     )
     input_buildings = set([row[0] for row in res])
-    context.log.debug(f"len(input_buildings)={len(input_buildings)}")
+    logger.debug(f"len(input_buildings)={len(input_buildings)}")
 
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
-    context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
+    logger.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
     # Save not_reconstructed buildings to a text file
     not_reconstructed_file = output_dir.joinpath("not_reconstructed_buildings.txt")
     with not_reconstructed_file.open("w") as f:
         for building_id in sorted(not_reconstructed):
             f.write(f"{building_id}\n")
-    context.log.info(
+    logger.info(
         f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}"
     )
 
@@ -161,7 +163,7 @@ def feature_evaluation(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
 )
 def export_index(
-    context, file_store: FileStoreResource, version: VersionResource
+    file_store: FileStoreResource, version: ReleaseVersionResource
 ) -> Path:
     """Index of the distribution tiles.
 
@@ -201,7 +203,7 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
 def metadata(
     context: AssetExecutionContext,
     file_store: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
 ):
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,

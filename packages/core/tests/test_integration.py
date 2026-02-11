@@ -12,7 +12,7 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
 )
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.core.assets import export, reconstruction, ahn, deploy, release
 from bag3d.core.jobs import (
     job_nl_export,
@@ -145,7 +145,7 @@ def test_integration_reconstruction_and_export(
         "db_connection": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
         "file_store_fastssd": FileStoreResource(data_dir=str(core_file_store_fastssd)),
-        "version": VersionResource("test_version"),
+        "version": ReleaseVersionResource("test_version"),
         "validation": ValidationResource(
             exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
             exe_cjval=os.getenv("EXE_PATH_CJVAL"),
@@ -244,7 +244,7 @@ def test_integration_deploy_release(
     """Can we deploy and release the 3DBAG, everything included?"""
 
     resources = {
-        "version": VersionResource("test_version"),
+        "version": ReleaseVersionResource("test_version"),
         "godzilla_server": godzilla_server,
         "podzilla_server": podzilla_server,
         "db_connection": database,

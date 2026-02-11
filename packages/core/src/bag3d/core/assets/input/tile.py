@@ -1,6 +1,6 @@
 import os
 
-from dagster import AssetOut, multi_asset, Output
+from dagster import AssetOut, multi_asset, Output, get_dagster_logger
 from pgutils import PostgresConnection
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
@@ -11,13 +11,15 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import TylerResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
+logger = get_dagster_logger("input.tile")
+
 
 @multi_asset(
     outs={"tiles": AssetOut(), "index": AssetOut()},
     code_version=tool_versions.get_version("tyler-db"),
 )
 def reconstruction_input_tiles(
-    context, reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
+    reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
 ):
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
@@ -50,7 +52,7 @@ def reconstruction_input_tiles(
     tyler.runner.run(
         " ".join(cmd),
         exe_name="tyler-db",
-        context=context,
+        logger=logger,
     )
 
     conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")

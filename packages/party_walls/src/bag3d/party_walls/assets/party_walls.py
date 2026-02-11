@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
 import json
 
-from dagster import asset, MetadataValue
+from dagster import asset, MetadataValue, get_dagster_logger, AssetExecutionContext
 from shapely import STRtree, from_wkt
 import numpy as np
 from numpy.typing import NDArray
@@ -19,8 +19,10 @@ from bag3d.common.utils.files import (
 )
 from bag3d.common.types import ExportResult
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.resources.database import DatabaseResource
+
+logger = get_dagster_logger("party_walls")
 
 
 @dataclass
@@ -35,7 +37,7 @@ class TilesFilesIndex:
 
 @asset
 def distribution_tiles_files_index(
-    context, file_store: FileStoreResource, version: VersionResource
+    file_store: FileStoreResource, version: ReleaseVersionResource
 ) -> TilesFilesIndex:
     """An index of the distribution tiles and the CityJSON file paths for each tile,
     that has an existing CityJSON file.
@@ -74,7 +76,7 @@ def distribution_tiles_files_index(
     partitions_def=PartitionDefinition3DBagDistribution(),
 )
 def party_walls_nl(
-    context,
+    context: AssetExecutionContext,
     distribution_tiles_files_index: TilesFilesIndex,
     db_connection: DatabaseResource,
 ) -> DataFrame:
@@ -104,7 +106,7 @@ def party_walls_nl(
         break_on_error=True,
     )
     if df is None:
-        context.log.warning(f"No meshes were found for tile_id {tile_id}.")
+        logger.warning(f"No meshes were found for tile_id {tile_id}.")
         df = DataFrame()
 
     context.add_output_metadata(
@@ -143,9 +145,7 @@ def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Pa
 
 
 @asset
-def features_file_index(
-    context, file_store_fastssd: FileStoreResource
-) -> dict[str, Path]:
+def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path]:
     """A mapping of {feature ID: feature file path} for the reconstructed features in
     the geoflow output directory.
 
@@ -163,7 +163,7 @@ def features_file_index(
     partitions_def=PartitionDefinition3DBagDistribution(),
 )
 def cityjsonfeatures_with_party_walls_nl(
-    context,
+    context: AssetExecutionContext,
     party_walls_nl: DataFrame,
     features_file_index: dict[str, Path],
     file_store_fastssd: FileStoreResource,
@@ -190,7 +190,7 @@ def cityjsonfeatures_with_party_walls_nl(
         try:
             feature_path = features_file_index[identificatie_bag]
         except KeyError as e:
-            context.log.error(f"Did not find object {e} in the feature files")
+            logger.error(f"Did not find object {e} in the feature files")
             continue
         with feature_path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)

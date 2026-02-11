@@ -10,7 +10,7 @@ from dagster import get_dagster_logger
 from datetime import datetime
 
 
-logger = get_dagster_logger("publish")
+logger = get_dagster_logger("release.publish")
 
 
 @asset(
@@ -20,7 +20,6 @@ logger = get_dagster_logger("publish")
     },
 )
 def publish_data(
-    context,
     transfer_to_godzilla: tuple[Path, Path],
     metadata: Path,
     godzilla_server: ServerTransferResource,
@@ -77,7 +76,7 @@ def publish_data(
 @asset(
     deps={AssetKey(("deploy", "webservice_godzilla"))},
 )
-def publish_webservices(context, godzilla_server: ServerTransferResource):
+def publish_webservices(godzilla_server: ServerTransferResource):
     """ """
     latest_schema = "webservice"
     dev_schema = "webservice_dev"
@@ -90,11 +89,11 @@ def publish_webservices(context, godzilla_server: ServerTransferResource):
 
     try:
         with godzilla_server.connection as c:
-            context.log.debug(alter_latest_to_archive)
+            logger.debug(alter_latest_to_archive)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
             )
-            context.log.debug(alter_dev_to_latest)
+            logger.debug(alter_dev_to_latest)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_dev_to_latest}'"
             )

@@ -10,7 +10,7 @@ from bag3d.common.utils.database import load_sql
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import get_dagster_logger
 
 
@@ -30,12 +30,11 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     ],
 )
-def compressed_export_nl(context, metadata, version: VersionResource):
+def compressed_export_nl(metadata, version: ReleaseVersionResource):
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
 
     Args:
-        context: Dagster execution context
         metadata: Path to the 3DBAG metadata file
         version: Version resource
 

@@ -1,4 +1,4 @@
-from dagster import asset, Output
+from dagster import asset, Output, get_dagster_logger
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
@@ -11,47 +11,47 @@ from bag3d.common.utils.database import (
 from bag3d.common.utils.geodata import ogr2postgres
 from bag3d.common.types import PostgresTableIdentifier
 
+logger = get_dagster_logger("top10nl.load")
+
 
 @asset
 def stage_top10nl_gebouw(
-    context, db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl
+    db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl
 ) -> Output[PostgresTableIdentifier]:
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
-    create_schema(db_connection, new_schema, logger=context.log)
+    create_schema(db_connection, new_schema, logger=logger)
     xsd = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
     new_table = PostgresTableIdentifier(new_schema, "gebouw")
     # Need to explicitly drop the table just in case (...couz GDAL...)
-    drop_table(db_connection, new_table, logger=context.log)
+    drop_table(db_connection, new_table, logger=logger)
     metadata = ogr2postgres(
         gdal_runner=gdal.runner,
-        dsn=db_connection.connect.dsn,
+        db_connection=db_connection,
         dataset="top10nl",
         xsd=xsd,
         extract_path=extract_top10nl,
         feature_type="gebouw",
         new_table=new_table,
-        context=context,
+        logger=logger,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset(op_tags={"compute_kind": "sql"})
 def top10nl_gebouw(
-    context, db_connection: DatabaseResource, stage_top10nl_gebouw
+    db_connection: DatabaseResource, stage_top10nl_gebouw
 ) -> Output[PostgresTableIdentifier]:
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
     new_schema = "top10nl"
-    create_schema(db_connection, new_schema, logger=context.log)
+    create_schema(db_connection, new_schema, logger=logger)
     table_name = "gebouw"
     new_table = PostgresTableIdentifier("top10nl", table_name)
     query = load_sql(
         query_params={"gebouw_tbl": stage_top10nl_gebouw, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(
-        db_connection, query, new_table, logger=context.log
-    )
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
     db_connection.connect.send_query(

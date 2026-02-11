@@ -15,14 +15,17 @@ from bag3d.common.utils.database import (
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
-from dagster import Output, asset
+from bag3d.floors_estimation.resources import ModelStoreResource
+from dagster import Output, asset, get_dagster_logger
 from joblib import load
-from pgutils import inject_parameters
+from pgutils import inject_parameters, PostgresConnection
 from psycopg import connect
 from psycopg.sql import SQL
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
+
+logger = get_dagster_logger("floors_estimation")
 
 
 def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
@@ -33,7 +36,11 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
 
 
 def process_chunk(
-    conn, chunk_files: List[str], chunk_id: int, table: PostgresTableIdentifier, logger
+    conn: PostgresConnection,
+    chunk_files: List[str],
+    chunk_id: int,
+    table: PostgresTableIdentifier,
+    logger,
 ):
     chunk_features = [
         extract_attributes_from_path(path, ex_id) for ex_id, path in chunk_files.items()
@@ -116,9 +123,7 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
 
 
 @asset
-def features_file_index(
-    context, file_store_fastssd: FileStoreResource
-) -> dict[str, Path]:
+def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path]:
     """
     Returns a dict of {feature ID: feature file path}.
     """
@@ -129,28 +134,28 @@ def features_file_index(
     )
 
     res = dict(features_file_index_generator(reconstructed_with_party_walls_dir))
-    context.log.info(f"Retrieved {len(res)} features.")
+    logger.info(f"Retrieved {len(res)} features.")
     return res
 
 
 @asset(op_tags={"compute_kind": "sql"})
 def bag3d_features(
-    context, features_file_index: dict[str, Path], db_connection: DatabaseResource
+    features_file_index: dict[str, Path], db_connection: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
     Extracts 3DBAG features from the cityJSONL files,
     which already contain the party walls information."""
-    context.log.info("Extracting 3DBAG features.")
+    logger.info("Extracting 3DBAG features.")
     table_name = "building_features_bag3d"
     bag3d_features_table = PostgresTableIdentifier(SCHEMA, table_name)
-    context.log.info(f"Creating the {table_name} table.")
+    logger.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
-    metadata = postgrestable_from_query(db_connection, query, bag3d_features_table)
-    context.log.info(
-        f"Extracting 3DBAG features for {len(features_file_index)} buildings."
+    metadata = postgrestable_from_query(
+        db_connection, query, bag3d_features_table, logger
     )
+    logger.info(f"Extracting 3DBAG features for {len(features_file_index)} buildings.")
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
-    context.log.info(f"Processing {len(chunks)} chunks.")
+    logger.info(f"Processing {len(chunks)} chunks.")
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         processing = {
@@ -160,7 +165,7 @@ def bag3d_features(
                 chunk,
                 cid,
                 bag3d_features_table,
-                context.log,
+                logger,
             ): cid
             for cid, chunk in enumerate(chunks)
         }
@@ -168,35 +173,36 @@ def bag3d_features(
             try:
                 _ = future.result()
             except Exception as e:  # pragma: no cover
-                context.log.error(f"Error in chunk {i} raised an exception: {e}")
+                logger.error(f"Error in chunk {i} raised an exception: {e}")
 
     return Output(bag3d_features_table, metadata=metadata)
 
 
 @asset(op_tags={"compute_kind": "sql"})
 def external_features(
-    context, db_connection: DatabaseResource
+    db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
-    context.log.info("Extracting external features, from CBS, ESRI and BAG.")
-    create_schema(db_connection, SCHEMA)
+    logger.info("Extracting external features, from CBS, ESRI and BAG.")
+    create_schema(db_connection, SCHEMA, logger)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features": external_features_table})
-    metadata = postgrestable_from_query(db_connection, query, external_features_table)
+    metadata = postgrestable_from_query(
+        db_connection, query, external_features_table, logger
+    )
     return Output(external_features_table, metadata=metadata)
 
 
 @asset(op_tags={"compute_kind": "sql"})
 def all_features(
-    context,
     external_features: PostgresTableIdentifier,
     bag3d_features: PostgresTableIdentifier,
     db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
-    create_schema(db_connection, SCHEMA)
+    create_schema(db_connection, SCHEMA, logger)
     table_name = "building_features_all"
     all_features = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(
@@ -206,18 +212,17 @@ def all_features(
             "bag3d_features": bag3d_features,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, all_features)
+    metadata = postgrestable_from_query(db_connection, query, all_features, logger)
     return Output(all_features, metadata=metadata)
 
 
 @asset
 def preprocessed_features(
-    context,
     all_features: Output[PostgresTableIdentifier],
     db_connection: DatabaseResource,
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
-    context.log.info("Querying the features.")
+    logger.info("Querying the features.")
     query = SQL("""
         SELECT *
         FROM {all_features}
@@ -233,42 +238,43 @@ def preprocessed_features(
     query = inject_parameters(query, query_params)
     res = db_connection.connect.get_dict(query)
     data = pd.DataFrame.from_records(res)
-    context.log.info(f"Retrieved {len(data)} buildings.")
+    logger.info(f"Retrieved {len(data)} buildings.")
     data.set_index("identificatie", inplace=True, drop=True)
     # rejecting all buildings with missing 70th percentile roof height
     data.dropna(subset=["h_roof_70p"], inplace=True)
-    context.log.debug(f"Dataframe columns: {data.columns}")
-    context.log.info(f"Processed features for {len(data)} buildings.")
+    logger.debug(f"Dataframe columns: {data.columns}")
+    logger.info(f"Processed features for {len(data)} buildings.")
     return data
 
 
 @asset
-def inferenced_floors(context, preprocessed_features: pd.DataFrame) -> pd.DataFrame:
+def inferenced_floors(
+    preprocessed_features: pd.DataFrame, model_store: ModelStoreResource
+) -> pd.DataFrame:
     """Runs the inference on the features."""
-    model_store = context.resources.model_store
-    context.log.info(f"Loading model from {model_store}")
-    pipeline = load(model_store)
-    context.log.info("Running the inference.")
+    logger.info(f"Loading model from {model_store.model_path}")
+    pipeline = load(model_store.model_path)
+    logger.info("Running the inference.")
     labels = pipeline.predict(preprocessed_features)
     preprocessed_features["floors"] = labels
     preprocessed_features["floors_int"] = preprocessed_features["floors"].apply(np.rint)
-    context.log.debug(preprocessed_features.head(5))
+    logger.debug(preprocessed_features.head(5))
     return preprocessed_features
 
 
 @asset
 def predictions_table(
-    context, inferenced_floors: pd.DataFrame, db_connection: DatabaseResource
+    inferenced_floors: pd.DataFrame, db_connection: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """Saves the floor predictions to the
     'floors_estimation.predictions' table."""
 
-    context.log.info("Saving to the 'floors_estimation.predictions'.")
+    logger.info("Saving to the 'floors_estimation.predictions'.")
     table_name = "predictions"
     predictions_table = PostgresTableIdentifier(SCHEMA, table_name)
-    context.log.info(f"Creating the {table_name} table.")
+    logger.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"predictions_table": predictions_table})
-    metadata = postgrestable_from_query(db_connection, query, predictions_table)
+    metadata = postgrestable_from_query(db_connection, query, predictions_table, logger)
 
     inferenced_floors.reset_index(inplace=True)
     data = [tuple(v) for v in inferenced_floors[["identificatie", "floors"]].to_numpy()]
@@ -310,7 +316,6 @@ def save_cjfile(
 
 @asset
 def save_cjfiles(
-    context,
     inferenced_floors: pd.DataFrame,
     features_file_index: dict[str, Path],
     file_store_fastssd: FileStoreResource,
@@ -320,7 +325,7 @@ def save_cjfiles(
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"
     )
-    context.log.info("Creating directories for the new files.")
+    logger.info("Creating directories for the new files.")
     tile_paths = set([f.parent for f in list(features_file_index.values())])
     for tile_path in tile_paths:
         new_tile = reconstructed_with_floors_estimation_dir.joinpath(
@@ -328,7 +333,7 @@ def save_cjfiles(
         )
         new_tile.mkdir(parents=True, exist_ok=True)
 
-    context.log.info(f"Saving to {reconstructed_with_floors_estimation_dir}")
+    logger.info(f"Saving to {reconstructed_with_floors_estimation_dir}")
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         processing = {
@@ -345,7 +350,7 @@ def save_cjfiles(
             try:
                 _ = future.result()
             except Exception as e:  # pragma: no cover
-                context.log.error(f"Error in file {i} raised an exception: {e}")
+                logger.error(f"Error in file {i} raised an exception: {e}")
 
-    context.log.info(f"""Saved {len(features_file_index)} files
+    logger.info(f"""Saved {len(features_file_index)} files
                      to {reconstructed_with_floors_estimation_dir}""")

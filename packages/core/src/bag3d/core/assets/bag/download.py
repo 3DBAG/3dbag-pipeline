@@ -1,11 +1,11 @@
 from datetime import datetime
+from logging import Logger
 from typing import Tuple, Optional
 from copy import deepcopy
 
 from dagster import (
     asset,
     Output,
-    OpExecutionContext,
     Config,
     DataVersion,
     get_dagster_logger,
@@ -49,9 +49,7 @@ class BagDownloadConfig(Config):
 
 
 @asset
-def extract_bag(
-    context, file_store: FileStoreResource
-) -> Output[Tuple[Path, dict, str]]:
+def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]:
     """Download the latest LVBAG extract from PDOK.
 
     Extract URL: https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip
@@ -86,7 +84,7 @@ def extract_bag(
     for child in extract_dir.iterdir():
         extract_dir_size += child.stat().st_size / 1e6
 
-    metadata, shortdate = bagextract_metadata(context, extract_dir)
+    metadata, shortdate = bagextract_metadata(logger, extract_dir)
     meta_ext = deepcopy(metadata)
     meta_ext["Extract Size [Mb]"] = round(extract_dir_size, 2)
     return Output(
@@ -98,9 +96,7 @@ def extract_bag(
 
 @asset
 def stage_bag_woonplaats(
-    context,
     config: BagDownloadConfig,
-    file_store: FileStoreResource,
     db_connection: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
@@ -119,16 +115,13 @@ def stage_bag_woonplaats(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
-        context=context,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset
 def stage_bag_verblijfsobject(
-    context,
     config: BagDownloadConfig,
-    file_store: FileStoreResource,
     db_connection: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
@@ -147,16 +140,13 @@ def stage_bag_verblijfsobject(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
-        context=context,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset
 def stage_bag_pand(
-    context,
     config: BagDownloadConfig,
-    file_store: FileStoreResource,
     db_connection: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
@@ -175,16 +165,13 @@ def stage_bag_pand(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
-        context=context,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset
 def stage_bag_openbareruimte(
-    context,
     config: BagDownloadConfig,
-    file_store: FileStoreResource,
     db_connection: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
@@ -203,16 +190,13 @@ def stage_bag_openbareruimte(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
-        context=context,
     )
     return Output(new_table, metadata=metadata)
 
 
 @asset
 def stage_bag_nummeraanduiding(
-    context,
     config: BagDownloadConfig,
-    file_store: FileStoreResource,
     db_connection: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
@@ -231,7 +215,6 @@ def stage_bag_nummeraanduiding(
         extract_dir=extract_dir,
         with_parallel=config.with_parallel,
         geofilter=config.geofilter,
-        context=context,
     )
     return Output(new_table, metadata=metadata)
 
@@ -247,22 +230,20 @@ def stage_bag_layer(
     remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
-    context: OpExecutionContext = None,
 ):
-    create_schema(db_connection, new_schema, logger=context.log if context else None)
+    create_schema(db_connection, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, layer)
-    drop_table(db_connection, new_table, logger=context.log if context else None)
+    drop_table(db_connection, new_table, logger=logger)
     _ = load_bag_layer(
         db_connection=db_connection,
         gdal=gdal,
         extract_dir=extract_dir,
         layer=layer,
-        new_table=new_table,
         shortdate=shortdate,
+        new_table=new_table,
         remove_zip=remove_zip,
         with_parallel=with_parallel,
         geofilter=geofilter,
-        context=context,
     )
     _m = postgrestable_metadata(db_connection, new_table)
     metadata.update(_m)
@@ -279,7 +260,6 @@ def load_bag_layer(
     remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
-    context: OpExecutionContext = None,
 ) -> bool:
     """Load a single LVBAG Extract 2.0 layer into a PostgreSQL table with ogr2ogr.
     This function expects that the LVBAG Extract is uncompressed one level deep, as it
@@ -302,7 +282,6 @@ def load_bag_layer(
         remove_zip: Whether to remove the zipfile or not.
         with_parallel: Use GNU Parallel with ogr2ogr for loading.
         geofilter: WKT of the polygonal extent. Will be converted to a BBOX.
-        context: Optional OpExecutionContext for Dagster Pipes integration.
 
     Returns:
         True on success, False otherwise.
@@ -350,7 +329,7 @@ def load_bag_layer(
             exe_name="ogr2ogr",
             kwargs=kwargs,
             local_path=extract_dir,
-            context=context,
+            logger=logger,
         )
         if not result.success:
             return False
@@ -394,19 +373,18 @@ def load_bag_layer(
         exe_name="ogr2ogr",
         kwargs=kwargs,
         local_path=extract_dir,
-        context=context,
+        logger=logger,
     )
     return result.success
 
 
-def bagextract_metadata(
-    context: OpExecutionContext, extract_dir: Path
-) -> Tuple[dict, str]:
+def bagextract_metadata(logger: Logger, extract_dir: Path) -> Tuple[dict, str]:
     """Determine what type of LVBAG extract do we have, Gemeente or Nederland.
 
     LVBAG schema version: 20200601
 
     Args:
+        logger:
         extract_dir: Path to the BAG Extract Leveringsdocument xml file directory.
 
     Returns:
@@ -429,7 +407,7 @@ def bagextract_metadata(
 
     versie = str(lvdoc.getroot().SchemaInfo.versie)
     if versie != implemented_schema_version:  # pragma: no cover
-        context.log.error(
+        logger.error(
             f"The version of the schema of the extract is different than "
             f"what is implemented. Implemented: "
             f"{implemented_schema_version}. Extract: {versie}."
@@ -439,7 +417,7 @@ def bagextract_metadata(
         f"{{{nsmap['selecties-extract']}}}LVC-Extract"
     )
     if LVC_Extract is None:  # pragma: no cover
-        context.log.critical(
+        logger.critical(
             "The LVBAG extract is not of the type 'LVC-Extract' "
             "(Levenscyclus en LevenscyclusVanaf)."
         )
@@ -463,7 +441,7 @@ def bagextract_metadata(
         elif g.tag == f"{{{nsmap['selecties-extract']}}}Gebied-NLD":
             metadata["Gebied"] = "NLD"
         else:  # pragma: no cover
-            context.log.error(f"Unrecognized tag: {g.tag}")
+            logger.error(f"Unrecognized tag: {g.tag}")
 
     shortdate = metadata["StandTechnischeDatum"].strftime("%d%m%Y")
     metadata["Timeliness"] = metadata["StandTechnischeDatum"].date().isoformat()

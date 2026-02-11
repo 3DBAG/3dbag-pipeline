@@ -1,4 +1,4 @@
-from dagster import asset, Output, AssetIn
+from dagster import asset, Output, AssetIn, get_dagster_logger
 
 from bag3d.common.utils.database import (
     create_schema,
@@ -11,6 +11,8 @@ from bag3d.common.resources.database import DatabaseResource
 INTERMEDIARY = "intermediary"
 NEW_SCHEMA = "reconstruction_input"
 
+logger = get_dagster_logger("input.intermediary")
+
 
 @asset(
     key_prefix=INTERMEDIARY,
@@ -21,11 +23,11 @@ NEW_SCHEMA = "reconstruction_input"
     op_tags={"compute_kind": "sql"},
 )
 def bag_kas_warenhuis(
-    context, bag_pandactueelbestaand, top10nl_gebouw, db_connection: DatabaseResource
+    bag_pandactueelbestaand, top10nl_gebouw, db_connection: DatabaseResource
 ):
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
-    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
+    create_schema(db_connection, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_kas_warenhuis")
     query = load_sql(
         query_params={
@@ -34,9 +36,7 @@ def bag_kas_warenhuis(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(
-        db_connection, query, new_table, logger=context.log
-    )
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     return Output(new_table, metadata=metadata)
 
@@ -48,16 +48,14 @@ def bag_kas_warenhuis(
     },
     op_tags={"compute_kind": "sql"},
 )
-def bag_bag_overlap(context, bag_pandactueelbestaand, db_connection: DatabaseResource):
+def bag_bag_overlap(bag_pandactueelbestaand, db_connection: DatabaseResource):
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
-    create_schema(db_connection, NEW_SCHEMA, logger=context.log)
+    create_schema(db_connection, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bag_overlap")
     query = load_sql(
         query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(
-        db_connection, query, new_table, logger=context.log
-    )
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     return Output(new_table, metadata=metadata)

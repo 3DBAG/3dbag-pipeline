@@ -6,6 +6,8 @@ import pandas as pd
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import build_op_context
 
 
@@ -42,6 +44,12 @@ def model(test_data_dir) -> Path:
 
 
 @pytest.fixture
+def model_store(model) -> ModelStoreResource:
+    """Model store resource for testing."""
+    return ModelStoreResource(model_path=str(model))
+
+
+@pytest.fixture
 def database():
     db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
@@ -50,15 +58,13 @@ def database():
 
 
 @pytest.fixture
-def context_with_data(floors_estimation_file_store_fastssd):
-    yield build_op_context(
-        partition_key="0/0/0",
-        resources={
-            "file_store_fastssd": FileStoreResource(
-                data_dir=str(floors_estimation_file_store_fastssd)
-            ),
-        },
-    )
+def file_store_fastssd(floors_estimation_file_store_fastssd):
+    yield FileStoreResource(data_dir=str(floors_estimation_file_store_fastssd))
+
+
+@pytest.fixture
+def version():
+    yield ReleaseVersionResource("test_version")
 
 
 @pytest.fixture
@@ -67,15 +73,33 @@ def file_store_tmp(tmp_path):
 
 
 @pytest.fixture
-def context(database, model, file_store_tmp):
+def resources_with_data(file_store_fastssd):
+    return {
+        "file_store_fastssd": file_store_fastssd,
+    }
+
+
+@pytest.fixture
+def resources(database, model_store, file_store_tmp, version):
+    return {
+        "db_connection": database,
+        "file_store_fastssd": FileStoreResource(data_dir=str(file_store_tmp)),
+        "model_store": model_store,
+        "version": version,
+    }
+
+
+@pytest.fixture
+def context_with_data():
     yield build_op_context(
         partition_key="0/0/0",
-        resources={
-            "db_connection": database,
-            "file_store_fastssd": FileStoreResource(data_dir=str(file_store_tmp)),
-            "model_store": model,
-            "version": "test_version",
-        },
+    )
+
+
+@pytest.fixture
+def context():
+    yield build_op_context(
+        partition_key="0/0/0",
     )
 
 

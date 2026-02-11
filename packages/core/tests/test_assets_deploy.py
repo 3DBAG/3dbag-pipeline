@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.skip("included in integration test")
-def test_transfer_to_server(context, deployment_server, test_data_dir):
+def test_transfer_to_server(resources, deployment_server, test_data_dir):
     # Create deployment dir
     export_dir = test_data_dir / "deployment" / "3DBAG" / "export_test_version"
     export_dir.mkdir(parents=True, exist_ok=True)
@@ -21,7 +21,9 @@ def test_transfer_to_server(context, deployment_server, test_data_dir):
     )
     try:
         # compress the export dir
-        res = compressed_export_nl(context, metadata_file, context.resources.version)
+        res = compressed_export_nl(
+            resources["file_store"], metadata_file, resources["version"]
+        )
 
         compressed_file = Path(res.metadata["path"])
         assert compressed_file.exists()  # Check that the file was created

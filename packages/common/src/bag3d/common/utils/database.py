@@ -1,5 +1,6 @@
 import inspect
 from importlib import resources
+from logging import Logger
 
 from dagster import get_dagster_logger, MarkdownMetadataValue
 from psycopg.sql import SQL, Composed, Identifier, Literal
@@ -75,7 +76,7 @@ def postgrestable_from_query(
     db_connection: DatabaseResource,
     query: Composed,
     table: PostgresTableIdentifier,
-    logger=None,
+    logger: Logger,
 ) -> dict:
     logger = logger or get_dagster_logger()
     conn = db_connection.connect
@@ -106,18 +107,16 @@ def postgrestable_metadata(
     }
 
 
-def drop_table(db_connection: DatabaseResource, new_table, logger=None):
+def drop_table(db_connection: DatabaseResource, new_table, logger: Logger):
     """DROP TABLE IF EXISTS new_table CASCADE"""
-    logger = logger or get_dagster_logger()
     conn = db_connection.connect
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
     logger.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def create_schema(db_connection: DatabaseResource, new_schema, logger=None):
+def create_schema(db_connection: DatabaseResource, new_schema: str, logger: Logger):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
-    logger = logger or get_dagster_logger()
     conn = db_connection.connect
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     logger.info(conn.print_query(q))

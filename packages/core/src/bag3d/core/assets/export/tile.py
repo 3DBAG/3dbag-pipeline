@@ -4,14 +4,16 @@ from pathlib import Path
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
-from dagster import AssetKey, asset, Config
+from dagster import AssetKey, asset, Config, get_dagster_logger
 
 from bag3d.common.resources import tool_versions
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.executables import TylerResource, GeoflowResource
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
+
+logger = get_dagster_logger("export.tile")
 
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
@@ -98,11 +100,10 @@ def generate_tyler_config(
 
 
 def reconstruction_output_tiles_func(
-    context,
     data_format: str,
     file_store_fastssd: FileStoreResource,
     file_store: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     geoflow: GeoflowResource,
     specs: Specs3DBAGResource,
     tyler: TylerResource,
@@ -118,7 +119,7 @@ def reconstruction_output_tiles_func(
         file_store.file_store.data_dir,
         version=version.version,
     )
-    context.log.debug(f"{reconstructed_root_dir=}")
+    logger.debug(f"{reconstructed_root_dir=}")
     version_3dbag: str = kwargs["version_3dbag"]
 
     sequence_header_file = (
@@ -155,12 +156,12 @@ def reconstruction_output_tiles_func(
         export_dir=export_dir,
     )
     cmd.extend(cli_params)
-    context.log.debug(" ".join(cmd))
+    logger.debug(" ".join(cmd))
     tyler.runner.run(
         " ".join(cmd),
         exe_name=exe_name,
         cwd=str(output_dir),
-        context=context,
+        logger=logger,
     )
     return output_dir
 
@@ -175,14 +176,13 @@ class TylerConfig(Config):
     code_version=tool_versions.get_version("tyler-multiformat"),
 )
 def reconstruction_output_multitiles_nl(
-    context,
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
     geoflow: GeoflowResource,
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
@@ -191,7 +191,6 @@ def reconstruction_output_multitiles_nl(
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="multi",
         file_store_fastssd=file_store_fastssd,
         file_store=file_store,
@@ -211,14 +210,13 @@ def reconstruction_output_multitiles_nl(
     code_version=tool_versions.get_version("tyler"),
 )
 def reconstruction_output_3dtiles_lod12_nl(
-    context,
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
     geoflow: GeoflowResource,
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.2 buildings.
@@ -227,7 +225,6 @@ def reconstruction_output_3dtiles_lod12_nl(
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
         file_store_fastssd=file_store_fastssd,
         file_store=file_store,
@@ -247,14 +244,13 @@ def reconstruction_output_3dtiles_lod12_nl(
     code_version=tool_versions.get_version("tyler"),
 )
 def reconstruction_output_3dtiles_lod13_nl(
-    context,
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
     geoflow: GeoflowResource,
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.3 buildings.
@@ -263,7 +259,6 @@ def reconstruction_output_3dtiles_lod13_nl(
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
         file_store_fastssd=file_store_fastssd,
         file_store=file_store,
@@ -283,14 +278,13 @@ def reconstruction_output_3dtiles_lod13_nl(
     code_version=tool_versions.get_version("tyler"),
 )
 def reconstruction_output_3dtiles_lod22_nl(
-    context,
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
     geoflow: GeoflowResource,
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
-    version: VersionResource,
+    version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 2.2 buildings.
@@ -299,7 +293,6 @@ def reconstruction_output_3dtiles_lod22_nl(
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
         file_store_fastssd=file_store_fastssd,
         file_store=file_store,
