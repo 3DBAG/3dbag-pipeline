@@ -25,7 +25,7 @@ def test_load_bag_layer(database, file_store, gdal, test_data_dir):
 
     test_bag_table = PostgresTableIdentifier("lvbag", "test_ligplaats")
 
-    context = build_op_context(
+    build_op_context(
         partition_key="01cz1",
         resources={
             "gdal": gdal,

@@ -1,7 +1,7 @@
 import inspect
 from importlib import resources
 
-from dagster import get_dagster_logger, OpExecutionContext, MarkdownMetadataValue
+from dagster import get_dagster_logger, MarkdownMetadataValue
 from psycopg.sql import SQL, Composed, Identifier, Literal
 from pgutils import inject_parameters, PostgresTableIdentifier
 
@@ -72,7 +72,10 @@ def summary_md(fields, null_count):
 
 
 def postgrestable_from_query(
-    db_connection: DatabaseResource, query: Composed, table: PostgresTableIdentifier, logger=None
+    db_connection: DatabaseResource,
+    query: Composed,
+    table: PostgresTableIdentifier,
+    logger=None,
 ) -> dict:
     logger = logger or get_dagster_logger()
     conn = db_connection.connect
@@ -129,6 +132,8 @@ def table_exists(db_connection: DatabaseResource, table) -> bool:
                    WHERE
                         schemaname = {schema} AND
                         tablename  = {table}
-                    );""").format(schema=Literal(table.schema.str), table=Literal(table.table.str))
+                    );""").format(
+        schema=Literal(table.schema.str), table=Literal(table.table.str)
+    )
     res = db_connection.connect.get_dict(query)
     return res[0]["exists"]

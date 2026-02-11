@@ -47,7 +47,9 @@ def bag_woonplaatsactueelbestaand(
             "reference_date": reference_date,
         },
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
+    )
     return Output(new_table, metadata=metadata)
 
 
@@ -77,10 +79,10 @@ def bag_verblijfsobjectactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
-    db_connection.connect.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
     )
+    db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"
     )
@@ -113,10 +115,10 @@ def bag_pandactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
-    db_connection.connect.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
     )
+    db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     geom_idx_name = f"{table_name}_geometrie_idx"
     db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)"
@@ -124,9 +126,7 @@ def bag_pandactueelbestaand(
     db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
     )
-    db_connection.connect.send_query(
-        f"CLUSTER {new_table} USING {geom_idx_name}"
-    )
+    db_connection.connect.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
     return Output(new_table, metadata=metadata)
 
 
@@ -155,7 +155,9 @@ def bag_openbareruimteactueelbestaand(
             "reference_date": reference_date,
         },
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
+    )
     return Output(new_table, metadata=metadata)
 
 
@@ -184,5 +186,7 @@ def bag_nummeraanduidingactueelbestaand(
             "reference_date": reference_date,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
+    )
     return Output(new_table, metadata=metadata)

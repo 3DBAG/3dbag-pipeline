@@ -47,5 +47,7 @@ def bgt_pandactueelbestaand(
     create_schema(db_connection, SCHEMA_PROD, logger=context.log)
     new_table = PostgresTableIdentifier(SCHEMA_PROD, "pandactueelbestaand")
     query = load_sql(query_params={"pand_tbl": stage_bgt_pand, "new_table": new_table})
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
+    )
     return Output(new_table, metadata=metadata)

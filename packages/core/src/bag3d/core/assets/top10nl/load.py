@@ -49,10 +49,10 @@ def top10nl_gebouw(
     query = load_sql(
         query_params={"gebouw_tbl": stage_top10nl_gebouw, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=context.log)
-    db_connection.connect.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    metadata = postgrestable_from_query(
+        db_connection, query, new_table, logger=context.log
     )
+    db_connection.connect.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
     db_connection.connect.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)"
@@ -60,7 +60,5 @@ def top10nl_gebouw(
     db_connection.connect.send_query(
         f"CREATE INDEX {table_name}_typegebouw_idx ON {new_table} USING gin (typegebouw)"
     )
-    db_connection.connect.send_query(
-        f"CLUSTER {new_table} USING {geom_idx_name}"
-    )
+    db_connection.connect.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
     return Output(new_table, metadata=metadata)

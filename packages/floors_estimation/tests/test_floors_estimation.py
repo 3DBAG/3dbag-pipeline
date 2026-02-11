@@ -81,7 +81,9 @@ def test_external_features(context):
     external_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_external"
     )
-    assert table_exists(context.resources.db_connection, external_features_table) is True
+    assert (
+        table_exists(context.resources.db_connection, external_features_table) is True
+    )
 
 
 def test_all_features(context):
