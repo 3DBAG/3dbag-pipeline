@@ -11,7 +11,11 @@ from typing import Generator
 from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation
-from bag3d.common.resources.executables import CommandRunner, GDALResource, ValidationResource
+from bag3d.common.resources.executables import (
+    CommandRunner,
+    GDALResource,
+    ValidationResource,
+)
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import VersionResource

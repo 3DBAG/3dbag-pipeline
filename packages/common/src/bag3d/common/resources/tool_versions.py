@@ -1,6 +1,5 @@
 """Tool version extraction resource for code_version tracking."""
 
-import os
 from typing import Dict, Optional
 from subprocess import run, TimeoutExpired, CalledProcessError
 

@@ -13,7 +13,9 @@ from bag3d.common.types import PostgresTableIdentifier
 
 
 @asset
-def stage_top10nl_gebouw(context, db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl) -> Output[PostgresTableIdentifier]:
+def stage_top10nl_gebouw(
+    context, db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl
+) -> Output[PostgresTableIdentifier]:
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
     create_schema(context, new_schema)
@@ -35,7 +37,9 @@ def stage_top10nl_gebouw(context, db_connection: DatabaseResource, gdal: GDALRes
 
 
 @asset(op_tags={"compute_kind": "sql"})
-def top10nl_gebouw(context, db_connection: DatabaseResource, stage_top10nl_gebouw) -> Output[PostgresTableIdentifier]:
+def top10nl_gebouw(
+    context, db_connection: DatabaseResource, stage_top10nl_gebouw
+) -> Output[PostgresTableIdentifier]:
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
     new_schema = "top10nl"

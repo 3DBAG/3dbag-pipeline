@@ -162,7 +162,13 @@ class LazFilesConfig(Config):
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn3(context, config: LazFilesConfig, file_store: FileStoreResource, md5_ahn3, tile_index_ahn):
+def laz_files_ahn3(
+    context,
+    config: LazFilesConfig,
+    file_store: FileStoreResource,
+    md5_ahn3,
+    tile_index_ahn,
+):
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -216,7 +222,13 @@ def laz_files_ahn3(context, config: LazFilesConfig, file_store: FileStoreResourc
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn4(context, config: LazFilesConfig, file_store: FileStoreResource, md5_ahn4, tile_index_ahn):
+def laz_files_ahn4(
+    context,
+    config: LazFilesConfig,
+    file_store: FileStoreResource,
+    md5_ahn4,
+    tile_index_ahn,
+):
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -273,7 +285,13 @@ def laz_files_ahn4(context, config: LazFilesConfig, file_store: FileStoreResourc
     tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
-def laz_files_ahn5(context, config: LazFilesConfig, file_store: FileStoreResource, sha256_ahn5, tile_index_ahn):
+def laz_files_ahn5(
+    context,
+    config: LazFilesConfig,
+    file_store: FileStoreResource,
+    sha256_ahn5,
+    tile_index_ahn,
+):
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).

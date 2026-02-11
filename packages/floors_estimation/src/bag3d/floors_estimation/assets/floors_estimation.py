@@ -116,13 +116,13 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
 
 
 @asset
-def features_file_index(context, file_store_fastssd: FileStoreResource) -> dict[str, Path]:
+def features_file_index(
+    context, file_store_fastssd: FileStoreResource
+) -> dict[str, Path]:
     """
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = geoflow_crop_dir(
-        file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
 
     reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
         "party_walls_features"
@@ -174,7 +174,9 @@ def bag3d_features(
 
 
 @asset(op_tags={"compute_kind": "sql"})
-def external_features(context, db_connection: DatabaseResource) -> Output[PostgresTableIdentifier]:
+def external_features(
+    context, db_connection: DatabaseResource
+) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     context.log.info("Extracting external features, from CBS, ESRI and BAG.")
@@ -210,7 +212,9 @@ def all_features(
 
 @asset
 def preprocessed_features(
-    context, all_features: Output[PostgresTableIdentifier], db_connection: DatabaseResource
+    context,
+    all_features: Output[PostgresTableIdentifier],
+    db_connection: DatabaseResource,
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
     context.log.info("Querying the features.")
@@ -306,12 +310,13 @@ def save_cjfile(
 
 @asset
 def save_cjfiles(
-    context, inferenced_floors: pd.DataFrame, features_file_index: dict[str, Path], file_store_fastssd: FileStoreResource
+    context,
+    inferenced_floors: pd.DataFrame,
+    features_file_index: dict[str, Path],
+    file_store_fastssd: FileStoreResource,
 ) -> None:
     """Saves the new cj files."""
-    reconstructed_root_dir = geoflow_crop_dir(
-        file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"
     )

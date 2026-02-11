@@ -25,7 +25,9 @@ def test_distribution_tiles_files_index(context):
 def test_party_walls(context, mock_distribution_tiles_files_index):
     """Can we compute the party walls and other statistics?"""
 
-    result = party_walls_nl(context, mock_distribution_tiles_files_index, context.resources.db_connection)
+    result = party_walls_nl(
+        context, mock_distribution_tiles_files_index, context.resources.db_connection
+    )
     assert not result.empty
 
 

@@ -74,7 +74,9 @@ def distribution_tiles_files_index(
     partitions_def=PartitionDefinition3DBagDistribution(),
 )
 def party_walls_nl(
-    context, distribution_tiles_files_index: TilesFilesIndex, db_connection: DatabaseResource
+    context,
+    distribution_tiles_files_index: TilesFilesIndex,
+    db_connection: DatabaseResource,
 ) -> DataFrame:
     """Party walls calculation from the exported CityJSON tiles.
 
@@ -141,7 +143,9 @@ def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Pa
 
 
 @asset
-def features_file_index(context, file_store_fastssd: FileStoreResource) -> dict[str, Path]:
+def features_file_index(
+    context, file_store_fastssd: FileStoreResource
+) -> dict[str, Path]:
     """A mapping of {feature ID: feature file path} for the reconstructed features in
     the geoflow output directory.
 
@@ -151,9 +155,7 @@ def features_file_index(context, file_store_fastssd: FileStoreResource) -> dict[
 
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = geoflow_crop_dir(
-        file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
     return dict(features_file_index_generator(reconstructed_root_dir))
 
 
@@ -161,7 +163,10 @@ def features_file_index(context, file_store_fastssd: FileStoreResource) -> dict[
     partitions_def=PartitionDefinition3DBagDistribution(),
 )
 def cityjsonfeatures_with_party_walls_nl(
-    context, party_walls_nl: DataFrame, features_file_index: dict[str, Path], file_store_fastssd: FileStoreResource
+    context,
+    party_walls_nl: DataFrame,
+    features_file_index: dict[str, Path],
+    file_store_fastssd: FileStoreResource,
 ) -> list[Path]:
     """Writes the content of the party walls DataFrame back to the reconstructed
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the

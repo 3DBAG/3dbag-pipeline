@@ -24,7 +24,10 @@ class LasIndexConfig(Config):
 
 
 def run_lasindex(
-    context: AssetExecutionContext, config: LasIndexConfig, lastools: LASToolsResource, lazdownload: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    lazdownload: LAZDownload,
 ):
     cmd_list = [
         "{exe}",
@@ -46,7 +49,10 @@ def run_lasindex(
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn3(
-    context: AssetExecutionContext, config: LasIndexConfig, lastools: LASToolsResource, laz_files_ahn3: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn3: LAZDownload,
 ):
     """Append a spatial index to the AHN3 LAZ file, using LASTools's `lasindex`.
 
@@ -59,7 +65,10 @@ def lasindex_ahn3(
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn4(
-    context: AssetExecutionContext, config: LasIndexConfig, lastools: LASToolsResource, laz_files_ahn4: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn4: LAZDownload,
 ):
     """Append a spatial index to the AHN4 LAZ file, using LASTools's `lasindex`.
 
@@ -72,7 +81,10 @@ def lasindex_ahn4(
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn5(
-    context: AssetExecutionContext, config: LasIndexConfig, lastools: LASToolsResource, laz_files_ahn5: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn5: LAZDownload,
 ):
     """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.
 

@@ -16,7 +16,9 @@ SCHEMA_PROD = "bgt"
 
 
 @asset
-def stage_bgt_pand(context, db_connection: DatabaseResource, gdal: GDALResource, extract_bgt) -> Output[PostgresTableIdentifier]:
+def stage_bgt_pand(
+    context, db_connection: DatabaseResource, gdal: GDALResource, extract_bgt
+) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer, loaded as-is from the extract."""
     create_schema(context, SCHEMA_STAGE)
     xsd = "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
@@ -37,7 +39,9 @@ def stage_bgt_pand(context, db_connection: DatabaseResource, gdal: GDALResource,
 
 
 @asset(op_tags={"kind": "sql"})
-def bgt_pandactueelbestaand(context, db_connection: DatabaseResource, stage_bgt_pand) -> Output[PostgresTableIdentifier]:
+def bgt_pandactueelbestaand(
+    context, db_connection: DatabaseResource, stage_bgt_pand
+) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer that only contains the current (timely) and physically
     existing objects, and repaired polygons."""
     create_schema(context, SCHEMA_PROD)

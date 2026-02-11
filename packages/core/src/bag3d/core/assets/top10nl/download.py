@@ -22,7 +22,12 @@ class Top10nlDownloadConfig(Config):
 
 
 @asset
-def extract_top10nl(context, config: Top10nlDownloadConfig, file_store: FileStoreResource, gdal: GDALResource) -> Output[Path]:
+def extract_top10nl(
+    context,
+    config: Top10nlDownloadConfig,
+    file_store: FileStoreResource,
+    gdal: GDALResource,
+) -> Output[Path]:
     """The TOP10NL extract downloaded from the PDOK API, containing the Gebouw layer."""
     metadata = download_extract(
         dataset="top10nl",

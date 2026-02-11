@@ -20,7 +20,7 @@ from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
-PORT = os.getenv("BAG3D_PG_PORT")
+PORT = int(os.getenv("BAG3D_PG_PORT"))
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")

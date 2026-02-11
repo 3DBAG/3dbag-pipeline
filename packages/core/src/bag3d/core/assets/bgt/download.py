@@ -22,7 +22,12 @@ class BgtDownloadConfig(Config):
 
 
 @asset
-def extract_bgt(context, config: BgtDownloadConfig, file_store: FileStoreResource, gdal: GDALResource) -> Output[Path]:
+def extract_bgt(
+    context,
+    config: BgtDownloadConfig,
+    file_store: FileStoreResource,
+    gdal: GDALResource,
+) -> Output[Path]:
     """The BGT extract downloaded from the PDOK API, containing the 'pand' layer."""
     metadata = download_extract(
         dataset="bgt",

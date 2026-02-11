@@ -260,9 +260,9 @@ class GDALResource(ConfigurableResource):
         gdal_resource.runner
     """
 
-    exe_ogrinfo: Optional[str] = None
-    exe_ogr2ogr: Optional[str] = None
-    exe_sozip: Optional[str] = None
+    exe_ogrinfo: str
+    exe_ogr2ogr: str
+    exe_sozip: str
     docker_cfg: Optional[DockerConfig] = None
 
     @property
@@ -320,7 +320,7 @@ class PDALResource(ConfigurableResource):
         pdal_resource.runner
     """
 
-    exe_pdal: Optional[str] = None
+    exe_pdal: str
     docker_cfg: Optional[DockerConfig] = None
 
     @property
@@ -365,9 +365,9 @@ class LASToolsResource(ConfigurableResource):
         lastools_resource.runner
     """
 
-    exe_lasindex: Optional[str] = None
-    exe_las2las: Optional[str] = None
-    exe_lasinfo: Optional[str] = None
+    exe_lasindex: str
+    exe_las2las: str
+    exe_lasinfo: str
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -402,9 +402,9 @@ class TylerResource(ConfigurableResource):
         tyler = tyler_resource.runner
     """
 
-    exe_tyler: Optional[str] = None
-    exe_tyler_db: Optional[str] = None
-    exe_tyler_multiformat: Optional[str] = None
+    exe_tyler: str
+    exe_tyler_db: str
+    exe_tyler_multiformat: str
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -440,9 +440,9 @@ class ValidationResource(ConfigurableResource):
         validation = validation_resource.runner
     """
 
-    exe_val3dity: Optional[str] = None
-    exe_cjval: Optional[str] = None
-    exe_cjio: Optional[str] = None
+    exe_val3dity: str
+    exe_cjval: str
+    exe_cjio: str
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -477,8 +477,8 @@ class RooferResource(ConfigurableResource):
         roofer = roofer_resource.runner
     """
 
-    exe_crop: Optional[str] = None
-    exe_roofer: Optional[str] = None
+    exe_crop: str
+    exe_roofer: str
 
     @property
     def exes(self) -> Dict[str, str]:
@@ -513,8 +513,8 @@ class GeoflowResource(ConfigurableResource):
         geoflow = geoflow_resource.runner
     """
 
-    exe_geoflow: Optional[str] = None
-    flowchart: Optional[str] = None
+    exe_geoflow: str
+    flowchart: str
 
     @property
     def exes(self) -> Dict[str, str]:

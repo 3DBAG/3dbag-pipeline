@@ -15,7 +15,7 @@ from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
-from bag3d.common.resources import resource_defs, tool_versions
+from bag3d.common.resources import tool_versions
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import RooferResource

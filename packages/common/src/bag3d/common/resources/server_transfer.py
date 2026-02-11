@@ -26,12 +26,12 @@ class ServerTransferResource(ConfigurableResource):
             The 3DBAG public directory on the remote server.
     """
 
-    host: Optional[str] = None
+    host: str
     port: Optional[int] = None
-    user: Optional[str] = None
+    user: str
     password: Optional[str] = None
     key_filename: Optional[str] = None
-    target_dir: Optional[str] = None
+    target_dir: str
     public_dir: Optional[str] = None
 
     @property

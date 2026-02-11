@@ -77,13 +77,17 @@ def features_to_csv(
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
 )
-def feature_evaluation(context, file_store: FileStoreResource, file_store_fastssd: FileStoreResource, db_connection: DatabaseResource, version: VersionResource):
+def feature_evaluation(
+    context,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    db_connection: DatabaseResource,
+    version: VersionResource,
+):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = geoflow_crop_dir(
-        file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
     output_dir = bag3d_export_dir(
         file_store.file_store.data_dir,
         version=version.version,
@@ -156,7 +160,9 @@ def feature_evaluation(context, file_store: FileStoreResource, file_store_fastss
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
 )
-def export_index(context, file_store: FileStoreResource, version: VersionResource) -> Path:
+def export_index(
+    context, file_store: FileStoreResource, version: VersionResource
+) -> Path:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
@@ -193,7 +199,9 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
     deps=ASSET_DEPENDENCIES_FOR_METADATA,
 )
 def metadata(
-    context: AssetExecutionContext, file_store: FileStoreResource, version: VersionResource
+    context: AssetExecutionContext,
+    file_store: FileStoreResource,
+    version: VersionResource,
 ):
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,

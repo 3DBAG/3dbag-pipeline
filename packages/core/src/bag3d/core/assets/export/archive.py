@@ -18,7 +18,9 @@ logger = get_dagster_logger()
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
 )
-def geopackage_nl(context, file_store: FileStoreResource, gdal: GDALResource, version: VersionResource):
+def geopackage_nl(
+    context, file_store: FileStoreResource, gdal: GDALResource, version: VersionResource
+):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = bag3d_export_dir(
         file_store.file_store.data_dir,
@@ -83,9 +85,7 @@ def geopackage_nl(context, file_store: FileStoreResource, gdal: GDALResource, ve
         ]
         cmd = " ".join(cmd)
         try:
-            result = gdal.runner.run(
-                cmd, exe_name="ogr2ogr", context=context
-            )
+            result = gdal.runner.run(cmd, exe_name="ogr2ogr", context=context)
             if not result.success:
                 failed.append((lid, result.stderr))
         except Exception:
@@ -182,7 +182,13 @@ class CompressionConfig(Config):
         AssetKey("geopackage_nl"),
     },
 )
-def compressed_tiles(context, config: CompressionConfig, file_store: FileStoreResource, version: VersionResource, export_index):
+def compressed_tiles(
+    context,
+    config: CompressionConfig,
+    file_store: FileStoreResource,
+    version: VersionResource,
+    export_index,
+):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = bag3d_export_dir(

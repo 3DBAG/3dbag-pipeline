@@ -17,7 +17,7 @@ class DatabaseResource(ConfigurableResource):
     password: Optional[str] = None
     dbname: str
     port: int
-    other_params: Optional[Permissive()] = None
+    other_params: Optional[Permissive()] = {}
 
     @property
     def connect(self) -> DatabaseConnection:
