@@ -13,7 +13,7 @@ def test_distribution_tiles_files_index(context):
     """Can we parse the CityJSON tiles and return valid data?"""
 
     result = distribution_tiles_files_index(
-        context, context.resources.file_store, context.resources.version
+        context,
     )
     assert len(result.tree.geometries) == len(TILE_IDS)
     assert len(result.paths_array) == len(TILE_IDS)
@@ -26,14 +26,17 @@ def test_party_walls(context, mock_distribution_tiles_files_index):
     """Can we compute the party walls and other statistics?"""
 
     result = party_walls_nl(
-        context, mock_distribution_tiles_files_index, context.resources.db_connection
+        context,
+        mock_distribution_tiles_files_index,
     )
     assert not result.empty
 
 
 def test_features_file_index(context):
     """Can we find and map all the cityjson feature files of the test data?"""
-    result = features_file_index(context, context.resources.file_store_fastssd)
+    result = features_file_index(
+        context,
+    )
     assert len(result) == 415
 
 
@@ -46,7 +49,6 @@ def test_cityjsonfeatures_with_party_walls_nl(
         context,
         mock_party_walls_nl,
         mock_features_file_index,
-        context.resources.file_store_fastssd,
     )
     assert result[0].stem == "NL.IMBAG.Pand.0307100000308298.city"
     assert result[0].suffix == ".jsonl"

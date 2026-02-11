@@ -2,7 +2,7 @@ import inspect
 from importlib import resources
 
 from dagster import get_dagster_logger, OpExecutionContext, MarkdownMetadataValue
-from psycopg.sql import SQL, Composed, Identifier
+from psycopg.sql import SQL, Composed, Identifier, Literal
 from pgutils import inject_parameters, PostgresTableIdentifier
 
 from bag3d.common.resources.database import DatabaseResource
@@ -129,6 +129,6 @@ def table_exists(db_connection: DatabaseResource, table) -> bool:
                    WHERE
                         schemaname = {schema} AND
                         tablename  = {table}
-                    );""").format(schema=table.schema.str, table=table.table.str)
+                    );""").format(schema=Literal(table.schema.str), table=Literal(table.table.str))
     res = db_connection.connect.get_dict(query)
     return res[0]["exists"]

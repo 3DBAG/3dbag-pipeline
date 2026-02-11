@@ -18,7 +18,7 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 def test_features_file_index(context_with_data):
     """"""
     result = features_file_index(
-        context_with_data, context_with_data.resources.file_store_fastssd
+        context_with_data,
     )
     assert len(result) == 413
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
@@ -63,24 +63,25 @@ def test_bag3d_features(context, mock_features_file_index):
     res = bag3d_features(
         context,
         mock_features_file_index,
-        context.resources.db_connection,
     )
 
     assert res.value is not None
     building_feature_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_bag3d"
     )
-    assert table_exists(context, building_feature_table) is True
+    assert table_exists(context.resources.db_connection, building_feature_table) is True
 
 
 def test_external_features(context):
-    res = external_features(context, context.resources.db_connection)
+    res = external_features(
+        context,
+    )
 
     assert res.value is not None
     external_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_external"
     )
-    assert table_exists(context, external_features_table) is True
+    assert table_exists(context.resources.db_connection, external_features_table) is True
 
 
 def test_all_features(context):
@@ -94,30 +95,30 @@ def test_all_features(context):
         context,
         external_features_table,
         building_feature_table,
-        context.resources.db_connection,
     )
 
     assert res.value is not None
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
-    assert table_exists(context, all_features_table) is True
+    assert table_exists(context.resources.db_connection, all_features_table) is True
 
 
 def test_preprocessed_features(context):
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
-    assert table_exists(context, all_features_table) is True
+    assert table_exists(context.resources.db_connection, all_features_table) is True
     data = preprocessed_features(
-        context, all_features_table, context.resources.db_connection
+        context,
+        all_features_table,
     )
     assert data is not None
     assert data.shape[0] == 6
 
 
 def test_inferenced_floors(context, mock_preprocessed_features):
-    res = inferenced_floors(context, preprocessed_features=mock_preprocessed_features)
+    res = inferenced_floors(context, mock_preprocessed_features)
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
@@ -125,11 +126,12 @@ def test_inferenced_floors(context, mock_preprocessed_features):
 
 def test_predictions_table(context, mock_inferenced_floors):
     res = predictions_table(
-        context, mock_inferenced_floors, context.resources.db_connection
+        context,
+        mock_inferenced_floors,
     )
     assert res.value is not None
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
-    assert table_exists(context, pred_table) is True
+    assert table_exists(context.resources.db_connection, pred_table) is True
 
 
 def test_save_cjfiles(
@@ -142,7 +144,6 @@ def test_save_cjfiles(
         context,
         mock_inferenced_floors,
         mock_features_file_index,
-        context.resources.file_store_fastssd,
     )
     assert (
         file_store_tmp

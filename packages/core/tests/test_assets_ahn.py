@@ -122,24 +122,24 @@ def test_laz_files_ahn5(context_ahn, sha256_ahn5_fix, tile_index_ahn_fix):
 
 
 def test_metadata_table_ahn3(context_ahn):
-    metadata = metadata_table_ahn3(context_ahn, context_ahn.resources.db_connection)
+    metadata = metadata_table_ahn3(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn3")
-    assert table_exists(context_ahn, tbl)
+    assert table_exists(context_ahn.resources.db_connection, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
 def test_metadata_table_ahn4(context_ahn):
-    metadata = metadata_table_ahn4(context_ahn, context_ahn.resources.db_connection)
+    metadata = metadata_table_ahn4(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
-    assert table_exists(context_ahn, tbl)
+    assert table_exists(context_ahn.resources.db_connection, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
 def test_metadata_table_ahn5(context_ahn):
-    metadata = metadata_table_ahn5(context_ahn, context_ahn.resources.db_connection)
+    metadata = metadata_table_ahn5(context_ahn)
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn5")
-    assert table_exists(context_ahn, tbl)
+    assert table_exists(context_ahn.resources.db_connection, tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"

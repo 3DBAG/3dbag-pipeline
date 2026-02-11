@@ -17,8 +17,8 @@ NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
 
 
 def test_table_exists(context):
-    assert table_exists(context, EXISTING_TABLE) is True
-    assert table_exists(context, NON_EXISTING_TABLE) is False
+    assert table_exists(context.resources.db_connection, EXISTING_TABLE) is True
+    assert table_exists(context.resources.db_connection, NON_EXISTING_TABLE) is False
 
 
 def test_drop_table(context):
@@ -30,17 +30,17 @@ def test_drop_table(context):
         table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
     )
     context.resources.db_connection.connect.send_query(query)
-    assert table_exists(context, NON_EXISTING_TABLE) is True
-    drop_table(context, NON_EXISTING_TABLE)
-    assert table_exists(context, NON_EXISTING_TABLE) is False
+    assert table_exists(context.resources.db_connection, NON_EXISTING_TABLE) is True
+    drop_table(context.resources.db_connection, NON_EXISTING_TABLE)
+    assert table_exists(context.resources.db_connection, NON_EXISTING_TABLE) is False
 
 
 def test_create_schema(context):
-    create_schema(context, TEST_SCHEMA_NAME)
+    create_schema(context.resources.db_connection, TEST_SCHEMA_NAME)
 
     query = SQL(
         """SELECT count(schema_name)
-                FROM information_schema.schemata 
+                FROM information_schema.schemata
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
     res = context.resources.db_connection.connect.get_dict(query)
@@ -58,7 +58,7 @@ def test_summary_md(database):
 
 
 def test_postgrestable_metadata(context):
-    res = postgrestable_metadata(context, EXISTING_TABLE)
+    res = postgrestable_metadata(context.resources.db_connection, EXISTING_TABLE)
 
     assert (
         res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
@@ -67,9 +67,9 @@ def test_postgrestable_metadata(context):
 
 
 def test_postgrestable_from_query(context):
-    create_schema(context, TEST_SCHEMA_NAME)
+    create_schema(context.resources.db_connection, TEST_SCHEMA_NAME)
     tbl = PostgresTableIdentifier("public", "test_table")
-    assert table_exists(context, tbl) is False
+    assert table_exists(context.resources.db_connection, tbl) is False
 
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
@@ -77,11 +77,11 @@ def test_postgrestable_from_query(context):
                    INSERT INTO {table} VALUES (2, 'foo');"""
     ).format(table=Identifier(tbl.schema.str, tbl.table.str))
 
-    metadata = postgrestable_from_query(context, query, tbl)
+    metadata = postgrestable_from_query(context.resources.db_connection, query, tbl)
     assert metadata["Rows"] == 2
-    assert table_exists(context, tbl) is True
-    drop_table(context, tbl)
-    assert table_exists(context, tbl) is False
+    assert table_exists(context.resources.db_connection, tbl) is True
+    drop_table(context.resources.db_connection, tbl)
+    assert table_exists(context.resources.db_connection, tbl) is False
 
 
 @pytest.mark.skip(reason="Cannot find module.")

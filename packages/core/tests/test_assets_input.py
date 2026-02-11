@@ -16,11 +16,10 @@ def test_bag_kas_warenhuis(context):
         context,
         bag_pandactueelbestaand,
         top10nl_gebouw,
-        db_connection=context.resources.db_connection,
     )
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
-    drop_table(context, new_table)
+    drop_table(context.resources.db_connection, new_table)
 
 
 def test_bag_bag_overlap(context):
@@ -31,11 +30,12 @@ def test_bag_bag_overlap(context):
     new_table = PostgresTableIdentifier("reconstruction_input", "bag_bag_overlap")
 
     res = intermediary.bag_bag_overlap(
-        context, bag_pandactueelbestaand, db_connection=context.resources.db_connection
+        context,
+        bag_pandactueelbestaand,
     )
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
-    drop_table(context, new_table)
+    drop_table(context.resources.db_connection, new_table)
 
 
 def test_get_tile_ids():

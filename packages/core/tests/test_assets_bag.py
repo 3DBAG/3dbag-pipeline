@@ -36,7 +36,8 @@ def test_load_bag_layer(database, file_store, gdal, test_data_dir):
     )
 
     res = load_bag_layer(
-        context=context,
+        db_connection=database,
+        gdal=gdal,
         extract_dir=test_data_dir / "lvbag-extract",
         layer="ligplaats",
         shortdate="08102022",
@@ -47,9 +48,9 @@ def test_load_bag_layer(database, file_store, gdal, test_data_dir):
     )
     assert res is True
     assert res is not None
-    assert table_exists(context, test_bag_table) is True
-    drop_table(context, test_bag_table)
-    assert table_exists(context, test_bag_table) is False
+    assert table_exists(database, test_bag_table) is True
+    drop_table(database, test_bag_table)
+    assert table_exists(database, test_bag_table) is False
 
 
 def test_stage_bag_layer(database, file_store, gdal, test_data_dir):
@@ -67,18 +68,20 @@ def test_stage_bag_layer(database, file_store, gdal, test_data_dir):
     )
 
     res = stage_bag_layer(
-        context,
-        "ligplaats",
-        "stage_lvbag",
-        dict(),
-        "08102022",
-        test_data_dir / "lvbag-extract",
+        db_connection=database,
+        gdal=gdal,
+        layer="ligplaats",
+        new_schema="stage_lvbag",
+        metadata=dict(),
+        shortdate="08102022",
+        extract_dir=test_data_dir / "lvbag-extract",
         remove_zip=False,
         with_parallel=False,
         geofilter=None,
+        context=context,
     )
     assert res is not None
     test_bag_table = PostgresTableIdentifier("stage_lvbag", "ligplaats")
-    assert table_exists(context, test_bag_table) is True
-    drop_table(context, test_bag_table)
-    assert table_exists(context, test_bag_table) is False
+    assert table_exists(database, test_bag_table) is True
+    drop_table(database, test_bag_table)
+    assert table_exists(database, test_bag_table) is False
