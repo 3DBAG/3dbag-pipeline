@@ -15,6 +15,9 @@ from dagster import (
 )
 from psycopg.sql import SQL
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.version import VersionResource
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
@@ -73,26 +76,20 @@ def features_to_csv(
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={
-        "file_store",
-        "file_store_fastssd",
-        "db_connection",
-        "version",
-    },
 )
-def feature_evaluation(context):
+def feature_evaluation(context, file_store: FileStoreResource, file_store_fastssd: FileStoreResource, db_connection: DatabaseResource, version: VersionResource):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
     reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
+        file_store_fastssd.file_store.data_dir
     )
     output_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
 
     lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = (
