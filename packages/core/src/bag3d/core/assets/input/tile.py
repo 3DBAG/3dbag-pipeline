@@ -6,16 +6,19 @@ from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
 
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import resource_defs, tool_versions
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import TylerResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @multi_asset(
     outs={"tiles": AssetOut(), "index": AssetOut()},
-    required_resource_keys={"tyler", "db_connection"},
     code_version=tool_versions.get_version("tyler-db"),
 )
-def reconstruction_input_tiles(context, reconstruction_input):
+def reconstruction_input_tiles(
+    context, reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
+):
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
     quadtree_capacity = 1200000
@@ -24,7 +27,7 @@ def reconstruction_input_tiles(context, reconstruction_input):
     primary_key = "fid"
     geometry_column = "geometrie"
 
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
@@ -44,7 +47,7 @@ def reconstruction_input_tiles(context, reconstruction_input):
         f"--primary-key {primary_key}",
         f"--output-schema {output_schema}",
     ]
-    context.resources.tyler.runner.run(
+    tyler.runner.run(
         " ".join(cmd),
         exe_name="tyler-db",
         context=context,

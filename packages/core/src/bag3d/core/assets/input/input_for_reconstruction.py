@@ -7,11 +7,11 @@ from bag3d.common.utils.database import (
     postgrestable_from_query,
 )
 from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 
 @asset(
-    required_resource_keys={"db_connection"},
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
@@ -20,7 +20,11 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
     op_tags={"compute_kind": "sql"},
 )
 def reconstruction_input(
-    context, bag_pandactueelbestaand, bag_kas_warenhuis, bag_bag_overlap
+    context,
+    bag_pandactueelbestaand,
+    bag_kas_warenhuis,
+    bag_bag_overlap,
+    db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """The input for the building reconstruction, where:
     - duplicates are removed
@@ -38,7 +42,7 @@ def reconstruction_input(
         }
     )
     metadata = postgrestable_from_query(context, query, new_table)
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         SQL("ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"),
         query_params={"new_table": new_table},
     )
