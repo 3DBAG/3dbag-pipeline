@@ -9,8 +9,9 @@ from dagster import (
     AssetIn,
     Failure,
     get_dagster_logger,
-    Field,
+    Config,
 )
+from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
@@ -21,6 +22,16 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 
 logger = get_dagster_logger()
+
+
+class RooferConfig(Config):
+    """Configuration for roofer reconstruction asset."""
+
+    drop_views: bool = Field(
+        default=True, description="Drop the tile view after reconstruction"
+    )
+    loglevel: str = Field(default="info", description="Roofer --loglevel.")
+    concurrency: int = Field(default=10, description="Roofer --jobs")
 
 
 def generate_3dbag_version_date(context):
@@ -70,29 +81,10 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "file_store_fastssd",
     },
     code_version=tool_versions.get_version("roofer"),
-    config_schema={
-        "drop_views": Field(
-            bool,
-            description="Drop the tile view after reconstruction",
-            is_required=False,
-            default_value=True,
-        ),
-        "loglevel": Field(
-            str,
-            description="Roofer --loglevel.",
-            is_required=False,
-            default_value="info",
-        ),
-        "concurrency": Field(
-            int,
-            description="Roofer --jobs",
-            is_required=False,
-            default_value=10,
-        ),
-    },
 )
 def reconstructed_building_models_nl(
     context,
+    config: RooferConfig,
     tiles,
     index,
     reconstruction_input,
@@ -119,7 +111,7 @@ def reconstructed_building_models_nl(
 
     try:
         result = context.resources.roofer.runner.run(
-            f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_execution_context.op_config['concurrency']} --loglevel {context.op_execution_context.op_config['loglevel']} --skip-pc-check",
+            f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
             context=context,
@@ -129,7 +121,7 @@ def reconstructed_building_models_nl(
             context.log.error(result.stdout)
             raise Failure
     finally:
-        if context.op_execution_context.op_config["drop_views"]:
+        if config.drop_views:
             context.resources.db_connection.connect.send_query(
                 SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
             )
