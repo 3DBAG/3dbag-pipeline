@@ -1,5 +1,7 @@
 from dagster import asset, Output
 
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.database import (
     postgrestable_from_query,
     load_sql,
@@ -13,8 +15,8 @@ SCHEMA_STAGE = "stage_bgt"
 SCHEMA_PROD = "bgt"
 
 
-@asset(required_resource_keys={"db_connection", "gdal"})
-def stage_bgt_pand(context, extract_bgt) -> Output[PostgresTableIdentifier]:
+@asset
+def stage_bgt_pand(context, db_connection: DatabaseResource, gdal: GDALResource, extract_bgt) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer, loaded as-is from the extract."""
     create_schema(context, SCHEMA_STAGE)
     xsd = "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
@@ -34,8 +36,8 @@ def stage_bgt_pand(context, extract_bgt) -> Output[PostgresTableIdentifier]:
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def bgt_pandactueelbestaand(context, stage_bgt_pand) -> Output[PostgresTableIdentifier]:
+@asset(op_tags={"kind": "sql"})
+def bgt_pandactueelbestaand(context, db_connection: DatabaseResource, stage_bgt_pand) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer that only contains the current (timely) and physically
     existing objects, and repaired polygons."""
     create_schema(context, SCHEMA_PROD)

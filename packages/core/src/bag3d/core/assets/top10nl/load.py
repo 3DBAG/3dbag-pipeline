@@ -1,5 +1,7 @@
 from dagster import asset, Output
 
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.database import (
     load_sql,
     postgrestable_from_query,
@@ -10,8 +12,8 @@ from bag3d.common.utils.geodata import ogr2postgres
 from bag3d.common.types import PostgresTableIdentifier
 
 
-@asset(required_resource_keys={"db_connection", "gdal"})
-def stage_top10nl_gebouw(context, extract_top10nl) -> Output[PostgresTableIdentifier]:
+@asset
+def stage_top10nl_gebouw(context, db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl) -> Output[PostgresTableIdentifier]:
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
     create_schema(context, new_schema)
@@ -32,8 +34,8 @@ def stage_top10nl_gebouw(context, extract_top10nl) -> Output[PostgresTableIdenti
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"compute_kind": "sql"})
-def top10nl_gebouw(context, stage_top10nl_gebouw) -> Output[PostgresTableIdentifier]:
+@asset(op_tags={"compute_kind": "sql"})
+def top10nl_gebouw(context, db_connection: DatabaseResource, stage_top10nl_gebouw) -> Output[PostgresTableIdentifier]:
     """The cleaned TOP10NL Gebouw polygon layer that only contains the current
     (timely) and physically existing buildings."""
     new_schema = "top10nl"
