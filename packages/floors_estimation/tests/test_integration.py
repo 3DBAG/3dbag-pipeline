@@ -5,15 +5,20 @@ from dagster import ExecuteInProcessResult
 
 
 @pytest.mark.needs_tools
-def test_job_floors_estimation(floors_estimation_file_store_fastssd):
+def test_job_floors_estimation(
+    floors_estimation_file_store_fastssd, resources
+):
     resolved_job = defs.get_job_def("floors_estimation")
 
-    resources = {
-        "file_store_fastssd": FileStoreResource(
-            data_dir=str(floors_estimation_file_store_fastssd)
-        )
-    }
-    result = resolved_job.execute_in_process(resources=resources)
+    # Use resources fixture which has all necessary resources configured
+    result = resolved_job.execute_in_process(
+        resources={
+            **resources,
+            "file_store_fastssd": FileStoreResource(
+                data_dir=str(floors_estimation_file_store_fastssd)
+            ),
+        }
+    )
 
     assert isinstance(result, ExecuteInProcessResult)
     assert result.success
