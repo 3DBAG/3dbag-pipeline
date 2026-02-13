@@ -5,9 +5,7 @@ from dagster import ExecuteInProcessResult
 
 
 @pytest.mark.needs_tools
-def test_job_floors_estimation(
-    floors_estimation_file_store_fastssd, resources
-):
+def test_job_floors_estimation(floors_estimation_file_store_fastssd, resources):
     resolved_job = defs.get_job_def("floors_estimation")
 
     # Use resources fixture which has all necessary resources configured
