@@ -80,12 +80,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD")
             ),
             "db_connection": DatabaseResource(
-                host=EnvVar("BAG3D_PG_HOST"),
-                user=EnvVar("BAG3D_PG_USER"),
-                password=EnvVar("BAG3D_PG_PASSWORD"),
-                port=EnvVar.int("BAG3D_PG_PORT"),
-                dbname=EnvVar("BAG3D_PG_DATABASE"),
-                other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE")},
+                host=EnvVar("BAG3D_PG_HOST").get_value(),
+                user=EnvVar("BAG3D_PG_USER").get_value(),
+                password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
+                port=EnvVar.int("BAG3D_PG_PORT").get_value(),
+                dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
+                other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value()},
             ),
             "pdal": PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL")),
             "lastools": LASToolsResource(
@@ -114,15 +114,15 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "version": version,
             "specs": specs,
             "godzilla_server": ServerTransferResource(
-                host=EnvVar("BAG3D_GODZILLA_HOST"),
-                user=EnvVar("BAG3D_GODZILLA_USER"),
-                target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR"),
-                public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR"),
+                host=EnvVar("BAG3D_GODZILLA_HOST").get_value(),
+                user=EnvVar("BAG3D_GODZILLA_USER").get_value(),
+                target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value(),
+                public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
             ),
             "podzilla_server": ServerTransferResource(
-                host=EnvVar("BAG3D_PODZILLA_HOST"),
-                user=EnvVar("BAG3D_PODZILLA_USER"),
-                target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR"),
+                host=EnvVar("BAG3D_PODZILLA_HOST").get_value(),
+                user=EnvVar("BAG3D_PODZILLA_USER").get_value(),
+                target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value(),
             ),
         }
     else:
