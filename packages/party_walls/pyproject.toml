@@ -20,8 +20,8 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster~=1.9.4",
-    "dagster-postgres~=0.25.4",
+    "dagster~=1.12.14",
+    "dagster-postgres~=0.28.14",
     "numpy~=1.24.4",
     "pandas~=2.1.0",
     "shapely~=2.0.1",
@@ -31,8 +31,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "coverage~=7.6.8",
-    "pytest~=8.3.4",
+    "coverage~=7.13.4",
+    "pytest~=9.0.2",
     "pytest-dotenv~=0.5.2",
 ]
 
