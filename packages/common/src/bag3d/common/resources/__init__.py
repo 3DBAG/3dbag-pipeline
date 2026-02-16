@@ -43,7 +43,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
     configure_from_env = False
     if dagster_deployment.lower() == "default":
         configure_at_run_launch = True
-    elif dagster_deployment.lower() in ["production", "test_docker"]:
+    elif dagster_deployment.lower() in ["production", "user", "pytest", "pc"]:
         configure_from_env = True
     else:
         logger.warning(

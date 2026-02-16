@@ -99,15 +99,17 @@ def get_export_tile_ids() -> Sequence[str]:
     """
     tileids = []
 
-    env = os.getenv("DAGSTER_ENVIRONMENT", "test")
-    if env == "test":
+    deployment = os.getenv("DAGSTER_DEPLOYMENT", "default")
+    version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
+
+    # Only pytest runs use the integration_party_walls/file_store subdirectory
+    if deployment.lower() == "pytest":
         root_dir = (
-            Path(os.getenv("BAG3D_FILESTORE")) / "integration_party_walls/file_store"
+            Path(os.getenv("BAG3D_FILESTORE", "/data/volume"))
+            / "integration_party_walls/file_store"
         )
-        version = "test_version"
     else:
         root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
-        version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
 
     export_dir = bag3d_export_dir(root_dir=root_dir, version=version)
 
