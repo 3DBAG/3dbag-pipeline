@@ -1,10 +1,13 @@
 import json
 import time
 import random
+import warnings
 from pathlib import Path
 from typing import Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
+
+import urllib3
 
 from dagster import (
     asset,
@@ -190,12 +193,16 @@ def laz_files_ahn3(
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
-    lazdownload = download_ahn_laz(
-        fpath=fpath,
-        url_laz=url_laz,
-        verify_ssl=verify_ssl,
-        force_download=config.force_download,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=urllib3.exceptions.InsecureRequestWarning
+        )
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+            force_download=config.force_download,
+        )
     lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
@@ -210,9 +217,13 @@ def laz_files_ahn3(
                 )
             )
             fpath.unlink()
-            lazdownload = download_ahn_laz(
-                fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
+                )
             second_validation = lazdownload.validate(
                 sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
             )
@@ -251,12 +262,16 @@ def laz_files_ahn4(
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
-    lazdownload = download_ahn_laz(
-        fpath=fpath,
-        url_laz=url_laz,
-        verify_ssl=verify_ssl,
-        force_download=config.force_download,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=urllib3.exceptions.InsecureRequestWarning
+        )
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+            force_download=config.force_download,
+        )
     lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
@@ -271,11 +286,15 @@ def laz_files_ahn4(
                 )
             )
             fpath.unlink()
-            lazdownload = download_ahn_laz(
-                fpath=fpath,
-                url_laz=url_laz,
-                verify_ssl=verify_ssl,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url_laz,
+                    verify_ssl=verify_ssl,
+                )
             second_validation = lazdownload.validate(
                 sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
             )
@@ -312,12 +331,16 @@ def laz_files_ahn5(
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
     verify_ssl = False
-    lazdownload = download_ahn_laz(
-        fpath=fpath,
-        url_laz=url_laz,
-        verify_ssl=verify_ssl,
-        force_download=config.force_download,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=urllib3.exceptions.InsecureRequestWarning
+        )
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+            force_download=config.force_download,
+        )
     lazdownload.compute_sha(HashChunkwise("md5"))
     if config.check_hash:
         first_validation = lazdownload.validate(
@@ -331,11 +354,15 @@ def laz_files_ahn5(
                 )
             )
             fpath.unlink()
-            lazdownload = download_ahn_laz(
-                fpath=fpath,
-                url_laz=url_laz,
-                verify_ssl=verify_ssl,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url_laz,
+                    verify_ssl=verify_ssl,
+                )
             second_validation = lazdownload.validate(
                 sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
             )

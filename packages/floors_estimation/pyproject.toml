@@ -21,8 +21,8 @@ classifiers = [
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "bag3d-common",
-    "dagster~=1.9.3",
-    "dagster-postgres~=0.25.3",
+    "dagster~=1.12.14",
+    "dagster-postgres~=0.28.14",
     "pandas~=2.2.3",
     "scikit-learn==1.4.0",
     "sklearn-pandas~=2.2.0",
@@ -30,8 +30,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "coverage~=7.6.8",
-    "pytest~=8.3.4",
+    "coverage~=7.13.4",
+    "pytest~=9.0.2",
     "pytest-dotenv~=0.5.2",
 ]
 
@@ -45,4 +45,7 @@ bag3d-common = { path = "../common", editable = true}
 filterwarnings = [
     "ignore:.*is not a Python type.*:UserWarning",
     "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+    "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
+    "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
 ]
