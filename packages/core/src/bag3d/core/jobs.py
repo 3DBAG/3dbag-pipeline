@@ -81,15 +81,6 @@ job_nl_reconstruct = define_asset_job(
     selection=AssetSelection.assets(
         ["reconstruction", "reconstructed_building_models_nl"]
     ),
-    # config={
-    #     "ops": {
-    #         "reconstructed_building_models_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_ROOFER", 1))
-    #             }
-    #         }
-    #     }
-    # },
 )
 
 job_nl_reconstruct_debug = define_asset_job(
@@ -98,17 +89,6 @@ job_nl_reconstruct_debug = define_asset_job(
     selection=AssetSelection.assets(
         ["reconstruction", "reconstructed_building_models_nl"]
     ),
-    # config={
-    #     "ops": {
-    #         "reconstructed_building_models_nl": {
-    #             "config": {
-    #                 "drop_views": False,
-    #                 "loglevel": "debug",
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_ROOFER", 1)),
-    #             }
-    #         }
-    #     }
-    # },
 )
 
 job_nl_export = define_asset_job(
@@ -118,15 +98,6 @@ job_nl_export = define_asset_job(
     | AssetSelection.assets(["export", "export_index"])
     | AssetSelection.assets(["export", "metadata"])
     | AssetSelection.assets(["export", "reconstruction_output_multitiles_nl"]),
-    # config={
-    #     "ops": {
-    #         "reconstruction_output_multitiles_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
-    #             }
-    #         }
-    #     }
-    # },
 )
 
 job_nl_export_after_floors = define_asset_job(
@@ -142,35 +113,6 @@ job_nl_export_after_floors = define_asset_job(
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod12_nl"])
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod13_nl"])
     | AssetSelection.assets(["export", "reconstruction_output_3dtiles_lod22_nl"]),
-    # config={
-    #     "ops": {
-    #         "reconstruction_output_multitiles_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
-    #             }
-    #         },
-    #         "reconstruction_output_3dtiles_lod12_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
-    #             }
-    #         },
-    #         "reconstruction_output_3dtiles_lod13_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
-    #             }
-    #         },
-    #         "reconstruction_output_3dtiles_lod22_nl": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", 1))
-    #             }
-    #         },
-    #         "compressed_tiles": {
-    #             "config": {
-    #                 "concurrency": int(getenv("BAG3D_CONCURRENCY_JOB_ARCHIVE", 1))
-    #             }
-    #         },
-    #     }
-    # },
 )
 
 job_nl_deploy = define_asset_job(

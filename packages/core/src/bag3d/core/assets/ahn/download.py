@@ -169,7 +169,6 @@ class LazFilesConfig(Config):
 
 @asset(
     partitions_def=partition_definition_ahn,
-    tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
 def laz_files_ahn3(
@@ -237,7 +236,6 @@ def laz_files_ahn3(
 
 @asset(
     partitions_def=partition_definition_ahn,
-    tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
 def laz_files_ahn4(
@@ -308,7 +306,6 @@ def laz_files_ahn4(
 
 @asset(
     partitions_def=partition_definition_ahn,
-    tags={"dagster/concurrency_key": "laz_download"},
     pool="laz_download",
 )
 def laz_files_ahn5(

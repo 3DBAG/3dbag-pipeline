@@ -1,5 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
 from enum import Enum
+from os import getenv
 from pathlib import Path
 import json
 import re
@@ -8,7 +9,8 @@ import ast
 from dataclasses import dataclass, field
 from typing import Generator
 
-from dagster import asset, AssetIn, AssetKey, get_dagster_logger
+from dagster import asset, AssetIn, AssetKey, Config, get_dagster_logger
+from pydantic import Field
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation
 from bag3d.common.resources.executables import (
@@ -1038,14 +1040,23 @@ def check_formats(inputs) -> TileResults:
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
 
+class ValidationConfig(Config):
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_VALIDATION", "4")),
+        description="ProcessPoolExecutor max_workers for validation",
+    )
+
+
 @asset(
     ins={
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
+    pool="validation",
 )
 def compressed_tiles_validation(
+    config: ValidationConfig,
     export_index: Path,
     metadata: Path,
     file_store: FileStoreResource,
@@ -1106,7 +1117,7 @@ def compressed_tiles_validation(
     csvwriter.writeheader()
 
     try:
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
             for result in executor.map(check_formats, tileids):
                 csvwriter.writerow(result.asdict())
         return output_path
