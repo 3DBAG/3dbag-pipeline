@@ -50,4 +50,6 @@ filterwarnings = [
     "ignore:.*is not a Python type.*:UserWarning",
     "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
     "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
+    "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
 ]
