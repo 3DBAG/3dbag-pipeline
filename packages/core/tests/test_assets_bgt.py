@@ -21,10 +21,10 @@ def test_extract_bgt(database, file_store, gdal, wkt_testarea):
     )
 
     with DagsterInstance.ephemeral() as instance:
-        job = defs.get_implicit_global_asset_job_def()
+        job = defs.resolve_implicit_global_asset_job_def()
         result = job.execute_in_process(
             instance=instance,
-            asset_selection=[AssetKey(["bgt", "extract_bgt"])],
+            asset_selection=[AssetKey(["extract_bgt"])],
             run_config={
                 "ops": {
                     "extract_bgt": {
