@@ -5,11 +5,12 @@ import json
 
 from dagster import AssetIn, asset, AssetKey
 
+from bag3d.common.resources.server_transfer import ServerTransferResource
 from dagster import get_dagster_logger
 from datetime import datetime
 
 
-logger = get_dagster_logger("publish")
+logger = get_dagster_logger("release.publish")
 
 
 @asset(
@@ -17,24 +18,23 @@ logger = get_dagster_logger("publish")
         "metadata": AssetIn(key_prefix="export"),
         "transfer_to_godzilla": AssetIn(key_prefix="deploy"),
     },
-    required_resource_keys={"godzilla_server"},
 )
 def publish_data(
-    context,
     transfer_to_godzilla: tuple[Path, Path],
     metadata: Path,
+    godzilla_server: ServerTransferResource,
 ):
     """On godzilla, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
-    public_dir: str = context.resources.godzilla_server.public_dir
+    public_dir: str = godzilla_server.public_dir
     deploy_dir, compressed_file = transfer_to_godzilla
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
 
     try:
-        with context.resources.godzilla_server.connection as c:
+        with godzilla_server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -75,9 +75,8 @@ def publish_data(
 
 @asset(
     deps={AssetKey(("deploy", "webservice_godzilla"))},
-    required_resource_keys={"godzilla_server"},
 )
-def publish_webservices(context):
+def publish_webservices(godzilla_server: ServerTransferResource):
     """ """
     latest_schema = "webservice"
     dev_schema = "webservice_dev"
@@ -89,12 +88,12 @@ def publish_webservices(context):
     alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
 
     try:
-        with context.resources.godzilla_server.connection as c:
-            context.log.debug(alter_latest_to_archive)
+        with godzilla_server.connection as c:
+            logger.debug(alter_latest_to_archive)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
             )
-            context.log.debug(alter_dev_to_latest)
+            logger.debug(alter_dev_to_latest)
             c.run(
                 f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_dev_to_latest}'"
             )

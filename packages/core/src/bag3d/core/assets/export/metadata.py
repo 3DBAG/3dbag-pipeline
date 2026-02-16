@@ -12,13 +12,19 @@ from dagster import (
     asset,
     AssetExecutionContext,
     AssetRecordsFilter,
+    get_dagster_logger,
 )
 from psycopg.sql import SQL
 
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import bag3d_export_dir, geoflow_crop_dir
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
 from bag3d.common.resources import resource_defs
+
+logger = get_dagster_logger("export.metadata")
 
 
 def get_info_per_cityobject(
@@ -73,26 +79,23 @@ def features_to_csv(
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    required_resource_keys={
-        "file_store",
-        "file_store_fastssd",
-        "db_connection",
-        "version",
-    },
 )
-def feature_evaluation(context):
+def feature_evaluation(
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    db_connection: DatabaseResource,
+    version: ReleaseVersionResource,
+):
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
     output_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
 
     lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = (
@@ -124,8 +127,8 @@ def feature_evaluation(context):
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )
         cityobjects.update(codata)
-    context.log.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
-    context.log.debug(f"len(cityobjects)={len(cityobjects)}")
+    logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
+    logger.debug(f"len(cityobjects)={len(cityobjects)}")
 
     res = conn.get_query(
         SQL("""
@@ -134,17 +137,17 @@ def feature_evaluation(context):
         """)
     )
     input_buildings = set([row[0] for row in res])
-    context.log.debug(f"len(input_buildings)={len(input_buildings)}")
+    logger.debug(f"len(input_buildings)={len(input_buildings)}")
 
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
-    context.log.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
+    logger.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
     # Save not_reconstructed buildings to a text file
     not_reconstructed_file = output_dir.joinpath("not_reconstructed_buildings.txt")
     with not_reconstructed_file.open("w") as f:
         for building_id in sorted(not_reconstructed):
             f.write(f"{building_id}\n")
-    context.log.info(
+    logger.info(
         f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}"
     )
 
@@ -158,9 +161,10 @@ def feature_evaluation(context):
 
 @asset(
     deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
-    required_resource_keys={"file_store", "version"},
 )
-def export_index(context) -> Path:
+def export_index(
+    file_store: FileStoreResource, version: ReleaseVersionResource
+) -> Path:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
@@ -168,8 +172,8 @@ def export_index(context) -> Path:
     Output it written to export_index.csv.
     """
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
@@ -195,9 +199,12 @@ ASSET_DEPENDENCIES_FOR_METADATA = [
 
 @asset(
     deps=ASSET_DEPENDENCIES_FOR_METADATA,
-    required_resource_keys={"file_store", "version"},
 )
-def metadata(context: AssetExecutionContext):
+def metadata(
+    context: AssetExecutionContext,
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+):
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
@@ -420,8 +427,8 @@ def metadata(context: AssetExecutionContext):
         },
     }
     output_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:

@@ -13,7 +13,7 @@ from dagster import build_asset_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
-PORT = os.getenv("BAG3D_PG_PORT")
+PORT = int(os.getenv("BAG3D_PG_PORT"))
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
@@ -53,15 +53,18 @@ def file_store(tmp_path):
 
 
 @pytest.fixture
-def context(database, wkt_testarea, file_store, gdal):
-    yield build_asset_context(
-        resources={
-            "gdal": gdal,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": "test_version",
-        },
-    )
+def resources(database, file_store, gdal):
+    return {
+        "gdal": gdal,
+        "db_connection": database,
+        "file_store": file_store,
+        "version": "test_version",
+    }
+
+
+@pytest.fixture
+def context(wkt_testarea):
+    yield build_asset_context()
 
 
 def pytest_addoption(parser):

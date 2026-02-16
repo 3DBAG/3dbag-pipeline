@@ -4,10 +4,16 @@ from pathlib import Path
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
-from dagster import AssetKey, asset, Config
+from dagster import AssetKey, asset, Config, get_dagster_logger
 
-from bag3d.common.resources import resource_defs, Specs3DBAGResource
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.executables import TylerResource, GeoflowResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
+
+logger = get_dagster_logger("export.tile")
 
 
 def create_sequence_header_file(template_file, output_file, version_3dbag):
@@ -93,25 +99,31 @@ def generate_tyler_config(
     return cli_params, output_dir
 
 
-def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
+def reconstruction_output_tiles_func(
+    data_format: str,
+    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    geoflow: GeoflowResource,
+    specs: Specs3DBAGResource,
+    tyler: TylerResource,
+    **kwargs,
+):
     """Run tyler on the reconstruction output directory.
 
     Args:
         data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
-    reconstructed_root_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
     export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
-    context.log.debug(f"{reconstructed_root_dir=}")
+    logger.debug(f"{reconstructed_root_dir=}")
     version_3dbag: str = kwargs["version_3dbag"]
 
     sequence_header_file = (
-        bag3d_dir(context.resources.file_store_fastssd.file_store.data_dir)
-        / "metadata.json"
+        bag3d_dir(file_store_fastssd.file_store.data_dir) / "metadata.json"
     )
     create_sequence_header_file(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
@@ -127,7 +139,7 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
         "--features",
         str(reconstructed_root_dir),
         "--exe-geof",
-        str(context.resources.geoflow.runner.exes["geof"]),
+        str(geoflow.runner.exes["geof"]),
     ]
     if data_format == "multi":
         exe_name = "tyler-multiformat"
@@ -138,48 +150,54 @@ def reconstruction_output_tiles_func(context, data_format: str, **kwargs):
             f"invalid data_format: {data_format}, only 'multi' and 'cesium3dtiles' are allowed"
         )
     cli_params, output_dir = generate_tyler_config(
-        specs=context.resources.specs,
+        specs=specs,
         data_format=data_format,
         locations=kwargs["locations"],
         export_dir=export_dir,
     )
     cmd.extend(cli_params)
-    context.log.debug(" ".join(cmd))
-    context.resources.tyler.runner.run(
+    logger.debug(" ".join(cmd))
+    tyler.runner.run(
         " ".join(cmd),
         exe_name=exe_name,
         cwd=str(output_dir),
-        context=context,
+        logger=logger,
     )
     return output_dir
 
 
 class TylerConfig(Config):
-    concurrency: int
+    concurrency: int = 1
     verbose: bool = False
 
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler-multiformat"),
-    required_resource_keys={
-        "tyler",
-        "geoflow",
-        "file_store",
-        "file_store_fastssd",
-        "version",
-        "specs",
-    },
+    code_version=tool_versions.get_version("tyler-multiformat"),
 )
-def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
+def reconstruction_output_multitiles_nl(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    geoflow: GeoflowResource,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+):
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="multi",
+        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
+        version=version,
+        geoflow=geoflow,
+        specs=specs,
+        tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=tuple(),
@@ -189,25 +207,31 @@ def reconstruction_output_multitiles_nl(context, config: TylerConfig, metadata):
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
-    required_resource_keys={
-        "tyler",
-        "geoflow",
-        "file_store",
-        "file_store_fastssd",
-        "version",
-        "specs",
-    },
+    code_version=tool_versions.get_version("tyler"),
 )
-def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadata):
+def reconstruction_output_3dtiles_lod12_nl(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    geoflow: GeoflowResource,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
+        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
+        version=version,
+        geoflow=geoflow,
+        specs=specs,
+        tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=(Cesium3dTilesLocation.lod12,),
@@ -217,25 +241,31 @@ def reconstruction_output_3dtiles_lod12_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
-    required_resource_keys={
-        "tyler",
-        "geoflow",
-        "file_store",
-        "file_store_fastssd",
-        "version",
-        "specs",
-    },
+    code_version=tool_versions.get_version("tyler"),
 )
-def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadata):
+def reconstruction_output_3dtiles_lod13_nl(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    geoflow: GeoflowResource,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.3 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
+        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
+        version=version,
+        geoflow=geoflow,
+        specs=specs,
+        tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=(Cesium3dTilesLocation.lod13,),
@@ -245,25 +275,31 @@ def reconstruction_output_3dtiles_lod13_nl(context, config: TylerConfig, metadat
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
-    code_version=resource_defs["tyler"].runner.version("tyler"),
-    required_resource_keys={
-        "tyler",
-        "geoflow",
-        "file_store",
-        "file_store_fastssd",
-        "version",
-        "specs",
-    },
+    code_version=tool_versions.get_version("tyler"),
 )
-def reconstruction_output_3dtiles_lod22_nl(context, config: TylerConfig, metadata):
+def reconstruction_output_3dtiles_lod22_nl(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    geoflow: GeoflowResource,
+    file_store: FileStoreResource,
+    file_store_fastssd: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+):
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 2.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
     return reconstruction_output_tiles_func(
-        context,
         data_format="cesium3dtiles",
+        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
+        version=version,
+        geoflow=geoflow,
+        specs=specs,
+        tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
         locations=(Cesium3dTilesLocation.lod22,),

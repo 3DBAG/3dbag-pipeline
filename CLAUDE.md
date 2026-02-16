@@ -196,16 +196,73 @@ Assets are defined using the `@asset` decorator and organized in `asset_groups.p
 - Resources (database, executables, file operations)
 - Sensors for automation
 
+**Asset Configuration:**
+Assets can accept configuration using Pydantic `Config` classes. Configuration is defined separately and passed to Dagster:
+
+```python
+from dagster import Config
+from pydantic import Field
+
+class MyAssetConfig(Config):
+    """Configuration for my_asset."""
+    force_recompute: bool = Field(default=False, description="Force recompute even if data exists")
+    parallel: int = Field(default=4, description="Number of parallel workers")
+
+@asset
+def my_asset(context, config: MyAssetConfig, db_connection: DatabaseResource):
+    # Access config as typed attributes
+    if config.force_recompute:
+        # ...
+```
+
 ### Resource Usage
 
-The `common` package provides reusable Dagster resources accessed via `context.resources`:
-- `db` - Database connection and operations
-- `execmd` - Execute command tool (wrapper around docker exec or subprocess)
-- `specs` - Building specifications from bag3d-specs
-- `wkt` - WKT geometry handling
-- And others (server transfer, file operations, version management)
+Assets use **pythonic resources** with typed parameters. Resources are injected directly as function parameters using type hints:
+
+```python
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
+
+@asset
+def my_asset(context, db_connection: DatabaseResource, file_store: FileStoreResource):
+    # Access resource attributes directly
+    data = db_connection.connect.get_dict(query)
+    path = file_store.file_store.data_dir
+```
+
+The `common` package provides reusable resources:
+- **DatabaseResource** - PostgreSQL connection and database operations
+- **FileStoreResource** - File system access and paths
+- **VersionResource** - Build version management
+- **GDALResource** - GDAL/OGR tools for vector/raster processing
+- **TylerResource** - 3D tile generation tool
+- **RooferResource** - 3D building reconstruction tool
+- **PDALResource** - Point cloud processing (LAZ/LAS files)
+- **ServerTransferResource** - Secure file transfer to deployment servers
+- **GeoflowResource** - 3D geometry processing
+- **ValidationResource** - Data validation tools
+- **Specs3DBAGResource** - Building specifications from bag3d-specs
+- **VersionResource** - Version management
 
 See `packages/common/src/bag3d/resources/` for resource implementations.
+
+**Testing with Resources:**
+In tests, resources are passed to assets directly as parameters:
+
+```python
+def test_my_asset(context):  # context has resources via Dagster fixtures
+    result = my_asset(context, context.resources.db_connection, context.resources.file_store)
+```
+
+Or use Dagster's **Definitions** pattern which automatically injects resources:
+
+```python
+from dagster import Definitions, load_assets_from_package_module
+
+assets = load_assets_from_package_module(assets_module)
+defs = Definitions(assets=assets, resources={...})
+# When executed, resources are auto-injected to asset functions
+```
 
 ### External Tool Execution
 
@@ -328,9 +385,18 @@ The pipeline depends on external tools installed in Docker images:
 
 All external tools are containerized and versioned via Docker image tags. Tool paths and versions are managed via resources in `packages/common/src/bag3d/resources/executables.py`.
 
-## Current Development Focus
+## Recent Refactoring
 
-The current branch is upgrading to Dagster Pipes for subprocess management (see recent commits). This replaces the previous shell-based execution pattern with Dagster's native Pipes feature for better error handling and resource management.
+### Pythonic Resources (Completed)
+The codebase has been migrated from legacy Dagster patterns to **pythonic resources**:
+- Changed from `@asset(required_resource_keys={"resource"})` with `context.resources.resource` access
+- To: **Type-hinted parameters** in asset function signatures
+- All assets now use modern pythonic resource injection: `def asset(context, resource: ResourceType)`
+- All tests updated to pass resources as parameters to assets
+- Improves type safety, IDE autocomplete, and code clarity
+
+### Dagster Pipes Upgrade (In Progress)
+The codebase is upgrading to Dagster Pipes for subprocess management. This replaces the previous shell-based execution pattern with Dagster's native Pipes feature for better error handling and resource management.
 
 ## License
 

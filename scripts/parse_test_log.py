@@ -114,10 +114,11 @@ def parse_warnings(log_content):
 
 
 def parse_errors(log_content):
-    """Extract errors from pytest FAILURES section.
+    """Extract errors from all pytest FAILURES sections.
 
-    Parses the FAILURES section to extract error information including
-    error type and traceback details.
+    Processes all FAILURES sections in the log file to extract error information
+    including error type and traceback details. Handles both standard exceptions
+    (with colons) and assertion errors (without colons).
 
     Args:
         log_content: Full log file content as string
@@ -127,79 +128,90 @@ def parse_errors(log_content):
     """
     errors = []
 
-    # Find FAILURES section
+    # Find all FAILURES sections (there may be multiple from sequential test runs)
     failures_pattern = r"={10,} FAILURES ={10,}"
-    failures_match = re.search(failures_pattern, log_content)
 
-    if not failures_match:
-        return errors
+    for failures_match in re.finditer(failures_pattern, log_content):
+        failures_start = failures_match.end()
+        # Find end of failures section (next separator like "===")
+        rest = log_content[failures_start:]
+        end_pattern = r"^={10,}"
+        end_match = re.search(end_pattern, rest, re.MULTILINE)
 
-    failures_start = failures_match.end()
-    # Find end of failures section (next separator like "===")
-    rest = log_content[failures_start:]
-    end_pattern = r"^={10,}"
-    end_match = re.search(end_pattern, rest, re.MULTILINE)
+        if end_match:
+            failures_end = failures_start + end_match.start()
+        else:
+            failures_end = len(log_content)
 
-    if end_match:
-        failures_end = failures_start + end_match.start()
-    else:
-        failures_end = len(log_content)
+        failures_text = log_content[failures_start:failures_end]
 
-    failures_text = log_content[failures_start:failures_end]
+        # Extract individual test failures
+        # Pattern: "__ test_name __" or similar
+        test_pattern = r"^_{2,}\s+(.+?)\s+_{2,}"
+        lines = failures_text.split("\n")
 
-    # Extract individual test failures
-    # Pattern: "__ test_name __" or similar
-    test_pattern = r"^_{2,}\s+(.+?)\s+_{2,}"
-    lines = failures_text.split("\n")
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            test_match = re.match(test_pattern, line)
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        test_match = re.match(test_pattern, line)
+            if test_match:
+                test_name = test_match.group(1)
+                # Look for the error line with "E" prefix
+                error_type = ""
+                error_message = ""
 
-        if test_match:
-            test_name = test_match.group(1)
-            # Look for the error line with "E" prefix
-            error_type = ""
-            error_message = ""
+                # Scan forward for error lines (starting with "E" followed by whitespace)
+                # Keep searching until we find a line starting with "E", hit another test,
+                # or reach end of lines
+                j = i + 1
+                while j < len(lines):
+                    error_line = lines[j]
 
-            # Scan forward for error lines (starting with "E" followed by whitespace)
-            # Keep searching until we find a line starting with "E", hit another test,
-            # or reach end of lines
-            j = i + 1
-            while j < len(lines):
-                error_line = lines[j]
-
-                # Stop if we hit another test failure
-                if re.match(test_pattern, error_line):
-                    break
-
-                # Check if this is an error line
-                if error_line.startswith("E ") or (error_line.startswith("E") and len(error_line) > 1 and error_line[1].isspace()):
-                    # Extract error type and message
-                    error_content = error_line.lstrip("E").strip()
-                    # Format: "module.ErrorType: message" - find the error type part
-                    # Error types are typically after a dot and before the first colon
-                    if ":" in error_content:
-                        # Split on first colon to get error class and message
-                        parts = error_content.split(":", 1)
-                        error_type_full = parts[0].strip()
-                        error_message = parts[1].strip() if len(parts) > 1 else ""
-
-                        # Extract just the error type name (last part after dot)
-                        if "." in error_type_full:
-                            error_type = error_type_full.split(".")[-1]
-                        else:
-                            error_type = error_type_full
-
+                    # Stop if we hit another test failure
+                    if re.match(test_pattern, error_line):
                         break
 
-                j += 1
+                    # Check if this is an error line
+                    if error_line.startswith("E ") or (error_line.startswith("E") and len(error_line) > 1 and error_line[1].isspace()):
+                        # Extract error type and message
+                        error_content = error_line.lstrip("E").strip()
+                        # Format: "module.ErrorType: message" or "assert expression"
+                        # Error types are typically after a dot and before the first colon
 
-            if error_type:
-                errors.append((test_name, error_type, error_message))
+                        # Handle assertion errors (no colon)
+                        if error_content.startswith("assert "):
+                            error_type = "AssertionError"
+                            error_message = error_content
+                            break
 
-        i += 1
+                        # Handle standard exceptions (with colon)
+                        elif ":" in error_content:
+                            # Split on first colon to get error class and message
+                            parts = error_content.split(":", 1)
+                            error_type_full = parts[0].strip()
+                            error_message = parts[1].strip() if len(parts) > 1 else ""
+
+                            # Extract just the error type name (last part after dot)
+                            if "." in error_type_full:
+                                error_type = error_type_full.split(".")[-1]
+                            else:
+                                error_type = error_type_full
+
+                            break
+
+                        # Fallback for other error formats
+                        elif error_content:
+                            error_type = "UnknownError"
+                            error_message = error_content
+                            break
+
+                    j += 1
+
+                if error_type:
+                    errors.append((test_name, error_type, error_message))
+
+            i += 1
 
     return errors
 

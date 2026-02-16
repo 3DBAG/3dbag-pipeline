@@ -1,9 +1,10 @@
+import os
+
 from bag3d.common.resources import resource_defs
 from bag3d.floors_estimation.assets import floors_estimation
 from bag3d.floors_estimation.jobs import job_floors_estimation
+from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import Definitions, load_assets_from_modules
-from dagster import resource
-import os
 
 all_assets = load_assets_from_modules(
     modules=(floors_estimation,),
@@ -12,16 +13,8 @@ all_assets = load_assets_from_modules(
 )
 
 
-@resource(config_schema={"model": str})
-def model_store(context):
-    """A resource for the floors' estimation model."""
-    return context.resource_config["model"]
-
-
-floors_model = model_store.configured(
-    {"model": os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL")}
-)
-resource_defs.update({"model_store": floors_model})
+model_store = ModelStoreResource(model_path=os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL"))
+resource_defs.update({"model_store": model_store})
 
 
 defs = Definitions(

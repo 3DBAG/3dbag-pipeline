@@ -4,7 +4,7 @@ from pathlib import Path, PosixPath
 import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.types import ExportResult
 from bag3d.party_walls.assets.party_walls import (
     TilesFilesIndex,
@@ -17,11 +17,14 @@ import numpy as np
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
-PORT = os.getenv("BAG3D_PG_PORT")
+PORT = int(os.getenv("BAG3D_PG_PORT"))
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 VERSION = "test_version"
+
+# Ensure partition definitions can read the version from environment
+os.environ["BAG3D_RELEASE_VERSION"] = VERSION
 
 
 @pytest.fixture(scope="session")
@@ -61,17 +64,34 @@ def database():
 
 
 @pytest.fixture
-def context(database, party_walls_file_store, party_walls_file_store_fastssd):
+def version():
+    yield ReleaseVersionResource(VERSION)
+
+
+@pytest.fixture
+def file_store_resource(party_walls_file_store):
+    yield FileStoreResource(data_dir=str(party_walls_file_store))
+
+
+@pytest.fixture
+def file_store_fastssd_resource(party_walls_file_store_fastssd):
+    yield FileStoreResource(data_dir=str(party_walls_file_store_fastssd))
+
+
+@pytest.fixture
+def resources(database, file_store_resource, file_store_fastssd_resource, version):
+    return {
+        "db_connection": database,
+        "file_store": file_store_resource,
+        "file_store_fastssd": file_store_fastssd_resource,
+        "version": version,
+    }
+
+
+@pytest.fixture
+def context():
     yield build_op_context(
         partition_key="0/0/0",
-        resources={
-            "db_connection": database,
-            "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
-            "file_store_fastssd": FileStoreResource(
-                data_dir=str(party_walls_file_store_fastssd)
-            ),
-            "version": VersionResource(VERSION),
-        },
     )
 
 

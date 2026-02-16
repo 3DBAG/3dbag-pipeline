@@ -29,18 +29,19 @@ dependencies = [
     "bag3d-common",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "coverage~=7.6.8",
     "pytest~=8.3.4",
     "pytest-dotenv~=0.5.2",
+    "dagster-webserver"
 ]
 
 [tool.ruff]
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2025.1015" }
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }
 bag3d-common = { path = "../common", editable = true }
 
 [tool.pytest.ini_options]

@@ -13,10 +13,10 @@ from bag3d.core.assets.export.validate import (
 )
 
 
-def test_obj(context, test_data_dir):
+def test_obj(resources, test_data_dir):
     res = obj(
         system=CommandRunner(),
-        validation_runner=context.resources.validation.runner,
+        validation_runner=resources["validation"].runner,
         dirpath=test_data_dir / "validation_input/",
         file_id="0-0-0",
         planarity_n_tol=20.0,
@@ -29,15 +29,15 @@ def test_obj(context, test_data_dir):
     assert not res.file_ok
 
 
-def test_gpkg(context, test_data_dir):
+def test_gpkg(resources, test_data_dir):
     res = gpkg(
         system=CommandRunner(),
-        gdal_runner=context.resources.gdal.runner,
+        gdal_runner=resources["gdal"].runner,
         dirpath=test_data_dir / "validation_input/",
         file_id="0-0-0",
         url_root="https://data.3dbag.nl",
         version="test",
-        specs=context.resources.specs,
+        specs=resources["specs"],
     )
     assert res.zip_ok
     assert res.file_ok
@@ -46,17 +46,17 @@ def test_gpkg(context, test_data_dir):
     assert res.nr_invalid_2d_geom == 0
 
 
-def test_cityjson(context, test_data_dir):
+def test_cityjson(resources, test_data_dir):
     res = cityjson(
         system=CommandRunner(),
-        validation_runner=context.resources.validation.runner,
+        validation_runner=resources["validation"].runner,
         dirpath=test_data_dir / "validation_input/",
         file_id="0-0-0",
         planarity_n_tol=20.0,
         planarity_d2p_tol=0.001,
         url_root="https://data.3dbag.nl",
         version="test",
-        specs=context.resources.specs,
+        specs=resources["specs"],
         snap_tol=0.0001,
     )
     assert res.zip_ok
@@ -66,11 +66,11 @@ def test_cityjson(context, test_data_dir):
     assert res.schema_warnings
 
 
-def test_obj_missing(context_missing, test_data_dir):
+def test_obj_missing(resources_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = obj(
             system=CommandRunner(),
-            validation_runner=context_missing.resources.validation.runner,
+            validation_runner=resources_missing["validation"].runner,
             dirpath=test_data_dir / "validation_input/",
             file_id="0-0-0",
             planarity_n_tol=20.0,
@@ -81,31 +81,31 @@ def test_obj_missing(context_missing, test_data_dir):
         )
 
 
-def test_gpkg_missing(context_missing, test_data_dir):
+def test_gpkg_missing(resources_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = gpkg(
             system=CommandRunner(),
-            gdal_runner=context_missing.resources.gdal.runner,
+            gdal_runner=resources_missing["gdal"].runner,
             dirpath=test_data_dir / "validation_input/",
             file_id="0-0-0",
             url_root="https://data.3dbag.nl",
             version="test",
-            specs=context_missing.resources.specs,
+            specs=resources_missing["specs"],
         )
 
 
-def test_cityjson_missing(context_missing, test_data_dir):
+def test_cityjson_missing(resources_missing, test_data_dir):
     with pytest.raises(Exception):
         _ = cityjson(
             system=CommandRunner(),
-            validation_runner=context_missing.resources.validation.runner,
+            validation_runner=resources_missing["validation"].runner,
             dirpath=test_data_dir / "validation_input/",
             file_id="0-0-0",
             planarity_n_tol=20.0,
             planarity_d2p_tol=0.001,
             url_root="https://data.3dbag.nl",
             version="test",
-            specs=context_missing.resources.specs,
+            specs=resources_missing["specs"],
             snap_tol=0.0001,
         )
 
@@ -201,9 +201,9 @@ class TestAttributeValidationResults:
 class TestCityobjectValidateAttributes:
     """Test cityobject_validate_attributes function."""
 
-    def test_building_validation(self, context):
+    def test_building_validation(self, resources):
         """Test validation of building attributes."""
-        specs = context.resources.specs
+        specs = resources["specs"]
 
         # Valid CityObject with correct attributes
         co_valid = {
@@ -240,9 +240,9 @@ class TestCityobjectValidateAttributes:
             r.outcome == AttributeValidationOutcome.INCORRECT_DATA_TYPE for r in results
         )
 
-    def test_semantic_surface_validation(self, context):
+    def test_semantic_surface_validation(self, resources):
         """Test validation of semantic surface attributes."""
-        specs = context.resources.specs
+        specs = resources["specs"]
 
         co_with_semantics = {
             "type": "Building",
@@ -267,9 +267,9 @@ class TestCityobjectValidateAttributes:
 class TestGpkgValidateAttributes:
     """Test gpkg_validate_attributes function."""
 
-    def test_building_layer_validation(self, context):
+    def test_building_layer_validation(self, resources):
         """Test validation of building layers in GPKG."""
-        specs = context.resources.specs
+        specs = resources["specs"]
 
         # Valid GPKG info
         gpkg_info_valid = {
@@ -312,9 +312,9 @@ class TestGpkgValidateAttributes:
         )
         assert any("extra_field" in r.attribute_name for r in results)
 
-    def test_surface_layer_validation(self, context):
+    def test_surface_layer_validation(self, resources):
         """Test validation of surface layers in GPKG."""
-        specs = context.resources.specs
+        specs = resources["specs"]
 
         gpkg_info = {
             "layers": [
@@ -338,9 +338,9 @@ class TestGpkgValidateAttributes:
             for r in results
         )
 
-    def test_field_type_validation(self, context):
+    def test_field_type_validation(self, resources):
         """Test validation of field types and nullable settings."""
-        specs = context.resources.specs
+        specs = resources["specs"]
 
         gpkg_info = {
             "layers": [

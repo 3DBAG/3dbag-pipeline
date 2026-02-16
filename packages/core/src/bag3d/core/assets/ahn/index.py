@@ -1,6 +1,7 @@
 from dagster import asset, get_dagster_logger, Config, AssetExecutionContext
 from pydantic import Field
 
+from bag3d.common.resources.executables import LASToolsResource
 from bag3d.core.assets.ahn.core import partition_definition_ahn
 from bag3d.core.assets.ahn.download import LAZDownload
 
@@ -23,7 +24,10 @@ class LasIndexConfig(Config):
 
 
 def run_lasindex(
-    context: AssetExecutionContext, config: LasIndexConfig, lazdownload: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    lazdownload: LAZDownload,
 ):
     cmd_list = [
         "{exe}",
@@ -33,51 +37,57 @@ def run_lasindex(
     ]
     if not config.force:
         cmd_list.append("-dont_reindex")
-    context.resources.lastools.runner.run(
+    lastools.runner.run(
         " ".join(cmd_list),
         exe_name="lasindex",
         local_path=lazdownload.path,
-        context=context,
+        logger=logger,
     )
 
 
 @asset(
-    required_resource_keys={"lastools"},
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn3(
-    context: AssetExecutionContext, config: LasIndexConfig, laz_files_ahn3: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn3: LAZDownload,
 ):
     """Append a spatial index to the AHN3 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, laz_files_ahn3)
+    run_lasindex(context, config, lastools, laz_files_ahn3)
 
 
 @asset(
-    required_resource_keys={"lastools"},
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn4(
-    context: AssetExecutionContext, config: LasIndexConfig, laz_files_ahn4: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn4: LAZDownload,
 ):
     """Append a spatial index to the AHN4 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, laz_files_ahn4)
+    run_lasindex(context, config, lastools, laz_files_ahn4)
 
 
 @asset(
-    required_resource_keys={"lastools"},
     partitions_def=partition_definition_ahn,
 )
 def lasindex_ahn5(
-    context: AssetExecutionContext, config: LasIndexConfig, laz_files_ahn5: LAZDownload
+    context: AssetExecutionContext,
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn5: LAZDownload,
 ):
     """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, laz_files_ahn5)
+    run_lasindex(context, config, lastools, laz_files_ahn5)

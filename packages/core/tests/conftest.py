@@ -9,7 +9,7 @@ from bag3d.common.resources.executables import (
     GDALResource,
     ValidationResource,
 )
-from bag3d.common.resources.version import VersionResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 
 
@@ -20,7 +20,7 @@ from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
 HOST = os.getenv("BAG3D_PG_HOST")
-PORT = os.getenv("BAG3D_PG_PORT")
+PORT = int(os.getenv("BAG3D_PG_PORT"))
 USER = os.getenv("BAG3D_PG_USER")
 PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
@@ -158,13 +158,7 @@ def file_store(tmp_path):
 
 @pytest.fixture
 def context(
-    database,
     wkt_testarea,
-    file_store,
-    gdal,
-    validation,
-    godzilla_server,
-    podzilla_server,
 ):
     yield build_op_context(
         partition_key="01cz1",
@@ -175,21 +169,11 @@ def context(
             ],
             "parallel": True,
         },
-        resources={
-            "gdal": gdal,
-            "validation": validation,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": VersionResource("test_version"),
-            "godzilla_server": godzilla_server,
-            "podzilla_server": podzilla_server,
-            "specs": Specs3DBAGResource(),
-        },
     )
 
 
 @pytest.fixture
-def context_ahn(
+def resources(
     database,
     file_store,
     gdal,
@@ -197,24 +181,58 @@ def context_ahn(
     godzilla_server,
     podzilla_server,
 ):
-    yield build_op_context(
-        partition_key="01cz1",
-        resources={
-            "gdal": gdal,
-            "validation": validation,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": VersionResource("test_version"),
-            "godzilla_server": godzilla_server,
-            "podzilla_server": podzilla_server,
-            "specs": Specs3DBAGResource(),
-        },
-    )
+    return {
+        "gdal": gdal,
+        "validation": validation,
+        "db_connection": database,
+        "file_store": file_store,
+        "version": ReleaseVersionResource("test_version"),
+        "godzilla_server": godzilla_server,
+        "podzilla_server": podzilla_server,
+        "specs": Specs3DBAGResource(),
+    }
+
+
+@pytest.fixture
+def context_ahn():
+    yield build_op_context(partition_key="01cz1")
+
+
+@pytest.fixture
+def resources_ahn(
+    database,
+    file_store,
+    gdal,
+    validation,
+    godzilla_server,
+    podzilla_server,
+):
+    return {
+        "gdal": gdal,
+        "validation": validation,
+        "db_connection": database,
+        "file_store": file_store,
+        "version": ReleaseVersionResource("test_version"),
+        "godzilla_server": godzilla_server,
+        "podzilla_server": podzilla_server,
+        "specs": Specs3DBAGResource(),
+    }
+
+
+@pytest.fixture
+def resources_missing(database, file_store, gdal_missing, validation_missing):
+    return {
+        "gdal": gdal_missing,
+        "validation": validation_missing,
+        "db_connection": database,
+        "file_store": file_store,
+        "version": ReleaseVersionResource("test_version"),
+    }
 
 
 @pytest.fixture
 def context_missing(
-    database, wkt_testarea, file_store, gdal_missing, validation_missing
+    wkt_testarea,
 ):
     yield build_op_context(
         partition_key="01cz1",
@@ -225,18 +243,11 @@ def context_missing(
             ],
             "parallel": True,
         },
-        resources={
-            "gdal": gdal_missing,
-            "validation": validation_missing,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": VersionResource("test_version"),
-        },
     )
 
 
 @pytest.fixture
-def context_top10nl(database, wkt_testarea, file_store, gdal):
+def context_top10nl(wkt_testarea):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -245,17 +256,11 @@ def context_top10nl(database, wkt_testarea, file_store, gdal):
                 "gebouw",
             ],
         },
-        resources={
-            "gdal": gdal,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": VersionResource("test_version"),
-        },
     )
 
 
 @pytest.fixture
-def context_bgt(database, wkt_testarea, file_store, gdal):
+def context_bgt(wkt_testarea):
     yield build_op_context(
         partition_key="01cz1",
         op_config={
@@ -263,12 +268,6 @@ def context_bgt(database, wkt_testarea, file_store, gdal):
             "featuretypes": [
                 "pand",
             ],
-        },
-        resources={
-            "gdal": gdal,
-            "db_connection": database,
-            "file_store": file_store,
-            "version": VersionResource("test_version"),
         },
     )
 

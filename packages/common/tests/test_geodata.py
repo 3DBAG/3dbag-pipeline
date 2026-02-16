@@ -174,14 +174,16 @@ def test_ogr2postgres(data, gdal, database, test_data_dir):
     path, dataset, feature_types, xsd = data
     res = ogr2postgres(
         gdal_runner=gdal.runner,
-        dsn=database.connect.dsn,
         dataset=dataset,
         extract_path=Path(f"{test_data_dir}/{path}"),
         feature_type=feature_types[0],
         xsd=xsd,
         new_table=PostgresTableIdentifier("public", feature_types[0]),
+        db_connection=database,
     )
-    assert res["Database.Schema.Table"] == f"public.{feature_types[0]}"
+    assert (
+        res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
+    )
 
 
 def test_geojson_poly_to_wkt():

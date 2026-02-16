@@ -4,33 +4,38 @@ from bag3d.core.assets.input import intermediary, tile
 from dagster import get_dagster_logger
 
 
-def test_bag_kas_warenhuis(context):
+def test_bag_kas_warenhuis(database):
     """Does the bag_kas_warenhuis asset work?"""
-
+    logger = get_dagster_logger()
     bag_pandactueelbestaand = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
     top10nl_gebouw = PostgresTableIdentifier("top10nl", "gebouw")
 
     new_table = PostgresTableIdentifier("reconstruction_input", "bag_kas_warenhuis")
 
     res = intermediary.bag_kas_warenhuis(
-        context, bag_pandactueelbestaand, top10nl_gebouw
+        bag_pandactueelbestaand,
+        top10nl_gebouw,
+        database,
     )
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
-    drop_table(context, new_table)
+    drop_table(database, new_table, logger)
 
 
-def test_bag_bag_overlap(context):
+def test_bag_bag_overlap(database):
     """Does the bag_bag_overlap asset work?"""
-
+    logger = get_dagster_logger()
     bag_pandactueelbestaand = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
 
     new_table = PostgresTableIdentifier("reconstruction_input", "bag_bag_overlap")
 
-    res = intermediary.bag_bag_overlap(context, bag_pandactueelbestaand)
+    res = intermediary.bag_bag_overlap(
+        bag_pandactueelbestaand,
+        database,
+    )
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
-    drop_table(context, new_table)
+    drop_table(database, new_table, logger)
 
 
 def test_get_tile_ids():

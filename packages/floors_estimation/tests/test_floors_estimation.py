@@ -15,9 +15,11 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
-def test_features_file_index(context_with_data):
+def test_features_file_index(file_store_fastssd):
     """"""
-    result = features_file_index(context=context_with_data)
+    result = features_file_index(
+        file_store_fastssd,
+    )
     assert len(result) == 413
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
@@ -57,79 +59,93 @@ def test_make_chunks():
     assert next(chunks2) == {"id5": Path("path5"), "id6": Path("path6")}
 
 
-def test_bag3d_features(context, mock_features_file_index):
+def test_bag3d_features(database, mock_features_file_index):
     res = bag3d_features(
-        context,
-        features_file_index=mock_features_file_index,
+        mock_features_file_index,
+        database,
     )
 
     assert res.value is not None
     building_feature_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_bag3d"
     )
-    assert table_exists(context, building_feature_table) is True
+    assert table_exists(database, building_feature_table) is True
 
 
-def test_external_features(context):
-    res = external_features(context)
+def test_external_features(database):
+    res = external_features(
+        database,
+    )
 
     assert res.value is not None
     external_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_external"
     )
-    assert table_exists(context, external_features_table) is True
+    assert table_exists(database, external_features_table) is True
 
 
-def test_all_features(context):
+def test_all_features(database):
     external_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_external"
     )
     building_feature_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_bag3d"
     )
-    res = all_features(context, external_features_table, building_feature_table)
+    res = all_features(
+        external_features_table,
+        building_feature_table,
+        database,
+    )
 
     assert res.value is not None
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
-    assert table_exists(context, all_features_table) is True
+    assert table_exists(database, all_features_table) is True
 
 
-def test_preprocessed_features(context):
+def test_preprocessed_features(database):
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
-    assert table_exists(context, all_features_table) is True
-    data = preprocessed_features(context, all_features_table)
+    assert table_exists(database, all_features_table) is True
+    data = preprocessed_features(
+        all_features_table,
+        database,
+    )
     assert data is not None
     assert data.shape[0] == 6
 
 
-def test_inferenced_floors(context, mock_preprocessed_features):
-    res = inferenced_floors(context, preprocessed_features=mock_preprocessed_features)
+def test_inferenced_floors(model_store, mock_preprocessed_features):
+    res = inferenced_floors(mock_preprocessed_features, model_store)
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
 
 
-def test_predictions_table(context, mock_inferenced_floors):
-    res = predictions_table(context, inferenced_floors=mock_inferenced_floors)
+def test_predictions_table(database, mock_inferenced_floors):
+    res = predictions_table(
+        mock_inferenced_floors,
+        database,
+    )
     assert res.value is not None
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
-    assert table_exists(context, pred_table) is True
+    assert table_exists(database, pred_table) is True
 
 
 def test_save_cjfiles(
-    context,
     file_store_tmp,
     mock_inferenced_floors,
     mock_features_file_index,
 ):
+    from bag3d.common.resources.files import FileStoreResource
+
+    file_store_resource = FileStoreResource(data_dir=str(file_store_tmp))
     save_cjfiles(
-        context,
         mock_inferenced_floors,
         mock_features_file_index,
+        file_store_resource,
     )
     assert (
         file_store_tmp

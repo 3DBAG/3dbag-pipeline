@@ -1,22 +1,24 @@
 import json
 import re
+from logging import Logger
 from pathlib import Path
 from typing import List, Tuple
 from json.decoder import JSONDecodeError
 
 from dagster import (
-    OpExecutionContext,
     TableSchemaMetadataValue,
     TableSchema,
     TableColumnConstraints,
     TableColumn,
-    get_dagster_logger,
     Failure,
+    get_dagster_logger,
 )
 from pgutils import PostgresTableIdentifier
 
+from bag3d.common.resources import DatabaseResource
 from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.utils.database import postgrestable_metadata
+
 
 logger = get_dagster_logger()
 
@@ -56,7 +58,7 @@ def ogrinfo(
     extract_path: Path,
     feature_types: list,
     xsd: str,
-    context: OpExecutionContext = None,
+    logger: Logger = None,
 ):
     """Runs ogrinfo on the zipped extract."""
     cmd = " ".join(
@@ -78,7 +80,7 @@ def ogrinfo(
             exe_name="ogrinfo",
             kwargs=kwargs,
             local_path=extract_path,
-            context=context,
+            logger=logger,
         )
         if result.success:
             layername, layerinfo = parse_ogrinfo(result.stdout, feature_type)
@@ -222,13 +224,13 @@ def add_info(metadata: dict, info: dict) -> None:
 
 def ogr2postgres(
     gdal_runner: CommandRunner,
-    dsn: str,
     dataset: str,
     extract_path: Path,
     feature_type: str,
     xsd: str,
     new_table: PostgresTableIdentifier,
-    context: OpExecutionContext = None,
+    db_connection: DatabaseResource,
+    logger: Logger = None,
 ) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
@@ -236,6 +238,8 @@ def ogr2postgres(
     the PDOK API.
 
     Args:
+        db_connection:
+        logger:
         gdal_runner: CommandRunner for GDAL tools.
         dsn: PostgreSQL connection string.
         dataset: Name of the dataset ('top10nl', 'bgt').
@@ -243,7 +247,6 @@ def ogr2postgres(
         feature_type: The feature layer to load from the ``dataset``
         xsd: Path (URL) to the XSD file.
         new_table: The name of the new Postgres table to load the data into.
-        context: Optional op execution context from Dagster for metadata retrieval.
     Returns:
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
@@ -267,7 +270,7 @@ def ogr2postgres(
     kwargs = {
         "new_table": new_table,
         "feature_type": feature_type,
-        "dsn": dsn,
+        "dsn": db_connection.connect.dsn,
         "xsd": xsd,
         "dataset": dataset,
     }
@@ -276,27 +279,23 @@ def ogr2postgres(
         exe_name="ogr2ogr",
         kwargs=kwargs,
         local_path=extract_path,
-        context=context,
+        logger=logger,
     )
     if result.success:
-        if context:
-            return postgrestable_metadata(context, new_table)
-        else:
-            return {"Database.Schema.Table": f"{new_table.schema}.{new_table.table}"}
+        return postgrestable_metadata(db_connection, new_table)
 
 
 def pdal_info(
-    pdal, file_path: Path, with_all: bool = False, verbose: bool = False, context=None
+    pdal, file_path: Path, logger: Logger = None, with_all: bool = False
 ) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:
-        verbose: Return stdout/stderr from pdal
+        logger:
         pdal: The pdal runner or AppImage executable.
         file_path: Path to the point cloud file.
         with_all: If true, run ``pdal info --all``, else run ``pdal info --metadata``.
             Defaults to ``False``.
-        context: Optional Dagster context for Pipes support.
     Returns:
         A tuple of (pdal's return code, parsed pdal info output)
     """
@@ -311,7 +310,7 @@ def pdal_info(
         " ".join(cmd_list),
         exe_name="pdal",
         local_path=file_path,
-        context=context,
+        logger=logger,
     )
 
     output = result.stdout

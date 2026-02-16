@@ -8,14 +8,20 @@ import ast
 from dataclasses import dataclass, field
 from typing import Generator
 
-from dagster import asset, AssetIn, AssetKey, OpExecutionContext, get_dagster_logger
+from dagster import asset, AssetIn, AssetKey, get_dagster_logger
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation
-from bag3d.common.resources.executables import CommandRunner
+from bag3d.common.resources.executables import (
+    CommandRunner,
+    GDALResource,
+    ValidationResource,
+)
 from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.files import bag3d_export_dir
 
-logger = get_dagster_logger("validate")
+logger = get_dagster_logger("export.validate")
 
 
 class AttributeValidationOutcome(Enum):
@@ -985,9 +991,9 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     return link
 
 
-def check_formats(input) -> TileResults:
+def check_formats(inputs) -> TileResults:
     """Worker function - no Dagster context available."""
-    validation_runner, gdal_runner, dirpath, tile_id, url_root, version = input
+    validation_runner, gdal_runner, dirpath, tile_id, url_root, version = inputs
 
     # System tools runner (no configured exes needed)
     system = CommandRunner()
@@ -1038,10 +1044,14 @@ def check_formats(input) -> TileResults:
         "metadata": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
-    required_resource_keys={"file_store", "version", "gdal", "validation", "specs"},
 )
 def compressed_tiles_validation(
-    context: OpExecutionContext, export_index: Path, metadata: Path
+    export_index: Path,
+    metadata: Path,
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    gdal: GDALResource,
+    validation: ValidationResource,
 ) -> Path:
     """Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
@@ -1063,16 +1073,16 @@ def compressed_tiles_validation(
     The computed attributes are described at the members of the TileResults class.
     """
     path_export_dir = bag3d_export_dir(
-        context.resources.file_store.file_store.data_dir,
-        version=context.resources.version.version,
+        file_store.file_store.data_dir,
+        version=version.version,
     )
     url_root = "https://data.3dbag.nl"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
-        version = metadata_json["identificationInfo"]["citation"]["edition"]
-        context.log.debug(f"{version=}")
-    validation_runner = context.resources.validation.runner
-    gdal_runner = context.resources.gdal.runner
+        version_str = metadata_json["identificationInfo"]["citation"]["edition"]
+        logger.debug(f"{version_str=}")
+    validation_runner = validation.runner
+    gdal_runner = gdal.runner
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
@@ -1083,7 +1093,7 @@ def compressed_tiles_validation(
                 path_export_dir.joinpath("tiles", row[0]),
                 row[0],
                 url_root,
-                version,
+                version_str,
             )
             for row in csvreader
         ]

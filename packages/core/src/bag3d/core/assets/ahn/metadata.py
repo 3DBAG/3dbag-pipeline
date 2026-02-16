@@ -3,132 +3,117 @@ from datetime import datetime
 from functools import partial
 
 import pytz
-from dagster import asset, Output, Field, get_dagster_logger
+from dagster import asset, Output, Config, get_dagster_logger, AssetExecutionContext
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
+from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import PDALResource
 from bag3d.common.types import PostgresTable
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import partition_definition_ahn
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn3(context) -> PostgresTableIdentifier:
+class MetadataConfig(Config):
+    """Configuration for AHN metadata assets."""
+
+    all: bool = Field(default=True, description="Run `pdal info` with `--all`.")
+    force: bool = Field(
+        default=True, description="Force the re-compute of the metadata."
+    )
+    verbose: bool = Field(default=False, description="Output stdout/stderr from pdal")
+
+
+@asset
+def metadata_table_ahn3(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=3)
+    return metadata_table_ahn(db_connection, ahn_version=3)
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn4(context):
+@asset
+def metadata_table_ahn4(db_connection: DatabaseResource):
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=4)
+    return metadata_table_ahn(db_connection, ahn_version=4)
 
 
-@asset(required_resource_keys={"db_connection"})
-def metadata_table_ahn5(context):
+@asset
+def metadata_table_ahn5(db_connection: DatabaseResource):
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(context, ahn_version=5)
+    return metadata_table_ahn(db_connection, ahn_version=5)
 
 
-@asset(
-    config_schema={
-        "all": Field(
-            bool, default_value=True, description="Run `pdal info` with `--all`."
-        ),
-        "force": Field(
-            bool,
-            default_value=True,
-            description="Force the re-compute of the metadata.",
-        ),
-        "verbose": Field(
-            bool,
-            default_value=False,
-            is_required=False,
-            description="Output stdout/stderr from pdal",
-        ),
-    },
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
-def metadata_ahn3(context, laz_files_ahn3, metadata_table_ahn3, tile_index_ahn):
+@asset(partitions_def=partition_definition_ahn)
+def metadata_ahn3(
+    context: AssetExecutionContext,
+    config: MetadataConfig,
+    laz_files_ahn3,
+    metadata_table_ahn3,
+    tile_index_ahn,
+    db_connection: DatabaseResource,
+    pdal: PDALResource,
+):
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
+        config,
         laz_files_ahn3,
         metadata_table_ahn3,
         tile_index_ahn,
-        verbose=context.op_execution_context.op_config["verbose"],
+        db_connection,
+        pdal,
     )
 
 
-@asset(
-    config_schema={
-        "all": Field(
-            bool, default_value=True, description="Run `pdal info` with `--all`."
-        ),
-        "force": Field(
-            bool,
-            default_value=True,
-            description="Force the re-compute of the metadata.",
-        ),
-        "verbose": Field(
-            bool,
-            default_value=False,
-            is_required=False,
-            description="Output stdout/stderr from pdal",
-        ),
-    },
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
-def metadata_ahn4(context, laz_files_ahn4, metadata_table_ahn4, tile_index_ahn):
+@asset(partitions_def=partition_definition_ahn)
+def metadata_ahn4(
+    context: AssetExecutionContext,
+    config: MetadataConfig,
+    laz_files_ahn4,
+    metadata_table_ahn4,
+    tile_index_ahn,
+    db_connection: DatabaseResource,
+    pdal: PDALResource,
+):
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
+        config,
         laz_files_ahn4,
         metadata_table_ahn4,
         tile_index_ahn,
-        verbose=context.op_execution_context.op_config["verbose"],
+        db_connection,
+        pdal,
     )
 
 
-@asset(
-    config_schema={
-        "all": Field(
-            bool, default_value=True, description="Run `pdal info` with `--all`."
-        ),
-        "force": Field(
-            bool,
-            default_value=True,
-            description="Force the re-compute of the metadata.",
-        ),
-        "verbose": Field(
-            bool,
-            default_value=False,
-            is_required=False,
-            description="Output stdout/stderr from pdal",
-        ),
-    },
-    required_resource_keys={"pdal", "db_connection"},
-    partitions_def=partition_definition_ahn,
-)
-def metadata_ahn5(context, laz_files_ahn5, metadata_table_ahn5, tile_index_ahn):
+@asset(partitions_def=partition_definition_ahn)
+def metadata_ahn5(
+    context: AssetExecutionContext,
+    config: MetadataConfig,
+    laz_files_ahn5,
+    metadata_table_ahn5,
+    tile_index_ahn,
+    db_connection: DatabaseResource,
+    pdal: PDALResource,
+):
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
     return compute_load_metadata(
-        context,
+        context.partition_key,
+        config,
         laz_files_ahn5,
         metadata_table_ahn5,
         tile_index_ahn,
-        verbose=context.op_execution_context.op_config["verbose"],
+        db_connection,
+        pdal,
     )
 
 
@@ -177,32 +162,36 @@ def create_indices_metadata_table(
 
 
 def compute_load_metadata(
-    context,
+    partition_key: str,
+    config: MetadataConfig,
     laz_files_ahn,
     metadata_table_ahn,
     tile_index_ahn_pdok,
-    verbose: bool = False,
+    db_connection: DatabaseResource,
+    pdal: PDALResource,
 ):
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 
     Args:
-        context (OpExecutionContext): Op context.
+        partition_key:
+        config (MetadataConfig): Asset configuration.
         laz_files_ahn (LAZDownload): The LAZ file download result, produced by the
             `laz_files_ahn*` asset.
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
         tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
-        verbose (bool): Forward the stdout/stderr from pdal.
+        db_connection (DatabaseResource): Database connection resource.
+        pdal (PDALResource): PDAL resource for executing pdal info.
 
     Returns:
         None
     """
     logger = get_dagster_logger()
-    tile_id = context.partition_key
-    conn = context.resources.db_connection.connect
+    tile_id = partition_key
+    conn = db_connection.connect
     if not laz_files_ahn.new:
-        if not context.op_execution_context.op_config["force"]:
+        if not config.force:
             logger.info(
                 f"Metadata for this LAZ tile {tile_id} already exists, "
                 f"skipping computation."
@@ -210,10 +199,9 @@ def compute_load_metadata(
             return Output(None)
 
     ret_code, out_info = pdal_info(
-        context.resources.pdal.runner,
+        pdal.runner,
         file_path=laz_files_ahn.path,
-        with_all=context.op_execution_context.op_config["all"],
-        verbose=verbose,
+        with_all=config.all,
     )
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
@@ -250,11 +238,13 @@ def compute_load_metadata(
     return Output(None, metadata={**out_info})
 
 
-def metadata_table_ahn(context, ahn_version: int) -> PostgresTableIdentifier:
+def metadata_table_ahn(
+    db_connection: DatabaseResource, ahn_version: int
+) -> PostgresTableIdentifier:
     logger = get_dagster_logger()
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     new_schema = "ahn"
-    create_schema(context, new_schema)
+    create_schema(db_connection, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
     query = load_sql(query_params={"new_table": new_table})
     logger.info(conn.print_query(query))

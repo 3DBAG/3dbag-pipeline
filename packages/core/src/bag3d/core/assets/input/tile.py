@@ -1,21 +1,26 @@
 import os
 
-from dagster import AssetOut, multi_asset, Output
+from dagster import AssetOut, multi_asset, Output, get_dagster_logger
 from pgutils import PostgresConnection
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
 
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import TylerResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
+
+logger = get_dagster_logger("input.tile")
 
 
 @multi_asset(
     outs={"tiles": AssetOut(), "index": AssetOut()},
-    required_resource_keys={"tyler", "db_connection"},
-    code_version=resource_defs["tyler"].runner.version("tyler-db"),
+    code_version=tool_versions.get_version("tyler-db"),
 )
-def reconstruction_input_tiles(context, reconstruction_input):
+def reconstruction_input_tiles(
+    reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
+):
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
     quadtree_capacity = 1200000
@@ -24,7 +29,7 @@ def reconstruction_input_tiles(context, reconstruction_input):
     primary_key = "fid"
     geometry_column = "geometrie"
 
-    conn = context.resources.db_connection.connect
+    conn = db_connection.connect
     conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
@@ -44,10 +49,10 @@ def reconstruction_input_tiles(context, reconstruction_input):
         f"--primary-key {primary_key}",
         f"--output-schema {output_schema}",
     ]
-    context.resources.tyler.runner.run(
+    tyler.runner.run(
         " ".join(cmd),
         exe_name="tyler-db",
-        context=context,
+        logger=logger,
     )
 
     conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
@@ -89,11 +94,11 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
         )
         tile_ids = [row[0] for row in conn.get_query(query)]
     except OperationalError:
-        logger.error(
+        logger.warning(
             "cannot establish database connection from the environment variables BAG3D_PG_*"
         )
         tile_ids = []
     except UndefinedTable:
-        logger.error(f"tiles table {schema}.{table_tiles} does not exist")
+        logger.warning(f"tiles table {schema}.{table_tiles} does not exist")
         tile_ids = []
     return tile_ids

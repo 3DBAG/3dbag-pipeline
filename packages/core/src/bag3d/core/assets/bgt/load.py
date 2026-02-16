@@ -1,5 +1,7 @@
-from dagster import asset, Output
+from dagster import asset, Output, get_dagster_logger
 
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import GDALResource
 from bag3d.common.utils.database import (
     postgrestable_from_query,
     load_sql,
@@ -12,34 +14,40 @@ from bag3d.common.types import PostgresTableIdentifier
 SCHEMA_STAGE = "stage_bgt"
 SCHEMA_PROD = "bgt"
 
+logger = get_dagster_logger("bgt.load")
 
-@asset(required_resource_keys={"db_connection", "gdal"})
-def stage_bgt_pand(context, extract_bgt) -> Output[PostgresTableIdentifier]:
+
+@asset
+def stage_bgt_pand(
+    db_connection: DatabaseResource, gdal: GDALResource, extract_bgt
+) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer, loaded as-is from the extract."""
-    create_schema(context, SCHEMA_STAGE)
+    create_schema(db_connection, SCHEMA_STAGE, logger=logger)
     xsd = "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
     new_table = PostgresTableIdentifier(SCHEMA_STAGE, "pand")
     # Need to explicitly drop the table just in case (...couz GDAL...)
-    drop_table(context, new_table)
+    drop_table(db_connection, new_table, logger=logger)
     metadata = ogr2postgres(
-        gdal_runner=context.resources.gdal.runner,
-        dsn=context.resources.db_connection.connect.dsn,
+        gdal_runner=gdal.runner,
         dataset="bgt",
         xsd=xsd,
         feature_type="pand",
         extract_path=extract_bgt,
         new_table=new_table,
-        context=context,
+        logger=logger,
+        db_connection=db_connection,
     )
     return Output(new_table, metadata=metadata)
 
 
-@asset(required_resource_keys={"db_connection"}, op_tags={"kind": "sql"})
-def bgt_pandactueelbestaand(context, stage_bgt_pand) -> Output[PostgresTableIdentifier]:
+@asset(op_tags={"kind": "sql"})
+def bgt_pandactueelbestaand(
+    db_connection: DatabaseResource, stage_bgt_pand
+) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer that only contains the current (timely) and physically
     existing objects, and repaired polygons."""
-    create_schema(context, SCHEMA_PROD)
+    create_schema(db_connection, SCHEMA_PROD, logger=logger)
     new_table = PostgresTableIdentifier(SCHEMA_PROD, "pandactueelbestaand")
     query = load_sql(query_params={"pand_tbl": stage_bgt_pand, "new_table": new_table})
-    metadata = postgrestable_from_query(context, query, new_table)
+    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     return Output(new_table, metadata=metadata)

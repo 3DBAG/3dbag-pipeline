@@ -9,28 +9,43 @@ from dagster import (
     AssetIn,
     Failure,
     get_dagster_logger,
-    Field,
+    Config,
+    AssetExecutionContext,
 )
+from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.executables import RooferResource
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 
-logger = get_dagster_logger()
+logger = get_dagster_logger("reconstruction.reconstruction")
 
 
-def generate_3dbag_version_date(context):
+class RooferConfig(Config):
+    """Configuration for roofer reconstruction asset."""
+
+    drop_views: bool = Field(
+        default=True, description="Drop the tile view after reconstruction"
+    )
+    loglevel: str = Field(default="info", description="Roofer --loglevel.")
+    concurrency: int = Field(default=10, description="Roofer --jobs")
+
+
+def generate_3dbag_version_date():
     """Generate a version from today's date and current timestamp hash."""
     sha1().update(str(time.time()).encode("utf-8"))
     hs = sha1().hexdigest()
     dt = date.today().strftime("%Y%m%d")
     template = "v_{date}_{hash}"
     version = template.format(date=dt, hash=hs)
-    context.log.info(f"Generated version: {version}")
+    logger.info(f"Generated version: {version}")
     return version
 
 
@@ -63,36 +78,14 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
     },
-    required_resource_keys={
-        "db_connection",
-        "roofer",
-        "file_store",
-        "file_store_fastssd",
-    },
-    code_version=resource_defs["roofer"].runner.version("roofer"),
-    config_schema={
-        "drop_views": Field(
-            bool,
-            description="Drop the tile view after reconstruction",
-            is_required=False,
-            default_value=True,
-        ),
-        "loglevel": Field(
-            str,
-            description="Roofer --loglevel.",
-            is_required=False,
-            default_value="info",
-        ),
-        "concurrency": Field(
-            int,
-            description="Roofer --jobs",
-            is_required=False,
-            default_value=10,
-        ),
-    },
+    code_version=tool_versions.get_version("roofer"),
 )
 def reconstructed_building_models_nl(
-    context,
+    context: AssetExecutionContext,
+    config: RooferConfig,
+    db_connection: DatabaseResource,
+    roofer: RooferResource,
+    file_store_fastssd: FileStoreResource,
     tiles,
     index,
     reconstruction_input,
@@ -106,6 +99,8 @@ def reconstructed_building_models_nl(
 
     roofer_toml, output_dir, tile_view = create_roofer_config(
         context,
+        db_connection=db_connection,
+        file_store_fastssd=file_store_fastssd,
         reconstruction_input=reconstruction_input,
         index=index,
         tiles=tiles,
@@ -114,29 +109,31 @@ def reconstructed_building_models_nl(
         metadata_ahn5=metadata_ahn5_index,
     )
 
-    context.log.info(f"{roofer_toml=}")
-    context.log.info(f"{tile_view=}")
+    logger.info(f"{roofer_toml=}")
+    logger.info(f"{tile_view=}")
 
     try:
-        result = context.resources.roofer.runner.run(
-            f"{{exe}} --config {{local_path}} {output_dir} -j {context.op_execution_context.op_config['concurrency']} --loglevel {context.op_execution_context.op_config['loglevel']} --skip-pc-check",
+        result = roofer.runner.run(
+            f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
-            context=context,
+            logger=logger,
         )
-        context.log.debug(f"{result.returncode=}")
+        logger.debug(f"{result.returncode=}")
         if not result.success or "error" in result.stdout.lower():
-            context.log.error(result.stdout)
+            logger.error(result.stdout)
             raise Failure
     finally:
-        if context.op_execution_context.op_config["drop_views"]:
-            context.resources.db_connection.connect.send_query(
+        if config.drop_views:
+            db_connection.connect.send_query(
                 SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
             )
 
 
 def create_roofer_config(
-    context,
+    context: AssetExecutionContext,
+    db_connection: DatabaseResource,
+    file_store_fastssd: FileStoreResource,
     reconstruction_input,
     index,
     tiles,
@@ -238,20 +235,20 @@ def create_roofer_config(
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
         r["filename"]
-        for r in context.resources.db_connection.connect.get_dict(
+        for r in db_connection.connect.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
     ]
     laz_files_ahn4 = [
         r["filename"]
-        for r in context.resources.db_connection.connect.get_dict(
+        for r in db_connection.connect.get_dict(
             query_laz_tiles, query_params=query_params_ahn4
         )
     ]
     laz_files_ahn5 = [
         r["filename"]
-        for r in context.resources.db_connection.connect.get_dict(
+        for r in db_connection.connect.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,
         )
@@ -267,7 +264,7 @@ def create_roofer_config(
             USING (fid)
     WHERE ti.tile_id = {tile_id}
     """)
-    context.resources.db_connection.connect.send_query(
+    db_connection.connect.send_query(
         query_tile_view,
         query_params={
             "tile_view": tile_view,
@@ -276,12 +273,12 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    output_dir = geoflow_crop_dir(
-        context.resources.file_store_fastssd.file_store.data_dir
-    ).joinpath(tile_id)
+    output_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir).joinpath(
+        tile_id
+    )
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
-        footprint_file=f"PG:{context.resources.db_connection.connect.dsn} tables={tile_view}",
+        footprint_file=f"PG:{db_connection.connect.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,

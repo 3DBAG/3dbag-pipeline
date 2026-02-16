@@ -16,12 +16,15 @@ EXISTING_TABLE = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
 NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
 
 
-def test_table_exists(context):
-    assert table_exists(context, EXISTING_TABLE) is True
-    assert table_exists(context, NON_EXISTING_TABLE) is False
+def test_table_exists(resources):
+    assert table_exists(resources["db_connection"], EXISTING_TABLE) is True
+    assert table_exists(resources["db_connection"], NON_EXISTING_TABLE) is False
 
 
-def test_drop_table(context):
+def test_drop_table(resources):
+    from dagster import get_dagster_logger
+
+    logger = get_dagster_logger()
     query = SQL(
         """CREATE TABLE IF NOT EXISTS  {table} (id INTEGER, value TEXT);
                    INSERT INTO {table} VALUES (1, 'bla');
@@ -29,21 +32,24 @@ def test_drop_table(context):
     ).format(
         table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
     )
-    context.resources.db_connection.connect.send_query(query)
-    assert table_exists(context, NON_EXISTING_TABLE) is True
-    drop_table(context, NON_EXISTING_TABLE)
-    assert table_exists(context, NON_EXISTING_TABLE) is False
+    resources["db_connection"].connect.send_query(query)
+    assert table_exists(resources["db_connection"], NON_EXISTING_TABLE) is True
+    drop_table(resources["db_connection"], NON_EXISTING_TABLE, logger)
+    assert table_exists(resources["db_connection"], NON_EXISTING_TABLE) is False
 
 
-def test_create_schema(context):
-    create_schema(context, TEST_SCHEMA_NAME)
+def test_create_schema(resources):
+    from dagster import get_dagster_logger
+
+    logger = get_dagster_logger()
+    create_schema(resources["db_connection"], TEST_SCHEMA_NAME, logger)
 
     query = SQL(
         """SELECT count(schema_name)
-                FROM information_schema.schemata 
+                FROM information_schema.schemata
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
-    res = context.resources.db_connection.connect.get_dict(query)
+    res = resources["db_connection"].connect.get_dict(query)
     assert res[0]["count"] == 1
 
 
@@ -57,8 +63,8 @@ def test_summary_md(database):
     assert lines[0] == "| column | type | NULLs |"
 
 
-def test_postgrestable_metadata(context):
-    res = postgrestable_metadata(context, EXISTING_TABLE)
+def test_postgrestable_metadata(resources):
+    res = postgrestable_metadata(resources["db_connection"], EXISTING_TABLE)
 
     assert (
         res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
@@ -66,10 +72,16 @@ def test_postgrestable_metadata(context):
     assert res["Rows"] == 414
 
 
-def test_postgrestable_from_query(context):
-    create_schema(context, TEST_SCHEMA_NAME)
+def test_postgrestable_from_query(resources):
+    from dagster import get_dagster_logger
+
+    logger = get_dagster_logger()
+    create_schema(resources["db_connection"], TEST_SCHEMA_NAME, logger)
     tbl = PostgresTableIdentifier("public", "test_table")
-    assert table_exists(context, tbl) is False
+    # Clean up if table exists from previous run
+    if table_exists(resources["db_connection"], tbl):
+        drop_table(resources["db_connection"], tbl, logger)
+    assert table_exists(resources["db_connection"], tbl) is False
 
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
@@ -77,11 +89,11 @@ def test_postgrestable_from_query(context):
                    INSERT INTO {table} VALUES (2, 'foo');"""
     ).format(table=Identifier(tbl.schema.str, tbl.table.str))
 
-    metadata = postgrestable_from_query(context, query, tbl)
+    metadata = postgrestable_from_query(resources["db_connection"], query, tbl, logger)
     assert metadata["Rows"] == 2
-    assert table_exists(context, tbl) is True
-    drop_table(context, tbl)
-    assert table_exists(context, tbl) is False
+    assert table_exists(resources["db_connection"], tbl) is True
+    drop_table(resources["db_connection"], tbl, logger)
+    assert table_exists(resources["db_connection"], tbl) is False
 
 
 @pytest.mark.skip(reason="Cannot find module.")
