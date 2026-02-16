@@ -48,4 +48,5 @@ bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", rev = "2025.09
 filterwarnings = [
     "ignore:.*is not a Python type.*:UserWarning",
     "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+    "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
 ]
