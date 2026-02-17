@@ -3,8 +3,16 @@ from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
 import json
+from os import getenv
 
-from dagster import asset, MetadataValue, get_dagster_logger, AssetExecutionContext
+from dagster import (
+    asset,
+    MetadataValue,
+    get_dagster_logger,
+    AssetExecutionContext,
+    Config,
+)
+from pydantic import Field
 from shapely import STRtree, from_wkt
 import numpy as np
 from numpy.typing import NDArray
@@ -23,6 +31,15 @@ from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.resources.database import DatabaseResource
 
 logger = get_dagster_logger("party_walls")
+
+
+class PartyWallsConfig(Config):
+    """Configuration for party_walls assets."""
+
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_PARTY_WALLS", "4")),
+        description="Number of threads for directory traversal.",
+    )
 
 
 @dataclass
@@ -74,6 +91,7 @@ def distribution_tiles_files_index(
 
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
+    pool="party_walls",
 )
 def party_walls_nl(
     context: AssetExecutionContext,
@@ -133,19 +151,23 @@ def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
                                 yield identificatie.name, feature_path
 
 
-def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
+def features_file_index_generator(
+    path_features: Path, max_workers: int = 4
+) -> Iterable[tuple[str, Path]]:
     # We are at the root dir of the reconstructed features
     dir_z = [d for d in path_features.iterdir()]
     # Using ThreadPoolExecutor, because a Generator (returned by visit_directory)
     # cannot be pickled, and the ProcessPoolExecutor only accepts pickle-able objects.
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for g in executor.map(visit_directory, dir_z):
             for identificatie, path in g:
                 yield identificatie, path
 
 
 @asset
-def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path]:
+def features_file_index(
+    config: PartyWallsConfig, file_store_fastssd: FileStoreResource
+) -> dict[str, Path]:
     """A mapping of {feature ID: feature file path} for the reconstructed features in
     the geoflow output directory.
 
@@ -156,7 +178,9 @@ def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path
     Returns a dict of {feature ID: feature file path}.
     """
     reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
-    return dict(features_file_index_generator(reconstructed_root_dir))
+    return dict(
+        features_file_index_generator(reconstructed_root_dir, config.concurrency)
+    )
 
 
 @asset(

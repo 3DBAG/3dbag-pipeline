@@ -1,6 +1,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import islice
+from os import getenv
 from pathlib import Path
 from typing import Dict, Iterable, List
 
@@ -16,16 +17,39 @@ from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.floors_estimation.resources import ModelStoreResource
-from dagster import Output, asset, get_dagster_logger
+from dagster import Config, Output, asset, get_dagster_logger
 from joblib import load
 from pgutils import inject_parameters, PostgresConnection
 from psycopg import connect
 from psycopg.sql import SQL
+from pydantic import Field
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
 
 logger = get_dagster_logger("floors_estimation")
+
+
+class FloorsEstimationConfig(Config):
+    """Configuration for floors_estimation assets."""
+
+    concurrency: int = Field(
+        default_factory=lambda: int(
+            getenv("BAG3D_CONCURRENCY_TOOL_FLOORS_ESTIMATION", "4")
+        ),
+        description="Number of threads for parallel processing.",
+    )
+
+
+class FloorsEstimationIOConfig(Config):
+    """Configuration for I/O-bound floors_estimation assets."""
+
+    concurrency: int = Field(
+        default_factory=lambda: int(
+            getenv("BAG3D_CONCURRENCY_TOOL_FLOORS_ESTIMATION_IO", "8")
+        ),
+        description="Number of threads for parallel file writing.",
+    )
 
 
 def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
@@ -108,9 +132,11 @@ def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
                 yield feature_path.with_suffix("").stem, feature_path
 
 
-def features_file_index_generator(path_features: Path) -> Iterable[tuple[str, Path]]:
+def features_file_index_generator(
+    path_features: Path, max_workers: int = 4
+) -> Iterable[tuple[str, Path]]:
     dir_z = [d for d in path_features.iterdir()]
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for g in executor.map(visit_directory, dir_z):
             for identificatie, path in g:
                 yield identificatie, path
@@ -123,7 +149,9 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
 
 
 @asset
-def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path]:
+def features_file_index(
+    config: FloorsEstimationConfig, file_store_fastssd: FileStoreResource
+) -> dict[str, Path]:
     """
     Returns a dict of {feature ID: feature file path}.
     """
@@ -133,14 +161,20 @@ def features_file_index(file_store_fastssd: FileStoreResource) -> dict[str, Path
         "party_walls_features"
     )
 
-    res = dict(features_file_index_generator(reconstructed_with_party_walls_dir))
+    res = dict(
+        features_file_index_generator(
+            reconstructed_with_party_walls_dir, config.concurrency
+        )
+    )
     logger.info(f"Retrieved {len(res)} features.")
     return res
 
 
 @asset(op_tags={"compute_kind": "sql"})
 def bag3d_features(
-    features_file_index: dict[str, Path], db_connection: DatabaseResource
+    config: FloorsEstimationConfig,
+    features_file_index: dict[str, Path],
+    db_connection: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
     Extracts 3DBAG features from the cityJSONL files,
@@ -157,7 +191,7 @@ def bag3d_features(
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
     logger.info(f"Processing {len(chunks)} chunks.")
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         processing = {
             pool.submit(
                 process_chunk,
@@ -316,6 +350,7 @@ def save_cjfile(
 
 @asset
 def save_cjfiles(
+    config: FloorsEstimationIOConfig,
     inferenced_floors: pd.DataFrame,
     features_file_index: dict[str, Path],
     file_store_fastssd: FileStoreResource,
@@ -335,7 +370,7 @@ def save_cjfiles(
 
     logger.info(f"Saving to {reconstructed_with_floors_estimation_dir}")
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         processing = {
             pool.submit(
                 save_cjfile,
