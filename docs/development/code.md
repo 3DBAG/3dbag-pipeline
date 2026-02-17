@@ -291,6 +291,117 @@ See the [branches](#branches) section for more information.
 
 ## Dagster
 
+### Concurrency Management
+
+The 3DBAG pipeline uses Dagster's concurrency pools to manage resource usage across assets. Understanding concurrency configuration is essential for optimizing performance and preventing resource exhaustion.
+
+#### Two Levels of Concurrency
+
+The pipeline implements two distinct levels of concurrency control:
+
+**1. Run-level concurrency (pools)**
+Controls how many asset materializations can execute **simultaneously** across the Dagster instance. Configured via the `pool` parameter on assets:
+
+```python
+@asset(pool="roofer")
+def reconstructed_building_models_nl(...):
+    ...
+```
+
+**2. Tool-level concurrency (config)**
+Controls threads/workers **within a single tool invocation**. Configured via asset config parameters:
+
+```python
+class RooferConfig(Config):
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_ROOFER", "10")),
+        description="Roofer --jobs (threads per invocation)"
+    )
+```
+
+#### Pool Configuration
+
+Pools are configured in `docker/dagster/dagster.yaml`:
+
+```yaml
+concurrency:
+  pools:
+    default_limit: 1  # Default: only 1 asset per pool runs at a time
+```
+
+With `default_limit: 1`, only one asset from each pool can run at a time across the entire Dagster instance.
+
+#### Purpose of Pools for Different Asset Types
+
+Pools serve different purposes depending on whether assets are partitioned:
+
+**Partitioned assets** (e.g., `laz_files_ahn3`, `reconstructed_building_models_nl`):
+- Limit concurrent partitions of the **same asset**
+- Example: With `pool="roofer"` and `limit: 1`, only 1 partition of `reconstructed_building_models_nl` runs at a time
+- Prevents: 10 partitions each spawning 10-threaded roofer processes → 100 threads competing for resources
+
+**Non-partitioned assets** (e.g., tyler tiling assets, compression, validation):
+- Limit concurrent execution across **different assets** using the same tool/resource
+- Example: 4 tyler assets (`reconstruction_output_multitiles_nl`, `reconstruction_output_3dtiles_lod12_nl`, etc.) all share `pool="tyler"`
+- With `default_limit: 1`, only 1 tyler asset can run at a time
+- Prevents: Multiple different assets running tyler simultaneously, each with multi-threaded execution → resource overload
+
+#### Example: Tyler Assets
+
+Without pools:
+```
+Dagster sees 4 independent tyler assets with satisfied dependencies
+→ Tries to run all 4 in parallel
+→ Each spawns a multi-threaded tyler process (e.g., 10 threads each)
+→ System gets 40+ threads competing for CPU/memory → OVERLOAD
+```
+
+With `pool="tyler"` and `limit: 1`:
+```
+Only 1 tyler asset runs at a time
+→ That single invocation uses tool-level concurrency (10 threads)
+→ Other tyler assets queue until the first completes
+→ System stays within resource budget
+```
+
+#### Pool Assignments in the Pipeline
+
+Current pool assignments (see `docker/.env` for limits):
+
+- `pool="laz_download"` - AHN LAZ file downloads (prevents network/disk saturation)
+- `pool="ahn"` - AHN metadata and indexing operations
+- `pool="roofer"` - 3D reconstruction (memory/CPU intensive)
+- `pool="tyler"` - Multiple tiling assets share this pool
+- `pool="compression"` - Archive compression operations
+- `pool="validation"` - Format validation with ProcessPoolExecutor
+
+#### Environment Variables
+
+Concurrency limits are configured via environment variables in `docker/.env`:
+
+```bash
+# Run-level: max concurrent partitions within one job execution
+BAG3D_CONCURRENCY_JOB_NL_RECONSTRUCT=1
+
+# Tool-level: threads/workers per single tool invocation
+BAG3D_CONCURRENCY_TOOL_ROOFER=10
+BAG3D_CONCURRENCY_TOOL_TYLER=10
+BAG3D_CONCURRENCY_JOB_ARCHIVE=10
+BAG3D_CONCURRENCY_TOOL_VALIDATION=4
+```
+
+These values are read by asset configs using `Field(default_factory=lambda: int(getenv(...)))`.
+
+#### When to Add Pools to Assets
+
+Add a pool to an asset when:
+
+1. **Partitioned assets**: The asset runs many partitions that shouldn't all execute simultaneously
+2. **Resource-intensive tools**: The asset uses expensive tools (CPU/memory/disk) that shouldn't run multiple instances in parallel
+3. **Shared tool across assets**: Multiple different assets use the same tool and shouldn't run concurrently
+
+Without appropriate pool assignments, Dagster will attempt to parallelize asset execution based on the DAG structure alone, which can lead to resource exhaustion.
+
 #### Terminate all in the queue
 
 Needs to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
