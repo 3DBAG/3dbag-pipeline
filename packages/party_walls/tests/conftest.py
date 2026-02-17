@@ -23,6 +23,9 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 VERSION = "test_version"
 
+# Ensure partition definitions can read the version from environment
+os.environ["BAG3D_RELEASE_VERSION"] = VERSION
+
 
 @pytest.fixture(scope="session")
 def test_data_dir():
