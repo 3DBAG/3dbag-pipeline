@@ -299,7 +299,7 @@ The 3DBAG pipeline uses Dagster's concurrency pools to manage resource usage acr
 
 The pipeline implements two distinct levels of concurrency control:
 
-**1. Run-level concurrency (pools)**
+**1. Pool-level concurrency**
 Controls how many asset materializations can execute **simultaneously** across the Dagster instance. Configured via the `pool` parameter on assets:
 
 ```python
@@ -308,7 +308,7 @@ def reconstructed_building_models_nl(...):
     ...
 ```
 
-**2. Tool-level concurrency (config)**
+**2. Tool-level concurrency**
 Controls threads/workers **within a single tool invocation**. Configured via asset config parameters:
 
 ```python
@@ -366,7 +366,7 @@ Only 1 tyler asset runs at a time
 
 #### Pool Assignments in the Pipeline
 
-Current pool assignments (see `docker/.env` for limits):
+Current pool assignments (limits configured in deployment `.env` files):
 
 - `pool="laz_download"` - AHN LAZ file downloads (prevents network/disk saturation)
 - `pool="ahn"` - AHN metadata and indexing operations
@@ -380,17 +380,16 @@ Current pool assignments (see `docker/.env` for limits):
 Concurrency limits are configured via environment variables in `docker/.env`:
 
 ```bash
-# Run-level: max concurrent partitions within one job execution
-BAG3D_CONCURRENCY_JOB_NL_RECONSTRUCT=1
-
 # Tool-level: threads/workers per single tool invocation
 BAG3D_CONCURRENCY_TOOL_ROOFER=10
 BAG3D_CONCURRENCY_TOOL_TYLER=10
-BAG3D_CONCURRENCY_JOB_ARCHIVE=10
+BAG3D_CONCURRENCY_TOOL_ARCHIVE=10
 BAG3D_CONCURRENCY_TOOL_VALIDATION=4
 ```
 
 These values are read by asset configs using `Field(default_factory=lambda: int(getenv(...)))`.
+
+Pool-level limits are configured in deployment `.env` files only (see "Configuring Pool Limits per Deployment" below).
 
 #### When to Add Pools to Assets
 
@@ -401,6 +400,42 @@ Add a pool to an asset when:
 3. **Shared tool across assets**: Multiple different assets use the same tool and shouldn't run concurrently
 
 Without appropriate pool assignments, Dagster will attempt to parallelize asset execution based on the DAG structure alone, which can lead to resource exhaustion.
+
+#### Configuring Pool Limits per Deployment
+
+Pool limits in `dagster.yaml` default to `default_limit: 1` (one asset per pool at a time). For production or PC deployments, limits are set dynamically via environment variables when `runner.py` executes.
+
+Add `BAG3D_POOL_LIMIT_*` variables to the deployment `.env` file:
+
+```bash
+# Pool-level: max concurrent Dagster asset materializations per pool
+BAG3D_POOL_LIMIT_ROOFER=1
+BAG3D_POOL_LIMIT_TYLER=1
+BAG3D_POOL_LIMIT_COMPRESSION=20
+BAG3D_POOL_LIMIT_VALIDATION=10
+BAG3D_POOL_LIMIT_AHN=9
+BAG3D_POOL_LIMIT_LAZ_DOWNLOAD=1
+```
+
+`runner.py` reads these variables and sets the limits via the Dagster GraphQL API before submitting jobs. Limits are stored in PostgreSQL and persist across daemon restarts.
+
+**Local development** uses `default_limit: 1` for all pools — no configuration needed.
+
+To check current pool limits on a running deployment:
+
+```shell
+# Production
+just -f deployment/3dbag-pipeline/production/justfile concurrency-status
+
+# PC
+just -f deployment/3dbag-pipeline/pc/justfile concurrency-status
+```
+
+To manually adjust a limit (e.g. for local testing):
+
+```shell
+dagster instance concurrency set-limit <pool> <limit>
+```
 
 #### Terminate all in the queue
 

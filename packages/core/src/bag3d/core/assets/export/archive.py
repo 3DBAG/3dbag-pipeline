@@ -177,7 +177,7 @@ def compress_files(input_tile_path):
 
 class CompressionConfig(Config):
     concurrency: int = Field(
-        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_JOB_ARCHIVE", "1")),
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_ARCHIVE", "1")),
         description="ProcessPoolExecutor max_workers for compression",
     )
 

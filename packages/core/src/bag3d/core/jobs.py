@@ -1,5 +1,4 @@
-from os import getenv
-from dagster import define_asset_job, AssetSelection, multiprocess_executor
+from dagster import define_asset_job, AssetSelection
 
 
 job_bgt = define_asset_job(
@@ -75,9 +74,6 @@ job_source_input = define_asset_job(
 job_nl_reconstruct = define_asset_job(
     name="nl_reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
-    executor_def=multiprocess_executor.configured(
-        {"max_concurrent": int(getenv("BAG3D_CONCURRENCY_JOB_NL_RECONSTRUCT", 1))}
-    ),
     selection=AssetSelection.assets(
         ["reconstruction", "reconstructed_building_models_nl"]
     ),
