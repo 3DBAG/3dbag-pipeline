@@ -2,10 +2,12 @@ import csv
 import zipfile
 from zipfile import ZipFile
 import gzip
+from os import getenv
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
 from dagster import asset, Output, AssetKey, Config, get_dagster_logger
+from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import GDALResource
@@ -174,13 +176,17 @@ def compress_files(input_tile_path):
 
 
 class CompressionConfig(Config):
-    concurrency: int = 1
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_ARCHIVE", "1")),
+        description="ProcessPoolExecutor max_workers for compression",
+    )
 
 
 @asset(
     deps={
         AssetKey("geopackage_nl"),
     },
+    pool="compression",
 )
 def compressed_tiles(
     config: CompressionConfig,

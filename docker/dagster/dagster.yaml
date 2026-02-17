@@ -34,7 +34,9 @@ local_artifact_storage:
 
 concurrency:
   runs:
-    tag_concurrency_limits:
-      - key: "dagster/concurrency_key"
-        value: "laz_download"
-        limit: 1
+    max_concurrent_runs: 8
+  pools:
+    default_limit: 1
+
+telemetry:
+  enabled: false

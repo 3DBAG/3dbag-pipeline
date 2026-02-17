@@ -1,5 +1,12 @@
 run_coordinator:
   module: dagster.core.run_coordinator
   class: QueuedRunCoordinator
-  config:
+
+concurrency:
+  runs:
     max_concurrent_runs: 8
+  pools:
+    default_limit: 1
+
+telemetry:
+  enabled: false

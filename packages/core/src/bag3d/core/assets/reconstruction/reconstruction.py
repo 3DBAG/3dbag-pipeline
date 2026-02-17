@@ -2,6 +2,7 @@ import time
 from copy import deepcopy
 from datetime import date
 from hashlib import sha1
+from os import getenv
 
 from dagster import (
     asset,
@@ -35,7 +36,10 @@ class RooferConfig(Config):
         default=True, description="Drop the tile view after reconstruction"
     )
     loglevel: str = Field(default="info", description="Roofer --loglevel.")
-    concurrency: int = Field(default=10, description="Roofer --jobs")
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_ROOFER", "10")),
+        description="Roofer --jobs",
+    )
 
 
 def generate_3dbag_version_date():
@@ -79,6 +83,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "reconstruction_input": AssetIn(key_prefix="input"),
     },
     code_version=tool_versions.get_version("roofer"),
+    pool="roofer",
 )
 def reconstructed_building_models_nl(
     context: AssetExecutionContext,

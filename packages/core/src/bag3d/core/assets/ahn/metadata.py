@@ -45,7 +45,7 @@ def metadata_table_ahn5(db_connection: DatabaseResource):
     return metadata_table_ahn(db_connection, ahn_version=5)
 
 
-@asset(partitions_def=partition_definition_ahn)
+@asset(partitions_def=partition_definition_ahn, pool="ahn")
 def metadata_ahn3(
     context: AssetExecutionContext,
     config: MetadataConfig,
@@ -69,7 +69,7 @@ def metadata_ahn3(
     )
 
 
-@asset(partitions_def=partition_definition_ahn)
+@asset(partitions_def=partition_definition_ahn, pool="ahn")
 def metadata_ahn4(
     context: AssetExecutionContext,
     config: MetadataConfig,
@@ -93,7 +93,7 @@ def metadata_ahn4(
     )
 
 
-@asset(partitions_def=partition_definition_ahn)
+@asset(partitions_def=partition_definition_ahn, pool="ahn")
 def metadata_ahn5(
     context: AssetExecutionContext,
     config: MetadataConfig,

@@ -1,10 +1,12 @@
 import json
 import os
+from os import getenv
 from pathlib import Path
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
 from dagster import AssetKey, asset, Config, get_dagster_logger
+from pydantic import Field
 
 from bag3d.common.resources import tool_versions
 from bag3d.common.resources.specs import Specs3DBAGResource
@@ -167,13 +169,17 @@ def reconstruction_output_tiles_func(
 
 
 class TylerConfig(Config):
-    concurrency: int = 1
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_TYLER", "1")),
+        description="RAYON_NUM_THREADS for tyler",
+    )
     verbose: bool = False
 
 
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
     code_version=tool_versions.get_version("tyler-multiformat"),
+    pool="tyler",
 )
 def reconstruction_output_multitiles_nl(
     config: TylerConfig,
@@ -208,6 +214,7 @@ def reconstruction_output_multitiles_nl(
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
     code_version=tool_versions.get_version("tyler"),
+    pool="tyler",
 )
 def reconstruction_output_3dtiles_lod12_nl(
     config: TylerConfig,
@@ -242,6 +249,7 @@ def reconstruction_output_3dtiles_lod12_nl(
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
     code_version=tool_versions.get_version("tyler"),
+    pool="tyler",
 )
 def reconstruction_output_3dtiles_lod13_nl(
     config: TylerConfig,
@@ -276,6 +284,7 @@ def reconstruction_output_3dtiles_lod13_nl(
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
     code_version=tool_versions.get_version("tyler"),
+    pool="tyler",
 )
 def reconstruction_output_3dtiles_lod22_nl(
     config: TylerConfig,

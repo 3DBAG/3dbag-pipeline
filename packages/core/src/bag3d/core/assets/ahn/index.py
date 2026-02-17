@@ -47,6 +47,7 @@ def run_lasindex(
 
 @asset(
     partitions_def=partition_definition_ahn,
+    pool="ahn",
 )
 def lasindex_ahn3(
     context: AssetExecutionContext,
@@ -63,6 +64,7 @@ def lasindex_ahn3(
 
 @asset(
     partitions_def=partition_definition_ahn,
+    pool="ahn",
 )
 def lasindex_ahn4(
     context: AssetExecutionContext,
@@ -79,6 +81,7 @@ def lasindex_ahn4(
 
 @asset(
     partitions_def=partition_definition_ahn,
+    pool="ahn",
 )
 def lasindex_ahn5(
     context: AssetExecutionContext,
