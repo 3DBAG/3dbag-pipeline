@@ -1,5 +1,6 @@
 import pytest
 from bag3d.party_walls.assets.party_walls import (
+    PartyWallsConfig,
     cityjsonfeatures_with_party_walls_nl,
     distribution_tiles_files_index,
     features_file_index,
@@ -37,6 +38,7 @@ def test_party_walls(context, database, mock_distribution_tiles_files_index):
 def test_features_file_index(file_store_fastssd_resource):
     """Can we find and map all the cityjson feature files of the test data?"""
     result = features_file_index(
+        PartyWallsConfig(),
         file_store_fastssd_resource,
     )
     assert len(result) == 415

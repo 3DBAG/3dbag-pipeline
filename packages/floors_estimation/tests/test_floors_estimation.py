@@ -3,6 +3,8 @@ from pathlib import Path
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 from bag3d.floors_estimation.assets.floors_estimation import (
+    FloorsEstimationConfig,
+    FloorsEstimationIOConfig,
     all_features,
     bag3d_features,
     external_features,
@@ -18,6 +20,7 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 def test_features_file_index(file_store_fastssd):
     """"""
     result = features_file_index(
+        FloorsEstimationConfig(),
         file_store_fastssd,
     )
     assert len(result) == 413
@@ -61,6 +64,7 @@ def test_make_chunks():
 
 def test_bag3d_features(database, mock_features_file_index):
     res = bag3d_features(
+        FloorsEstimationConfig(),
         mock_features_file_index,
         database,
     )
@@ -143,6 +147,7 @@ def test_save_cjfiles(
 
     file_store_resource = FileStoreResource(data_dir=str(file_store_tmp))
     save_cjfiles(
+        FloorsEstimationIOConfig(),
         mock_inferenced_floors,
         mock_features_file_index,
         file_store_resource,
