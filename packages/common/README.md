@@ -18,12 +18,14 @@ It will appear in the `pyproject.toml` file of the workflow package as:
 bag3d-common = { path = "packages/common", editable = true }
 ```
 
-For example use the resources in some `module.py` in the workflow package:
+For example, inject a resource into an asset in the workflow package using type-hinted parameters:
 
 ```python
-from bag3d.common.resources import database
+from bag3d.common.resources.database import DatabaseResource
 
-database.db_connection
+@asset
+def my_asset(context, db_connection: DatabaseResource):
+    data = db_connection.connect.get_dict(query)
 ```
 
 ## Documentation
