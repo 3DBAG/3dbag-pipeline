@@ -47,7 +47,7 @@ Contains the `party_walls` package, based on `3dgi/3dbag-pipeline-tools`.
 The image contains all build dependencies for installing the python project, so that it is possible to develop the code in a container.
 The Dockerfile is `docker/pipeline/bag3d-party-walls.dockerfile`.
 
-[`3dgi/3dbag-pipeline-party-dagster`](https://hub.docker.com/r/3dgi/3dbag-pipeline-dagster)
+[`3dgi/3dbag-pipeline-dagster`](https://hub.docker.com/r/3dgi/3dbag-pipeline-dagster)
 
 Image for running the dagster webserver and daemon.
 The Dockerfile is `docker/dagster/Dockerfile`.

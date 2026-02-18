@@ -31,6 +31,7 @@ The project uses a monorepo with independent packages to avoid dependency confli
   - `assets/reconstruction/` - 3D building reconstruction using roofer
   - `assets/export/` - Validation and format conversion
   - `assets/deploy/` - Deployment to servers
+  - `assets/release/` - Final release publishing
 
 - **packages/floors_estimation/** - ML-based floor count prediction workflow (separate due to heavy sklearn dependencies)
 
@@ -55,7 +56,7 @@ Each workflow package registers a Dagster code location (files named `code_locat
 - Job definitions for orchestrating asset groups
 - Resource configuration for the workflow
 
-The dagster/workspace.yaml registers all code locations and the dagster/dagster.yaml configures Dagster's run/event storage to use PostgreSQL.
+The `dagster/workspace.yaml` registers all code locations and `dagster/dagster.yaml` configures Dagster's run/event storage to use PostgreSQL.
 
 ## Development Commands
 
@@ -67,17 +68,11 @@ All commands use `uv` (modern Python package manager). Docker is required for te
 # Install dev dependencies into root .venv (includes dev, docs, lint groups)
 uv sync
 
-# Add dependency to root pyproject.toml
-uv add --dev <package>
-
 # Add dependency to a specific package
 uv add -p packages/core --dev <package>
 
 # Update dependencies
 uv sync --upgrade
-
-# Use a specific Python version
-uv python pin 3.11
 ```
 
 ### Local Development (without Docker)
@@ -98,12 +93,12 @@ make local_dev
 ### Code Quality (Ruff)
 
 ```bash
-# Lint and format check
+# Apply formatting and run lint checks (modifies files)
 make format
 
 # Manual formatting (without make)
-ruff check packages/*/src/ scripts/
-ruff format packages/*/src/ scripts/ --preview
+uv tool run ruff format ./packages
+uv tool run ruff check ./packages
 ```
 
 Ruff is configured for line-length 88, double quotes, and space indentation. Config is in pyproject.toml `[tool.ruff]` section.
@@ -144,6 +139,9 @@ make docker_restart_containers
 Tests run inside Docker containers. Database and execution context are provided automatically.
 
 ```bash
+# Download test data first (required once)
+make download
+
 # Run all tests (standard unit tests only)
 make test
 
@@ -158,6 +156,9 @@ make test_deploy
 
 # Run all test variants
 make test_all
+
+# Parse test results from log file
+make test_report
 ```
 
 Tests are organized per package:
@@ -167,9 +168,9 @@ Tests are organized per package:
 - `packages/party_walls/tests/` - Party walls tests
 
 Test markers:
-- `--run-slow` - Include slow tests
-- `--run-all` - Include all test variants (integration, slow, deploy)
-- `--run-deploy` - Include deployment tests
+- `--run-slow` - Include slow tests (`@pytest.mark.slow`)
+- `--run-all` - Include tests needing local tool builds (`@pytest.mark.needs_tools`)
+- `--run-deploy` - Include deployment tests (`@pytest.mark.needs_deploy`)
 
 Single test execution from inside a container:
 ```bash
@@ -195,37 +196,34 @@ mkdocs serve
 
 # Build for production
 mkdocs build
-
-# Documentation is auto-published by GitHub Actions to https://innovation.3dbag.nl/3dbag-pipeline
 ```
 
-Documentation is in `docs/` and configured in mkdocs.yml with Material theme. API docs are auto-generated from docstrings.
+Documentation is in `docs/` and configured in mkdocs.yml with Material theme. API docs are auto-generated from docstrings. Auto-published to https://innovation.3dbag.nl/3dbag-pipeline via GitHub Actions.
 
 ## Key Implementation Patterns
 
 ### Dagster Assets and Definitions
 
-Assets are defined using the `@asset` decorator and organized in `asset_groups.py`. Related assets are grouped for job creation. Each workflow package exports a `Definitions` object from `code_location.py` that includes:
+Assets are defined using the `@asset` decorator and organized in `asset_groups.py`. Related assets are grouped for job creation using `load_assets_from_package_module` with a `key_prefix` and `group_name`. Each workflow package exports a `Definitions` object from `code_location.py` that includes:
 - Asset groups
 - Jobs (explicit orchestration of asset groups)
 - Resources (database, executables, file operations)
 - Sensors for automation
 
+**Asset key convention:** Assets use the key format `["group_name", "asset_name"]` (e.g., `AssetKey(["ahn", "md5_ahn3"])`). Note: `@multi_asset` decorated assets do NOT inherit `key_prefix` from `load_assets_from_package_module` — they must explicitly set their keys.
+
 **Asset Configuration:**
-Assets can accept configuration using Pydantic `Config` classes. Configuration is defined separately and passed to Dagster:
+Assets can accept configuration using Pydantic `Config` classes:
 
 ```python
 from dagster import Config
 from pydantic import Field
 
 class MyAssetConfig(Config):
-    """Configuration for my_asset."""
     force_recompute: bool = Field(default=False, description="Force recompute even if data exists")
-    parallel: int = Field(default=4, description="Number of parallel workers")
 
 @asset
 def my_asset(context, config: MyAssetConfig, db_connection: DatabaseResource):
-    # Access config as typed attributes
     if config.force_recompute:
         # ...
 ```
@@ -240,65 +238,31 @@ from bag3d.common.resources.files import FileStoreResource
 
 @asset
 def my_asset(context, db_connection: DatabaseResource, file_store: FileStoreResource):
-    # Access resource attributes directly
     data = db_connection.connect.get_dict(query)
     path = file_store.file_store.data_dir
 ```
 
-The `common` package provides reusable resources:
+The `common` package provides reusable resources (all in `packages/common/src/bag3d/common/resources/`):
 - **DatabaseResource** - PostgreSQL connection and database operations
-- **FileStoreResource** - File system access and paths
-- **VersionResource** - Build version management
+- **FileStoreResource** - File system access and paths (two instances: `file_store` and `file_store_fastssd` for different storage tiers)
 - **GDALResource** - GDAL/OGR tools for vector/raster processing
 - **TylerResource** - 3D tile generation tool
 - **RooferResource** - 3D building reconstruction tool
 - **PDALResource** - Point cloud processing (LAZ/LAS files)
-- **ServerTransferResource** - Secure file transfer to deployment servers
+- **LASToolsResource** - LASTools suite (lasindex, las2las, lasinfo)
+- **ServerTransferResource** - Secure file transfer to deployment servers (`godzilla_server`, `podzilla_server`)
 - **GeoflowResource** - 3D geometry processing
 - **ValidationResource** - Data validation tools
 - **Specs3DBAGResource** - Building specifications from bag3d-specs
-- **VersionResource** - Version management
+- **ReleaseVersionResource** / **ToolVersionsResource** - Version management
 
-See `packages/common/src/bag3d/resources/` for resource implementations.
+### Resource Configuration via `DAGSTER_DEPLOYMENT`
 
-**Testing with Resources:**
-In tests, resources are passed to assets directly as parameters:
+The `DAGSTER_DEPLOYMENT` environment variable controls how resources are configured:
+- `default` - Resources configured at run launch (via Dagster UI run config)
+- `production` / `user` / `pytest` / `pc` - Resources loaded from environment variables at startup
 
-```python
-def test_my_asset(context):  # context has resources via Dagster fixtures
-    result = my_asset(context, context.resources.db_connection, context.resources.file_store)
-```
-
-Or use Dagster's **Definitions** pattern which automatically injects resources:
-
-```python
-from dagster import Definitions, load_assets_from_package_module
-
-assets = load_assets_from_package_module(assets_module)
-defs = Definitions(assets=assets, resources={...})
-# When executed, resources are auto-injected to asset functions
-```
-
-### External Tool Execution
-
-The pipeline orchestrates external CLI tools through the `CommandRunner` (renamed from `AppImage`). This handles:
-- Docker container execution
-- Local subprocess execution
-- Output capture and error handling
-- Tool versioning management
-
-The current branch (215-upgrade-to-dagster-pipes) is migrating to Dagster's native Pipes feature for better subprocess management. See recent commits:
-- `7f08f3d` - Refactor remaining appimage calls and tests
-- `9303d39` - Remove dagster-shell dependency
-- `17f6f5c` - Migrate all call sites from .app.execute() to .runner.run()
-
-### Database Design
-
-PostgreSQL stores both:
-- Dagster's internal state (runs, events, schedules) - configured in `docker/dagster/dagster.yaml`
-- Pipeline data (reconstructed buildings, metadata, validation results) - in `data-postgresql` service
-
-Database initialization and schema management happens via SQL files in `packages/common/src/bag3d/sqlfiles/`.
+In `production` mode, env vars like `BAG3D_PG_HOST`, `EXE_PATH_OGR2OGR`, `BAG3D_FILESTORE`, etc. are read at import time. In Docker containers, `DAGSTER_DEPLOYMENT=pytest` is used so tests pick up resources from env vars automatically.
 
 ### Testing Pattern
 
@@ -307,44 +271,53 @@ Tests use pytest with these conventions:
 - `conftest.py` provides fixtures (database setup, resources, paths)
 - Integration tests marked with `@pytest.mark.integration`
 - Slow tests marked with `@pytest.mark.slow`
-- Test data stored in `tests/test_data/` (use `make download` to fetch if needed)
+- Tests requiring tool builds marked with `@pytest.mark.needs_tools`
+- Test data stored in `tests/test_data/` (use `make download` to fetch)
+
+**Testing assets directly:**
+```python
+def test_my_asset(database, file_store):
+    result = my_asset(build_op_context(), database, file_store)
+```
+
+**Testing assets that depend on other assets** uses `MockAssetIOManager` (defined in `packages/core/tests/conftest.py`) to provide pre-configured return values for upstream assets without materializing them.
+
+### Sensors and Automation
+
+The core code location uses two automation mechanisms:
+- `AutomationConditionSensorDefinition` (`"automation_condition_sensor"`) - watches `AssetSelection.all()` and triggers based on `AutomationCondition` decorators on individual assets
+- `ahn_checksum_sensor` - a `@multi_asset_sensor` that monitors AHN checksum assets for changes and triggers per-partition job runs only for tiles with changed checksums; uses cursor to store previous checksums as JSON
+
+Both sensors are started (`DefaultSensorStatus.RUNNING`) only when `DAGSTER_DEPLOYMENT == "production"`, and stopped otherwise.
+
+### Database Design
+
+PostgreSQL stores both:
+- Dagster's internal state (runs, events, schedules) - configured in `docker/dagster/dagster.yaml`
+- Pipeline data (reconstructed buildings, metadata, validation results) - in `data-postgresql` service
+
+Database initialization and schema management happens via SQL files in `packages/common/src/bag3d/common/sqlfiles/` and `packages/core/src/bag3d/core/sqlfiles/`.
 
 ## Configuration
 
 ### Environment Variables
 
-- **Local development:** `.env` file (not committed, see `.env.example` if it exists)
+- **Local development:** `.env` file (not committed, required by makefile for `make download` target)
 - **Docker services:** `docker/.env` (committed, contains volume names and PostgreSQL credentials)
 - **Dagster home:** `tests/dagster_home/` contains `dagster.yaml` and `workspace.yaml`
 
-### Package-Specific Configuration
-
-Each package has its own `pyproject.toml`:
-- `packages/common/pyproject.toml` - Shared utilities and resources
-- `packages/core/pyproject.toml` - Core workflow dependencies
-- `packages/floors_estimation/pyproject.toml` - Heavy sklearn dependencies
-- `packages/party_walls/pyproject.toml` - Spatial computation dependencies
-
-Root `pyproject.toml` defines development dependencies and build tools (bumpver, ruff, mkdocs).
+Key environment variables:
+- `DAGSTER_DEPLOYMENT` - Controls resource configuration mode (`default`, `production`, `pytest`, `user`, `pc`)
+- `BAG3D_PG_HOST/PORT/USER/PASSWORD/DATABASE` - PostgreSQL connection
+- `BAG3D_FILESTORE`, `BAG3D_FILESTORE_FASTSSD` - Data storage paths
+- `EXE_PATH_*` - Paths to external tool executables
+- `BAG3D_RELEASE_VERSION` - Current release version string
 
 ### Dagster Configuration
 
 - `docker/dagster/dagster.yaml` - Dagster daemon config, PostgreSQL storage, workspace location
 - `docker/dagster/workspace.yaml` - Code location definitions (points to each package's `code_location.py`)
 - Deployed to `DAGSTER_HOME` volume via makefile target
-
-## File Structure Reference
-
-Key files to know:
-
-- `packages/*/src/bag3d/` - Source code root for each package (follows Python packaging convention)
-- `packages/*/tests/conftest.py` - Pytest fixtures and test setup
-- `packages/*/code_location.py` - Dagster definitions exported for orchestration
-- `packages/*/asset_groups.py` - Asset grouping for job creation
-- `docker/compose.yaml` - Service definitions and orchestration
-- `docker/.env` - Service configuration (volumes, credentials)
-- `.github/workflows/` - CI/CD pipelines (build, test, lint, release, docs)
-- `scripts/` - Utility scripts (monitoring, analysis, database admin)
 
 ## Common Workflows
 
@@ -356,32 +329,9 @@ Key files to know:
 4. Add tests in `tests/` directory
 5. Document in docstring (auto-included in API docs)
 
-### Modifying Pipeline Execution
+### Adding a New Job
 
-Pipeline behavior is defined by:
-- Asset dependencies (implicit via inputs)
-- Job definitions (explicit via `define_asset_job`)
-- Sensors and schedules (automated triggers)
-- Resources (execution context)
-
-Changing execution typically requires modifying `jobs.py` or asset group membership.
-
-### Running Local Development
-
-```bash
-# Full setup
-make docker_up
-# OR quick PostgreSQL setup
-make docker_up_postgres
-
-# Then run tests
-make test
-
-# Or use dagster-webserver for manual testing:
-# 1. Access http://localhost:3000
-# 2. Load code locations from workspace
-# 3. Manually launch asset selections/jobs
-```
+Jobs are defined in `packages/core/src/bag3d/core/jobs.py` using `define_asset_job` with explicit `AssetSelection`. Register in `code_location.py`'s `all_jobs` list.
 
 ### Debugging
 
@@ -398,20 +348,7 @@ The pipeline depends on external tools installed in Docker images:
 - **GDAL/PDAL** - Geospatial data processing
 - **PostgreSQL** - Database backend
 
-All external tools are containerized and versioned via Docker image tags. Tool paths and versions are managed via resources in `packages/common/src/bag3d/resources/executables.py`.
-
-## Recent Refactoring
-
-### Pythonic Resources (Completed)
-The codebase has been migrated from legacy Dagster patterns to **pythonic resources**:
-- Changed from `@asset(required_resource_keys={"resource"})` with `context.resources.resource` access
-- To: **Type-hinted parameters** in asset function signatures
-- All assets now use modern pythonic resource injection: `def asset(context, resource: ResourceType)`
-- All tests updated to pass resources as parameters to assets
-- Improves type safety, IDE autocomplete, and code clarity
-
-### Dagster Pipes Upgrade (In Progress)
-The codebase is upgrading to Dagster Pipes for subprocess management. This replaces the previous shell-based execution pattern with Dagster's native Pipes feature for better error handling and resource management.
+All external tools are containerized and versioned via Docker image tags. Tool paths and versions are managed via resources in `packages/common/src/bag3d/common/resources/executables.py`.
 
 ## License
 

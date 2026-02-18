@@ -246,9 +246,9 @@ The pipeline has the following requirements:
 
 - [pdal](https://github.com/PDAL/PDAL)
 
-The `build-tools.sh` Bash script can help you to build the required tools. 
-See `build-tools.sh --help` for usage instructions.
-Note that you need to run `build-tools.sh` with `bash` (not `sh`), and it can take a 
+The `tools-build.sh` Bash script at the root of the repository can help you to build the required tools.
+See `tools-build.sh --help` for usage instructions.
+Note that you need to run `tools-build.sh` with `bash` (not `sh`), and it can take a
 couple of hours to build everything.
 Requirements for building the tools:
 
@@ -520,12 +520,12 @@ This query to get the asset materializations metadata and asset dependencies (li
     group: {
       groupName: "top10nl"
       repositoryName: "__repository__"
-      repositoryLocationName: "core_py_311_virtual_env"
+      repositoryLocationName: "<your-code-location-name>"
     }
     pipeline: {
       pipelineName: "source_input"
       repositoryName: "__repository__"
-      repositoryLocationName: "core_py_311_virtual_env"
+      repositoryLocationName: "<your-code-location-name>"
     }
     # assetKeys: { path: ["top10nl", "stage_top10nl_gebouw"] }
     loadMaterializations: true
