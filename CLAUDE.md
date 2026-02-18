@@ -80,6 +80,21 @@ uv sync --upgrade
 uv python pin 3.11
 ```
 
+### Local Development (without Docker)
+
+```bash
+# Install uv (if not already installed)
+make local_install_uv
+
+# Create virtualenvs for all packages
+make local_venv
+
+# Run the Dagster dev server locally (uses tests/dagster_home/workspace.yaml)
+make local_dev
+```
+
+`make local_dev` starts Dagster at http://localhost:3000 using the local workspace config, without requiring Docker containers for the workflow services.
+
 ### Code Quality (Ruff)
 
 ```bash
