@@ -1,6 +1,6 @@
 from typing import Optional
 
-from dagster import asset, Output, Config, get_dagster_logger
+from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
 from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
@@ -23,7 +23,7 @@ class BgtDownloadConfig(Config):
     )
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 6 9 * *"))
 def extract_bgt(
     config: BgtDownloadConfig,
     file_store: FileStoreResource,

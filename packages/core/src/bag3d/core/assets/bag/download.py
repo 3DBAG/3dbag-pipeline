@@ -9,6 +9,7 @@ from dagster import (
     Config,
     DataVersion,
     get_dagster_logger,
+    AutomationCondition,
 )
 from pydantic import Field
 from lxml import objectify
@@ -48,7 +49,7 @@ class BagDownloadConfig(Config):
 #  3D BAG (eg viewer).
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
 def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]:
     """Download the latest LVBAG extract from PDOK.
 
@@ -94,7 +95,7 @@ def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]
     )
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bag_woonplaats(
     config: BagDownloadConfig,
     db_connection: DatabaseResource,
@@ -119,7 +120,7 @@ def stage_bag_woonplaats(
     return Output(new_table, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bag_verblijfsobject(
     config: BagDownloadConfig,
     db_connection: DatabaseResource,
@@ -144,7 +145,7 @@ def stage_bag_verblijfsobject(
     return Output(new_table, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bag_pand(
     config: BagDownloadConfig,
     db_connection: DatabaseResource,
@@ -169,7 +170,7 @@ def stage_bag_pand(
     return Output(new_table, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bag_openbareruimte(
     config: BagDownloadConfig,
     db_connection: DatabaseResource,
@@ -194,7 +195,7 @@ def stage_bag_openbareruimte(
     return Output(new_table, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bag_nummeraanduiding(
     config: BagDownloadConfig,
     db_connection: DatabaseResource,

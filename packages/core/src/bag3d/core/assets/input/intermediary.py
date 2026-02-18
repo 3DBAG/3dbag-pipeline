@@ -1,4 +1,4 @@
-from dagster import asset, Output, AssetIn, get_dagster_logger
+from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
 
 from bag3d.common.utils.database import (
     create_schema,
@@ -21,6 +21,7 @@ logger = get_dagster_logger("input.intermediary")
         "top10nl_gebouw": AssetIn(key_prefix="top10nl"),
     },
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_kas_warenhuis(
     bag_pandactueelbestaand, top10nl_gebouw, db_connection: DatabaseResource
@@ -47,6 +48,7 @@ def bag_kas_warenhuis(
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
     },
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_bag_overlap(bag_pandactueelbestaand, db_connection: DatabaseResource):
     """The overlap between BAG polygons, in m2. For every object the

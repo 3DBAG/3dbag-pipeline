@@ -1,4 +1,4 @@
-from dagster import asset, Output, AssetIn, get_dagster_logger
+from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
 from psycopg.sql import SQL
 
 from bag3d.common.utils.database import (
@@ -21,6 +21,7 @@ logger = get_dagster_logger("input.input_for_reconstruction")
         "bag_bag_overlap": AssetIn(key_prefix="intermediary"),
     },
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def reconstruction_input(
     bag_pandactueelbestaand,

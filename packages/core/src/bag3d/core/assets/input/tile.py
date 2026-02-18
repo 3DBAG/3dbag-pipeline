@@ -1,6 +1,12 @@
 import os
 
-from dagster import AssetOut, multi_asset, Output, get_dagster_logger
+from dagster import (
+    AssetOut,
+    multi_asset,
+    Output,
+    get_dagster_logger,
+    AutomationCondition,
+)
 from pgutils import PostgresConnection
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL
@@ -15,7 +21,10 @@ logger = get_dagster_logger("input.tile")
 
 
 @multi_asset(
-    outs={"tiles": AssetOut(), "index": AssetOut()},
+    outs={
+        "tiles": AssetOut(automation_condition=AutomationCondition.eager()),
+        "index": AssetOut(automation_condition=AutomationCondition.eager()),
+    },
     code_version=tool_versions.get_version("tyler-db"),
 )
 def reconstruction_input_tiles(

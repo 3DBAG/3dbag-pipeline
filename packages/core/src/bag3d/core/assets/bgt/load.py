@@ -1,4 +1,4 @@
-from dagster import asset, Output, get_dagster_logger
+from dagster import asset, Output, get_dagster_logger, AutomationCondition
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
@@ -17,7 +17,7 @@ SCHEMA_PROD = "bgt"
 logger = get_dagster_logger("bgt.load")
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_bgt_pand(
     db_connection: DatabaseResource, gdal: GDALResource, extract_bgt
 ) -> Output[PostgresTableIdentifier]:
@@ -40,7 +40,7 @@ def stage_bgt_pand(
     return Output(new_table, metadata=metadata)
 
 
-@asset(op_tags={"kind": "sql"})
+@asset(op_tags={"kind": "sql"}, automation_condition=AutomationCondition.eager())
 def bgt_pandactueelbestaand(
     db_connection: DatabaseResource, stage_bgt_pand
 ) -> Output[PostgresTableIdentifier]:
