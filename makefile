@@ -126,10 +126,6 @@ download:
 	mkdir -p $(BAG3D_TEST_DATA)
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v14.zip ; unzip -q test_data_v14.zip ; rm test_data_v14.zip
 
-
-install_uv:
-	curl -LsSf https://astral.sh/uv/install.sh | sh
-
 format:
 	uv tool run ruff format ./packages
 	uv tool run ruff check ./packages
@@ -138,5 +134,14 @@ docker_build_tools:
 	rm docker_build_tools.log || true
 	docker buildx build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
 
-local_dev_core:
-	uv --project packages/core run dagster dev -w tests/dagster_home/workspace.yaml
+local_install_uv:
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+
+local_venv:
+	uv sync
+	uv --project packages/core sync
+	uv --project packages/floors_estimation sync
+	uv --project packages/party_walls sync
+
+local_dev:
+	uv run dagster dev -w tests/dagster_home/workspace.yaml
