@@ -1,6 +1,13 @@
 from typing import Optional
 
-from dagster import asset, Output, Config, DataVersion, get_dagster_logger
+from dagster import (
+    asset,
+    Output,
+    Config,
+    DataVersion,
+    get_dagster_logger,
+    AutomationCondition,
+)
 from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
@@ -23,7 +30,7 @@ class Top10nlDownloadConfig(Config):
     )
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 12 9 * *"))
 def extract_top10nl(
     config: Top10nlDownloadConfig,
     file_store: FileStoreResource,

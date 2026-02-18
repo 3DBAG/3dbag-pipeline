@@ -1,6 +1,14 @@
-from dagster import Definitions
+from os import getenv
+
+from dagster import (
+    Definitions,
+    AutomationConditionSensorDefinition,
+    AssetSelection,
+    DefaultSensorStatus,
+)
 
 from bag3d.common.resources import resource_defs
+from bag3d.core.sensors import ahn_checksum_sensor
 from bag3d.core.asset_groups import (
     bgt_assets,
     source_assets,
@@ -52,4 +60,20 @@ all_jobs = [
     job_nl_release,
 ]
 
-defs = Definitions(resources=resource_defs, assets=all_assets, jobs=all_jobs)
+sensor_status = (
+    DefaultSensorStatus.RUNNING
+    if getenv("DAGSTER_DEPLOYMENT") == "production"
+    else DefaultSensorStatus.STOPPED
+)
+all_sensors = [
+    AutomationConditionSensorDefinition(
+        "automation_condition_sensor",
+        target=AssetSelection.all(),
+        default_status=sensor_status,
+    ),
+    ahn_checksum_sensor(sensor_status),
+]
+
+defs = Definitions(
+    resources=resource_defs, assets=all_assets, jobs=all_jobs, sensors=all_sensors
+)

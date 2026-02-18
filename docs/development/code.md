@@ -202,6 +202,32 @@ For more options, see `scripts/README.md` or run:
 python3 scripts/parse_test_log.py --help
 ```
 
+## Local development (without Docker)
+
+If you don't need to run the full pipeline (e.g. for working on Dagster definitions, sensors, or Python logic that doesn't require the external tools), you can run the Dagster UI locally without Docker.
+
+Install `uv` if you don't have it yet:
+
+```shell
+make local_install_uv
+```
+
+Create virtual environments for all packages:
+
+```shell
+make local_venv
+```
+
+Start the Dagster dev server:
+
+```shell
+make local_dev
+```
+
+This runs `dagster dev` using `tests/dagster_home/workspace.yaml` and serves the Dagster UI on `http://localhost:3000`.
+
+Note that external tools (roofer, tyler, GDAL, PDAL) are not available in this mode. Assets that invoke those tools will fail unless the tools are installed separately (see below).
+
 ## Installing requirements without the Docker setup
 
 The pipeline has the following requirements:

@@ -16,6 +16,7 @@ from dagster import (
     Config,
     Failure,
     AssetExecutionContext,
+    AutomationCondition,
 )
 
 from bag3d.common.resources.files import FileStoreResource
@@ -138,25 +139,25 @@ class LAZDownload:
         return match
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def md5_ahn3():
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def md5_ahn4():
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def sha256_ahn5():
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn():
     """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)

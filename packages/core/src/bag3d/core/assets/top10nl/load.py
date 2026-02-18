@@ -1,4 +1,4 @@
-from dagster import asset, Output, get_dagster_logger
+from dagster import asset, Output, get_dagster_logger, AutomationCondition
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
@@ -14,7 +14,7 @@ from bag3d.common.types import PostgresTableIdentifier
 logger = get_dagster_logger("top10nl.load")
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def stage_top10nl_gebouw(
     db_connection: DatabaseResource, gdal: GDALResource, extract_top10nl
 ) -> Output[PostgresTableIdentifier]:
@@ -38,7 +38,9 @@ def stage_top10nl_gebouw(
     return Output(new_table, metadata=metadata)
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
+)
 def top10nl_gebouw(
     db_connection: DatabaseResource, stage_top10nl_gebouw
 ) -> Output[PostgresTableIdentifier]:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from dagster import asset, Output, Config, get_dagster_logger
+from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.database import (
@@ -26,6 +26,7 @@ class BagLoadConfig(Config):
 
 @asset(
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_woonplaatsactueelbestaand(
     config: BagLoadConfig,
@@ -53,6 +54,7 @@ def bag_woonplaatsactueelbestaand(
 
 @asset(
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_verblijfsobjectactueelbestaand(
     config: BagLoadConfig,
@@ -89,6 +91,7 @@ def bag_verblijfsobjectactueelbestaand(
 
 @asset(
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_pandactueelbestaand(
     config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_pand
@@ -125,6 +128,7 @@ def bag_pandactueelbestaand(
 
 @asset(
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_openbareruimteactueelbestaand(
     config: BagLoadConfig,
@@ -153,6 +157,7 @@ def bag_openbareruimteactueelbestaand(
 
 @asset(
     op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
 )
 def bag_nummeraanduidingactueelbestaand(
     config: BagLoadConfig,

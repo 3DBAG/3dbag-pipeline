@@ -12,8 +12,17 @@ all_assets = load_assets_from_modules(
     group_name="floors_estimation",
 )
 
-
-model_store = ModelStoreResource(model_path=os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL"))
+dagster_deployment = os.getenv("DAGSTER_DEPLOYMENT", "default")
+if dagster_deployment.lower() == "default":
+    model_store = ModelStoreResource.configure_at_launch()
+elif dagster_deployment.lower() in ["production", "user", "pytest", "pc"]:
+    model_store = ModelStoreResource(
+        model_path=os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL")
+    )
+else:
+    raise RuntimeError(
+        f"Invalid DAGSTER_DEPLOYMENT {dagster_deployment}, cannot configure dagster environment"
+    )
 resource_defs.update({"model_store": model_store})
 
 

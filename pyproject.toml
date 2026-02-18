@@ -13,17 +13,17 @@ docs = [
     "mkdocs-gen-files>=0.5.0",
     "mkdocs-literate-nav>=0.6.1",
     "mkdocs-section-index>=0.3.9",
-    "mkdocstrings[python]>=0.27.0",
+    "mkdocstrings[python]>=1.0.3",
 ]
 lint = [
-    "ruff~=0.12.5",
+    "ruff~=0.15.1",
 ]
 dev = [
-    "dagster~=1.11.2",
-    "dagster-webserver~=1.11.2",
-    "dagster-postgres~=0.27.2",
+    "dagster~=1.12.14",
+    "dagster-webserver~=1.12.14",
     "pytest-dotenv~=0.5.2",
     "bumpver~=2025.1131",
+    "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
 
 [tool.uv]
