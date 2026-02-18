@@ -26,6 +26,7 @@ dependencies = [
     "pandas~=2.2.3",
     "scikit-learn==1.4.0",
     "sklearn-pandas~=2.2.0",
+    "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
 
 [dependency-groups]
