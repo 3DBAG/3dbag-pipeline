@@ -3,7 +3,14 @@ from datetime import datetime
 from functools import partial
 
 import pytz
-from dagster import asset, Output, Config, get_dagster_logger, AssetExecutionContext
+from dagster import (
+    asset,
+    Output,
+    Config,
+    get_dagster_logger,
+    AssetExecutionContext,
+    AutomationCondition,
+)
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
@@ -27,19 +34,19 @@ class MetadataConfig(Config):
     verbose: bool = Field(default=False, description="Output stdout/stderr from pdal")
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
 def metadata_table_ahn3(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=3)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
 def metadata_table_ahn4(db_connection: DatabaseResource):
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=4)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
 def metadata_table_ahn5(db_connection: DatabaseResource):
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=5)

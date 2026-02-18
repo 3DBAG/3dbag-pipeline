@@ -8,6 +8,7 @@ from dagster import (
 )
 
 from bag3d.common.resources import resource_defs
+from bag3d.core.sensors import ahn_checksum_sensor
 from bag3d.core.asset_groups import (
     bgt_assets,
     source_assets,
@@ -69,7 +70,8 @@ all_sensors = [
         "automation_condition_sensor",
         target=AssetSelection.all(),
         default_status=sensor_status,
-    )
+    ),
+    ahn_checksum_sensor(sensor_status),
 ]
 
 defs = Definitions(
