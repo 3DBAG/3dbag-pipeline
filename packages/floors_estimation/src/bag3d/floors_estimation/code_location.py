@@ -1,6 +1,6 @@
 import os
 
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import resource_defs, DagsterDeployment
 from bag3d.floors_estimation.assets import floors_estimation
 from bag3d.floors_estimation.jobs import job_floors_estimation
 from bag3d.floors_estimation.resources import ModelStoreResource
@@ -13,9 +13,9 @@ all_assets = load_assets_from_modules(
 )
 
 dagster_deployment = os.getenv("DAGSTER_DEPLOYMENT", "default")
-if dagster_deployment.lower() == "default":
+if dagster_deployment.lower() == DagsterDeployment.DEFAULT:
     model_store = ModelStoreResource.configure_at_launch()
-elif dagster_deployment.lower() in ["production", "user", "pytest", "pc"]:
+elif dagster_deployment.lower() in DagsterDeployment.env_configured_deployments():
     model_store = ModelStoreResource(
         model_path=os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL")
     )

@@ -7,7 +7,7 @@ from dagster import (
     DefaultSensorStatus,
 )
 
-from bag3d.common.resources import resource_defs
+from bag3d.common.resources import resource_defs, DagsterDeployment
 from bag3d.core.sensors import ahn_checksum_sensor
 from bag3d.core.asset_groups import (
     bgt_assets,
@@ -62,7 +62,7 @@ all_jobs = [
 
 sensor_status = (
     DefaultSensorStatus.RUNNING
-    if getenv("DAGSTER_DEPLOYMENT") == "production"
+    if getenv("DAGSTER_DEPLOYMENT") == DagsterDeployment.PRODUCTION
     else DefaultSensorStatus.STOPPED
 )
 all_sensors = [
