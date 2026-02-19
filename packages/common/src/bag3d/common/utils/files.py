@@ -9,6 +9,7 @@ from zipfile import ZipFile
 from dagster import get_dagster_logger
 
 from bag3d.common.types import ExportResult
+from bag3d.common.resources import DagsterDeployment
 
 
 class BadArchiveError(OSError):
@@ -103,7 +104,7 @@ def get_export_tile_ids() -> Sequence[str]:
     version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
 
     # Only pytest runs use the integration_party_walls/file_store subdirectory
-    if deployment.lower() == "pytest":
+    if deployment.lower() == DagsterDeployment.PYTEST:
         root_dir = (
             Path(os.getenv("BAG3D_FILESTORE", "/data/volume"))
             / "integration_party_walls/file_store"
