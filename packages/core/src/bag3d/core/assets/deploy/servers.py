@@ -210,7 +210,7 @@ def webservice_godzilla(
             "lod22_2d": lod22_2d,
         },
     )
-    sql = db_connection.connect.print_query(sql)
+    sql = db_connection.connection.print_query(sql)
     with godzilla_server.connection as c:
         logger.debug(sql)
         c.run(
@@ -229,7 +229,7 @@ def webservice_godzilla(
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = db_connection.connect.print_query(sql)
+    sql = db_connection.connection.print_query(sql)
     with godzilla_server.connection as c:
         logger.debug(sql)
         c.run(
@@ -273,7 +273,7 @@ def webservice_godzilla(
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = db_connection.connect.print_query(sql)
+    sql = db_connection.connection.print_query(sql)
     with godzilla_server.connection as c:
         logger.debug(sql)
         c.run(

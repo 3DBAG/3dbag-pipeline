@@ -238,7 +238,7 @@ from bag3d.common.resources.files import FileStoreResource
 
 @asset
 def my_asset(context, db_connection: DatabaseResource, file_store: FileStoreResource):
-    data = db_connection.connect.get_dict(query)
+    data = db_connectio.get_dict(query)
     path = file_store.file_store.data_dir
 ```
 

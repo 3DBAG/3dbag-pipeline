@@ -45,7 +45,7 @@ def reconstruction_input(
         }
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
-    db_connection.connect.send_query(
+    db_connection.connection.send_query(
         SQL("ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"),
         query_params={"new_table": new_table},
     )

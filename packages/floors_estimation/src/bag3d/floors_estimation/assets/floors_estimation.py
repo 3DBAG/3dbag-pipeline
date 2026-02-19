@@ -195,7 +195,7 @@ def bag3d_features(
         processing = {
             pool.submit(
                 process_chunk,
-                db_connection.connect,
+                db_connection.connection,
                 chunk,
                 cid,
                 bag3d_features_table,
@@ -270,7 +270,7 @@ def preprocessed_features(
     }
 
     query = inject_parameters(query, query_params)
-    res = db_connection.connect.get_dict(query)
+    res = db_connection.connection.get_dict(query)
     data = pd.DataFrame.from_records(res)
     logger.info(f"Retrieved {len(data)} buildings.")
     data.set_index("identificatie", inplace=True, drop=True)
@@ -316,7 +316,7 @@ def predictions_table(
     query = f"""INSERT INTO {predictions_table}
                 VALUES (%s, %s);"""
 
-    with connect(db_connection.connect.dsn) as connection:
+    with connect(db_connection.connection.dsn) as connection:
         with connection.cursor() as cur:
             cur.executemany(query, data, returning=True)
             connection.commit()

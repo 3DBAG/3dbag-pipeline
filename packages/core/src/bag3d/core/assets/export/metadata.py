@@ -95,7 +95,7 @@ def feature_evaluation(
         version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    conn = db_connection.connect
+    conn = db_connection.connection
 
     lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = (

@@ -20,7 +20,7 @@ class DatabaseResource(ConfigurableResource):
     other_params: Optional[Permissive()] = {}
 
     @property
-    def connect(self) -> DatabaseConnection:
+    def connection(self) -> DatabaseConnection:
         return DatabaseConnection(
             user=self.user,
             password=self.password,

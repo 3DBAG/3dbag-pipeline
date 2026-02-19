@@ -120,7 +120,7 @@ def party_walls_nl(
     ] + paths_neighbours
     df = city_stats(
         inputs=paths_inputs,
-        dsn=db_connection.connect.dsn,
+        dsn=db_connection.connection.dsn,
         break_on_error=True,
     )
     if df is None:
