@@ -54,7 +54,9 @@ def top10nl_gebouw(
         query_params={"gebouw_tbl": stage_top10nl_gebouw, "new_table": new_table}
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
-    db_connection.connection.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    db_connection.connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    )
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
     db_connection.connection.send_query(
         f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)"

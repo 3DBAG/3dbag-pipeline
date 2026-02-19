@@ -38,7 +38,9 @@ def bag_kas_warenhuis(
         }
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
-    db_connection.connection.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    db_connection.connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    )
     return Output(new_table, metadata=metadata)
 
 
@@ -59,5 +61,7 @@ def bag_bag_overlap(bag_pandactueelbestaand, db_connection: DatabaseResource):
         query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
-    db_connection.connection.send_query(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")
+    db_connection.connection.send_query(
+        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+    )
     return Output(new_table, metadata=metadata)
