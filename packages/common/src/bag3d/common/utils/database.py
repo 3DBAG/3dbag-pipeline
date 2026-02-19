@@ -79,7 +79,7 @@ def postgrestable_from_query(
     logger: Logger,
 ) -> dict:
     logger = logger or get_dagster_logger()
-    conn = db_connection.connect
+    conn = db_connection.connection
     # log the query
     logger.info(conn.print_query(query))
     # execute the query
@@ -90,7 +90,7 @@ def postgrestable_from_query(
 def postgrestable_metadata(
     db_connection: DatabaseResource, table: PostgresTableIdentifier
 ) -> dict:
-    conn = db_connection.connect
+    conn = db_connection.connection
     # row count
     row_count = conn.get_count(table)
     # schema
@@ -109,7 +109,7 @@ def postgrestable_metadata(
 
 def drop_table(db_connection: DatabaseResource, new_table, logger: Logger):
     """DROP TABLE IF EXISTS new_table CASCADE"""
-    conn = db_connection.connect
+    conn = db_connection.connection
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
     logger.info(conn.print_query(q))
     conn.send_query(q)
@@ -117,7 +117,7 @@ def drop_table(db_connection: DatabaseResource, new_table, logger: Logger):
 
 def create_schema(db_connection: DatabaseResource, new_schema: str, logger: Logger):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
-    conn = db_connection.connect
+    conn = db_connection.connection
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     logger.info(conn.print_query(q))
     conn.send_query(q)
@@ -134,5 +134,5 @@ def table_exists(db_connection: DatabaseResource, table) -> bool:
                     );""").format(
         schema=Literal(table.schema.str), table=Literal(table.table.str)
     )
-    res = db_connection.connect.get_dict(query)
+    res = db_connection.connection.get_dict(query)
     return res[0]["exists"]

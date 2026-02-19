@@ -25,7 +25,7 @@ from bag3d.common.resources.database import DatabaseResource
 
 @asset
 def my_asset(context, db_connection: DatabaseResource):
-    data = db_connection.connect.get_dict(query)
+    data = db_connection.connection.get_dict(query)
 ```
 
 ## Documentation

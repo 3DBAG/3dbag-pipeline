@@ -304,7 +304,7 @@ def load_bag_layer(
         "layer_dir": layer_id,
         "shortdate": shortdate,
         "new_table": new_table,
-        "dsn": db_connection.connect.dsn,
+        "dsn": db_connection.connection.dsn,
     }
 
     # Create the ogr2ogr command. The order of parameters is important!

@@ -111,6 +111,6 @@ def test_db_connection_init():
         password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
         port=EnvVar("BAG3D_PG_PORT").get_value(),
         dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
-    ).connect
+    ).connection
     q = db.get_query("select version();")
     assert "PostgreSQL" in q[0][0]

@@ -270,7 +270,7 @@ def ogr2postgres(
     kwargs = {
         "new_table": new_table,
         "feature_type": feature_type,
-        "dsn": db_connection.connect.dsn,
+        "dsn": db_connection.connection.dsn,
         "xsd": xsd,
         "dataset": dataset,
     }

@@ -32,7 +32,7 @@ def test_drop_table(resources):
     ).format(
         table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
     )
-    resources["db_connection"].connect.send_query(query)
+    resources["db_connection"].connection.send_query(query)
     assert table_exists(resources["db_connection"], NON_EXISTING_TABLE) is True
     drop_table(resources["db_connection"], NON_EXISTING_TABLE, logger)
     assert table_exists(resources["db_connection"], NON_EXISTING_TABLE) is False
@@ -49,13 +49,13 @@ def test_create_schema(resources):
                 FROM information_schema.schemata
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
-    res = resources["db_connection"].connect.get_dict(query)
+    res = resources["db_connection"].connection.get_dict(query)
     assert res[0]["count"] == 1
 
 
 def test_summary_md(database):
-    null_count = database.connect.count_nulls(EXISTING_TABLE)
-    fields = database.connect.get_fields(EXISTING_TABLE)
+    null_count = database.connection.count_nulls(EXISTING_TABLE)
+    fields = database.connection.get_fields(EXISTING_TABLE)
 
     res = summary_md(fields, null_count)
     assert isinstance(res, str)

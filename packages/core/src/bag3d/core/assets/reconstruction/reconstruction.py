@@ -130,7 +130,7 @@ def reconstructed_building_models_nl(
             raise Failure
     finally:
         if config.drop_views:
-            db_connection.connect.send_query(
+            db_connection.connection.send_query(
                 SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
             )
 
@@ -240,20 +240,20 @@ def create_roofer_config(
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
         r["filename"]
-        for r in db_connection.connect.get_dict(
+        for r in db_connection.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
     ]
     laz_files_ahn4 = [
         r["filename"]
-        for r in db_connection.connect.get_dict(
+        for r in db_connection.connection.get_dict(
             query_laz_tiles, query_params=query_params_ahn4
         )
     ]
     laz_files_ahn5 = [
         r["filename"]
-        for r in db_connection.connect.get_dict(
+        for r in db_connection.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,
         )
@@ -269,7 +269,7 @@ def create_roofer_config(
             USING (fid)
     WHERE ti.tile_id = {tile_id}
     """)
-    db_connection.connect.send_query(
+    db_connection.connection.send_query(
         query_tile_view,
         query_params={
             "tile_view": tile_view,
@@ -283,7 +283,7 @@ def create_roofer_config(
     )
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
-        footprint_file=f"PG:{db_connection.connect.dsn} tables={tile_view}",
+        footprint_file=f"PG:{db_connection.connection.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,

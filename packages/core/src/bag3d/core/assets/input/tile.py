@@ -38,7 +38,7 @@ def reconstruction_input_tiles(
     primary_key = "fid"
     geometry_column = "geometrie"
 
-    conn = db_connection.connect
+    conn = db_connection.connection
     conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db

@@ -157,13 +157,13 @@ def metadata_ahn5_index(
 def create_indices_metadata_table(
     db_connection: DatabaseResource, metadata_table: PostgresTable
 ):
-    db_connection.connect.send_query(
+    db_connection.connection.send_query(
         f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"
     )
-    db_connection.connect.send_query(
+    db_connection.connection.send_query(
         f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"
     )
-    db_connection.connect.send_query(
+    db_connection.connection.send_query(
         f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
     )
 
@@ -196,7 +196,7 @@ def compute_load_metadata(
     """
     logger = get_dagster_logger()
     tile_id = partition_key
-    conn = db_connection.connect
+    conn = db_connection.connection
     if not laz_files_ahn.new:
         if not config.force:
             logger.info(
@@ -249,7 +249,7 @@ def metadata_table_ahn(
     db_connection: DatabaseResource, ahn_version: int
 ) -> PostgresTableIdentifier:
     logger = get_dagster_logger()
-    conn = db_connection.connect
+    conn = db_connection.connection
     new_schema = "ahn"
     create_schema(db_connection, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
