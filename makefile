@@ -74,46 +74,46 @@ test:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
 	exit $$FAILED
 
 test_slow:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
     exit $$FAILED
 
 test_integration:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
     exit $$FAILED
 
 test_deploy:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all --run-deploy -k 'test_integration_deploy_release' 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all --run-deploy -k 'test_integration_deploy_release' --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
     exit $$FAILED
 
 test_all:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
     exit $$FAILED
 
 test_report:
