@@ -88,7 +88,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
     elif configure_from_env:
         # For each tool resource, prefer Docker mode (BAG3D_DOCKER_IMAGE_*) when set,
         # otherwise fall back to local executable paths (EXE_PATH_*).
-        _docker_gdal = os.getenv("BAG3D_DOCKER_IMAGE_GDAL", "")
+        _docker_gdal = os.getenv("BAG3D_DOCKER_IMAGE_GDAL")
         gdal_resource = (
             GDALResource(docker_image=_docker_gdal)
             if _docker_gdal
@@ -99,14 +99,14 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_pdal = os.getenv("BAG3D_DOCKER_IMAGE_PDAL", "")
+        _docker_pdal = os.getenv("BAG3D_DOCKER_IMAGE_PDAL")
         pdal_resource = (
             PDALResource(docker_image=_docker_pdal)
             if _docker_pdal
             else PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
         )
 
-        _docker_lastools = os.getenv("BAG3D_DOCKER_IMAGE_LASTOOLS", "")
+        _docker_lastools = os.getenv("BAG3D_DOCKER_IMAGE_LASTOOLS")
         lastools_resource = (
             LASToolsResource(docker_image=_docker_lastools)
             if _docker_lastools
@@ -117,7 +117,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_tyler = os.getenv("BAG3D_DOCKER_IMAGE_TYLER", "")
+        _docker_tyler = os.getenv("BAG3D_DOCKER_IMAGE_TYLER")
         tyler_resource = (
             TylerResource(docker_image=_docker_tyler)
             if _docker_tyler
@@ -128,7 +128,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_geoflow = os.getenv("BAG3D_DOCKER_IMAGE_GEOFLOW", "")
+        _docker_geoflow = os.getenv("BAG3D_DOCKER_IMAGE_GEOFLOW")
         geoflow_resource = (
             GeoflowResource(docker_image=_docker_geoflow)
             if _docker_geoflow
@@ -138,7 +138,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_validation = os.getenv("BAG3D_DOCKER_IMAGE_VALIDATION", "")
+        _docker_validation = os.getenv("BAG3D_DOCKER_IMAGE_VALIDATION")
         validation_resource = (
             ValidationResource(docker_image=_docker_validation)
             if _docker_validation
@@ -149,7 +149,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_roofer = os.getenv("BAG3D_DOCKER_IMAGE_ROOFER", "")
+        _docker_roofer = os.getenv("BAG3D_DOCKER_IMAGE_ROOFER")
         roofer_resource = (
             RooferResource(docker_image=_docker_roofer)
             if _docker_roofer
