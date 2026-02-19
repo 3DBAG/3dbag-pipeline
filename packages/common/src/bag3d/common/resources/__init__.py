@@ -1,4 +1,5 @@
 import os
+from enum import StrEnum
 
 from dagster import EnvVar, get_dagster_logger
 
@@ -21,6 +22,20 @@ from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsR
 
 logger = get_dagster_logger()
 
+
+class DagsterDeployment(StrEnum):
+    DEFAULT = "default"
+    PRODUCTION = "production"
+    USER = "user"
+    PYTEST = "pytest"
+    PC = "pc"
+
+    @classmethod
+    def env_configured_deployments(cls) -> frozenset[str]:
+        """Return deployment types that use environment variable configuration."""
+        return frozenset({cls.PRODUCTION, cls.USER, cls.PYTEST, cls.PC})
+
+
 version = ReleaseVersionResource(os.getenv("BAG3D_RELEASE_VERSION"))
 
 specs = Specs3DBAGResource()
@@ -41,9 +56,11 @@ tool_versions = ToolVersionsResource(
 def resources_by_deployment(dagster_deployment: str) -> dict:
     configure_at_run_launch = False
     configure_from_env = False
-    if dagster_deployment.lower() == "default":
+    deployment_lower = dagster_deployment.lower()
+
+    if deployment_lower == DagsterDeployment.DEFAULT:
         configure_at_run_launch = True
-    elif dagster_deployment.lower() in ["production", "user", "pytest", "pc"]:
+    elif deployment_lower in DagsterDeployment.env_configured_deployments():
         configure_from_env = True
     else:
         logger.warning(
