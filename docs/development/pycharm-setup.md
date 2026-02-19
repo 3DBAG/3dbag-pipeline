@@ -35,7 +35,8 @@ Start the containers with bind-mounted source so that breakpoints in your local 
 make docker_dev
 ```
 
-The `docker_dev` target starts all services with `docker/compose.dev.yaml` layered on top of the base compose file. The pipeline containers bind-mount the host source directories, so edits are immediately visible inside the containers.
+The `docker_dev` target starts all services with `docker/compose.dev.yaml` layered on top of the base compose file. The pipeline containers bind-mount the host source directories, so edits are
+immediately visible inside the containers.
 
 To start only the core service (faster for most development):
 
@@ -54,9 +55,9 @@ BAG3D_DOCKER_IMAGE_TAG=develop docker compose -p bag3d-dev \
 4. Set **Python interpreter path**: `/opt/3dbag-pipeline/venv/bin/python`
 5. Under **Path mappings**, add:
 
-    | Local path | Remote path |
-    |---|---|
-    | `<project-root>/packages` | `/opt/3dbag-pipeline/packages` |
+| Local path                | Remote path                    |
+|---------------------------|--------------------------------|
+| `<project-root>/packages` | `/opt/3dbag-pipeline/packages` |
 
 6. Click **OK** and wait for PyCharm to index the remote interpreter.
 
@@ -71,9 +72,11 @@ Once the Docker Compose interpreter is configured and the containers are running
 
 ## After editing Python files
 
-With bind-mounted source (`make docker_dev`), file changes are visible in the container immediately. However, Dagster's gRPC code server does not auto-detect file changes. After editing code, click **Reload** in the Dagster UI at [http://localhost:3000](http://localhost:3000) to reload the code location.
+With bind-mounted source (`make docker_dev`), file changes are visible in the container immediately. However, Dagster's gRPC code server does not auto-detect file changes. After editing code, click *
+*Reload** in the Dagster UI at [http://localhost:3000](http://localhost:3000) to reload the code location.
 
-If you prefer automatic reloads on save, use `make docker_watch` instead (Stage 1 sync+restart workflow). That triggers a container restart whenever source files change, at the cost of a few seconds of downtime per reload.
+If you prefer automatic reloads on save, use `make docker_watch` instead (Stage 1 sync+restart workflow). That triggers a container restart whenever source files change, at the cost of a few seconds
+of downtime per reload.
 
 ---
 

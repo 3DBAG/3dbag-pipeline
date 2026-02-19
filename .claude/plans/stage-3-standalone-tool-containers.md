@@ -136,7 +136,7 @@ Tyler calls geoflow via `--exe-geof <path>`. In the current setup, both binaries
 
 **Option B: Tyler container mounts geoflow from a shared volume.** Install geoflow into a named volume, mount it into the tyler container. More complex but keeps images independent.
 
-**Recommendation:** Option A. Tyler and geoflow are tightly coupled (tyler invokes geoflow per-tile). The combined image is still small compared to the current tools image.
+**Decision:** Option A. Tyler and geoflow are tightly coupled (tyler invokes geoflow per-tile). The combined image is still small compared to the current tools image.
 
 ### 3.4 Handle validation tools in ProcessPoolExecutor
 
