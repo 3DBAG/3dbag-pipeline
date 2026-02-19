@@ -29,6 +29,7 @@ tests/dagster_home/storage/
 
 # Virtual envs
 venvs
+packages/*/.venv
 
 # Documentation
 **/site
@@ -38,6 +39,27 @@ venvs
 **/.tox
 **/.coverage
 **/*.ruff_cache
+
+# Docker config (not needed inside pipeline images)
+# Exception: docker/tools/requirements.txt is needed by bag3d-party-walls.dockerfile
+docker/
+!docker/tools/requirements.txt
+
+# Git and GitHub
+.git/
+.github/
+
+# Root config files not needed in images
+makefile
+tools-build.sh
+tools-test.sh
+mkdocs.yml
+CHANGELOG.md
+LICENSE-*
+README.md
+CLAUDE.md
+pyproject.toml
+uv.lock
 
 # Other
 experiments

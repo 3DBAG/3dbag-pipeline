@@ -26,19 +26,21 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
 
-# Install only dependencies except the bag3d-common package
+# Install only third-party dependencies (layer cached by lock/pyproject content)
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/party_walls/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/uv.lock \
     --mount=type=bind,source=./packages/party_walls/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/party_walls/pyproject.toml \
+    --mount=type=bind,source=./packages/common/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/common/pyproject.toml \
     uv sync \
     --frozen \
     --all-extras \
     --no-install-project \
-    --no-install-package bag3d-common\
+    --no-install-package bag3d-common \
     --project $BAG3D_PIPELINE_LOCATION/packages/party_walls \
     --python $VIRTUAL_ENV/bin/python
 
-COPY . $BAG3D_PIPELINE_LOCATION
+COPY packages/common $BAG3D_PIPELINE_LOCATION/packages/common
+COPY packages/party_walls $BAG3D_PIPELINE_LOCATION/packages/party_walls
 
 # Install the workflow package and the bag3d-common package in editable mode
 RUN --mount=type=cache,target=/root/.cache/uv \

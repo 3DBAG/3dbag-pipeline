@@ -70,6 +70,9 @@ docker_down:
 docker_down_rm:
 	docker compose -p $(COMPOSE_PROJECT_NAME) down --volumes --remove-orphans --rmi local
 
+docker_prune_cache:
+	docker builder prune --filter type=exec.cachemount
+
 test:
 	@set -e; set -o pipefail; \
 	rm -f tests/test.log; \
