@@ -86,12 +86,81 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "podzilla_server": ServerTransferResource.configure_at_launch(),
         }
     elif configure_from_env:
-        return {
-            "gdal": GDALResource(
+        # For each tool resource, prefer Docker mode (BAG3D_DOCKER_IMAGE_*) when set,
+        # otherwise fall back to local executable paths (EXE_PATH_*).
+        _docker_gdal = os.getenv("BAG3D_DOCKER_IMAGE_GDAL", "")
+        gdal_resource = (
+            GDALResource(docker_image=_docker_gdal)
+            if _docker_gdal
+            else GDALResource(
                 exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                 exe_sozip=os.getenv("EXE_PATH_SOZIP"),
-            ),
+            )
+        )
+
+        _docker_pdal = os.getenv("BAG3D_DOCKER_IMAGE_PDAL", "")
+        pdal_resource = (
+            PDALResource(docker_image=_docker_pdal)
+            if _docker_pdal
+            else PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+        )
+
+        _docker_lastools = os.getenv("BAG3D_DOCKER_IMAGE_LASTOOLS", "")
+        lastools_resource = (
+            LASToolsResource(docker_image=_docker_lastools)
+            if _docker_lastools
+            else LASToolsResource(
+                exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
+                exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
+                exe_lasinfo=os.getenv("EXE_PATH_LASINFO"),
+            )
+        )
+
+        _docker_tyler = os.getenv("BAG3D_DOCKER_IMAGE_TYLER", "")
+        tyler_resource = (
+            TylerResource(docker_image=_docker_tyler)
+            if _docker_tyler
+            else TylerResource(
+                exe_tyler=os.getenv("EXE_PATH_TYLER"),
+                exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+                exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
+            )
+        )
+
+        _docker_geoflow = os.getenv("BAG3D_DOCKER_IMAGE_GEOFLOW", "")
+        geoflow_resource = (
+            GeoflowResource(docker_image=_docker_geoflow)
+            if _docker_geoflow
+            else GeoflowResource(
+                exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
+                flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
+            )
+        )
+
+        _docker_validation = os.getenv("BAG3D_DOCKER_IMAGE_VALIDATION", "")
+        validation_resource = (
+            ValidationResource(docker_image=_docker_validation)
+            if _docker_validation
+            else ValidationResource(
+                exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
+                exe_cjval=os.getenv("EXE_PATH_CJVAL"),
+                exe_cjio=os.getenv("EXE_PATH_CJIO"),
+            )
+        )
+
+        _docker_roofer = os.getenv("BAG3D_DOCKER_IMAGE_ROOFER", "")
+        roofer_resource = (
+            RooferResource(docker_image=_docker_roofer)
+            if _docker_roofer
+            else RooferResource(
+                exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
+                exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+            )
+        )
+
+        return {
+            "gdal": gdal_resource,
             "file_store": FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE")),
             "file_store_fastssd": FileStoreResource(
                 data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD")
@@ -104,30 +173,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
                 other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value()},
             ),
-            "pdal": PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL")),
-            "lastools": LASToolsResource(
-                exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-                exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
-                exe_lasinfo=os.getenv("EXE_PATH_LASINFO"),
-            ),
-            "tyler": TylerResource(
-                exe_tyler=os.getenv("EXE_PATH_TYLER"),
-                exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-                exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
-            ),
-            "geoflow": GeoflowResource(
-                exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
-                flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
-            ),
-            "validation": ValidationResource(
-                exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
-                exe_cjval=os.getenv("EXE_PATH_CJVAL"),
-                exe_cjio=os.getenv("EXE_PATH_CJIO"),
-            ),
-            "roofer": RooferResource(
-                exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
-                exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
-            ),
+            "pdal": pdal_resource,
+            "lastools": lastools_resource,
+            "tyler": tyler_resource,
+            "geoflow": geoflow_resource,
+            "validation": validation_resource,
+            "roofer": roofer_resource,
             "version": version,
             "specs": specs,
             "godzilla_server": ServerTransferResource(

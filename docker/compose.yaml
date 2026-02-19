@@ -86,6 +86,7 @@ services:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
       - ~/.ssh:/root/.ssh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - bag3d-network
     extra_hosts:
@@ -146,6 +147,7 @@ services:
     volumes:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - bag3d-network
     depends_on:
@@ -199,6 +201,7 @@ services:
     volumes:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - bag3d-network
     depends_on:

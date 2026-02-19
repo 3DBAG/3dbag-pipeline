@@ -131,10 +131,12 @@ def reconstruction_output_tiles_func(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
     )
     num_threads = kwargs["rayon_num_threads"]
+    tyler_env = {
+        "RAYON_NUM_THREADS": str(num_threads),
+        "RUST_LOG": "debug" if kwargs.get("verbose", False) else "info",
+        "TYLER_RESOURCES_DIR": os.getenv("TYLER_RESOURCES_DIR", ""),
+    }
     cmd = [
-        f"RAYON_NUM_THREADS={num_threads}",
-        f"RUST_LOG={'debug' if kwargs.get('verbose', False) else 'info'}",
-        f"TYLER_RESOURCES_DIR={os.getenv('TYLER_RESOURCES_DIR')}",
         "{exe}",
         "--metadata",
         str(sequence_header_file),
@@ -164,6 +166,7 @@ def reconstruction_output_tiles_func(
         exe_name=exe_name,
         cwd=str(output_dir),
         logger=logger,
+        env=tyler_env,
     )
     return output_dir
 

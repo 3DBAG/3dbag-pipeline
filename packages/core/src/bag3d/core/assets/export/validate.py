@@ -1,5 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
 from enum import Enum
+import os
 from os import getenv
 from pathlib import Path
 import json
@@ -875,6 +876,11 @@ def gpkg(
     nr_buildingpart_all = []
     nr_invalid_2d_geom_all = []
 
+    # LD_LIBRARY_PATH is needed in subprocess mode (local tools compiled in tools image).
+    # In Docker mode the tool container already has the correct library paths.
+    # Using env= parameter keeps it out of the shell command string and works in both modes.
+    gdal_env = {"LD_LIBRARY_PATH": f"/opt/lib:{os.getenv('LD_LIBRARY_PATH', '')}"}
+
     try:
         for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
             sql_buildingpart_count = f"-sql 'select count(identificatie) from {layer}'"
@@ -884,13 +890,12 @@ def gpkg(
 
             cmd = " ".join(
                 [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "{exe}",
                     sql_buildingpart_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", env=gdal_env)
             results.file_ok = (
                 False
                 if not result.success or "error" in result.stdout.lower()
@@ -910,13 +915,12 @@ def gpkg(
 
             cmd = " ".join(
                 [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "{exe}",
                     sql_building_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", env=gdal_env)
             re_building_count = (
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
@@ -933,13 +937,12 @@ def gpkg(
 
             cmd = " ".join(
                 [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                     "{exe}",
                     sql_invalid_geom_count,
                     f"/vsigzip//{inputzipfile}",
                 ]
             )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
+            result = gdal_runner.run(cmd, exe_name="ogrinfo", env=gdal_env)
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
                 n = int(re.search(re_invalid_count, result.stdout).group(0))
@@ -952,14 +955,13 @@ def gpkg(
         # Attribute validation
         cmd = " ".join(
             [
-                "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
                 "{exe}",
                 "-so",
                 "-json",
                 f"/vsigzip//{inputzipfile}",
             ]
         )
-        result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
+        result = gdal_runner.run(cmd, exe_name="ogrinfo", env=gdal_env)
         try:
             gpkg_info = json.loads(result.stdout)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):

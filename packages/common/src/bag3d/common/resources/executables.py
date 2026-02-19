@@ -1,7 +1,7 @@
 import os
 from logging import Logger
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import signal
 from subprocess import PIPE, Popen
 from typing import Dict, Optional
@@ -9,7 +9,6 @@ from typing import Dict, Optional
 from dagster import (
     get_dagster_logger,
     ConfigurableResource,
-    Config,
 )
 import docker
 from docker.errors import ImageNotFound
@@ -41,9 +40,26 @@ def format_version_stdout(version: str) -> str:
     return version.replace("\n", ",")
 
 
-class DockerConfig(Config):
+@dataclass(frozen=True)
+class DockerContainerConfig:
+    """Configuration for running a command in a standalone Docker container.
+
+    Tool containers are expected to mount the same named volume as the pipeline
+    containers at the same path (/data/volume), so no path rewriting is needed.
+
+    Example:
+        DockerContainerConfig(
+            image="ghcr.io/osgeo/gdal:ubuntu-small-latest",
+            volumes=["bag3d-dev-data-pipeline:/data/volume:rw"],
+            network="bag3d-dev-network",
+        )
+    """
+
     image: str
-    mount_point: str
+    volumes: list[str] = field(default_factory=list)
+    network: str = ""
+    environment: dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 class CommandRunner:
@@ -51,27 +67,40 @@ class CommandRunner:
 
     Supports configured executables, raw commands, and Docker containers.
     Works with or without Dagster context.
+
+    When docker_container_cfg is provided, commands run in a standalone Docker
+    container. The container mounts the same named volume as the pipeline
+    container at the same path, so all file paths in commands are unchanged.
+    The Docker client is initialized lazily on first use, making CommandRunner
+    safe to pickle for ProcessPoolExecutor.
     """
 
     def __init__(
         self,
         exes: dict[str, str] = None,
-        docker_cfg: DockerConfig = None,
-        with_docker: bool = False,
+        docker_container_cfg: DockerContainerConfig = None,
     ):
         self.exes = exes or {}
-        self.with_docker = with_docker
-        if self.with_docker:
-            self.docker_client = docker.from_env()
+        self._docker_container_cfg = docker_container_cfg
+        self._docker_client = None
+        self._docker_image = None
+
+    @property
+    def with_docker(self) -> bool:
+        return self._docker_container_cfg is not None
+
+    def _ensure_docker(self):
+        """Lazily connect to Docker and pull/get the image on first use."""
+        if self._docker_client is None:
+            self._docker_client = docker.from_env()
             try:
-                self.docker_image = self.docker_client.images.get(docker_cfg.image)
+                self._docker_image = self._docker_client.images.get(
+                    self._docker_container_cfg.image
+                )
             except ImageNotFound:
-                self.docker_image = self.docker_client.images.pull(docker_cfg.image)
-            self.container_mount_point = Path(docker_cfg.mount_point)
-        else:
-            self.docker_client = None
-            self.docker_image = None
-            self.container_mount_point = None
+                self._docker_image = self._docker_client.images.pull(
+                    self._docker_container_cfg.image
+                )
 
     @staticmethod
     def _pre_exec():
@@ -98,15 +127,7 @@ class CommandRunner:
             format_dict.update(kwargs)
 
         if local_path:
-            if self.with_docker:
-                if local_path.is_dir():
-                    format_dict["local_path"] = self.container_mount_point
-                else:
-                    format_dict["local_path"] = (
-                        self.container_mount_point / local_path.name
-                    )
-            else:
-                format_dict["local_path"] = local_path
+            format_dict["local_path"] = local_path
 
         return command.format(**format_dict)
 
@@ -114,13 +135,14 @@ class CommandRunner:
         self, command: str, cwd: str = None, env: dict = None
     ) -> CommandResult:
         """Execute subprocess without Dagster context."""
+        merged_env = {**os.environ, **env} if env else None
         sub_process = Popen(
             command,
             shell=True,
             stdout=PIPE,
             stderr=PIPE,
             cwd=cwd,
-            env=env,
+            env=merged_env,
             preexec_fn=self._pre_exec,
             encoding="UTF-8",
         )
@@ -142,13 +164,14 @@ class CommandRunner:
         _logger = logger if logger else get_dagster_logger()
         _logger.info(f"Executing: {command}")
 
+        merged_env = {**os.environ, **env} if env else None
         sub_process = Popen(
             command,
             shell=True,
             stdout=PIPE,
             stderr=PIPE,
             cwd=cwd,
-            env=env,
+            env=merged_env,
             preexec_fn=self._pre_exec,
             encoding="UTF-8",
         )
@@ -168,31 +191,60 @@ class CommandRunner:
             stderr=stderr,
         )
 
-    def _run_docker(self, command: str, local_path: Path = None) -> CommandResult:
-        """Execute in Docker container with proper exit code capture."""
-        volumes = None
-        if local_path:
-            if local_path.is_dir():
-                container_path = self.container_mount_point
-            else:
-                container_path = self.container_mount_point / local_path.name
-            volumes = [f"{local_path}:{container_path}"]
+    def _run_docker(
+        self,
+        command: str,
+        logger: Logger = None,
+        env: dict = None,
+    ) -> CommandResult:
+        """Execute command in a standalone Docker container.
 
-        container = self.docker_client.containers.run(
-            self.docker_image,
+        The container mounts the same named volume as the pipeline container,
+        joins the same network, and streams logs in real-time to the Dagster
+        logger. Returns a CommandResult with stdout/stderr for callers that
+        parse tool output.
+        """
+        self._ensure_docker()
+        cfg = self._docker_container_cfg
+
+        # Merge config-level env with per-call env
+        container_env = {**cfg.environment, **(env or {})} or None
+
+        # Labels for identification and cleanup
+        labels = {"bag3d.managed-by": "3dbag-pipeline", **cfg.labels}
+
+        _logger = logger if logger else get_dagster_logger()
+        _logger.info(f"Executing in Docker ({cfg.image}): {command}")
+
+        container = self._docker_client.containers.run(
+            self._docker_image,
             command=command,
-            volumes=volumes,
-            network_mode="host",
+            volumes=cfg.volumes or None,
+            network=cfg.network or None,
+            environment=container_env,
+            labels=labels,
             detach=True,
             remove=False,
             stdout=True,
             stderr=True,
         )
 
+        # Stream logs in real-time to the Dagster logger
+        for log_line in container.logs(stream=True, follow=True):
+            line = log_line.decode("utf-8", errors="replace").rstrip("\n")
+            if line:
+                _logger.info(line)
+
         result = container.wait()
         exit_code = result.get("StatusCode", 1)
+
+        # Read stdout and stderr separately for CommandResult
         stdout = container.logs(stdout=True, stderr=False).decode("utf-8")
         stderr = container.logs(stdout=False, stderr=True).decode("utf-8")
+
+        if exit_code != 0:
+            _logger.error(f"Container exited with code {exit_code}")
+
         container.remove()
 
         return CommandResult(
@@ -215,13 +267,13 @@ class CommandRunner:
         """Execute command and return structured result.
 
         Args:
-            logger:
             command: The command to execute. Can contain {exe} and {local_path} placeholders.
             exe_name: Name of the executable to substitute for {exe}.
             kwargs: Additional keyword arguments for command formatting.
-            local_path: Path to mount in Docker or use in command.
-            cwd: Working directory for command execution.
-            env: Environment variables for subprocess.
+            local_path: Path substituted for {local_path} placeholder.
+            cwd: Working directory for subprocess execution (ignored in Docker mode).
+            logger: Dagster logger for structured logging.
+            env: Environment variables merged into the execution environment.
 
         Returns:
             CommandResult with returncode, stdout, and stderr.
@@ -229,7 +281,7 @@ class CommandRunner:
         final_command = self._build_command(command, exe_name, kwargs, local_path)
 
         if self.with_docker:
-            return self._run_docker(final_command, local_path)
+            return self._run_docker(final_command, logger=logger, env=env)
         elif logger is not None:
             return self._run_with_logging(final_command, cwd, env, logger)
         else:
@@ -241,11 +293,18 @@ class CommandRunner:
         return format_version_stdout(result.stdout)
 
 
+def _docker_container_cfg_from_env(image: str) -> DockerContainerConfig:
+    """Build a DockerContainerConfig using the shared volume and network from env vars."""
+    volume_name = os.getenv("BAG3D_DOCKER_VOLUME_DATA_PIPELINE", "")
+    network = os.getenv("BAG3D_DOCKER_NETWORK", "")
+    volumes = [f"{volume_name}:/data/volume:rw"] if volume_name else []
+    return DockerContainerConfig(image=image, volumes=volumes, network=network)
+
+
 class GDALResource(ConfigurableResource):
     """
     A GDAL Resource can be configured by either the local EXE paths
-    for `ogr2ogr`, `ogrinfo` and `sozip`, or by providing the DockerConfig
-    for the GDAL image.
+    for `ogr2ogr`, `ogrinfo` and `sozip`, or by providing a Docker image.
 
     For the local exes you can use:
 
@@ -255,59 +314,47 @@ class GDALResource(ConfigurableResource):
 
     For the docker image you can use:
 
-        gdal_local = GDALResource(docker_cfg=DockerConfig(
-                                image=DOCKER_GDAL_IMAGE,
-                                mount_point="/tmp"))
+        gdal_resource = GDALResource(docker_image=DOCKER_GDAL_IMAGE)
 
-    If instantiated with GDALResource() then the Docker image is used by
-    default. After the resource has been instantiated, gdal (CommandRunner) can
+    After the resource has been instantiated, gdal (CommandRunner) can
     be acquired with the `runner` property:
 
         gdal_resource.runner
     """
 
-    exe_ogrinfo: str
-    exe_ogr2ogr: str
-    exe_sozip: str
-    docker_cfg: Optional[DockerConfig] = None
+    exe_ogrinfo: str = ""
+    exe_ogr2ogr: str = ""
+    exe_sozip: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
-        if self.docker_cfg is None:
-            return {
-                "ogrinfo": self.exe_ogrinfo,
-                "ogr2ogr": self.exe_ogr2ogr,
-                "sozip": self.exe_sozip,
-            }
-        else:
+        if self.docker_image:
             return {
                 "ogrinfo": "ogrinfo",
                 "ogr2ogr": "ogr2ogr",
                 "sozip": "sozip",
             }
-
-    @property
-    def with_docker(self) -> bool:
-        if (
-            self.exe_ogrinfo is None
-            and self.exe_ogr2ogr is None
-            and self.exe_sozip is None
-        ):
-            return True
-        else:
-            return False
+        return {
+            "ogrinfo": self.exe_ogrinfo,
+            "ogr2ogr": self.exe_ogr2ogr,
+            "sozip": self.exe_sozip,
+        }
 
     @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(
-            exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
-        )
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class PDALResource(ConfigurableResource):
     """
     A PDAL Resource can be configured by either the local EXE path
-    for `pdal` or by providing the DockerConfig for the PDAL image.
+    for `pdal` or by providing a Docker image.
 
     For the local exe you can use:
 
@@ -315,49 +362,38 @@ class PDALResource(ConfigurableResource):
 
     For the docker image you can use:
 
-        pdal_resource = PDALResource(docker_cfg=DockerConfig(
-                                        image=DOCKER_PDAL_IMAGE,
-                                        mount_point="/tmp"))
+        pdal_resource = PDALResource(docker_image=DOCKER_PDAL_IMAGE)
 
-    If instantiated with PDALResource() then the Docker image is used by
-    default. After the resource has been instantiated, pdal (CommandRunner) can
+    After the resource has been instantiated, pdal (CommandRunner) can
     be acquired with the `runner` property:
 
         pdal_resource.runner
     """
 
-    exe_pdal: str
-    docker_cfg: Optional[DockerConfig] = None
+    exe_pdal: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
-        if self.docker_cfg is None:
-            return {
-                "pdal": self.exe_pdal,
-            }
-        else:
-            return {
-                "pdal": "pdal",
-            }
-
-    @property
-    def with_docker(self) -> bool:
-        if self.exe_pdal == "pdal":
-            return True
-        else:
-            return False
+        if self.docker_image:
+            return {"pdal": "pdal"}
+        return {"pdal": self.exe_pdal}
 
     @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(
-            exes=self.exes, docker_cfg=self.docker_cfg, with_docker=self.with_docker
-        )
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class LASToolsResource(ConfigurableResource):
     """
     A LASTools Resource can be configured by providing the paths to
-    LASTools executables "lasindex" and "las2las" on the local system.
+    LASTools executables "lasindex" and "las2las" on the local system,
+    or by providing a Docker image.
 
     Example:
 
@@ -371,12 +407,19 @@ class LASToolsResource(ConfigurableResource):
         lastools_resource.runner
     """
 
-    exe_lasindex: str
-    exe_las2las: str
-    exe_lasinfo: str
+    exe_lasindex: str = ""
+    exe_las2las: str = ""
+    exe_lasinfo: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
+        if self.docker_image:
+            return {
+                "lasindex": "lasindex",
+                "las2las": "las2las",
+                "lasinfo": "lasinfo",
+            }
         return {
             "lasindex": self.exe_lasindex,
             "las2las": self.exe_las2las,
@@ -384,23 +427,25 @@ class LASToolsResource(ConfigurableResource):
         }
 
     @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class TylerResource(ConfigurableResource):
     """
     A Tyler Resource can be configured by providing the paths to
-    Tyler executables "tyler" and "tyler-db" on the local system.
+    Tyler executables "tyler" and "tyler-db" on the local system,
+    or by providing a Docker image.
 
     Example:
 
         tyler_resource = TylerResource(exe_tyler=os.getenv("EXE_PATH_TYLER"),
-                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"))
+                                       exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"))
 
     After the resource has been instantiated, tyler (CommandRunner) can
     be acquired with the `runner` property:
@@ -408,12 +453,19 @@ class TylerResource(ConfigurableResource):
         tyler = tyler_resource.runner
     """
 
-    exe_tyler: str
-    exe_tyler_db: str
-    exe_tyler_multiformat: str
+    exe_tyler: str = ""
+    exe_tyler_db: str = ""
+    exe_tyler_multiformat: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
+        if self.docker_image:
+            return {
+                "tyler": "tyler",
+                "tyler-db": "tyler-db",
+                "tyler-multiformat": "tyler-multiformat",
+            }
         return {
             "tyler": self.exe_tyler,
             "tyler-db": self.exe_tyler_db,
@@ -421,18 +473,20 @@ class TylerResource(ConfigurableResource):
         }
 
     @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class ValidationResource(ConfigurableResource):
     """
     A ValidationResource can be configured by providing the paths to
-    the val3dity, cjval and cjio executables on the local system.
+    the val3dity, cjval and cjio executables on the local system,
+    or by providing a Docker image.
 
     For the local exes you can use:
 
@@ -446,12 +500,19 @@ class ValidationResource(ConfigurableResource):
         validation = validation_resource.runner
     """
 
-    exe_val3dity: str
-    exe_cjval: str
-    exe_cjio: str
+    exe_val3dity: str = ""
+    exe_cjval: str = ""
+    exe_cjio: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
+        if self.docker_image:
+            return {
+                "val3dity": "val3dity",
+                "cjval": "cjval",
+                "cjio": "cjio",
+            }
         return {
             "val3dity": self.exe_val3dity,
             "cjval": self.exe_cjval,
@@ -459,18 +520,20 @@ class ValidationResource(ConfigurableResource):
         }
 
     @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class RooferResource(ConfigurableResource):
     """
     A RooferResource can be configured by providing the paths to
-    Roofer `crop` and `roofer` executables on the local system.
+    Roofer `crop` and `roofer` executables on the local system,
+    or by providing a Docker image.
 
     Example:
 
@@ -483,30 +546,38 @@ class RooferResource(ConfigurableResource):
         roofer = roofer_resource.runner
     """
 
-    exe_crop: str
-    exe_roofer: str
+    exe_crop: str = ""
+    exe_roofer: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
+        if self.docker_image:
+            return {
+                "crop": "crop",
+                "roofer": "roofer",
+            }
         return {
             "crop": self.exe_crop,
             "roofer": self.exe_roofer,
         }
 
     @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
 
 
 class GeoflowResource(ConfigurableResource):
     """
     A GeoflowResource can be configured by providing the paths to
     Geoflow `exe_geoflow` executable on the local system
-    and the path to the reconstruction flowchart.
+    and the path to the reconstruction flowchart,
+    or by providing a Docker image.
 
     Example:
 
@@ -519,17 +590,21 @@ class GeoflowResource(ConfigurableResource):
         geoflow = geoflow_resource.runner
     """
 
-    exe_geoflow: str
-    flowchart: str
+    exe_geoflow: str = ""
+    flowchart: str = ""
+    docker_image: str = ""
 
     @property
     def exes(self) -> Dict[str, str]:
+        if self.docker_image:
+            return {"geof": "geof"}
         return {"geof": self.exe_geoflow}
 
     @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
     def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
+        if self.docker_image:
+            return CommandRunner(
+                exes=self.exes,
+                docker_container_cfg=_docker_container_cfg_from_env(self.docker_image),
+            )
+        return CommandRunner(exes=self.exes)
