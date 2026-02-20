@@ -94,26 +94,34 @@ services:
       data-postgresql:
         condition: service_healthy
         restart: true
-    # Normally we wouldn't need watch:action:rebuild, but because we are using
-    # dagster's DockerRunLauncher, it always starts a new container from the image, for
-    # each run. While, watch:action:sync (or sync+restart)copies the changed local code into the
-    # 3dbag-pipeline-core-develop container (not the image). But since DockerRunLauncher
-    # doesn't actually use this container, but always starts a new one, we have to build
-    # a new image on each change.
+    # docker compose watch: sync+restart syncs changed source files into the
+    # running container and restarts the gRPC code server. Since we use
+    # DefaultRunLauncher, runs execute as subprocesses of the code server, so
+    # they pick up the synced code. Dependency file changes (pyproject.toml,
+    # uv.lock) still trigger a full rebuild since they require uv sync.
     develop:
       watch:
-        - action: rebuild
-          path: ../packages/common
-          target: /opt/3dbag-pipeline/packages/common
+        - action: sync+restart
+          path: ../packages/common/src
+          target: /opt/3dbag-pipeline/packages/common/src
+        - action: sync+restart
+          path: ../packages/core/src
+          target: /opt/3dbag-pipeline/packages/core/src
+        - action: sync+restart
+          path: ../packages/common/tests
+          target: /opt/3dbag-pipeline/packages/common/tests
+        - action: sync+restart
+          path: ../packages/core/tests
+          target: /opt/3dbag-pipeline/packages/core/tests
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
         - action: rebuild
-          path: ../packages/core
-          target: /opt/3dbag-pipeline/packages/core
-        - action: rebuild
           path: ../packages/core/pyproject.toml
           target: /opt/3dbag-pipeline/packages/core/pyproject.toml
+        - action: rebuild
+          path: ../packages/core/uv.lock
+          target: /opt/3dbag-pipeline/packages/core/uv.lock
 
   bag3d-floors-estimation:
     platform: linux/amd64
@@ -146,18 +154,27 @@ services:
         restart: true
     develop:
       watch:
-        - action: rebuild
-          path: ../packages/common
-          target: /opt/3dbag-pipeline/packages/common
+        - action: sync+restart
+          path: ../packages/common/src
+          target: /opt/3dbag-pipeline/packages/common/src
+        - action: sync+restart
+          path: ../packages/floors_estimation/src
+          target: /opt/3dbag-pipeline/packages/floors_estimation/src
+        - action: sync+restart
+          path: ../packages/common/tests
+          target: /opt/3dbag-pipeline/packages/common/tests
+        - action: sync+restart
+          path: ../packages/floors_estimation/tests
+          target: /opt/3dbag-pipeline/packages/floors_estimation/tests
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
         - action: rebuild
-          path: ../packages/floors_estimation
-          target: /opt/3dbag-pipeline/packages/floors_estimation
-        - action: rebuild
           path: ../packages/floors_estimation/pyproject.toml
           target: /opt/3dbag-pipeline/packages/floors_estimation/pyproject.toml
+        - action: rebuild
+          path: ../packages/floors_estimation/uv.lock
+          target: /opt/3dbag-pipeline/packages/floors_estimation/uv.lock
 
   bag3d-party-walls:
     platform: linux/amd64
@@ -190,18 +207,27 @@ services:
         restart: true
     develop:
       watch:
-        - action: rebuild
-          path: ../packages/common
-          target: /opt/3dbag-pipeline/packages/common
+        - action: sync+restart
+          path: ../packages/common/src
+          target: /opt/3dbag-pipeline/packages/common/src
+        - action: sync+restart
+          path: ../packages/party_walls/src
+          target: /opt/3dbag-pipeline/packages/party_walls/src
+        - action: sync+restart
+          path: ../packages/common/tests
+          target: /opt/3dbag-pipeline/packages/common/tests
+        - action: sync+restart
+          path: ../packages/party_walls/tests
+          target: /opt/3dbag-pipeline/packages/party_walls/tests
         - action: rebuild
           path: ../packages/common/pyproject.toml
           target: /opt/3dbag-pipeline/packages/common/pyproject.toml
         - action: rebuild
-          path: ../packages/party_walls
-          target: /opt/3dbag-pipeline/packages/party_walls
-        - action: rebuild
           path: ../packages/party_walls/pyproject.toml
           target: /opt/3dbag-pipeline/packages/party_walls/pyproject.toml
+        - action: rebuild
+          path: ../packages/party_walls/uv.lock
+          target: /opt/3dbag-pipeline/packages/party_walls/uv.lock
 
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on

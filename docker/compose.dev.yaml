@@ -1,0 +1,49 @@
+# Development overlay for docker/compose.yaml.
+#
+# Bind-mounts the host source directories into the containers so that edits
+# are immediately visible without a sync or rebuild step. Also mounts the
+# Docker socket on the pipeline containers (required for Stage 3: running
+# external tools in standalone containers from within asset code).
+#
+# Usage:
+#   docker compose -p bag3d-dev -f docker/compose.yaml -f docker/compose.dev.yaml up -d
+#   # or via make:
+#   make docker_dev
+#
+# After editing Python files, click "Reload" in the Dagster UI (http://localhost:3000)
+# to pick up the changes in the gRPC code server. The tests (make test) work
+# unchanged because they use `docker compose exec`.
+
+services:
+  bag3d-core:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ~/.ssh:/root/.ssh:ro
+      # Bind-mount source for live editing — changes visible instantly in the container
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/core/src:/opt/3dbag-pipeline/packages/core/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/core/tests:/opt/3dbag-pipeline/packages/core/tests
+      # Docker socket for running tools in standalone containers (Stage 3)
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  bag3d-floors-estimation:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/floors_estimation/src:/opt/3dbag-pipeline/packages/floors_estimation/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/floors_estimation/tests:/opt/3dbag-pipeline/packages/floors_estimation/tests
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  bag3d-party-walls:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/party_walls/src:/opt/3dbag-pipeline/packages/party_walls/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/party_walls/tests:/opt/3dbag-pipeline/packages/party_walls/tests
+      - /var/run/docker.sock:/var/run/docker.sock

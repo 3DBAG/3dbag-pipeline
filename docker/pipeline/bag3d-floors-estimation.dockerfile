@@ -13,19 +13,21 @@ WORKDIR $BAG3D_PIPELINE_LOCATION
 
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
 
-# Install only dependencies except the bag3d-common package
+# Install only third-party dependencies (layer cached by lock/pyproject content)
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/floors_estimation/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/floors_estimation/uv.lock \
     --mount=type=bind,source=./packages/floors_estimation/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/floors_estimation/pyproject.toml \
+    --mount=type=bind,source=./packages/common/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/common/pyproject.toml \
     uv sync \
     --frozen \
     --all-extras \
     --no-install-project \
-    --no-install-package bag3d-common\
+    --no-install-package bag3d-common \
     --project $BAG3D_PIPELINE_LOCATION/packages/floors_estimation \
     --python $VIRTUAL_ENV/bin/python
 
-COPY . $BAG3D_PIPELINE_LOCATION
+COPY packages/common $BAG3D_PIPELINE_LOCATION/packages/common
+COPY packages/floors_estimation $BAG3D_PIPELINE_LOCATION/packages/floors_estimation
 
 # Install the workflow package and the bag3d-common package in editable mode
 RUN --mount=type=cache,target=/root/.cache/uv \
