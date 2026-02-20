@@ -10,6 +10,13 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+ANSI_ESCAPE_PATTERN = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+
+
+def strip_ansi(text):
+    """Remove ANSI escape codes from terminal output."""
+    return ANSI_ESCAPE_PATTERN.sub("", text)
+
 
 def parse_warnings(log_content):
     """Extract warnings from pytest warning summary sections.
@@ -114,11 +121,11 @@ def parse_warnings(log_content):
 
 
 def parse_errors(log_content):
-    """Extract errors from all pytest FAILURES sections.
+    """Extract errors from pytest FAILURES and ERRORS sections.
 
-    Processes all FAILURES sections in the log file to extract error information
-    including error type and traceback details. Handles both standard exceptions
-    (with colons) and assertion errors (without colons).
+    Processes all failure-like sections in the log file to extract error
+    information including error type and traceback details. Handles both
+    standard exceptions (with colons) and assertion errors (without colons).
 
     Args:
         log_content: Full log file content as string
@@ -128,27 +135,27 @@ def parse_errors(log_content):
     """
     errors = []
 
-    # Find all FAILURES sections (there may be multiple from sequential test runs)
-    failures_pattern = r"={10,} FAILURES ={10,}"
+    # Find all failure-like sections (there may be multiple from sequential test runs)
+    section_pattern = r"={10,} (FAILURES|ERRORS) ={10,}"
 
-    for failures_match in re.finditer(failures_pattern, log_content):
-        failures_start = failures_match.end()
-        # Find end of failures section (next separator like "===")
-        rest = log_content[failures_start:]
+    for section_match in re.finditer(section_pattern, log_content):
+        section_start = section_match.end()
+        # Find end of section (next separator like "===")
+        rest = log_content[section_start:]
         end_pattern = r"^={10,}"
         end_match = re.search(end_pattern, rest, re.MULTILINE)
 
         if end_match:
-            failures_end = failures_start + end_match.start()
+            section_end = section_start + end_match.start()
         else:
-            failures_end = len(log_content)
+            section_end = len(log_content)
 
-        failures_text = log_content[failures_start:failures_end]
+        section_text = log_content[section_start:section_end]
 
         # Extract individual test failures
         # Pattern: "__ test_name __" or similar
-        test_pattern = r"^_{2,}\s+(.+?)\s+_{2,}"
-        lines = failures_text.split("\n")
+        test_pattern = r"^_+\s+(.+?)\s+_+$"
+        lines = section_text.split("\n")
 
         i = 0
         while i < len(lines):
@@ -157,6 +164,10 @@ def parse_errors(log_content):
 
             if test_match:
                 test_name = test_match.group(1)
+                setup_error_match = re.match(r"^ERROR at setup of (.+)$", test_name)
+                if setup_error_match:
+                    test_name = setup_error_match.group(1)
+
                 # Look for the error line with "E" prefix
                 error_type = ""
                 error_message = ""
@@ -173,9 +184,9 @@ def parse_errors(log_content):
                         break
 
                     # Check if this is an error line
-                    if error_line.startswith("E ") or (error_line.startswith("E") and len(error_line) > 1 and error_line[1].isspace()):
+                    if re.match(r"^\s*E\s+", error_line):
                         # Extract error type and message
-                        error_content = error_line.lstrip("E").strip()
+                        error_content = re.sub(r"^\s*E\s+", "", error_line).strip()
                         # Format: "module.ErrorType: message" or "assert expression"
                         # Error types are typically after a dot and before the first colon
 
@@ -251,9 +262,12 @@ def main():
         print("No warnings or errors found (empty log file)")
         return 0
 
+    # Pytest output is often colorized when captured via tee; normalize before parsing.
+    normalized_log_content = strip_ansi(log_content)
+
     # Parse warnings and errors
-    warnings = parse_warnings(log_content)
-    errors = parse_errors(log_content)
+    warnings = parse_warnings(normalized_log_content)
+    errors = parse_errors(normalized_log_content)
 
     if not warnings and not errors:
         print("No warnings or errors found in test log")
