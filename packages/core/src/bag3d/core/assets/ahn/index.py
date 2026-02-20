@@ -24,7 +24,6 @@ class LasIndexConfig(Config):
 
 
 def run_lasindex(
-    context: AssetExecutionContext,
     config: LasIndexConfig,
     lastools: LASToolsResource,
     lazdownload: LAZDownload,
