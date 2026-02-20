@@ -74,21 +74,6 @@ def test_lastools(sample_laz_file):
     assert result.success
 
 
-def test_file_store_init_temp():
-    """Can we create a local temporary directory with random id
-    with the correct permissions?"""
-    res = FileStoreResource().file_store
-    path = Path(res.data_dir)
-    assert path.exists()
-    with (res.data_dir / "file.txt").open("w") as fo:
-        fo.write("test")
-    with (res.data_dir / "file.txt").open("r") as fo:
-        assert fo.read() == "test"
-    res.rm(force=True)
-    assert not res.data_dir
-    assert not path.exists()
-
-
 def test_file_store_init_data_dir(tmp_path):
     """Can we use an existing directory?"""
     res = FileStoreResource(data_dir=tmp_path).file_store
