@@ -395,12 +395,14 @@ class LASToolsResource(ConfigurableResource):
 class TylerResource(ConfigurableResource):
     """
     A Tyler Resource can be configured by providing the paths to
-    Tyler executables "tyler" and "tyler-db" on the local system.
+    Tyler executables "tyler", "tyler-db", and "tyler-multiformat"
+    on the local system.
 
     Example:
 
         tyler_resource = TylerResource(exe_tyler=os.getenv("EXE_PATH_TYLER"),
-                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"))
+                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"),
+                                       exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"))
 
     After the resource has been instantiated, tyler (CommandRunner) can
     be acquired with the `runner` property:
