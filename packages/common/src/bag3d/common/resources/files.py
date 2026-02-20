@@ -2,12 +2,12 @@ from pathlib import Path
 from shutil import rmtree
 import random
 import string
+from typing import Optional
 
 from dagster import get_dagster_logger, ConfigurableResource
 import docker
 from docker.errors import NotFound
-from typing import Optional
-from pydantic import Field
+from pydantic import Field, DirectoryPath
 
 logger = get_dagster_logger("resources.file_store")
 
@@ -17,10 +17,9 @@ def make_temp_path(run_id):
 
 
 class FileStore:
-    # TODO: should have a unified interface regardless if we use a volume or local dir
     def __init__(
         self,
-        data_dir: str | Path = Field(union_mode="left_to_right"),
+        data_dir: str | DirectoryPath = Field(union_mode="left_to_right"),
         docker_volume_id: Optional[str] = None,
         dir_id: Optional[str] = None,
     ):
@@ -58,7 +57,17 @@ class FileStore:
             self.data_dir = tmp
             logger.info(f"Created local temporary directory {self.data_dir}")
 
-    def rm(self, force=False):
+    def rm(self, force: bool = False) -> None:
+        """Remove the storage backend (directory or Docker volume).
+
+        Args:
+            force: If True, recursively removes directories with contents
+                and forces Docker volume removal. If False, only removes
+                empty directories and Docker volumes without force.
+
+        Warning:
+            This permanently deletes data. Use force=True with caution.
+        """
         if self.data_dir:
             if force:
                 rmtree(str(self.data_dir))
@@ -72,14 +81,18 @@ class FileStore:
             self.docker_volume = None
 
     @staticmethod
-    def mkdir_temp(temp_dir_id: str = None) -> Path:
+    def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
         """Create a temporary directory with the required permissions.
 
-        The path of the new directory is `/tmp/tmp_3dbag_<temp_dir_id>`.
+        Creates a directory at `/tmp/tmp_3dbag_{temp_dir_id}` with 777 permissions
+        to ensure Docker containers can read/write to it.
 
         Args:
-            temp_dir_id (str): The ID-part of the directory name. E.g. the first 8
-                characters of the dagster run ID. If None, a random ID is generated.
+            temp_dir_id: Identifier for the directory name. If None, generates
+                a random 8-character alphabetic string.
+
+        Returns:
+            Path object pointing to the created directory.
         """
         if temp_dir_id:
             dir_id = temp_dir_id
@@ -99,7 +112,7 @@ class FileStoreResource(ConfigurableResource):
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
-    data_dir: str | Path = (Field(union_mode="left_to_right"),)
+    data_dir: str | DirectoryPath = (Field(union_mode="left_to_right"),)
 
     @property
     def file_store(self) -> FileStore:
