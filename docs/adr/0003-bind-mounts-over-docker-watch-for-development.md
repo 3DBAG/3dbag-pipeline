@@ -1,4 +1,4 @@
-# ADR 0002: Bind Mounts over Docker Watch for Development
+# ADR 0003: Bind Mounts over Docker Watch for Development
 
 **Status:** Accepted
 **Date:** 2026-02-19
