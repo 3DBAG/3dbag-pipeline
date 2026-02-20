@@ -130,7 +130,10 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
 
         _docker_geoflow = os.getenv("BAG3D_DOCKER_IMAGE_GEOFLOW")
         geoflow_resource = (
-            GeoflowResource(docker_image=_docker_geoflow)
+            GeoflowResource(
+                docker_image=_docker_geoflow,
+                flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
+            )
             if _docker_geoflow
             else GeoflowResource(
                 exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
@@ -138,7 +141,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             )
         )
 
-        _docker_validation = os.getenv("BAG3D_DOCKER_IMAGE_VALIDATION")
+        _docker_validation = os.getenv("BAG3D_DOCKER_IMAGE_CJVAL")
         validation_resource = (
             ValidationResource(docker_image=_docker_validation)
             if _docker_validation
