@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 from shutil import rmtree
 import random
 import string
@@ -8,6 +7,7 @@ from dagster import get_dagster_logger, ConfigurableResource
 import docker
 from docker.errors import NotFound
 from typing import Optional
+from pydantic import Field
 
 logger = get_dagster_logger("resources.file_store")
 
@@ -20,9 +20,9 @@ class FileStore:
     # TODO: should have a unified interface regardless if we use a volume or local dir
     def __init__(
         self,
-        data_dir: Union[str, Path, None] = None,
-        docker_volume_id: Union[str, None] = None,
-        dir_id: Union[str, None] = None,
+        data_dir: str | Path = Field(union_mode="left_to_right"),
+        docker_volume_id: Optional[str] = None,
+        dir_id: Optional[str] = None,
     ):
         self.data_dir = None
         self.docker_volume = None
@@ -99,17 +99,8 @@ class FileStoreResource(ConfigurableResource):
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
-    data_dir: Optional[str] = None
-
-    def __init__(
-        self,
-        data_dir: Optional[Union[Path, str]] = None,
-    ):
-        super().__init__(data_dir=str(data_dir) if data_dir else None)
+    data_dir: str | Path = (Field(union_mode="left_to_right"),)
 
     @property
     def file_store(self) -> FileStore:
-        if self.data_dir:
-            return FileStore(data_dir=self.data_dir)
-        else:
-            return FileStore()
+        return FileStore(data_dir=self.data_dir)
