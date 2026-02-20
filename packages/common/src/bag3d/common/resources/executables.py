@@ -1,5 +1,4 @@
 import os
-import shutil
 from logging import Logger
 from pathlib import Path
 from dataclasses import dataclass
@@ -320,8 +319,13 @@ class ToolResource(ConfigurableResource):
     @property
     def exes(self) -> Dict[str, str]:
         if self.with_docker:
-            return {name: docker_exe for name, (_, docker_exe) in self._tool_defs.items()}
-        return {name: getattr(self, field_name) for name, (field_name, _) in self._tool_defs.items()}
+            return {
+                name: docker_exe for name, (_, docker_exe) in self._tool_defs.items()
+            }
+        return {
+            name: getattr(self, field_name)
+            for name, (field_name, _) in self._tool_defs.items()
+        }
 
     @property
     def runner_config(self) -> tuple[Dict[str, str], str, bool]:
@@ -330,7 +334,9 @@ class ToolResource(ConfigurableResource):
     @property
     def runner(self) -> CommandRunner:
         exes, docker_image, with_docker = self.runner_config
-        return CommandRunner(exes=exes, docker_image=docker_image, with_docker=with_docker)
+        return CommandRunner(
+            exes=exes, docker_image=docker_image, with_docker=with_docker
+        )
 
 
 class GDALResource(ToolResource):

@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 
+import pytest
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
@@ -12,6 +14,13 @@ from bag3d.common.resources.executables import (
 from bag3d.common.utils.geodata import pdal_info
 
 
+def _require_env_var(env_var_name: str) -> str:
+    env_var_value = os.getenv(env_var_name)
+    if env_var_value:
+        return env_var_value
+    pytest.skip(f"Missing required env var for local tool test: {env_var_name}")
+
+
 def test_specs_3dbag():
     """Can we load the 3DBAG attributes specs?"""
     specs = Specs3DBAGResource()
@@ -21,9 +30,9 @@ def test_specs_3dbag():
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
     gdal_resource = GDALResource(
-        exe_ogr2ogr=EnvVar("EXE_PATH_OGR2OGR").get_value(),
-        exe_ogrinfo=EnvVar("EXE_PATH_OGRINFO").get_value(),
-        exe_sozip=EnvVar("EXE_PATH_SOZIP").get_value(),
+        exe_ogr2ogr=_require_env_var("EXE_PATH_OGR2OGR"),
+        exe_ogrinfo=_require_env_var("EXE_PATH_OGRINFO"),
+        exe_sozip=_require_env_var("EXE_PATH_SOZIP"),
     )
 
     assert not gdal_resource.with_docker
@@ -41,7 +50,7 @@ def test_gdal_local(test_data_dir):
 
 def test_pdal_local(sample_laz_file):
     """Use local PDAL installation"""
-    pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
+    pdal = PDALResource(exe_pdal=_require_env_var("EXE_PATH_PDAL"))
     assert not pdal.with_docker
     return_code, output = pdal_info(pdal.runner, sample_laz_file, with_all=True)
     assert return_code == 0

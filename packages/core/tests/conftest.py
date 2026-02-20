@@ -26,6 +26,20 @@ PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
 DB_NAME = os.getenv("BAG3D_PG_DATABASE")
 
 
+def _configured_env_values(
+    env_var_names: tuple[str, ...],
+) -> tuple[dict[str, str], list[str]]:
+    values: dict[str, str] = {}
+    missing: list[str] = []
+    for env_var_name in env_var_names:
+        value = os.getenv(env_var_name)
+        if value:
+            values[env_var_name] = value
+        else:
+            missing.append(env_var_name)
+    return values, missing
+
+
 class MockAssetIOManager(IOManager):
     """IO manager that returns pre-configured values for mock assets."""
 
@@ -91,13 +105,23 @@ def podzilla_server():
 
 @pytest.fixture(scope="session")
 def gdal():
-    exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
-    exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
-    exe_sozip = os.getenv("EXE_PATH_SOZIP")
+    docker_image = os.getenv("BAG3D_DOCKER_IMAGE_GDAL")
+    if docker_image:
+        yield GDALResource(docker_image=docker_image)
+        return
+
+    env_values, missing = _configured_env_values(
+        ("EXE_PATH_OGR2OGR", "EXE_PATH_OGRINFO", "EXE_PATH_SOZIP")
+    )
+    if missing:
+        pytest.skip(
+            "GDALResource not configured for tests. Configure BAG3D_DOCKER_IMAGE_GDAL "
+            "or set EXE_PATH_OGR2OGR, EXE_PATH_OGRINFO, and EXE_PATH_SOZIP."
+        )
     yield GDALResource(
-        exe_ogr2ogr=exe_ogr2ogr,
-        exe_ogrinfo=exe_ogrinfo,
-        exe_sozip=exe_sozip,
+        exe_ogr2ogr=env_values["EXE_PATH_OGR2OGR"],
+        exe_ogrinfo=env_values["EXE_PATH_OGRINFO"],
+        exe_sozip=env_values["EXE_PATH_SOZIP"],
     )
 
 
@@ -108,13 +132,24 @@ def gdal_missing():
 
 @pytest.fixture(scope="session")
 def validation():
-    exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
-    exe_cjval = os.getenv("EXE_PATH_CJVAL")
-    exe_cjio = os.getenv("EXE_PATH_CJIO")
+    docker_image = os.getenv("BAG3D_DOCKER_IMAGE_CJVAL")
+    if docker_image:
+        yield ValidationResource(docker_image=docker_image)
+        return
+
+    env_values, missing = _configured_env_values(
+        ("EXE_PATH_VAL3DITY", "EXE_PATH_CJVAL", "EXE_PATH_CJIO")
+    )
+    if missing:
+        pytest.skip(
+            "ValidationResource not configured for tests. Configure "
+            "BAG3D_DOCKER_IMAGE_CJVAL or set EXE_PATH_VAL3DITY, EXE_PATH_CJVAL, "
+            "and EXE_PATH_CJIO."
+        )
     yield ValidationResource(
-        exe_val3dity=exe_val3dity,
-        exe_cjval=exe_cjval,
-        exe_cjio=exe_cjio,
+        exe_val3dity=env_values["EXE_PATH_VAL3DITY"],
+        exe_cjval=env_values["EXE_PATH_CJVAL"],
+        exe_cjio=env_values["EXE_PATH_CJIO"],
     )
 
 
