@@ -5,8 +5,6 @@ import string
 from typing import Optional
 
 from dagster import get_dagster_logger, ConfigurableResource
-import docker
-from docker.errors import NotFound
 
 logger = get_dagster_logger("resources.file_store")
 
@@ -19,42 +17,21 @@ class FileStore:
     def __init__(
         self,
         data_dir: str,
-        docker_volume_id: Optional[str] = None,
-        dir_id: Optional[str] = None,
     ):
-        self.data_dir = None
-        self.docker_volume = None
-        if data_dir:
-            directory = Path(data_dir)
-            p = directory.resolve()
-            if p.is_dir():
-                pass
-                # # Need r+w for others, so that docker containers can write to the
-                # # directory
-                # if oct(p.stat().st_mode) != "0o40777":
-                #     raise PermissionError(f"Need mode=777 on {p}, because docker "
-                #                           f"containers need read+write+execute on it.")
-            else:
-                p.mkdir()
-                p.chmod(mode=0o777)
-                logger.info(f"Created directory {p}")
-            self.data_dir = p
-        elif docker_volume_id:
-            docker_client = docker.from_env()
-            self.docker_volume = None
-            try:
-                self.docker_volume = docker_client.volumes.get(docker_volume_id)
-                logger.info(f"Using existing docker volume: {docker_volume_id}")
-            except NotFound:
-                self.docker_volume = docker_client.volumes.create(
-                    name=docker_volume_id, driver="local"
-                )
-                logger.info(f"Created docker volume: {docker_volume_id}")
+        directory = Path(data_dir)
+        p = directory.resolve()
+        if p.is_dir():
+            pass
+            # # Need r+w for others, so that docker containers can write to the
+            # # directory
+            # if oct(p.stat().st_mode) != "0o40777":
+            #     raise PermissionError(f"Need mode=777 on {p}, because docker "
+            #                           f"containers need read+write+execute on it.")
         else:
-            # In case dir_id is also None, we create a temp dir with a random ID.
-            tmp = self.mkdir_temp(dir_id)
-            self.data_dir = tmp
-            logger.info(f"Created local temporary directory {self.data_dir}")
+            p.mkdir()
+            p.chmod(mode=0o777)
+            logger.info(f"Created directory {p}")
+        self.data_dir = p
 
     def rm(self, force: bool = False) -> None:
         """Remove the storage backend (directory or Docker volume).
@@ -67,17 +44,12 @@ class FileStore:
         Warning:
             This permanently deletes data. Use force=True with caution.
         """
-        if self.data_dir:
-            if force:
-                rmtree(str(self.data_dir))
-            else:
-                self.data_dir.rmdir()
-            logger.info(f"Deleted directory {self.data_dir}")
-            self.data_dir = None
-        if self.docker_volume:
-            self.docker_volume.remove(force=force)
-            logger.info(f"Deleted docker volume {self.docker_volume}")
-            self.docker_volume = None
+        if force:
+            rmtree(str(self.data_dir))
+        else:
+            self.data_dir.rmdir()
+        logger.info(f"Deleted directory {self.data_dir}")
+        self.data_dir = None
 
     @staticmethod
     def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
@@ -101,6 +73,32 @@ class FileStore:
         tmp.mkdir(exist_ok=True)
         tmp.chmod(mode=0o777)
         return tmp
+
+    @property
+    def bag3d_dir(self) -> Path:
+        """The 3D BAG data directory"""
+        return self.data_dir / "3DBAG"
+
+    @property
+    def geoflow_crop_dir(self) -> Path:
+        """Directory for the Geoflow crop-reconstruct output"""
+        return self.bag3d_dir / "crop_reconstruct"
+
+    def bag3d_export_dir(self, version: str) -> Path:
+        """Create the 3DBAG export directory if does not exist"""
+        export_dir = self.bag3d_dir / f"export_{version}"
+        export_dir.mkdir(exist_ok=True, parents=True)
+        return export_dir
+
+    def ahn_dir(self, ahn_version: int) -> Path:
+        """Return a directory path where to store the AHN LAZ files for the given AHN
+        version."""
+        return self.data_dir / "pointcloud" / f"AHN{ahn_version}"
+
+    def ahn_laz_dir(self, ahn_version: int) -> Path:
+        """Return a directory path where to store the AHN LAZ files for the given AHN
+        version."""
+        return self.ahn_dir(ahn_version) / "as_downloaded" / "LAZ"
 
 
 class FileStoreResource(ConfigurableResource):

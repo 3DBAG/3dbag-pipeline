@@ -13,7 +13,6 @@ from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.executables import TylerResource, GeoflowResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.common.utils.files import geoflow_crop_dir, bag3d_dir, bag3d_export_dir
 
 logger = get_dagster_logger("export.tile")
 
@@ -116,17 +115,14 @@ def reconstruction_output_tiles_func(
     Args:
         data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
-    export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    reconstructed_root_dir = file_store_fastssd.file_store.geoflow_crop_dir
+    export_dir = file_store.file_store.bag3d_export_dir(
         version=version.version,
     )
     logger.debug(f"{reconstructed_root_dir=}")
     version_3dbag: str = kwargs["version_3dbag"]
 
-    sequence_header_file = (
-        bag3d_dir(file_store_fastssd.file_store.data_dir) / "metadata.json"
-    )
+    sequence_header_file = file_store_fastssd.file_store.bag3d_dir / "metadata.json"
     create_sequence_header_file(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
     )

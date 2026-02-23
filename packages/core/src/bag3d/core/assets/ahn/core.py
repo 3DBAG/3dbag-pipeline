@@ -15,18 +15,6 @@ def format_laz_log(fpath: Path, msg: str) -> str:
     return f"{fpath.stem}{'.' * 5}{msg}"
 
 
-def ahn_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Return a directory path where to store the AHN LAZ files for the given AHN
-    version."""
-    return Path(root_dir) / "pointcloud" / f"AHN{ahn_version}"
-
-
-def ahn_laz_dir(root_dir: Path, ahn_version: int) -> Path:
-    """Return a directory path where to store the AHN LAZ files for the given AHN
-    version."""
-    return ahn_dir(root_dir, ahn_version) / "as_downloaded" / "LAZ"
-
-
 def validate_new_ahn_tile_ids(features: dict) -> None:
     feature_set = {f["properties"]["AHN"].lower() for f in features}
     if len(feature_set ^ AHN_TILE_IDS) > 0:

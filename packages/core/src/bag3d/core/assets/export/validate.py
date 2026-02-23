@@ -21,7 +21,6 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger("export.validate")
 
@@ -1083,8 +1082,7 @@ def compressed_tiles_validation(
 
     The computed attributes are described at the members of the TileResults class.
     """
-    path_export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    path_export_dir = file_store.file_store.bag3d_export_dir(
         version=version.version,
     )
     url_root = "https://data.3dbag.nl"
