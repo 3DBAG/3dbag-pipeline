@@ -88,8 +88,8 @@ def feature_evaluation(
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = file_store_fastssd.path.geoflow_crop_dir
-    output_dir = file_store.path.bag3d_export_dir(
+    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
+    output_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
@@ -169,7 +169,7 @@ def export_index(
     a tile. If a tile does not have any features in the quadtree, it is not included.
     Output it written to export_index.csv.
     """
-    path_export_dir = file_store.path.bag3d_export_dir(
+    path_export_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
@@ -423,7 +423,7 @@ def metadata(
             },
         },
     }
-    output_dir = file_store.path.bag3d_export_dir(
+    output_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     outfile = output_dir.joinpath("metadata.json")

@@ -96,7 +96,7 @@ def get_export_tile_ids() -> Sequence[str]:
         root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
 
     file_resource = FileStoreResource(data_dir=str(root_dir))
-    export_dir = file_resource.path.bag3d_export_dir(version=version)
+    export_dir = file_resource.bag3d_export_dir(version=version)
 
     path_tiles_dir = export_dir.joinpath("tiles")
     path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")

@@ -194,7 +194,7 @@ def compressed_tiles(
 ):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = file_store.path.bag3d_export_dir(
+    path_export_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")

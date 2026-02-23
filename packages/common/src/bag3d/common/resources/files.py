@@ -65,7 +65,7 @@ class FileStoreResource(ConfigurableResource):
     @property
     def bag3d_dir(self) -> Path:
         """The 3D BAG data directory"""
-        return self.data_dir / "3DBAG"
+        return self.path / "3DBAG"
 
     @property
     def geoflow_crop_dir(self) -> Path:
@@ -81,24 +81,10 @@ class FileStoreResource(ConfigurableResource):
     def ahn_dir(self, ahn_version: int) -> Path:
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
-        return self.data_dir / "pointcloud" / f"AHN{ahn_version}"
+        return self.path / "pointcloud" / f"AHN{ahn_version}"
 
     def ahn_laz_dir(self, ahn_version: int) -> Path:
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
         return self.ahn_dir(ahn_version) / "as_downloaded" / "LAZ"
 
-
-class FileStoreResource(ConfigurableResource):
-    """Location of the data files that are generated in the pipeline.
-    data_dir: The directory where the files are stored.
-    If None, the resource is initialized with a temporary directory.
-
-    TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
-    """
-
-    data_dir: str
-
-    @property
-    def file_store(self) -> FileStore:
-        return FileStore(data_dir=self.data_dir)
