@@ -87,4 +87,3 @@ class FileStoreResource(ConfigurableResource):
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
         return self.ahn_dir(ahn_version) / "as_downloaded" / "LAZ"
-
