@@ -7,19 +7,18 @@ from typing import Optional
 from dagster import get_dagster_logger, ConfigurableResource
 import docker
 from docker.errors import NotFound
-from pydantic import Field, DirectoryPath
 
 logger = get_dagster_logger("resources.file_store")
 
 
-def make_temp_path(run_id):
+def make_temp_path(run_id: str) -> str:
     return f"/tmp/tmp_3dbag_{run_id}"
 
 
 class FileStore:
     def __init__(
         self,
-        data_dir: str | DirectoryPath = Field(union_mode="left_to_right"),
+        data_dir: str,
         docker_volume_id: Optional[str] = None,
         dir_id: Optional[str] = None,
     ):
@@ -112,7 +111,7 @@ class FileStoreResource(ConfigurableResource):
     TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
     """
 
-    data_dir: str | DirectoryPath = (Field(union_mode="left_to_right"),)
+    data_dir: str
 
     @property
     def file_store(self) -> FileStore:
