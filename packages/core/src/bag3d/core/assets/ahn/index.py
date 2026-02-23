@@ -1,4 +1,4 @@
-from dagster import asset, get_dagster_logger, Config, AssetExecutionContext
+from dagster import asset, get_dagster_logger, Config
 from pydantic import Field
 
 from bag3d.common.resources.executables import LASToolsResource
