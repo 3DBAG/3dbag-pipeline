@@ -12,7 +12,7 @@ Namely:
 
 The `3dbag-pipeline` is built with the [Dagster](https://dagster.io) data orchestration tool, therefore some familiarity with Dagster is recommended.
 
-![dagster](images/dagster.png)
+![dagster](docs/images/dagster.png)
 *Screenshot of the 3dbag-pipeline in the dagster UI.*
 
 The 3dbag-pipeline is written in Python, because Dagster is a Python framework, however, almost all data processing is done by external tools.

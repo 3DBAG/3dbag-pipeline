@@ -1,4 +1,4 @@
-from dagster import asset, get_dagster_logger, Config, AssetExecutionContext
+from dagster import asset, get_dagster_logger, Config
 from pydantic import Field
 
 from bag3d.common.resources.executables import LASToolsResource
@@ -24,7 +24,6 @@ class LasIndexConfig(Config):
 
 
 def run_lasindex(
-    context: AssetExecutionContext,
     config: LasIndexConfig,
     lastools: LASToolsResource,
     lazdownload: LAZDownload,
@@ -50,7 +49,6 @@ def run_lasindex(
     pool="ahn",
 )
 def lasindex_ahn3(
-    context: AssetExecutionContext,
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn3: LAZDownload,
@@ -59,7 +57,7 @@ def lasindex_ahn3(
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, lastools, laz_files_ahn3)
+    run_lasindex(config, lastools, laz_files_ahn3)
 
 
 @asset(
@@ -67,7 +65,6 @@ def lasindex_ahn3(
     pool="ahn",
 )
 def lasindex_ahn4(
-    context: AssetExecutionContext,
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn4: LAZDownload,
@@ -76,7 +73,7 @@ def lasindex_ahn4(
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, lastools, laz_files_ahn4)
+    run_lasindex(config, lastools, laz_files_ahn4)
 
 
 @asset(
@@ -84,7 +81,6 @@ def lasindex_ahn4(
     pool="ahn",
 )
 def lasindex_ahn5(
-    context: AssetExecutionContext,
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn5: LAZDownload,
@@ -93,4 +89,4 @@ def lasindex_ahn5(
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
-    run_lasindex(context, config, lastools, laz_files_ahn5)
+    run_lasindex(config, lastools, laz_files_ahn5)

@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
-from dagster import ConfigurableResource, Permissive
+from dagster import ConfigurableResource
 
 from pgutils import PostgresConnection
 
@@ -9,7 +9,15 @@ DatabaseConnection = PostgresConnection
 
 class DatabaseResource(ConfigurableResource):
     """
-    Database connection.
+    Database connection resource for PostgreSQL.
+
+    Args:
+        host: Database host address
+        user: Database username
+        password: Database password (optional)
+        dbname: Database name
+        port: Database port number
+        other_params: Additional connection parameters (optional)
     """
 
     host: str
@@ -17,7 +25,7 @@ class DatabaseResource(ConfigurableResource):
     password: Optional[str] = None
     dbname: str
     port: int
-    other_params: Optional[Permissive()] = {}
+    other_params: Optional[Dict[str, Any]] = None
 
     @property
     def connection(self) -> DatabaseConnection:
@@ -27,5 +35,5 @@ class DatabaseResource(ConfigurableResource):
             host=self.host,
             port=self.port,
             dbname=self.dbname,
-            **self.other_params,
+            **(self.other_params or {}),
         )
