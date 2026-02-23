@@ -64,5 +64,5 @@ def test_download_extra(file_store, wkt_testarea):
         featuretypes=["gebouw"],
         data_format="gml",
         geofilter=wkt_testarea,
-        download_dir=file_store.file_store.data_dir,
+        download_dir=file_store.path,
     )

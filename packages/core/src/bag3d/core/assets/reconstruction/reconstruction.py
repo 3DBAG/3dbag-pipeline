@@ -277,7 +277,7 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    output_dir = file_store_fastssd.file_store.geoflow_crop_dir.joinpath(tile_id)
+    output_dir = file_store_fastssd.path.geoflow_crop_dir.joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
         footprint_file=f"PG:{db_connection.connection.dsn} tables={tile_view}",
