@@ -9,7 +9,7 @@ from zipfile import ZipFile
 from dagster import get_dagster_logger
 
 from bag3d.common.types import ExportResult
-from bag3d.common.resources import DagsterDeployment
+from bag3d.common.resources import DagsterDeployment, FileStoreResource
 
 
 class BadArchiveError(OSError):
@@ -41,23 +41,6 @@ def unzip(file: Path, dest: Path, remove: bool = True) -> None:
     if remove:
         logger.info(f"Deleting {file}")
         file.unlink()
-
-
-def bag3d_dir(root_dir: os.PathLike) -> Path:
-    """The 3D BAG data directory"""
-    return Path(root_dir) / "3DBAG"
-
-
-def geoflow_crop_dir(root_dir: os.PathLike) -> Path:
-    """Directory for the Geoflow crop-reconstruct output"""
-    return bag3d_dir(root_dir) / "crop_reconstruct"
-
-
-def bag3d_export_dir(root_dir: os.PathLike, version: str) -> Path:
-    """Create the 3DBAG export directory if does not exist"""
-    export_dir = bag3d_dir(root_dir) / f"export_{version}"
-    export_dir.mkdir(exist_ok=True, parents=True)
-    return export_dir
 
 
 def check_export_results(
@@ -112,7 +95,8 @@ def get_export_tile_ids() -> Sequence[str]:
     else:
         root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
 
-    export_dir = bag3d_export_dir(root_dir=root_dir, version=version)
+    file_resource = FileStoreResource(data_dir=str(root_dir))
+    export_dir = file_resource.bag3d_export_dir(version=version)
 
     path_tiles_dir = export_dir.joinpath("tiles")
     path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")

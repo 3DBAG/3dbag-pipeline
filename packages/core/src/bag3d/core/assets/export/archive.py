@@ -12,7 +12,6 @@ from pydantic import Field
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import GDALResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.common.utils.files import bag3d_export_dir
 
 logger = get_dagster_logger()
 
@@ -24,8 +23,7 @@ def geopackage_nl(
     file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
 ):
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
-    path_export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    path_export_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
@@ -196,8 +194,7 @@ def compressed_tiles(
 ):
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
-    path_export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    path_export_dir = file_store.bag3d_export_dir(
         version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")

@@ -24,7 +24,6 @@ from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     format_laz_log,
     download_ahn_index,
-    ahn_laz_dir,
     partition_definition_ahn,
 )
 
@@ -186,7 +185,7 @@ def laz_files_ahn3(
     match the reference.
     """
     tile_id = context.partition_key
-    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 3)
+    laz_dir = file_store.ahn_laz_dir(3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
@@ -254,7 +253,7 @@ def laz_files_ahn4(
     """
     tile_id = context.partition_key
 
-    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 4)
+    laz_dir = file_store.ahn_laz_dir(4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
@@ -322,7 +321,7 @@ def laz_files_ahn5(
     Only downloads a file if it does not exist locally.
     """
     tile_id = context.partition_key
-    laz_dir = ahn_laz_dir(file_store.file_store.data_dir, 5)
+    laz_dir = file_store.ahn_laz_dir(5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]

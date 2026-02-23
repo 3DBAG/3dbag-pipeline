@@ -13,7 +13,6 @@ from bag3d.common.utils.database import (
     load_sql,
     postgrestable_from_query,
 )
-from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.floors_estimation.resources import ModelStoreResource
@@ -155,7 +154,7 @@ def features_file_index(
     """
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
 
     reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
         "party_walls_features"
@@ -356,7 +355,7 @@ def save_cjfiles(
     file_store_fastssd: FileStoreResource,
 ) -> None:
     """Saves the new cj files."""
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"
     )

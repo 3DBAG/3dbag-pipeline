@@ -22,7 +22,6 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import RooferResource
 from bag3d.common.utils.dagster import format_date
-from bag3d.common.utils.files import geoflow_crop_dir
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 
@@ -278,9 +277,7 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    output_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir).joinpath(
-        tile_id
-    )
+    output_dir = file_store_fastssd.geoflow_crop_dir.joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
         footprint_file=f"PG:{db_connection.connection.dsn} tables={tile_view}",

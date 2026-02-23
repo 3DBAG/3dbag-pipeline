@@ -36,7 +36,7 @@ def extract_bgt(
         featuretypes=config.featuretypes,
         data_format="gmllight",
         geofilter=config.geofilter,
-        download_dir=file_store.file_store.data_dir,
+        download_dir=file_store.path,
     )
     extract_path = Path(metadata["Extract Path"].value)
     logger.info(f"Downloaded {extract_path}")

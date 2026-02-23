@@ -75,8 +75,8 @@ def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]
     ```
     """
     extract_url = "https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip"
-    extract_zip = Path(file_store.file_store.data_dir / "lvbag-extract-nl.zip")
-    extract_dir = Path(file_store.file_store.data_dir / "lvbag-extract")
+    extract_zip = file_store.path / "lvbag-extract-nl.zip"
+    extract_dir = file_store.path / "lvbag-extract"
     # chunk_size: https://stackoverflow.com/a/23397581
     download_file(extract_url, extract_zip, chunk_size=1024 * 1024)
     unzip(extract_zip, extract_dir)

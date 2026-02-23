@@ -22,8 +22,6 @@ from urban_morphology_3d.cityStats import city_stats
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
 from bag3d.common.utils.files import (
     check_export_results,
-    geoflow_crop_dir,
-    bag3d_export_dir,
 )
 from bag3d.common.types import ExportResult
 from bag3d.common.resources.files import FileStoreResource
@@ -67,12 +65,10 @@ def distribution_tiles_files_index(
     Returns a collection type, storing the ExportResults per tile, the R-Tree of the tiles
     and a path-array of the CityJSON files (TilesFilesIndex)
     """
-    path_quadtree_tsv = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    path_quadtree_tsv = file_store.bag3d_export_dir(
         version=version.version,
     ).joinpath("quadtree.tsv")
-    path_tiles_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+    path_tiles_dir = file_store.bag3d_export_dir(
         version=version.version,
     ).joinpath("tiles")
     export_results_gen = filter(
@@ -177,7 +173,7 @@ def features_file_index(
 
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
     return dict(
         features_file_index_generator(reconstructed_root_dir, config.concurrency)
     )
@@ -195,9 +191,7 @@ def cityjsonfeatures_with_party_walls_nl(
     """Writes the content of the party walls DataFrame back to the reconstructed
     CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
     CityJSON tiles that is created with *tyler*."""
-    reconstructed_features_dir = geoflow_crop_dir(
-        file_store_fastssd.file_store.data_dir
-    )
+    reconstructed_features_dir = file_store_fastssd.geoflow_crop_dir
     # For now, we do not overwrite the reconstructed features with the part walls
     # attributes, but save a new file
     output_dir = reconstructed_features_dir.parent.joinpath("party_walls_features")
