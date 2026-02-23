@@ -116,17 +116,15 @@ def reconstruction_output_tiles_func(
     Args:
         data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.path)
     export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+        file_store.path,
         version=version.version,
     )
     logger.debug(f"{reconstructed_root_dir=}")
     version_3dbag: str = kwargs["version_3dbag"]
 
-    sequence_header_file = (
-        bag3d_dir(file_store_fastssd.file_store.data_dir) / "metadata.json"
-    )
+    sequence_header_file = bag3d_dir(file_store_fastssd.path) / "metadata.json"
     create_sequence_header_file(
         os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
     )

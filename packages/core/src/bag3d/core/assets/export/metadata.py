@@ -89,9 +89,9 @@ def feature_evaluation(
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.path)
     output_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+        file_store.path,
         version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
@@ -172,7 +172,7 @@ def export_index(
     Output it written to export_index.csv.
     """
     path_export_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+        file_store.path,
         version=version.version,
     )
     path_tiles_dir = path_export_dir.joinpath("tiles")
@@ -427,7 +427,7 @@ def metadata(
         },
     }
     output_dir = bag3d_export_dir(
-        file_store.file_store.data_dir,
+        file_store.path,
         version=version.version,
     )
     outfile = output_dir.joinpath("metadata.json")

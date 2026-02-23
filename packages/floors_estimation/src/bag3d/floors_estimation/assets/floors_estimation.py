@@ -155,7 +155,7 @@ def features_file_index(
     """
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.path)
 
     reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
         "party_walls_features"
@@ -356,7 +356,7 @@ def save_cjfiles(
     file_store_fastssd: FileStoreResource,
 ) -> None:
     """Saves the new cj files."""
-    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.file_store.data_dir)
+    reconstructed_root_dir = geoflow_crop_dir(file_store_fastssd.path)
     reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
         "bouwlagen_features"
     )

@@ -5,86 +5,48 @@ import string
 from typing import Optional
 
 from dagster import get_dagster_logger, ConfigurableResource
-import docker
-from docker.errors import NotFound
 
 logger = get_dagster_logger("resources.file_store")
 
 
-def make_temp_path(run_id: str) -> str:
-    return f"/tmp/tmp_3dbag_{run_id}"
+class FileStoreResource(ConfigurableResource):
+    """Location of the data files that are generated in the pipeline."""
 
+    data_dir: str
 
-class FileStore:
-    def __init__(
-        self,
-        data_dir: str,
-        docker_volume_id: Optional[str] = None,
-        dir_id: Optional[str] = None,
-    ):
-        self.data_dir = None
-        self.docker_volume = None
-        if data_dir:
-            directory = Path(data_dir)
-            p = directory.resolve()
-            if p.is_dir():
-                pass
-                # # Need r+w for others, so that docker containers can write to the
-                # # directory
-                # if oct(p.stat().st_mode) != "0o40777":
-                #     raise PermissionError(f"Need mode=777 on {p}, because docker "
-                #                           f"containers need read+write+execute on it.")
-            else:
-                p.mkdir()
-                p.chmod(mode=0o777)
-                logger.info(f"Created directory {p}")
-            self.data_dir = p
-        elif docker_volume_id:
-            docker_client = docker.from_env()
-            self.docker_volume = None
-            try:
-                self.docker_volume = docker_client.volumes.get(docker_volume_id)
-                logger.info(f"Using existing docker volume: {docker_volume_id}")
-            except NotFound:
-                self.docker_volume = docker_client.volumes.create(
-                    name=docker_volume_id, driver="local"
-                )
-                logger.info(f"Created docker volume: {docker_volume_id}")
-        else:
-            # In case dir_id is also None, we create a temp dir with a random ID.
-            tmp = self.mkdir_temp(dir_id)
-            self.data_dir = tmp
-            logger.info(f"Created local temporary directory {self.data_dir}")
+    @property
+    def path(self) -> Path:
+        """Return the data directory as a Path, creating it if it does not exist."""
+        p = Path(self.data_dir).resolve()
+        if not p.is_dir():
+            p.mkdir()
+            p.chmod(mode=0o777)
+            logger.info(f"Created directory {p}")
+        return p
 
     def rm(self, force: bool = False) -> None:
-        """Remove the storage backend (directory or Docker volume).
+        """Remove the storage directory.
 
         Args:
-            force: If True, recursively removes directories with contents
-                and forces Docker volume removal. If False, only removes
-                empty directories and Docker volumes without force.
+            force: If True, recursively removes the directory with its contents.
+                   If False, only removes an empty directory.
 
         Warning:
             This permanently deletes data. Use force=True with caution.
         """
-        if self.data_dir:
-            if force:
-                rmtree(str(self.data_dir))
-            else:
-                self.data_dir.rmdir()
-            logger.info(f"Deleted directory {self.data_dir}")
-            self.data_dir = None
-        if self.docker_volume:
-            self.docker_volume.remove(force=force)
-            logger.info(f"Deleted docker volume {self.docker_volume}")
-            self.docker_volume = None
+        p = Path(self.data_dir)
+        if force:
+            rmtree(str(p))
+        else:
+            p.rmdir()
+        logger.info(f"Deleted directory {p}")
 
     @staticmethod
     def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
         """Create a temporary directory with the required permissions.
 
-        Creates a directory at `/tmp/tmp_3dbag_{temp_dir_id}` with 777 permissions
-        to ensure Docker containers can read/write to it.
+        Creates a directory at ``/tmp/tmp_3dbag_{temp_dir_id}`` with 777
+        permissions so that Docker containers can read and write to it.
 
         Args:
             temp_dir_id: Identifier for the directory name. If None, generates
@@ -93,26 +55,9 @@ class FileStore:
         Returns:
             Path object pointing to the created directory.
         """
-        if temp_dir_id:
-            dir_id = temp_dir_id
-        else:
-            dir_id = "".join(random.choice(string.ascii_letters) for _ in range(8))
-        tmp = Path(make_temp_path(dir_id))
+        if temp_dir_id is None:
+            temp_dir_id = "".join(random.choice(string.ascii_letters) for _ in range(8))
+        tmp = Path(f"/tmp/tmp_3dbag_{temp_dir_id}")
         tmp.mkdir(exist_ok=True)
         tmp.chmod(mode=0o777)
         return tmp
-
-
-class FileStoreResource(ConfigurableResource):
-    """Location of the data files that are generated in the pipeline.
-    data_dir: The directory where the files are stored.
-    If None, the resource is initialized with a temporary directory.
-
-    TODO: make the directory functions in .core (bag3d_export_dir etc) members of this
-    """
-
-    data_dir: str
-
-    @property
-    def file_store(self) -> FileStore:
-        return FileStore(data_dir=self.data_dir)
