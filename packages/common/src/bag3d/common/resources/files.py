@@ -14,27 +14,6 @@ class FileStoreResource(ConfigurableResource):
 
     data_dir: str
 
-<<<<<<< HEAD
-class FileStore:
-    def __init__(
-        self,
-        data_dir: str,
-    ):
-        directory = Path(data_dir)
-        p = directory.resolve()
-        if p.is_dir():
-            pass
-            # # Need r+w for others, so that docker containers can write to the
-            # # directory
-            # if oct(p.stat().st_mode) != "0o40777":
-            #     raise PermissionError(f"Need mode=777 on {p}, because docker "
-            #                           f"containers need read+write+execute on it.")
-        else:
-            p.mkdir()
-            p.chmod(mode=0o777)
-            logger.info(f"Created directory {p}")
-        self.data_dir = p
-=======
     @property
     def path(self) -> Path:
         """Return the data directory as a Path, creating it if it does not exist."""
@@ -44,7 +23,6 @@ class FileStore:
             p.chmod(mode=0o777)
             logger.info(f"Created directory {p}")
         return p
->>>>>>> origin/20-unified-interface-for-the-filestore-resource
 
     def rm(self, force: bool = False) -> None:
         """Remove the storage directory.
@@ -56,21 +34,12 @@ class FileStore:
         Warning:
             This permanently deletes data. Use force=True with caution.
         """
-<<<<<<< HEAD
-        if force:
-            rmtree(str(self.data_dir))
-        else:
-            self.data_dir.rmdir()
-        logger.info(f"Deleted directory {self.data_dir}")
-        self.data_dir = None
-=======
         p = Path(self.data_dir)
         if force:
             rmtree(str(p))
         else:
             p.rmdir()
         logger.info(f"Deleted directory {p}")
->>>>>>> origin/20-unified-interface-for-the-filestore-resource
 
     @staticmethod
     def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
@@ -92,7 +61,6 @@ class FileStore:
         tmp.mkdir(exist_ok=True)
         tmp.chmod(mode=0o777)
         return tmp
-<<<<<<< HEAD
 
     @property
     def bag3d_dir(self) -> Path:
@@ -134,5 +102,3 @@ class FileStoreResource(ConfigurableResource):
     @property
     def file_store(self) -> FileStore:
         return FileStore(data_dir=self.data_dir)
-=======
->>>>>>> origin/20-unified-interface-for-the-filestore-resource
