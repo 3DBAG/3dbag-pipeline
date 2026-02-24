@@ -112,11 +112,10 @@ def process_chunk(
         )
         data.append(row)
 
-    _sql = f"""
-        INSERT INTO {table}
+    query = SQL("""
+        INSERT INTO {}
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (id) DO NOTHING;"""
-    query = SQL(_sql)  # type: ignore[arg-type]
+        ON CONFLICT (id) DO NOTHING;""").format(table.id)
 
     with connect(conn.dsn) as connection:
         with connection.cursor() as cur:
@@ -253,7 +252,7 @@ def all_features(
 
 @asset
 def preprocessed_features(
-    all_features: Output[PostgresTableIdentifier],
+    all_features: PostgresTableIdentifier,
     db_connection: DatabaseResource,
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
@@ -314,9 +313,8 @@ def predictions_table(
     inferenced_floors.reset_index(inplace=True)
     data = [tuple(v) for v in inferenced_floors[["identificatie", "floors"]].to_numpy()]
 
-    _sql = f"""INSERT INTO {predictions_table}
-                VALUES (%s, %s);"""
-    query = SQL(_sql)  # type: ignore[arg-type]
+    query = SQL("""INSERT INTO {}
+                VALUES (%s, %s);""").format(predictions_table.id)
 
     with connect(db_connection.connection.dsn) as connection:
         with connection.cursor() as cur:
