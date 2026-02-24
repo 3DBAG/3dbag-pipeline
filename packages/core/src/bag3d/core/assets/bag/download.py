@@ -12,7 +12,7 @@ from dagster import (
     AutomationCondition,
 )
 from pydantic import Field
-from lxml import objectify
+from lxml import objectify  # type: ignore[attr-defined]
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
@@ -345,8 +345,9 @@ def load_bag_layer(
         ]
         if geofilter:
             bbox = bbox_from_wkt(geofilter)
-            cmd.append("-spat {bbox}")
-            kwargs["bbox"] = " ".join(map(str, bbox))
+            if bbox is not None:
+                cmd.append("-spat {bbox}")
+                kwargs["bbox"] = " ".join(map(str, bbox))
         cmd.append("-f PostgreSQL PG:'{dsn}'")
         cmd.append('{{}}"')
         cmd.append(f"::: {layer_dir}/*.xml")

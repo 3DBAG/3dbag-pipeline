@@ -1,6 +1,8 @@
+from typing import cast
 from bag3d.core.assets.deploy.servers import compressed_export_nl, transfer_to_server
 from pathlib import Path
 import pytest
+from dagster import Output
 
 
 @pytest.mark.skip("included in integration test")
@@ -19,13 +21,17 @@ def test_transfer_to_server(resources, deployment_server, test_data_dir):
     metadata_file.write_text(
         '{"identificationInfo": {"citation": {"edition": "test_version"}}}'
     )
+    compressed_file: Path | None = None
     try:
         # compress the export dir
-        res = compressed_export_nl(
-            resources["file_store"], metadata_file, resources["version"]
+        res = cast(
+            Output[Path],
+            compressed_export_nl(
+                resources["file_store"], metadata_file, resources["version"]
+            ),
         )
 
-        compressed_file = Path(res.metadata["path"])
+        compressed_file = Path(str(res.metadata["path"].value))
         assert compressed_file.exists()  # Check that the file was created
 
         # Test the transfer to podzilla
@@ -43,7 +49,8 @@ def test_transfer_to_server(resources, deployment_server, test_data_dir):
         )
     finally:
         # Clean up the test files
-        compressed_file.unlink(missing_ok=True)
+        if compressed_file is not None:
+            compressed_file.unlink(missing_ok=True)
         metadata_file.unlink(missing_ok=True)
         empty_file.unlink(missing_ok=True)
         export_dir.rmdir()

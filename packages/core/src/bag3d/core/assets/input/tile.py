@@ -39,7 +39,7 @@ def reconstruction_input_tiles(
     geometry_column = "geometrie"
 
     conn = db_connection.connection
-    conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
+    conn.send_query(SQL(f"CREATE SCHEMA IF NOT EXISTS {output_schema}"))
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
     uri = conn.dsn.replace("sslmode=allow", "").strip()
@@ -64,19 +64,25 @@ def reconstruction_input_tiles(
         logger=logger,
     )
 
-    conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
+    conn.send_query(SQL(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)"))
     conn.send_query(
-        f"CREATE INDEX tiles_boundary_idx ON {output_schema}.tiles USING gist (boundary)"
+        SQL(
+            f"CREATE INDEX tiles_boundary_idx ON {output_schema}.tiles USING gist (boundary)"
+        )
     )
 
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY ({primary_key}) REFERENCES {reconstruction_input} ({primary_key})"
+        SQL(
+            f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY ({primary_key}) REFERENCES {reconstruction_input} ({primary_key})"  # type: ignore[arg-type]
+        )
     )
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY (tile_id) REFERENCES {output_schema}.tiles (tile_id)"
+        SQL(
+            f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY (tile_id) REFERENCES {output_schema}.tiles (tile_id)"
+        )
     )
     conn.send_query(
-        f"CREATE INDEX index_tile_id_idx ON {output_schema}.index (tile_id)"
+        SQL(f"CREATE INDEX index_tile_id_idx ON {output_schema}.index (tile_id)")
     )
 
     return Output(
@@ -84,15 +90,15 @@ def reconstruction_input_tiles(
     ), Output(PostgresTableIdentifier(output_schema, "index"), output_name="index")
 
 
-def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
+def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str | None = None):
     """Get the input tile IDs from the database. If 'wkt' is provided, then get the
     tile IDs that intersect the wkt polygon. The SRID for the wkt is set to 28992."""
     if wkt:
         query = SQL(
-            f"select tile_id from {schema}.{table_tiles} where st_intersects(st_geometryfromtext('SRID=28992;{wkt}'), boundary)"
+            f"select tile_id from {schema}.{table_tiles} where st_intersects(st_geometryfromtext('SRID=28992;{wkt}'), boundary)"  # type: ignore[arg-type]
         )
     else:
-        query = SQL(f"select tile_id from {schema}.{table_tiles}")
+        query = SQL(f"select tile_id from {schema}.{table_tiles}")  # type: ignore[arg-type]
     try:
         conn = PostgresConnection(
             port=int(os.environ.get("BAG3D_PG_PORT", 5432)),

@@ -127,6 +127,8 @@ class LAZDownload:
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
         self.compute_sha(sha_func=sha_func)
+        assert self.hash_name is not None
+        assert self.hash_hexdigest is not None
         match = match_sha(
             fpath=self.path,
             sha_reference=sha_reference,
@@ -403,8 +405,8 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, 
 
 def download_ahn_laz(
     fpath: Path,
-    url_laz: str = None,
-    url_base: str = None,
+    url_laz: str | None = None,
+    url_base: str | None = None,
     verify_ssl: bool = False,
     nr_retries: int = 5,
     force_download: bool = False,
@@ -425,14 +427,18 @@ def download_ahn_laz(
         A LAZDownload file
     """
 
-    url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
+    if url_laz is not None:
+        url = url_laz
+    else:
+        assert url_base is not None, "Either url_laz or url_base must be provided"
+        url = "/".join([url_base, fpath.name])
 
     success = False
     file_size = 0.0
     is_new = False
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        file_size, fpath, is_new, success, url_laz = download_laz(
+        file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
             file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
         )
     else:  # pragma: no cover
@@ -442,13 +448,15 @@ def download_ahn_laz(
         is_new = False
         if force_download:
             logger.info(format_laz_log(fpath, "Forcing re-download"))
-            file_size, fpath, is_new, success, url_laz = download_laz(
+            file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
                 file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
             )
 
     if not success:
         raise Failure(format_laz_log(fpath, "Downloading failed!"))
 
+    assert url_laz is not None
+    assert isinstance(fpath, Path)
     return LAZDownload(
         url=url_laz,
         path=fpath,

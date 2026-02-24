@@ -18,12 +18,12 @@ from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
 
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
-HOST = os.getenv("BAG3D_PG_HOST")
-PORT = int(os.getenv("BAG3D_PG_PORT"))
-USER = os.getenv("BAG3D_PG_USER")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
+HOST = os.getenv("BAG3D_PG_HOST", "")
+PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
+USER = os.getenv("BAG3D_PG_USER", "")
+PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
+DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
 
 
 class MockAssetIOManager(IOManager):
@@ -186,7 +186,7 @@ def resources(
         "validation": validation,
         "db_connection": database,
         "file_store": file_store,
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
         "godzilla_server": godzilla_server,
         "podzilla_server": podzilla_server,
         "specs": Specs3DBAGResource(),
@@ -212,7 +212,7 @@ def resources_ahn(
         "validation": validation,
         "db_connection": database,
         "file_store": file_store,
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
         "godzilla_server": godzilla_server,
         "podzilla_server": podzilla_server,
         "specs": Specs3DBAGResource(),
@@ -226,7 +226,7 @@ def resources_missing(database, file_store, gdal_missing, validation_missing):
         "validation": validation_missing,
         "db_connection": database,
         "file_store": file_store,
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
     }
 
 

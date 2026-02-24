@@ -40,12 +40,12 @@ def test_integration_ahn(database, core_file_store):
     """Test the ahn jobs."""
     resources = {
         "lastools": LASToolsResource(
-            exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-            exe_las2las=os.getenv("EXE_PATH_LAS2LAS"),
-            exe_lasinfo=os.getenv("EXE_PATH_LASINFO"),
+            exe_lasindex=os.getenv("EXE_PATH_LASINDEX", ""),
+            exe_las2las=os.getenv("EXE_PATH_LAS2LAS", ""),
+            exe_lasinfo=os.getenv("EXE_PATH_LASINFO", ""),
         ),
         "pdal": PDALResource(
-            exe_pdal=os.getenv("EXE_PATH_PDAL"),
+            exe_pdal=os.getenv("EXE_PATH_PDAL", ""),
         ),
         "db_connection": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
@@ -145,7 +145,7 @@ def test_integration_reconstruction_and_export(
         "db_connection": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
         "file_store_fastssd": FileStoreResource(data_dir=str(core_file_store_fastssd)),
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
         "validation": ValidationResource(
             exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
             exe_cjval=os.getenv("EXE_PATH_CJVAL"),
@@ -163,7 +163,7 @@ def test_integration_reconstruction_and_export(
     reconstruction_assets = [
         asset
         for asset in all_reconstruction_assets
-        if asset.key
+        if asset.key  # type: ignore[union-attr]
         in {
             AssetKey(["reconstruction", "reconstructed_building_models_nl"]),
         }
@@ -244,7 +244,7 @@ def test_integration_deploy_release(
     """Can we deploy and release the 3DBAG, everything included?"""
 
     resources = {
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
         "godzilla_server": godzilla_server,
         "podzilla_server": podzilla_server,
         "db_connection": database,

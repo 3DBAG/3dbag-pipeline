@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
+from psycopg.sql import SQL
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.database import (
@@ -80,13 +81,17 @@ def bag_verblijfsobjectactueelbestaand(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")  # type: ignore[arg-type]
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"
+        SQL(
+            f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"  # type: ignore[arg-type]
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
+        SQL(
+            f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"  # type: ignore[arg-type]
+        )
     )
     return Output(new_table, metadata=metadata)
 
@@ -117,16 +122,20 @@ def bag_pandactueelbestaand(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")  # type: ignore[arg-type]
     )
     geom_idx_name = f"{table_name}_geometrie_idx"
     db_connection.connection.send_query(
-        f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)"
+        SQL(f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)")  # type: ignore[arg-type]
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
+        SQL(
+            f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"  # type: ignore[arg-type]
+        )
     )
-    db_connection.connection.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
+    db_connection.connection.send_query(
+        SQL(f"CLUSTER {new_table} USING {geom_idx_name}")  # type: ignore[arg-type]
+    )
     return Output(new_table, metadata=metadata)
 
 

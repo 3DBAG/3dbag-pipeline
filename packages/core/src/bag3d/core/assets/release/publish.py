@@ -27,7 +27,7 @@ def publish_data(
     """On godzilla, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
-    public_dir: str = godzilla_server.public_dir
+    public_dir: str = godzilla_server.public_dir or ""
     deploy_dir, compressed_file = transfer_to_godzilla
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)

@@ -1,4 +1,5 @@
 from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
+from psycopg.sql import SQL
 
 from bag3d.common.utils.database import (
     create_schema,
@@ -39,7 +40,7 @@ def bag_kas_warenhuis(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")  # type: ignore[arg-type]
     )
     return Output(new_table, metadata=metadata)
 
@@ -62,6 +63,6 @@ def bag_bag_overlap(bag_pandactueelbestaand, db_connection: DatabaseResource):
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")  # type: ignore[arg-type]
     )
     return Output(new_table, metadata=metadata)

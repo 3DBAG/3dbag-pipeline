@@ -25,13 +25,13 @@ def test_load_bag_layer(database, file_store, gdal, test_data_dir):
     logger = get_dagster_logger()
     test_bag_table = PostgresTableIdentifier("lvbag", "test_ligplaats")
 
-    build_op_context(
+    _ = build_op_context(
         partition_key="01cz1",
         resources={
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
-            "version": ReleaseVersionResource("test_version"),
+            "version": ReleaseVersionResource(version="test_version"),
         },
     )
 
@@ -59,13 +59,13 @@ def test_stage_bag_layer(database, file_store, gdal, test_data_dir):
 
     logger = get_dagster_logger()
 
-    build_op_context(
+    _ = build_op_context(
         partition_key="01cz1",
         resources={
             "gdal": gdal,
             "db_connection": database,
             "file_store": file_store,
-            "version": ReleaseVersionResource("test_version"),
+            "version": ReleaseVersionResource(version="test_version"),
         },
     )
 

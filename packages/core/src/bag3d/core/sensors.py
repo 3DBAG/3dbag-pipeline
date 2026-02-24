@@ -1,4 +1,5 @@
 import json
+from typing import TypedDict
 
 from dagster import (
     AssetKey,
@@ -14,8 +15,15 @@ from bag3d.core.assets.ahn.core import download_ahn_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
 
+
+class _AhnVersionConfig(TypedDict):
+    job_name: str
+    asset_key: AssetKey
+    url_key: str
+
+
 # Maps AHN version to: job name, checksum asset key, tile_index URL key
-_AHN_VERSIONS = {
+_AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
     3: {
         "job_name": "ahn3",
         "asset_key": AssetKey(["ahn", "md5_ahn3"]),
@@ -102,6 +110,9 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 context.log.warning(f"Failed to read checksums for AHN{version}")
                 continue
 
+            if tile_index is None:
+                context.log.warning("Failed to download AHN tile index")
+                continue
             filename_to_tile = _build_filename_to_tile_id(tile_index, cfg["url_key"])
             current[key] = checksums
             prev_checksums = previous.get(key)

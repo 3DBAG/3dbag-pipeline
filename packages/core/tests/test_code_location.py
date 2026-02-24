@@ -1,6 +1,6 @@
 import importlib
 from bag3d.core.assets import ahn
-from dagster import load_assets_from_package_module, Definitions
+from dagster import load_assets_from_package_module, Definitions, AssetsDefinition
 
 
 def test_definitions_loadable():
@@ -16,4 +16,6 @@ def test_load_ahn_assets():
     ahn_assets = load_assets_from_package_module(
         package_module=ahn, key_prefix="ahn", group_name="source"
     )
-    [print(a.keys) for a in ahn_assets]
+    for a in ahn_assets:
+        if isinstance(a, AssetsDefinition):
+            print(a.keys)

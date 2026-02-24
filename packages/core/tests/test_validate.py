@@ -141,7 +141,7 @@ class TestAttributeValidationResultOne:
 
         # Test frozen
         with pytest.raises(AttributeError):
-            result.attribute_name = "new_name"
+            result.attribute_name = "new_name"  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class TestAttributeValidationResults:

@@ -240,7 +240,7 @@ def webservice_godzilla(
     with godzilla_server.connection as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
-            "\copy "
+            r"\copy "
             + str(export_index)
             + " FROM '"
             + filepath
@@ -252,7 +252,7 @@ def webservice_godzilla(
         )
         filepath = f"{deploy_dir}/validate_compressed_files.csv"
         copy_cmd = (
-            "\copy "
+            r"\copy "
             + str(validate_compressed_files)
             + " FROM '"
             + filepath

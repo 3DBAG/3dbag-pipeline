@@ -18,7 +18,6 @@ from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
-from bag3d.common.types import PostgresTable
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import partition_definition_ahn
@@ -127,7 +126,7 @@ def metadata_ahn5(
 @asset(deps=["metadata_ahn3"])
 def metadata_ahn3_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn3: PostgresTable,
+    metadata_table_ahn3: PostgresTableIdentifier,
 ):
     """Create indices on the AHN3 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn3)
@@ -137,7 +136,7 @@ def metadata_ahn3_index(
 @asset(deps=["metadata_ahn4"])
 def metadata_ahn4_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn4: PostgresTable,
+    metadata_table_ahn4: PostgresTableIdentifier,
 ):
     """Create indices on the AHN4 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn4)
@@ -147,7 +146,7 @@ def metadata_ahn4_index(
 @asset(deps=["metadata_ahn5"])
 def metadata_ahn5_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn5: PostgresTable,
+    metadata_table_ahn5: PostgresTableIdentifier,
 ):
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn5)
@@ -155,16 +154,22 @@ def metadata_ahn5_index(
 
 
 def create_indices_metadata_table(
-    db_connection: DatabaseResource, metadata_table: PostgresTable
+    db_connection: DatabaseResource, metadata_table: PostgresTableIdentifier
 ):
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"
+        SQL(
+            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"  # type: ignore[arg-type]
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"
+        SQL(
+            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"  # type: ignore[arg-type]
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
+        SQL(
+            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"  # type: ignore[arg-type]
+        )
     )
 
 
