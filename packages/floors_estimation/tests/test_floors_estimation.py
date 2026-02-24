@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import cast
 
+import pandas as pd
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 from bag3d.floors_estimation.assets.floors_estimation import (
@@ -15,13 +17,17 @@ from bag3d.floors_estimation.assets.floors_estimation import (
     preprocessed_features,
     save_cjfiles,
 )
+from dagster import Output
 
 
 def test_features_file_index(file_store_fastssd):
     """"""
-    result = features_file_index(
-        FloorsEstimationConfig(),
-        file_store_fastssd,
+    result = cast(
+        dict[str, Path],
+        features_file_index(
+            FloorsEstimationConfig(),
+            file_store_fastssd,
+        ),
     )
     assert len(result) == 413
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
@@ -63,10 +69,13 @@ def test_make_chunks():
 
 
 def test_bag3d_features(database, mock_features_file_index):
-    res = bag3d_features(
-        FloorsEstimationConfig(),
-        mock_features_file_index,
-        database,
+    res = cast(
+        Output[PostgresTableIdentifier],
+        bag3d_features(
+            FloorsEstimationConfig(),
+            mock_features_file_index,
+            database,
+        ),
     )
 
     assert res.value is not None
@@ -77,8 +86,11 @@ def test_bag3d_features(database, mock_features_file_index):
 
 
 def test_external_features(database):
-    res = external_features(
-        database,
+    res = cast(
+        Output[PostgresTableIdentifier],
+        external_features(
+            database,
+        ),
     )
 
     assert res.value is not None
@@ -95,10 +107,13 @@ def test_all_features(database):
     building_feature_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_bag3d"
     )
-    res = all_features(
-        external_features_table,
-        building_feature_table,
-        database,
+    res = cast(
+        Output[PostgresTableIdentifier],
+        all_features(
+            external_features_table,
+            building_feature_table,
+            database,
+        ),
     )
 
     assert res.value is not None
@@ -113,25 +128,31 @@ def test_preprocessed_features(database):
         "floors_estimation", "building_features_all"
     )
     assert table_exists(database, all_features_table) is True
-    data = preprocessed_features(
-        all_features_table,
-        database,
+    data = cast(
+        pd.DataFrame,
+        preprocessed_features(
+            all_features_table,
+            database,
+        ),
     )
     assert data is not None
     assert data.shape[0] == 6
 
 
 def test_inferenced_floors(model_store, mock_preprocessed_features):
-    res = inferenced_floors(mock_preprocessed_features, model_store)
+    res = cast(pd.DataFrame, inferenced_floors(mock_preprocessed_features, model_store))
     assert res is not None
     assert "floors" in res.columns
     assert "floors_int" in res.columns
 
 
 def test_predictions_table(database, mock_inferenced_floors):
-    res = predictions_table(
-        mock_inferenced_floors,
-        database,
+    res = cast(
+        Output[PostgresTableIdentifier],
+        predictions_table(
+            mock_inferenced_floors,
+            database,
+        ),
     )
     assert res.value is not None
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")

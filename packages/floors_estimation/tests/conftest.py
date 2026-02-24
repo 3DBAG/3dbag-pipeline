@@ -11,12 +11,12 @@ from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import build_op_context
 
 
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
-HOST = os.getenv("BAG3D_PG_HOST")
-PORT = int(os.getenv("BAG3D_PG_PORT"))
-USER = os.getenv("BAG3D_PG_USER")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
+HOST = os.getenv("BAG3D_PG_HOST", "")
+PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
+USER = os.getenv("BAG3D_PG_USER", "")
+PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
+DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
 
 
 @pytest.fixture(scope="session")
@@ -52,7 +52,7 @@ def model_store(model) -> ModelStoreResource:
 @pytest.fixture
 def database():
     db = DatabaseResource(
-        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
+        host=HOST, port=PORT, user=USER, password=PASSWORD or "", dbname=DB_NAME
     )
     yield db
 
@@ -64,7 +64,7 @@ def file_store_fastssd(floors_estimation_file_store_fastssd):
 
 @pytest.fixture
 def version():
-    yield ReleaseVersionResource("test_version")
+    yield ReleaseVersionResource(version="test_version")
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import islice
 from os import getenv
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable
 
 import numpy as np
 import pandas as pd
@@ -60,13 +60,14 @@ def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
 
 def process_chunk(
     conn: PostgresConnection,
-    chunk_files: List[str],
+    chunk_files: Dict[str, Path],
     chunk_id: int,
     table: PostgresTableIdentifier,
     logger,
 ):
     chunk_features = [
-        extract_attributes_from_path(path, ex_id) for ex_id, path in chunk_files.items()
+        extract_attributes_from_path(str(path), ex_id)
+        for ex_id, path in chunk_files.items()
     ]
     required_attributes = [
         "identificatie",
@@ -92,8 +93,8 @@ def process_chunk(
         if missing_attrs:
             raise KeyError(f"Missing required attributes: {missing_attrs}")
 
-        opp_dak_plat = attr_dict.get("b3_opp_dak_plat")
-        opp_dak_schuin = attr_dict.get("b3_opp_dak_schuin")
+        opp_dak_plat = attr_dict.get("b3_opp_dak_plat") or 0
+        opp_dak_schuin = attr_dict.get("b3_opp_dak_schuin") or 0
         row = (
             attr_dict["identificatie"],
             attr_dict["oorspronkelijkbouwjaar"],
@@ -111,10 +112,11 @@ def process_chunk(
         )
         data.append(row)
 
-    query = f"""
+    _sql = f"""
         INSERT INTO {table}
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;"""
+    query = SQL(_sql)  # type: ignore[arg-type]
 
     with connect(conn.dsn) as connection:
         with connection.cursor() as cur:
@@ -312,8 +314,9 @@ def predictions_table(
     inferenced_floors.reset_index(inplace=True)
     data = [tuple(v) for v in inferenced_floors[["identificatie", "floors"]].to_numpy()]
 
-    query = f"""INSERT INTO {predictions_table}
+    _sql = f"""INSERT INTO {predictions_table}
                 VALUES (%s, %s);"""
+    query = SQL(_sql)  # type: ignore[arg-type]
 
     with connect(db_connection.connection.dsn) as connection:
         with connection.cursor() as cur:
