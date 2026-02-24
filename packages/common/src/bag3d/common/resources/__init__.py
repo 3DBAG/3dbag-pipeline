@@ -1,7 +1,7 @@
 import os
 from enum import StrEnum
 
-from dagster import EnvVar, get_dagster_logger
+from dagster import get_dagster_logger
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
@@ -19,6 +19,9 @@ from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
+# Use os.environ[key] for required env vars: raises KeyError if unset and returns str (not
+# str | None), which is both semantically correct and type-safe. Use os.getenv(key) only for
+# genuinely optional env vars.
 
 logger = get_dagster_logger()
 
@@ -92,17 +95,17 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                 exe_sozip=os.getenv("EXE_PATH_SOZIP"),
             ),
-            "file_store": FileStoreResource(data_dir=os.getenv("BAG3D_FILESTORE", "")),
+            "file_store": FileStoreResource(data_dir=os.environ["BAG3D_FILESTORE"]),
             "file_store_fastssd": FileStoreResource(
-                data_dir=os.getenv("BAG3D_FILESTORE_FASTSSD", "")
+                data_dir=os.environ["BAG3D_FILESTORE_FASTSSD"]
             ),
             "db_connection": DatabaseResource(
-                host=EnvVar("BAG3D_PG_HOST").get_value() or "",
-                user=EnvVar("BAG3D_PG_USER").get_value() or "",
-                password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
-                port=EnvVar.int("BAG3D_PG_PORT").get_value() or 0,
-                dbname=EnvVar("BAG3D_PG_DATABASE").get_value() or "",
-                other_params={"sslmode": EnvVar("BAG3D_PG_SSLMODE").get_value() or ""},
+                host=os.environ["BAG3D_PG_HOST"],
+                user=os.environ["BAG3D_PG_USER"],
+                password=os.environ["BAG3D_PG_PASSWORD"],
+                port=int(os.environ["BAG3D_PG_PORT"]),
+                dbname=os.environ["BAG3D_PG_DATABASE"],
+                other_params={"sslmode": os.getenv("BAG3D_PG_SSLMODE", "allow")},
             ),
             "pdal": PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL")),
             "lastools": LASToolsResource(
@@ -131,15 +134,15 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "version": version,
             "specs": specs,
             "godzilla_server": ServerTransferResource(
-                host=EnvVar("BAG3D_GODZILLA_HOST").get_value() or "",
-                user=EnvVar("BAG3D_GODZILLA_USER").get_value() or "",
-                target_dir=EnvVar("BAG3D_GODZILLA_TARGET_DIR").get_value() or "",
-                public_dir=EnvVar("BAG3D_GODZILLA_PUBLIC_DIR").get_value(),
+                host=os.environ["BAG3D_GODZILLA_HOST"],
+                user=os.environ["BAG3D_GODZILLA_USER"],
+                target_dir=os.environ["BAG3D_GODZILLA_TARGET_DIR"],
+                public_dir=os.getenv("BAG3D_GODZILLA_PUBLIC_DIR"),
             ),
             "podzilla_server": ServerTransferResource(
-                host=EnvVar("BAG3D_PODZILLA_HOST").get_value() or "",
-                user=EnvVar("BAG3D_PODZILLA_USER").get_value() or "",
-                target_dir=EnvVar("BAG3D_PODZILLA_TARGET_DIR").get_value() or "",
+                host=os.environ["BAG3D_PODZILLA_HOST"],
+                user=os.environ["BAG3D_PODZILLA_USER"],
+                target_dir=os.environ["BAG3D_PODZILLA_TARGET_DIR"],
             ),
         }
     else:
