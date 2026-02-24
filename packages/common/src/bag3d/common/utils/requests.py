@@ -15,7 +15,7 @@ from dagster import (
 )
 
 
-def download_as_str(url: str, parameters: Mapping = None) -> str:
+def download_as_str(url: str, parameters: Mapping | None = None) -> str:
     """Download a file as string in memory.
 
     Returns:
@@ -34,7 +34,7 @@ def download_file(
     url: str,
     target_path: Path,
     chunk_size: int = 1024,
-    parameters: Mapping = None,
+    parameters: Mapping | None = None,
     verify: bool = True,
     attempt_resume: bool = False,
 ) -> Union[Path, None]:
@@ -99,8 +99,6 @@ def download_file(
                 return fpath
     except (
         requests.RequestException,
-        requests.exceptions.BaseHTTPError,
-        requests.exceptions.HTTPError,
         requests.exceptions.ChunkedEncodingError,
         ValueError,
     ) as e:  # pragma: no cover
@@ -131,7 +129,7 @@ def get_metadata(url_api: str):
     return meta
 
 
-def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str:
+def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str | None:
     """Request an export and download link from the API."""
     logger = get_dagster_logger()
     request_json = {
@@ -194,6 +192,8 @@ def download_extract(
     )
 
     dest_file = Path(download_dir) / f"{dataset}.zip"
+    if url_download is None:
+        raise RuntimeError("Failed to get extract download link")
     try:
         download_file(url=url_download, target_path=dest_file)
     except requests.HTTPError:

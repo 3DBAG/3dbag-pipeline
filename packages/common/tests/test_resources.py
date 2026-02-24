@@ -4,6 +4,7 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from dagster import EnvVar
+from psycopg.sql import SQL
 from bag3d.common.resources.executables import (
     GDALResource,
     PDALResource,
@@ -21,9 +22,9 @@ def test_specs_3dbag():
 def test_gdal_local(test_data_dir):
     """Use local GDAL installation"""
     gdal_resource = GDALResource(
-        exe_ogr2ogr=EnvVar("EXE_PATH_OGR2OGR").get_value(),
-        exe_ogrinfo=EnvVar("EXE_PATH_OGRINFO").get_value(),
-        exe_sozip=EnvVar("EXE_PATH_SOZIP").get_value(),
+        exe_ogr2ogr=EnvVar("EXE_PATH_OGR2OGR").get_value() or "",
+        exe_ogrinfo=EnvVar("EXE_PATH_OGRINFO").get_value() or "",
+        exe_sozip=EnvVar("EXE_PATH_SOZIP").get_value() or "",
     )
 
     assert not gdal_resource.with_docker
@@ -41,7 +42,7 @@ def test_gdal_local(test_data_dir):
 
 def test_pdal_local(sample_laz_file):
     """Use local PDAL installation"""
-    pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value())
+    pdal = PDALResource(exe_pdal=EnvVar("EXE_PATH_PDAL").get_value() or "")
     assert not pdal.with_docker
     return_code, output = pdal_info(pdal.runner, sample_laz_file, with_all=True)
     assert return_code == 0
@@ -49,9 +50,9 @@ def test_pdal_local(sample_laz_file):
 
 def test_lastools(sample_laz_file):
     lastools_resource = LASToolsResource(
-        exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value(),
-        exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value(),
-        exe_lasinfo=EnvVar("EXE_PATH_LASINFO").get_value(),
+        exe_lasindex=EnvVar("EXE_PATH_LASINDEX").get_value() or "",
+        exe_las2las=EnvVar("EXE_PATH_LAS2LAS").get_value() or "",
+        exe_lasinfo=EnvVar("EXE_PATH_LASINFO").get_value() or "",
     )
     assert not lastools_resource.with_docker
 
@@ -91,11 +92,11 @@ def test_file_store_init_data_dir(tmp_path):
 def test_db_connection_init():
     """Can we initialize a local database resource?"""
     db = DatabaseResource(
-        host=EnvVar("BAG3D_PG_HOST").get_value(),
-        user=EnvVar("BAG3D_PG_USER").get_value(),
+        host=EnvVar("BAG3D_PG_HOST").get_value() or "",
+        user=EnvVar("BAG3D_PG_USER").get_value() or "",
         password=EnvVar("BAG3D_PG_PASSWORD").get_value(),
-        port=EnvVar("BAG3D_PG_PORT").get_value(),
-        dbname=EnvVar("BAG3D_PG_DATABASE").get_value(),
+        port=int(EnvVar("BAG3D_PG_PORT").get_value() or "5432"),
+        dbname=EnvVar("BAG3D_PG_DATABASE").get_value() or "",
     ).connection
-    q = db.get_query("select version();")
+    q = db.get_query(SQL("select version();"))
     assert "PostgreSQL" in q[0][0]

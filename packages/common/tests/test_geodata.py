@@ -181,6 +181,7 @@ def test_ogr2postgres(data, gdal, database, test_data_dir):
         new_table=PostgresTableIdentifier("public", feature_types[0]),
         db_connection=database,
     )
+    assert res is not None
     assert (
         res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
     )

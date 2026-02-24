@@ -1,11 +1,12 @@
 from subprocess import run, TimeoutExpired, CalledProcessError
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from dagster import ConfigurableResource
 import random
 import string
 
 from dagster import get_dagster_logger
+from pydantic import model_validator
 
 logger = get_dagster_logger()
 
@@ -13,16 +14,16 @@ logger = get_dagster_logger()
 class ReleaseVersionResource(ConfigurableResource):
     """A resource for setting up the version release."""
 
-    version: Optional[str] = None
+    version: str = ""
 
-    def __init__(
-        self,
-        version: Optional[str] = None,
-    ):
-        super().__init__(
-            version=version
-            or "".join(random.choice(string.ascii_letters) for _ in range(8))
-        )
+    @model_validator(mode="before")
+    @classmethod
+    def set_default_version(cls, data: Any) -> Any:
+        if isinstance(data, dict) and not data.get("version"):
+            data["version"] = "".join(
+                random.choice(string.ascii_letters) for _ in range(8)
+            )
+        return data
 
 
 class ToolVersionsResource(ConfigurableResource):

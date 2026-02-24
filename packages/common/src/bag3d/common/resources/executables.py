@@ -55,13 +55,14 @@ class CommandRunner:
 
     def __init__(
         self,
-        exes: dict[str, str] = None,
-        docker_cfg: DockerConfig = None,
+        exes: dict[str, str] | None = None,
+        docker_cfg: DockerConfig | None = None,
         with_docker: bool = False,
     ):
         self.exes = exes or {}
         self.with_docker = with_docker
         if self.with_docker:
+            assert docker_cfg is not None
             self.docker_client = docker.from_env()
             try:
                 self.docker_image = self.docker_client.images.get(docker_cfg.image)
@@ -84,9 +85,9 @@ class CommandRunner:
     def _build_command(
         self,
         command: str,
-        exe_name: str = None,
-        kwargs: dict = None,
-        local_path: Path = None,
+        exe_name: str | None = None,
+        kwargs: dict | None = None,
+        local_path: Path | None = None,
     ) -> str:
         """Build final command string with substitutions."""
         format_dict = {}
@@ -99,6 +100,7 @@ class CommandRunner:
 
         if local_path:
             if self.with_docker:
+                assert self.container_mount_point is not None
                 if local_path.is_dir():
                     format_dict["local_path"] = self.container_mount_point
                 else:
@@ -111,7 +113,7 @@ class CommandRunner:
         return command.format(**format_dict)
 
     def _run_direct(
-        self, command: str, cwd: str = None, env: dict = None
+        self, command: str, cwd: str | None = None, env: dict | None = None
     ) -> CommandResult:
         """Execute subprocess without Dagster context."""
         sub_process = Popen(
@@ -134,9 +136,9 @@ class CommandRunner:
     def _run_with_logging(
         self,
         command: str,
-        cwd: str = None,
-        env: dict = None,
-        logger: Logger = None,
+        cwd: str | None = None,
+        env: dict | None = None,
+        logger: Logger | None = None,
     ) -> CommandResult:
         """Execute subprocess with Dagster logging integration."""
         _logger = logger if logger else get_dagster_logger()
@@ -168,8 +170,13 @@ class CommandRunner:
             stderr=stderr,
         )
 
-    def _run_docker(self, command: str, local_path: Path = None) -> CommandResult:
+    def _run_docker(
+        self, command: str, local_path: Path | None = None
+    ) -> CommandResult:
         """Execute in Docker container with proper exit code capture."""
+        assert self.docker_client is not None
+        assert self.docker_image is not None
+        assert self.container_mount_point is not None
         volumes = None
         if local_path:
             if local_path.is_dir():
@@ -205,12 +212,12 @@ class CommandRunner:
         self,
         command: str,
         *,
-        exe_name: str = None,
-        kwargs: dict = None,
-        local_path: Path = None,
-        cwd: str = None,
-        logger: Logger = None,
-        env: dict = None,
+        exe_name: str | None = None,
+        kwargs: dict | None = None,
+        local_path: Path | None = None,
+        cwd: str | None = None,
+        logger: Logger | None = None,
+        env: dict | None = None,
     ) -> CommandResult:
         """Execute command and return structured result.
 
@@ -266,14 +273,17 @@ class GDALResource(ConfigurableResource):
         gdal_resource.runner
     """
 
-    exe_ogrinfo: str
-    exe_ogr2ogr: str
-    exe_sozip: str
+    exe_ogrinfo: Optional[str] = None
+    exe_ogr2ogr: Optional[str] = None
+    exe_sozip: Optional[str] = None
     docker_cfg: Optional[DockerConfig] = None
 
     @property
     def exes(self) -> Dict[str, str]:
         if self.docker_cfg is None:
+            assert self.exe_ogrinfo is not None
+            assert self.exe_ogr2ogr is not None
+            assert self.exe_sozip is not None
             return {
                 "ogrinfo": self.exe_ogrinfo,
                 "ogr2ogr": self.exe_ogr2ogr,
@@ -326,12 +336,13 @@ class PDALResource(ConfigurableResource):
         pdal_resource.runner
     """
 
-    exe_pdal: str
+    exe_pdal: Optional[str] = None
     docker_cfg: Optional[DockerConfig] = None
 
     @property
     def exes(self) -> Dict[str, str]:
         if self.docker_cfg is None:
+            assert self.exe_pdal is not None
             return {
                 "pdal": self.exe_pdal,
             }
@@ -371,12 +382,15 @@ class LASToolsResource(ConfigurableResource):
         lastools_resource.runner
     """
 
-    exe_lasindex: str
-    exe_las2las: str
-    exe_lasinfo: str
+    exe_lasindex: Optional[str] = None
+    exe_las2las: Optional[str] = None
+    exe_lasinfo: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
+        assert self.exe_lasindex is not None
+        assert self.exe_las2las is not None
+        assert self.exe_lasinfo is not None
         return {
             "lasindex": self.exe_lasindex,
             "las2las": self.exe_las2las,
@@ -410,12 +424,15 @@ class TylerResource(ConfigurableResource):
         tyler = tyler_resource.runner
     """
 
-    exe_tyler: str
-    exe_tyler_db: str
-    exe_tyler_multiformat: str
+    exe_tyler: Optional[str] = None
+    exe_tyler_db: Optional[str] = None
+    exe_tyler_multiformat: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
+        assert self.exe_tyler is not None
+        assert self.exe_tyler_db is not None
+        assert self.exe_tyler_multiformat is not None
         return {
             "tyler": self.exe_tyler,
             "tyler-db": self.exe_tyler_db,
@@ -448,12 +465,15 @@ class ValidationResource(ConfigurableResource):
         validation = validation_resource.runner
     """
 
-    exe_val3dity: str
-    exe_cjval: str
-    exe_cjio: str
+    exe_val3dity: Optional[str] = None
+    exe_cjval: Optional[str] = None
+    exe_cjio: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
+        assert self.exe_val3dity is not None
+        assert self.exe_cjval is not None
+        assert self.exe_cjio is not None
         return {
             "val3dity": self.exe_val3dity,
             "cjval": self.exe_cjval,
@@ -485,11 +505,13 @@ class RooferResource(ConfigurableResource):
         roofer = roofer_resource.runner
     """
 
-    exe_crop: str
-    exe_roofer: str
+    exe_crop: Optional[str] = None
+    exe_roofer: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
+        assert self.exe_crop is not None
+        assert self.exe_roofer is not None
         return {
             "crop": self.exe_crop,
             "roofer": self.exe_roofer,
@@ -521,11 +543,12 @@ class GeoflowResource(ConfigurableResource):
         geoflow = geoflow_resource.runner
     """
 
-    exe_geoflow: str
-    flowchart: str
+    exe_geoflow: Optional[str] = None
+    flowchart: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
+        assert self.exe_geoflow is not None
         return {"geof": self.exe_geoflow}
 
     @property

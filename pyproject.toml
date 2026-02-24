@@ -48,6 +48,9 @@ exclude = [
     "**/.tox",
     ".git",
     "**/.venv*",
+    "**/build",
+    "**/docs",
+    "**/site",
 ]
 pythonVersion = "3.11"
 reportPrivateImportUsage = false

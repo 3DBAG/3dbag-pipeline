@@ -58,7 +58,7 @@ def ogrinfo(
     extract_path: Path,
     feature_types: list,
     xsd: str,
-    logger: Logger = None,
+    logger: Logger | None = None,
 ):
     """Runs ogrinfo on the zipped extract."""
     cmd = " ".join(
@@ -88,7 +88,7 @@ def ogrinfo(
     return info
 
 
-def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> (str, dict):
+def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> tuple[str, dict]:
     """Parses the stdout of ogrinfo into a dictionary."""
     layerinfo = {}
     inf = ogrinfo_stdout.split("Layer name: ")[1]
@@ -100,7 +100,8 @@ def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> (str, dict):
 
     re_feature_count = re.compile(r"(?<=Feature Count: )\d+")
     ft = feature_type.lower()
-    layerinfo[f"Feature Count [{ft}]"] = int(re_feature_count.search(inf)[0])
+    fc_match = re_feature_count.search(inf)
+    layerinfo[f"Feature Count [{ft}]"] = int(fc_match[0]) if fc_match else 0
     layerinfo[f"Extent [{ft}]"] = dict(
         (geom, wkt) for geom, wkt in parse_ogrinfo_extent(inf)
     )
@@ -230,8 +231,8 @@ def ogr2postgres(
     xsd: str,
     new_table: PostgresTableIdentifier,
     db_connection: DatabaseResource,
-    logger: Logger = None,
-) -> dict:
+    logger: Logger | None = None,
+) -> dict | None:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
     It was developed for loading the TOP10NL and BGT extracts that are downloaded from
@@ -286,7 +287,7 @@ def ogr2postgres(
 
 
 def pdal_info(
-    pdal, file_path: Path, logger: Logger = None, with_all: bool = False
+    pdal, file_path: Path, logger: Logger | None = None, with_all: bool = False
 ) -> Tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
@@ -313,13 +314,14 @@ def pdal_info(
         logger=logger,
     )
 
+    _logger = logger if logger is not None else get_dagster_logger()
     output = result.stdout
     if "Global encoding WKT flag" in str(output):
-        logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
+        _logger.warning(f"Pdal failed for tile {file_path} with output {output}.")
         # Remove the first line
         output_lines = output.split("\n")
         if len(output_lines) > 1:
-            logger.warning(f"Removing first line from PDAL output : {output_lines[0]}")
+            _logger.warning(f"Removing first line from PDAL output : {output_lines[0]}")
             output = "\n".join(output_lines[1:])
 
     output_processed = output.replace("\\u0000", "")

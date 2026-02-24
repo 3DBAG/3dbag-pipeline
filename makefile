@@ -134,12 +134,18 @@ download:
 
 lint:
 	@set -e; set -o pipefail; \
+	echo "Format"; \
 	uv tool run ruff format ./packages; \
+	echo "Syntax and style"; \
 	uv tool run ruff check ./packages; \
 	FAILED=0; \
+	echo "Type check: common"; \
 	uv --project packages/common run pyright packages/common || FAILED=1; \
+	echo "Type check: core"; \
 	uv --project packages/core run pyright packages/core || FAILED=1; \
+	echo "Type check: floors_estimation"; \
 	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
+	echo "Type check: party_walls"; \
 	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
 	exit $$FAILED
 
