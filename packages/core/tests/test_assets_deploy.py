@@ -1,4 +1,3 @@
-from typing import cast
 from bag3d.core.assets.deploy.servers import compressed_export_nl, transfer_to_server
 from pathlib import Path
 import pytest
@@ -24,13 +23,10 @@ def test_transfer_to_server(resources, deployment_server, test_data_dir):
     compressed_file: Path | None = None
     try:
         # compress the export dir
-        res = cast(
-            Output[Path],
-            compressed_export_nl(
-                resources["file_store"], metadata_file, resources["version"]
-            ),
+        res = compressed_export_nl(
+            resources["file_store"], metadata_file, resources["version"]
         )
-
+        assert isinstance(res, Output)
         compressed_file = Path(str(res.metadata["path"].value))
         assert compressed_file.exists()  # Check that the file was created
 

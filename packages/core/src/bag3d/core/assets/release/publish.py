@@ -23,7 +23,7 @@ def publish_data(
     transfer_to_godzilla: tuple[Path, Path],
     metadata: Path,
     godzilla_server: ServerTransferResource,
-):
+) -> None:
     """On godzilla, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
@@ -80,7 +80,7 @@ def publish_data(
 @asset(
     deps={AssetKey(("deploy", "webservice_godzilla"))},
 )
-def publish_webservices(godzilla_server: ServerTransferResource):
+def publish_webservices(godzilla_server: ServerTransferResource) -> None:
     """ """
     latest_schema = "webservice"
     dev_schema = "webservice_dev"

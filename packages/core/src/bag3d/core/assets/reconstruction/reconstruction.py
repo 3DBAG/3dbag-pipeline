@@ -53,7 +53,7 @@ def generate_3dbag_version_date():
 
 
 @asset
-def reconstruction_date():
+def reconstruction_date() -> str:
     """Generates a version from today's date, so that each partition in the
     reconstruction assets get the same version, even if they are executed over multiple
     days.
@@ -96,7 +96,7 @@ def reconstructed_building_models_nl(
     metadata_ahn3_index,
     metadata_ahn4_index,
     metadata_ahn5_index,
-):
+) -> None:
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
     Runs roofer."""

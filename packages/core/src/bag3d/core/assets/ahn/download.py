@@ -3,7 +3,7 @@ import time
 import random
 import warnings
 from pathlib import Path
-from typing import Mapping, Union
+from typing import Any, Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
@@ -141,25 +141,25 @@ class LAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn3():
+def md5_ahn3() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn4():
+def md5_ahn4() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn5():
+def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def tile_index_ahn():
+def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
     """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
 
@@ -179,7 +179,7 @@ def laz_files_ahn3(
     file_store: FileStoreResource,
     md5_ahn3,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -246,7 +246,7 @@ def laz_files_ahn4(
     file_store: FileStoreResource,
     md5_ahn4,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -316,7 +316,7 @@ def laz_files_ahn5(
     file_store: FileStoreResource,
     sha256_ahn5,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -373,7 +373,7 @@ def laz_files_ahn5(
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, str]:
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
 

@@ -29,7 +29,7 @@ logger = get_dagster_logger("input.tile")
 )
 def reconstruction_input_tiles(
     reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
-):
+) -> tuple[Output[PostgresTableIdentifier], Output[PostgresTableIdentifier]]:
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
     quadtree_capacity = 1200000

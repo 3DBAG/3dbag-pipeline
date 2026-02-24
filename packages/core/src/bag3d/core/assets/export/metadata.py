@@ -84,7 +84,7 @@ def feature_evaluation(
     file_store_fastssd: FileStoreResource,
     db_connection: DatabaseResource,
     version: ReleaseVersionResource,
-):
+) -> Path:
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
@@ -201,7 +201,7 @@ def metadata(
     context: AssetExecutionContext,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
-):
+) -> Output[Path]:
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.

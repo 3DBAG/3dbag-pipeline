@@ -33,7 +33,7 @@ def bag_woonplaatsactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_woonplaats,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
     create_schema(db_connection, NEW_SCHEMA, logger=logger)
@@ -61,7 +61,7 @@ def bag_verblijfsobjectactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_verblijfsobject,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -102,7 +102,7 @@ def bag_verblijfsobjectactueelbestaand(
 )
 def bag_pandactueelbestaand(
     config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_pand
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -149,7 +149,7 @@ def bag_openbareruimteactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_openbareruimte,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -178,7 +178,7 @@ def bag_nummeraanduidingactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_nummeraanduiding,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""

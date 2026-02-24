@@ -26,7 +26,7 @@ logger = get_dagster_logger("input.intermediary")
 )
 def bag_kas_warenhuis(
     bag_pandactueelbestaand, top10nl_gebouw, db_connection: DatabaseResource
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
     create_schema(db_connection, NEW_SCHEMA, logger=logger)
@@ -53,7 +53,9 @@ def bag_kas_warenhuis(
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
-def bag_bag_overlap(bag_pandactueelbestaand, db_connection: DatabaseResource):
+def bag_bag_overlap(
+    bag_pandactueelbestaand, db_connection: DatabaseResource
+) -> Output[PostgresTableIdentifier]:
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
     create_schema(db_connection, NEW_SCHEMA, logger=logger)

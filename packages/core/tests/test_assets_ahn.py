@@ -1,4 +1,3 @@
-from typing import cast, Mapping
 import pytest
 from dagster import Output
 from bag3d.core.assets.ahn.core import (
@@ -6,7 +5,6 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import (
     URL_LAZ_SHA,
-    LAZDownload,
     get_checksums,
     laz_files_ahn3,
     laz_files_ahn4,
@@ -56,22 +54,27 @@ def test_get_checksums(ahn_version):
 
 
 def test_checksums_for_ahn():
-    res = cast(Mapping[str, str], md5_ahn3())
+    res = md5_ahn3()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
-    res = cast(Mapping[str, str], md5_ahn4())
+    res = md5_ahn4()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
-    res = cast(Mapping[str, str], sha256_ahn5())
+    res = sha256_ahn5()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
 
 
 def test_tile_index_ahn():
-    res = cast(dict, tile_index_ahn())
+    res = tile_index_ahn()
+    assert res is not None
+    assert isinstance(res, dict)
     assert len(res) == 1407
     assert res[list(res.keys())[0]] is not None
 
@@ -81,18 +84,15 @@ def test_laz_files_ahn3(context_ahn, resources_ahn, md5_ahn3_fix, tile_index_ahn
     laz_dir = resources_ahn["file_store"].ahn_laz_dir(3)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = cast(
-        Output[LAZDownload],
-        laz_files_ahn3(
-            context_ahn,
-            config,
-            resources_ahn["file_store"],
-            md5_ahn3_fix,
-            tile_index_ahn_fix,
-        ),
+    res = laz_files_ahn3(
+        context_ahn,
+        config,
+        resources_ahn["file_store"],
+        md5_ahn3_fix,
+        tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
     print(res.value)
 
 
@@ -101,18 +101,15 @@ def test_laz_files_ahn4(context_ahn, resources_ahn, md5_ahn4_fix, tile_index_ahn
     laz_dir = resources_ahn["file_store"].ahn_laz_dir(4)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = cast(
-        Output[LAZDownload],
-        laz_files_ahn4(
-            context_ahn,
-            config,
-            resources_ahn["file_store"],
-            md5_ahn4_fix,
-            tile_index_ahn_fix,
-        ),
+    res = laz_files_ahn4(
+        context_ahn,
+        config,
+        resources_ahn["file_store"],
+        md5_ahn4_fix,
+        tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
 
 
 @pytest.mark.slow
@@ -122,24 +119,19 @@ def test_laz_files_ahn5(
     laz_dir = resources_ahn["file_store"].ahn_laz_dir(5)
     laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
-    res = cast(
-        Output[LAZDownload],
-        laz_files_ahn5(
-            context_ahn,
-            config,
-            resources_ahn["file_store"],
-            sha256_ahn5_fix,
-            tile_index_ahn_fix,
-        ),
+    res = laz_files_ahn5(
+        context_ahn,
+        config,
+        resources_ahn["file_store"],
+        sha256_ahn5_fix,
+        tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
 
 
 def test_metadata_table_ahn3(resources_ahn):
-    metadata = cast(
-        PostgresTableIdentifier, metadata_table_ahn3(resources_ahn["db_connection"])
-    )
+    metadata = metadata_table_ahn3(resources_ahn["db_connection"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn3")
     assert table_exists(resources_ahn["db_connection"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
@@ -147,9 +139,7 @@ def test_metadata_table_ahn3(resources_ahn):
 
 
 def test_metadata_table_ahn4(resources_ahn):
-    metadata = cast(
-        PostgresTableIdentifier, metadata_table_ahn4(resources_ahn["db_connection"])
-    )
+    metadata = metadata_table_ahn4(resources_ahn["db_connection"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
     assert table_exists(resources_ahn["db_connection"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
@@ -157,9 +147,7 @@ def test_metadata_table_ahn4(resources_ahn):
 
 
 def test_metadata_table_ahn5(resources_ahn):
-    metadata = cast(
-        PostgresTableIdentifier, metadata_table_ahn5(resources_ahn["db_connection"])
-    )
+    metadata = metadata_table_ahn5(resources_ahn["db_connection"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn5")
     assert table_exists(resources_ahn["db_connection"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)

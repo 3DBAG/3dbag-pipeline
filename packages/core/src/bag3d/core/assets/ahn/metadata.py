@@ -40,13 +40,13 @@ def metadata_table_ahn3(db_connection: DatabaseResource) -> PostgresTableIdentif
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn4(db_connection: DatabaseResource):
+def metadata_table_ahn4(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn5(db_connection: DatabaseResource):
+def metadata_table_ahn5(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=5)
 
@@ -60,7 +60,7 @@ def metadata_ahn3(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -84,7 +84,7 @@ def metadata_ahn4(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -108,7 +108,7 @@ def metadata_ahn5(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -185,7 +185,7 @@ def compute_load_metadata(
     tile_index_ahn_pdok,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 

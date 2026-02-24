@@ -65,7 +65,7 @@ def database():
 
 @pytest.fixture
 def version():
-    yield ReleaseVersionResource(VERSION)
+    yield ReleaseVersionResource(version=VERSION)
 
 
 @pytest.fixture

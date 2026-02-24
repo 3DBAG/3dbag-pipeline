@@ -109,7 +109,7 @@ def reconstruction_output_tiles_func(
     specs: Specs3DBAGResource,
     tyler: TylerResource,
     **kwargs,
-):
+) -> Path:
     """Run tyler on the reconstruction output directory.
 
     Args:
@@ -186,7 +186,7 @@ def reconstruction_output_multitiles_nl(
     file_store_fastssd: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-):
+) -> Path:
     """Tiles for distribution, in CityJSON, OBJ, GPKG formats.
     Generated with tyler."""
     with metadata.open("r") as fo:
@@ -221,7 +221,7 @@ def reconstruction_output_3dtiles_lod12_nl(
     file_store_fastssd: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-):
+) -> Path:
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
@@ -256,7 +256,7 @@ def reconstruction_output_3dtiles_lod13_nl(
     file_store_fastssd: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-):
+) -> Path:
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.3 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
@@ -291,7 +291,7 @@ def reconstruction_output_3dtiles_lod22_nl(
     file_store_fastssd: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-):
+) -> Path:
     """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 2.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
