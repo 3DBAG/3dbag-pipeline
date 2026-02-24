@@ -35,6 +35,7 @@ dev = [
     "coverage~=7.13.4",
     "pytest~=9.0.2",
     "pytest-dotenv~=0.5.2",
+    "pyright>=1.1",
 ]
 
 [tool.ruff]

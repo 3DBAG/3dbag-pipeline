@@ -133,10 +133,18 @@ download:
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v14.zip ; unzip -q test_data_v14.zip ; rm test_data_v14.zip
 
 lint:
-	uv tool run ruff format ./packages
-	uv tool run ruff check ./packages
+	@set -e; set -o pipefail; \
+	uv tool run ruff format ./packages; \
+	uv tool run ruff check ./packages; \
+	FAILED=0; \
+	uv --project packages/common run pyright packages/common || FAILED=1; \
+	uv --project packages/core run pyright packages/core || FAILED=1; \
+	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
+	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
+	exit $$FAILED
 
 lint_fix:
+	uv tool run ruff format ./packages
 	uv tool run ruff check --fix ./packages
 
 docker_build_tools:
