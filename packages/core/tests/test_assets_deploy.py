@@ -12,7 +12,6 @@ def test_transfer_to_server(resources, deployment_server, test_data_dir):
     # Create an empty file within the directory
     empty_file = export_dir / "dummy.txt"
     empty_file.touch()
-    
 
     # Create a mock metadata file
     metadata_file = test_data_dir / "deployment" / "3DBAG" / "metadata.json"

@@ -1,8 +1,5 @@
 from pathlib import Path
 from shutil import rmtree
-import random
-import string
-from typing import Optional
 
 from dagster import get_dagster_logger, ConfigurableResource
 
@@ -10,9 +7,10 @@ logger = get_dagster_logger("resources.file_store")
 
 # Path constants
 BAG3D_DIR = "3DBAG"
-CROP_RECONSTRUCT_DIR = "3DBAG/crop_reconstruct" 
+CROP_RECONSTRUCT_DIR = "3DBAG/crop_reconstruct"
 POINTCLOUD_DIR = "pointcloud"
 LAZ_SUBDIR = "as_downloaded/LAZ"
+
 
 class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline."""
@@ -45,16 +43,16 @@ class FileStoreResource(ConfigurableResource):
         else:
             p.rmdir()
         logger.info(f"Deleted directory {p}")
-    
+
     def create_subdir(self, subdir: str) -> Path:
         """Create and return a subdirectory within the main file store directory.
-        
+
         Args:
             subdir: Relative path of the subdirectory to create.
-        
+
         Returns:
             Path object pointing to the created subdirectory.
-        
+
         Note:
             Creates parent directories if they don't exist.
         """
@@ -79,6 +77,3 @@ class FileStoreResource(ConfigurableResource):
     def ahn_laz_dir(self, ahn_version: int) -> Path:
         """Get the directory for AHN LAZ files per version."""
         return self.create_subdir(f"{POINTCLOUD_DIR}/AHN{ahn_version}/{LAZ_SUBDIR}")
-
-
-
