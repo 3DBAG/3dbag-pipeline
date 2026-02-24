@@ -132,9 +132,12 @@ download:
 	mkdir -p $(BAG3D_TEST_DATA)
 	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v14.zip ; unzip -q test_data_v14.zip ; rm test_data_v14.zip
 
-format:
+lint:
 	uv tool run ruff format ./packages
 	uv tool run ruff check ./packages
+
+lint_fix:
+	uv tool run ruff check --fix ./packages
 
 docker_build_tools:
 	rm docker_build_tools.log || true
