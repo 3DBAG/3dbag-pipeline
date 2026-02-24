@@ -39,7 +39,7 @@ class DagsterDeployment(StrEnum):
         return frozenset({cls.PRODUCTION, cls.USER, cls.PYTEST, cls.PC})
 
 
-version = ReleaseVersionResource(version=os.getenv("BAG3D_RELEASE_VERSION", ""))
+version = ReleaseVersionResource(version=os.getenv("BAG3D_RELEASE_VERSION"))  # type: ignore[arg-type]
 
 specs = Specs3DBAGResource()
 
