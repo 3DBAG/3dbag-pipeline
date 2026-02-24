@@ -1,4 +1,5 @@
 import json
+import warnings
 from typing import TypedDict
 
 from dagster import (
@@ -10,6 +11,7 @@ from dagster import (
     SkipReason,
     multi_asset_sensor,
 )
+from dagster import DagsterInvariantViolationWarning
 
 from bag3d.core.assets.ahn.core import download_ahn_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
@@ -70,84 +72,98 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
     On first run (no cursor), it establishes a baseline without triggering any runs.
     """
 
-    @multi_asset_sensor(
-        monitored_assets=[
-            AssetKey(["ahn", "md5_ahn3"]),
-            AssetKey(["ahn", "md5_ahn4"]),
-            AssetKey(["ahn", "sha256_ahn5"]),
-        ],
-        jobs=[job_ahn3, job_ahn4, job_ahn5],
-        default_status=default_status,
-        name="ahn_checksum_sensor",
-    )
-    def _sensor(context: MultiAssetSensorEvaluationContext):
-        """Detect AHN LAZ file changes by comparing checksums against stored state."""
-        # Check which checksum assets have new materializations
-        events = context.latest_materialization_records_by_key()
-        updated_versions = [
-            version
-            for version, cfg in _AHN_VERSIONS.items()
-            if events.get(cfg["asset_key"]) is not None
-        ]
+    with warnings.catch_warnings():
+        # Silence a SupersessionWarning on the MultiAssetSensorDefinition, because our
+        #  use case is exactly the exception that is described in the warning as valid
+        #  use.
+        #
+        #  Class `MultiAssetSensorDefinition` is superseded and its usage is
+        #  discouraged. For most use cases, Declarative Automation should be used
+        #  instead of multi_asset_sensors to monitor the status of upstream assets and
+        #  launch runs in response. In cases where side effects are required, or a
+        #  specific job must be targeted for execution, multi_asset_sensors may be used.
+        warnings.filterwarnings("ignore", category=DagsterInvariantViolationWarning)
 
-        if not updated_versions:
-            return SkipReason("No new checksum materializations")
+        @multi_asset_sensor(
+            monitored_assets=[
+                AssetKey(["ahn", "md5_ahn3"]),
+                AssetKey(["ahn", "md5_ahn4"]),
+                AssetKey(["ahn", "sha256_ahn5"]),
+            ],
+            jobs=[job_ahn3, job_ahn4, job_ahn5],
+            default_status=default_status,
+            name="ahn_checksum_sensor",
+        )
+        def _sensor(context: MultiAssetSensorEvaluationContext):
+            """Detect AHN LAZ file changes by comparing checksums against stored state."""
+            # Check which checksum assets have new materializations
+            events = context.latest_materialization_records_by_key()
+            updated_versions = [
+                version
+                for version, cfg in _AHN_VERSIONS.items()
+                if events.get(cfg["asset_key"]) is not None
+            ]
 
-        # Load tile index for filename→tile_id mapping (no geometry needed)
-        tile_index = download_ahn_index(with_geom=False)
+            if not updated_versions:
+                return SkipReason("No new checksum materializations")
 
-        previous = json.loads(context.cursor) if context.cursor else {}
-        current = dict(previous)  # preserve checksums for un-updated versions
-        run_requests = []
+            # Load tile index for filename→tile_id mapping (no geometry needed)
+            tile_index = download_ahn_index(with_geom=False)
 
-        for version in updated_versions:
-            cfg = _AHN_VERSIONS[version]
-            key = f"ahn{version}"
+            previous = json.loads(context.cursor) if context.cursor else {}
+            current = dict(previous)  # preserve checksums for un-updated versions
+            run_requests = []
 
-            try:
-                checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
-            except Exception:
-                context.log.warning(f"Failed to read checksums for AHN{version}")
-                continue
+            for version in updated_versions:
+                cfg = _AHN_VERSIONS[version]
+                key = f"ahn{version}"
 
-            if tile_index is None:
-                context.log.warning("Failed to download AHN tile index")
-                continue
-            filename_to_tile = _build_filename_to_tile_id(tile_index, cfg["url_key"])
-            current[key] = checksums
-            prev_checksums = previous.get(key)
+                try:
+                    checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
+                except Exception:
+                    context.log.warning(f"Failed to read checksums for AHN{version}")
+                    continue
 
-            if prev_checksums is None:
-                # First run for this version — establish baseline, don't trigger
-                context.log.info(
-                    f"AHN{version}: baseline established ({len(checksums)} tiles)"
+                if tile_index is None:
+                    context.log.warning("Failed to download AHN tile index")
+                    continue
+                filename_to_tile = _build_filename_to_tile_id(
+                    tile_index, cfg["url_key"]
                 )
-                continue
+                current[key] = checksums
+                prev_checksums = previous.get(key)
 
-            # Find tiles whose checksum changed (new or updated)
-            for filename, new_hash in checksums.items():
-                old_hash = prev_checksums.get(filename)
-                if old_hash != new_hash:
-                    tile_id = filename_to_tile.get(filename)
-                    if tile_id is None:
-                        context.log.warning(
-                            f"AHN{version}: no tile_id mapping for {filename}"
-                        )
-                        continue
-                    run_requests.append(
-                        RunRequest(
-                            run_key=f"ahn{version}-{tile_id}-{new_hash[:8]}",
-                            job_name=cfg["job_name"],
-                            partition_key=tile_id,
-                        )
+                if prev_checksums is None:
+                    # First run for this version — establish baseline, don't trigger
+                    context.log.info(
+                        f"AHN{version}: baseline established ({len(checksums)} tiles)"
                     )
+                    continue
 
-        context.advance_all_cursors()
-        context.update_cursor(json.dumps(current))
+                # Find tiles whose checksum changed (new or updated)
+                for filename, new_hash in checksums.items():
+                    old_hash = prev_checksums.get(filename)
+                    if old_hash != new_hash:
+                        tile_id = filename_to_tile.get(filename)
+                        if tile_id is None:
+                            context.log.warning(
+                                f"AHN{version}: no tile_id mapping for {filename}"
+                            )
+                            continue
+                        run_requests.append(
+                            RunRequest(
+                                run_key=f"ahn{version}-{tile_id}-{new_hash[:8]}",
+                                job_name=cfg["job_name"],
+                                partition_key=tile_id,
+                            )
+                        )
 
-        if not run_requests:
-            return SkipReason("No checksum changes detected")
-        context.log.info(f"Triggering {len(run_requests)} partition updates")
-        return run_requests
+            context.advance_all_cursors()
+            context.update_cursor(json.dumps(current))
+
+            if not run_requests:
+                return SkipReason("No checksum changes detected")
+            context.log.info(f"Triggering {len(run_requests)} partition updates")
+            return run_requests
 
     return _sensor
