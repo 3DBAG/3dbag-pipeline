@@ -8,6 +8,11 @@ from dagster import get_dagster_logger, ConfigurableResource
 
 logger = get_dagster_logger("resources.file_store")
 
+# Path constants
+BAG3D_DIR = "3DBAG"
+CROP_RECONSTRUCT_DIR = "3DBAG/crop_reconstruct" 
+POINTCLOUD_DIR = "pointcloud"
+LAZ_SUBDIR = "as_downloaded/LAZ"
 
 class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline."""
@@ -50,26 +55,21 @@ class FileStoreResource(ConfigurableResource):
     @property
     def bag3d_dir(self) -> Path:
         """The 3D BAG data directory"""
-        return self.create_subdir("3DBAG")
+        return self.create_subdir(BAG3D_DIR)
 
     @property
     def geoflow_crop_dir(self) -> Path:
         """Directory for the Geoflow crop-reconstruct output"""
-        return self.create_subdir("3DBAG/crop_reconstruct")
+        return self.create_subdir(CROP_RECONSTRUCT_DIR)
 
     def bag3d_export_dir(self, version: str) -> Path:
         """Create the 3DBAG export directory if does not exist"""
-        return self.create_subdir(f"3DBAG/export_{version}")
-
-    def ahn_dir(self, ahn_version: int) -> Path:
-        """Return a directory path where to store the AHN LAZ files for the given AHN
-        version."""
-        return self.create_subdir(f"pointcloud/AHN{ahn_version}")
+        return self.create_subdir(f"{BAG3D_DIR}/export_{version}")
 
     def ahn_laz_dir(self, ahn_version: int) -> Path:
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
-        return self.create_subdir(f"pointcloud/AHN{ahn_version}/as_downloaded/LAZ")
+        return self.create_subdir(f"{POINTCLOUD_DIR}/AHN{ahn_version}/{LAZ_SUBDIR}")
 
 
 
