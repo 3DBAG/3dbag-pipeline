@@ -1,5 +1,5 @@
 from dagster import asset, Output, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL
+from psycopg.sql import SQL, Identifier
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
@@ -56,18 +56,20 @@ def top10nl_gebouw(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        SQL(f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)")  # type: ignore[arg-type]
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
     geom_idx_name = f"{table_name}_geometrie_vlak_idx"
     db_connection.connection.send_query(
-        SQL(f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie_vlak)")  # type: ignore[arg-type]
-    )
-    db_connection.connection.send_query(
-        SQL(
-            f"CREATE INDEX {table_name}_typegebouw_idx ON {new_table} USING gin (typegebouw)"  # type: ignore[arg-type]
+        SQL("CREATE INDEX {} ON {} USING gist (geometrie_vlak)").format(
+            Identifier(geom_idx_name), new_table.id
         )
     )
     db_connection.connection.send_query(
-        SQL(f"CLUSTER {new_table} USING {geom_idx_name}")  # type: ignore[arg-type]
+        SQL("CREATE INDEX {} ON {} USING gin (typegebouw)").format(
+            Identifier(f"{table_name}_typegebouw_idx"), new_table.id
+        )
+    )
+    db_connection.connection.send_query(
+        SQL("CLUSTER {} USING {}").format(new_table.id, Identifier(geom_idx_name))
     )
     return Output(new_table, metadata=metadata)

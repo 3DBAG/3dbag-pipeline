@@ -12,7 +12,7 @@ from dagster import (
     AutomationCondition,
 )
 from pgutils import PostgresTableIdentifier
-from psycopg.sql import Literal, SQL
+from psycopg.sql import Identifier, Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
 from pydantic import Field
 
@@ -157,18 +157,22 @@ def create_indices_metadata_table(
     db_connection: DatabaseResource, metadata_table: PostgresTableIdentifier
 ):
     db_connection.connection.send_query(
-        SQL(
-            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"  # type: ignore[arg-type]
+        SQL("CREATE INDEX IF NOT EXISTS {} ON {} USING gist (boundary)").format(
+            Identifier(f"{metadata_table.table.str}_boundary_index"), metadata_table.id
         )
     )
     db_connection.connection.send_query(
         SQL(
-            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"  # type: ignore[arg-type]
+            "CREATE INDEX IF NOT EXISTS {} ON {} (hash) WHERE (hash IS NOT NULL);"
+        ).format(
+            Identifier(f"{metadata_table.table.str}_hash_index"), metadata_table.id
         )
     )
     db_connection.connection.send_query(
         SQL(
-            f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"  # type: ignore[arg-type]
+            "CREATE INDEX IF NOT EXISTS {} ON {} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
+        ).format(
+            Identifier(f"{metadata_table.table.str}_filename_index"), metadata_table.id
         )
     )
 
