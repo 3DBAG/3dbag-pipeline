@@ -40,50 +40,36 @@ class FileStoreResource(ConfigurableResource):
         else:
             p.rmdir()
         logger.info(f"Deleted directory {p}")
-
-    @staticmethod
-    def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
-        """Create a temporary directory with the required permissions.
-
-        Creates a directory at ``/tmp/tmp_3dbag_{temp_dir_id}`` with 777
-        permissions so that Docker containers can read and write to it.
-
-        Args:
-            temp_dir_id: Identifier for the directory name. If None, generates
-                a random 8-character alphabetic string.
-
-        Returns:
-            Path object pointing to the created directory.
-        """
-        if temp_dir_id is None:
-            temp_dir_id = "".join(random.choice(string.ascii_letters) for _ in range(8))
-        tmp = Path(f"/tmp/tmp_3dbag_{temp_dir_id}")
-        tmp.mkdir(exist_ok=True)
-        tmp.chmod(mode=0o777)
-        return tmp
+    
+    def create_subdir(self, subdir: str) -> Path:
+        """Return a subdirectory within the 3D BAG data directory."""
+        new_dir = self.path / subdir
+        new_dir.mkdir(exist_ok=True, parents=True)
+        return new_dir
 
     @property
     def bag3d_dir(self) -> Path:
         """The 3D BAG data directory"""
-        return self.path / "3DBAG"
+        return self.create_subdir("3DBAG")
 
     @property
     def geoflow_crop_dir(self) -> Path:
         """Directory for the Geoflow crop-reconstruct output"""
-        return self.bag3d_dir / "crop_reconstruct"
+        return self.create_subdir("3DBAG/crop_reconstruct")
 
     def bag3d_export_dir(self, version: str) -> Path:
         """Create the 3DBAG export directory if does not exist"""
-        export_dir = self.bag3d_dir / f"export_{version}"
-        export_dir.mkdir(exist_ok=True, parents=True)
-        return export_dir
+        return self.create_subdir(f"3DBAG/export_{version}")
 
     def ahn_dir(self, ahn_version: int) -> Path:
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
-        return self.path / "pointcloud" / f"AHN{ahn_version}"
+        return self.create_subdir(f"pointcloud/AHN{ahn_version}")
 
     def ahn_laz_dir(self, ahn_version: int) -> Path:
         """Return a directory path where to store the AHN LAZ files for the given AHN
         version."""
-        return self.ahn_dir(ahn_version) / "as_downloaded" / "LAZ"
+        return self.create_subdir(f"pointcloud/AHN{ahn_version}/as_downloaded/LAZ")
+
+
+
