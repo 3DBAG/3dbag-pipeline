@@ -62,6 +62,5 @@ pyproject.toml
 uv.lock
 
 # Other
-experiments
 deployment
 scripts
