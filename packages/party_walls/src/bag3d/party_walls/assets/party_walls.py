@@ -1,7 +1,7 @@
 from pathlib import Path
 from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable
+from typing import Any, Iterable, cast
 import json
 from os import getenv
 
@@ -126,7 +126,7 @@ def party_walls_nl(
     context.add_output_metadata(
         metadata={
             "Rows": len(df),
-            "Head": MetadataValue.md(df.head().to_markdown()),
+            "Head": MetadataValue.md(df.head().to_markdown() or ""),
         }
     )
     return df
@@ -202,7 +202,8 @@ def cityjsonfeatures_with_party_walls_nl(
         output_dir_tile = output_dir.joinpath(tile)
         output_dir_tile.mkdir(parents=True, exist_ok=True)
         output_dir_tiles.append(str(output_dir_tile))
-    for row in party_walls_nl.itertuples(name="CityStats"):
+    for _row in party_walls_nl.itertuples(name="CityStats"):
+        row = cast(Any, _row)
         # identificatie without building part
         identificatie_bag = row.identificatie
         try:
