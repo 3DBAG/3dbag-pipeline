@@ -17,7 +17,7 @@ if dagster_deployment.lower() == DagsterDeployment.DEFAULT:
     model_store = ModelStoreResource.configure_at_launch()
 elif dagster_deployment.lower() in DagsterDeployment.env_configured_deployments():
     model_store = ModelStoreResource(
-        model_path=os.getenv("BAG3D_FLOORS_ESTIMATION_MODEL", "")
+        model_path=os.environ["BAG3D_FLOORS_ESTIMATION_MODEL"]
     )
 else:
     raise RuntimeError(
