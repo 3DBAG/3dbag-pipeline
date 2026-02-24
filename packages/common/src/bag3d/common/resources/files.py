@@ -47,28 +47,37 @@ class FileStoreResource(ConfigurableResource):
         logger.info(f"Deleted directory {p}")
     
     def create_subdir(self, subdir: str) -> Path:
-        """Return a subdirectory within the 3D BAG data directory."""
+        """Create and return a subdirectory within the main file store directory.
+        
+        Args:
+            subdir: Relative path of the subdirectory to create.
+        
+        Returns:
+            Path object pointing to the created subdirectory.
+        
+        Note:
+            Creates parent directories if they don't exist.
+        """
         new_dir = self.path / subdir
         new_dir.mkdir(exist_ok=True, parents=True)
         return new_dir
 
     @property
     def bag3d_dir(self) -> Path:
-        """The 3D BAG data directory"""
+        """Get the main 3D BAG data directory."""
         return self.create_subdir(BAG3D_DIR)
 
     @property
     def geoflow_crop_dir(self) -> Path:
-        """Directory for the Geoflow crop-reconstruct output"""
+        """Get the directory for Geoflow crop-reconstruct operation output."""
         return self.create_subdir(CROP_RECONSTRUCT_DIR)
 
     def bag3d_export_dir(self, version: str) -> Path:
-        """Create the 3DBAG export directory if does not exist"""
+        """Get the 3DBAG export directory for a specific version."""
         return self.create_subdir(f"{BAG3D_DIR}/export_{version}")
 
     def ahn_laz_dir(self, ahn_version: int) -> Path:
-        """Return a directory path where to store the AHN LAZ files for the given AHN
-        version."""
+        """Get the directory for AHN LAZ files per version."""
         return self.create_subdir(f"{POINTCLOUD_DIR}/AHN{ahn_version}/{LAZ_SUBDIR}")
 
 
