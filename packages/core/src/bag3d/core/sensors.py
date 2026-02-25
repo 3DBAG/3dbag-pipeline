@@ -11,7 +11,7 @@ from dagster import (
     SkipReason,
     multi_asset_sensor,
 )
-from dagster import DagsterInvariantViolationWarning
+from dagster import SupersessionWarning
 
 from bag3d.core.assets.ahn.core import download_ahn_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
@@ -82,7 +82,7 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
         #  instead of multi_asset_sensors to monitor the status of upstream assets and
         #  launch runs in response. In cases where side effects are required, or a
         #  specific job must be targeted for execution, multi_asset_sensors may be used.
-        warnings.filterwarnings("ignore", category=DagsterInvariantViolationWarning)
+        warnings.filterwarnings("ignore", category=SupersessionWarning)
 
         @multi_asset_sensor(
             monitored_assets=[
@@ -160,6 +160,8 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
 
             context.advance_all_cursors()
             context.update_cursor(json.dumps(current))
+
+            warnings.resetwarnings()
 
             if not run_requests:
                 return SkipReason("No checksum changes detected")
