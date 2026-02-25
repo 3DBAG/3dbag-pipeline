@@ -17,6 +17,7 @@ docs = [
 ]
 lint = [
     "ruff~=0.15.1",
+    "pyright>=1.1",
 ]
 dev = [
     "dagster~=1.12.14",
@@ -37,6 +38,23 @@ line-length = 88
 quote-style = "double"
 indent-style = "space"
 docstring-code-format = false
+
+[tool.pyright]
+typeCheckingMode = "standard"
+include = ["packages"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.tox",
+    ".git",
+    "**/.venv*",
+    "**/build",
+    "**/docs",
+    "**/site",
+]
+pythonVersion = "3.11"
+reportPrivateImportUsage = false
+reportUnnecessaryTypeIgnoreComment = "warning"
 
 [tool.bumpver]
 current_version = "2025.11.18"

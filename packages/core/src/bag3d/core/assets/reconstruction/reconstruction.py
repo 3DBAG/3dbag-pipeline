@@ -53,7 +53,7 @@ def generate_3dbag_version_date():
 
 
 @asset
-def reconstruction_date():
+def reconstruction_date() -> str:
     """Generates a version from today's date, so that each partition in the
     reconstruction assets get the same version, even if they are executed over multiple
     days.
@@ -63,7 +63,7 @@ def reconstruction_date():
 
 
 class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
-    def __init__(self, schema: str, table_tiles: str, wkt: str = None):
+    def __init__(self, schema: str, table_tiles: str, wkt: str | None = None):
         logger = get_dagster_logger("PartitionDefinition3DBagReconstruction")
         tile_ids = get_tile_ids(schema, table_tiles, logger, wkt)
         super().__init__(partition_keys=sorted(list(tile_ids)))
@@ -96,7 +96,7 @@ def reconstructed_building_models_nl(
     metadata_ahn3_index,
     metadata_ahn4_index,
     metadata_ahn5_index,
-):
+) -> None:
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
     Runs roofer."""
@@ -126,7 +126,7 @@ def reconstructed_building_models_nl(
         logger.debug(f"{result.returncode=}")
         if not result.success or "error" in result.stdout.lower():
             logger.error(result.stdout)
-            raise Failure
+            raise Failure()
     finally:
         if config.drop_views:
             db_connection.connection.send_query(
@@ -238,20 +238,20 @@ def create_roofer_config(
     query_params_ahn5 = deepcopy(query_params)
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
-        r["filename"]
+        r["filename"]  # type: ignore[index]
         for r in db_connection.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
     ]
     laz_files_ahn4 = [
-        r["filename"]
+        r["filename"]  # type: ignore[index]
         for r in db_connection.connection.get_dict(
             query_laz_tiles, query_params=query_params_ahn4
         )
     ]
     laz_files_ahn5 = [
-        r["filename"]
+        r["filename"]  # type: ignore[index]
         for r in db_connection.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,

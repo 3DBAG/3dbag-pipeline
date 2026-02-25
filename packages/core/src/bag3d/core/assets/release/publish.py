@@ -23,11 +23,15 @@ def publish_data(
     transfer_to_godzilla: tuple[Path, Path],
     metadata: Path,
     godzilla_server: ServerTransferResource,
-):
+) -> None:
     """On godzilla, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
-    public_dir: str = godzilla_server.public_dir
+    if godzilla_server.public_dir is None:
+        raise ValueError(
+            "godzilla_server.public_dir must be configured for publish_data"
+        )
+    public_dir = godzilla_server.public_dir
     deploy_dir, compressed_file = transfer_to_godzilla
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
@@ -76,7 +80,7 @@ def publish_data(
 @asset(
     deps={AssetKey(("deploy", "webservice_godzilla"))},
 )
-def publish_webservices(godzilla_server: ServerTransferResource):
+def publish_webservices(godzilla_server: ServerTransferResource) -> None:
     """ """
     latest_schema = "webservice"
     dev_schema = "webservice_dev"

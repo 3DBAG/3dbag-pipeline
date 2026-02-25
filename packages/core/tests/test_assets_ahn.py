@@ -1,4 +1,5 @@
 import pytest
+from dagster import Output
 from bag3d.core.assets.ahn.core import (
     download_ahn_index,
 )
@@ -25,12 +26,14 @@ from bag3d.common.utils.database import table_exists
 
 def test_download_ahn_index():
     tile_ids = download_ahn_index()
+    assert tile_ids is not None
     assert len(tile_ids) == 1407
     assert tile_ids[list(tile_ids.keys())[0]] is None
 
 
 def test_download_ahn_index_geometry():
     features = download_ahn_index(with_geom=True)
+    assert features is not None
     assert len(features) == 1407
     assert features[list(features.keys())[0]] is not None
 
@@ -52,14 +55,17 @@ def test_get_checksums(ahn_version):
 
 def test_checksums_for_ahn():
     res = md5_ahn3()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
     res = md5_ahn4()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
     res = sha256_ahn5()
+    assert isinstance(res, dict)
     assert len(res) > 0
     for k, sha in list(res.items())[:5]:
         assert sha is not None
@@ -67,6 +73,8 @@ def test_checksums_for_ahn():
 
 def test_tile_index_ahn():
     res = tile_index_ahn()
+    assert res is not None
+    assert isinstance(res, dict)
     assert len(res) == 1407
     assert res[list(res.keys())[0]] is not None
 
@@ -81,8 +89,8 @@ def test_laz_files_ahn3(context_ahn, resources_ahn, md5_ahn3_fix, tile_index_ahn
         md5_ahn3_fix,
         tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
     print(res.value)
 
 
@@ -96,8 +104,8 @@ def test_laz_files_ahn4(context_ahn, resources_ahn, md5_ahn4_fix, tile_index_ahn
         md5_ahn4_fix,
         tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
 
 
 @pytest.mark.slow
@@ -112,8 +120,8 @@ def test_laz_files_ahn5(
         sha256_ahn5_fix,
         tile_index_ahn_fix,
     )
+    assert isinstance(res, Output)
     assert res.value.url is not None
-    assert res is not None
 
 
 def test_metadata_table_ahn3(resources_ahn):

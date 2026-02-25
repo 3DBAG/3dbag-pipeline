@@ -15,12 +15,12 @@ from shapely import STRtree, from_wkt
 import numpy as np
 
 
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA")
-HOST = os.getenv("BAG3D_PG_HOST")
-PORT = int(os.getenv("BAG3D_PG_PORT"))
-USER = os.getenv("BAG3D_PG_USER")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE")
+LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
+HOST = os.getenv("BAG3D_PG_HOST", "")
+PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
+USER = os.getenv("BAG3D_PG_USER", "")
+PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
+DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
 VERSION = "test_version"
 
 # Ensure partition definitions can read the version from environment
@@ -65,7 +65,7 @@ def database():
 
 @pytest.fixture
 def version():
-    yield ReleaseVersionResource(VERSION)
+    yield ReleaseVersionResource(version=VERSION)
 
 
 @pytest.fixture

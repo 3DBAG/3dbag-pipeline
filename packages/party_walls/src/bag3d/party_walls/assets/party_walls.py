@@ -126,7 +126,7 @@ def party_walls_nl(
     context.add_output_metadata(
         metadata={
             "Rows": len(df),
-            "Head": MetadataValue.md(df.head().to_markdown()),
+            "Head": MetadataValue.md(df.head().to_markdown() or ""),
         }
     )
     return df
@@ -202,9 +202,9 @@ def cityjsonfeatures_with_party_walls_nl(
         output_dir_tile = output_dir.joinpath(tile)
         output_dir_tile.mkdir(parents=True, exist_ok=True)
         output_dir_tiles.append(str(output_dir_tile))
-    for row in party_walls_nl.itertuples(name="CityStats"):
+    for row in party_walls_nl.to_dict("records"):
         # identificatie without building part
-        identificatie_bag = row.identificatie
+        identificatie_bag = row["identificatie"]
         try:
             feature_path = features_file_index[identificatie_bag]
         except KeyError as e:
@@ -213,13 +213,13 @@ def cityjsonfeatures_with_party_walls_nl(
         with feature_path.open(encoding="utf-8", mode="r") as fo:
             feature_json = json.load(fo)
         attributes = feature_json["CityObjects"][identificatie_bag]["attributes"]
-        attributes["b3_opp_grond"] = row.area_ground
-        attributes["b3_opp_dak_plat"] = row.area_roof_flat
-        attributes["b3_opp_dak_schuin"] = row.area_roof_sloped
-        attributes["b3_opp_scheidingsmuur"] = row.area_shared_wall
-        attributes["b3_opp_buitenmuur"] = row.area_exterior_wall
+        attributes["b3_opp_grond"] = row["area_ground"]
+        attributes["b3_opp_dak_plat"] = row["area_roof_flat"]
+        attributes["b3_opp_dak_schuin"] = row["area_roof_sloped"]
+        attributes["b3_opp_scheidingsmuur"] = row["area_shared_wall"]
+        attributes["b3_opp_buitenmuur"] = row["area_exterior_wall"]
 
-        output_dir_tile = output_dir.joinpath(row.tile)
+        output_dir_tile = output_dir.joinpath(row["tile"])
         feature_party_wall_path = Path(
             f"{output_dir_tile}/{identificatie_bag}.city.jsonl"
         )

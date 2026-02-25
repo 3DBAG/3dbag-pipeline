@@ -9,7 +9,9 @@ from pgutils import inject_parameters, PostgresTableIdentifier
 from bag3d.common.resources.database import DatabaseResource
 
 
-def load_sql(filename: str = None, query_params: dict = None):  # pragma: no cover
+def load_sql(
+    filename: str | None = None, query_params: dict | None = None
+):  # pragma: no cover
     """Load SQL from a file and inject parameters if provided.
 
     If providing query parametes, they need to be in a dict, where the keys are the
@@ -39,6 +41,8 @@ def load_sql(filename: str = None, query_params: dict = None):  # pragma: no cov
     # Find the name of the main package. This should be bag3d.<package>, e.g. bag3d.core
     stk = inspect.stack()[1]
     mod = inspect.getmodule(stk[0])
+    if mod is None or mod.__package__ is None:
+        raise RuntimeError("Could not determine calling module")
     pkgs = mod.__package__.split(".")
     if pkgs[0] != "bag3d" and len(pkgs) < 2:
         raise RuntimeError(
@@ -49,6 +53,8 @@ def load_sql(filename: str = None, query_params: dict = None):  # pragma: no cov
     _f = filename if filename is not None else f"{inspect.stack()[1].function}.sql"
     _sql = resources.files(sqlfiles_module).joinpath(_f).read_text()
     _pysql = _sql.replace("${", "{")
+    if query_params is None:
+        return inject_parameters(_pysql)
     return inject_parameters(_pysql, query_params)
 
 
@@ -102,7 +108,7 @@ def postgrestable_metadata(
     return {
         "Database.Schema.Table": f"{conn.dbname}.{table}",
         "Rows": row_count,
-        "Head": MarkdownMetadataValue(head),
+        "Head": MarkdownMetadataValue(head if isinstance(head, str) else ""),
         "Summary": MarkdownMetadataValue(summary_md(fields, null_count)),
     }
 
@@ -135,4 +141,4 @@ def table_exists(db_connection: DatabaseResource, table) -> bool:
         schema=Literal(table.schema.str), table=Literal(table.table.str)
     )
     res = db_connection.connection.get_dict(query)
-    return res[0]["exists"]
+    return res[0]["exists"]  # type: ignore[index]

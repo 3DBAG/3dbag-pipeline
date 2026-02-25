@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import table_exists
 from bag3d.floors_estimation.assets.floors_estimation import (
@@ -15,6 +16,7 @@ from bag3d.floors_estimation.assets.floors_estimation import (
     preprocessed_features,
     save_cjfiles,
 )
+from dagster import Output
 
 
 def test_features_file_index(file_store_fastssd):
@@ -23,6 +25,7 @@ def test_features_file_index(file_store_fastssd):
         FloorsEstimationConfig(),
         file_store_fastssd,
     )
+    assert isinstance(result, dict)
     assert len(result) == 413
     assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
     assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
@@ -69,7 +72,8 @@ def test_bag3d_features(database, mock_features_file_index):
         database,
     )
 
-    assert res.value is not None
+    assert isinstance(res, Output)
+    assert isinstance(res.value, PostgresTableIdentifier)
     building_feature_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_bag3d"
     )
@@ -81,7 +85,8 @@ def test_external_features(database):
         database,
     )
 
-    assert res.value is not None
+    assert isinstance(res, Output)
+    assert isinstance(res.value, PostgresTableIdentifier)
     external_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_external"
     )
@@ -101,7 +106,8 @@ def test_all_features(database):
         database,
     )
 
-    assert res.value is not None
+    assert isinstance(res, Output)
+    assert isinstance(res.value, PostgresTableIdentifier)
     all_features_table = PostgresTableIdentifier(
         "floors_estimation", "building_features_all"
     )
@@ -117,13 +123,13 @@ def test_preprocessed_features(database):
         all_features_table,
         database,
     )
-    assert data is not None
+    assert isinstance(data, pd.DataFrame)
     assert data.shape[0] == 6
 
 
 def test_inferenced_floors(model_store, mock_preprocessed_features):
     res = inferenced_floors(mock_preprocessed_features, model_store)
-    assert res is not None
+    assert isinstance(res, pd.DataFrame)
     assert "floors" in res.columns
     assert "floors_int" in res.columns
 
@@ -133,7 +139,8 @@ def test_predictions_table(database, mock_inferenced_floors):
         mock_inferenced_floors,
         database,
     )
-    assert res.value is not None
+    assert isinstance(res, Output)
+    assert isinstance(res.value, PostgresTableIdentifier)
     pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
     assert table_exists(database, pred_table) is True
 

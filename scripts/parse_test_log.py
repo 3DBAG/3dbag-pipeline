@@ -11,6 +11,12 @@ from collections import defaultdict
 from pathlib import Path
 
 
+def strip_ansi_codes(text):
+    """Remove ANSI escape sequences from text."""
+    ansi_escape = re.compile(r"\033\[[0-9;]*m")
+    return ansi_escape.sub("", text)
+
+
 def parse_warnings(log_content):
     """Extract warnings from pytest warning summary sections.
 
@@ -26,22 +32,25 @@ def parse_warnings(log_content):
     """
     warnings = defaultdict(lambda: {"count": 0, "location": "", "type": ""})
 
+    # Strip ANSI codes for consistent parsing
+    clean_content = strip_ansi_codes(log_content)
+
     # Find all warnings summary sections
     warnings_section_pattern = r"={10,} warnings summary ={10,}"
 
-    for section_match in re.finditer(warnings_section_pattern, log_content):
+    for section_match in re.finditer(warnings_section_pattern, clean_content):
         warnings_start = section_match.end()
         # Find end of this section (next separator or Docs line)
         separator_pattern = r"^-{2,} Docs:|^={10,}"
-        rest = log_content[warnings_start:]
+        rest = clean_content[warnings_start:]
         separator_match = re.search(separator_pattern, rest, re.MULTILINE)
 
         if separator_match:
             warnings_end = warnings_start + separator_match.start()
         else:
-            warnings_end = len(log_content)
+            warnings_end = len(clean_content)
 
-        warnings_text = log_content[warnings_start:warnings_end]
+        warnings_text = clean_content[warnings_start:warnings_end]
 
         # Parse two formats:
         # 1. Location with count: "venv/...:70: 4 warnings"
@@ -114,11 +123,12 @@ def parse_warnings(log_content):
 
 
 def parse_errors(log_content):
-    """Extract errors from all pytest FAILURES sections.
+    """Extract errors from all pytest FAILURES and ERRORS sections.
 
-    Processes all FAILURES sections in the log file to extract error information
-    including error type and traceback details. Handles both standard exceptions
-    (with colons) and assertion errors (without colons).
+    Processes all FAILURES and ERRORS sections in the log file to extract error
+    information including error type and traceback details. Handles both standard
+    exceptions (with colons) and assertion errors (without colons). Works with
+    both test failures and collection/setup errors.
 
     Args:
         log_content: Full log file content as string
@@ -128,27 +138,31 @@ def parse_errors(log_content):
     """
     errors = []
 
-    # Find all FAILURES sections (there may be multiple from sequential test runs)
-    failures_pattern = r"={10,} FAILURES ={10,}"
+    # Strip ANSI codes for consistent parsing
+    clean_content = strip_ansi_codes(log_content)
 
-    for failures_match in re.finditer(failures_pattern, log_content):
-        failures_start = failures_match.end()
-        # Find end of failures section (next separator like "===")
-        rest = log_content[failures_start:]
+    # Find all FAILURES and ERRORS sections (there may be multiple from sequential test runs)
+    # Match both "=== FAILURES ===" and "=== ERRORS ===" patterns
+    section_pattern = r"={10,}\s+(FAILURES|ERRORS)\s+={10,}"
+
+    for section_match in re.finditer(section_pattern, clean_content):
+        section_start = section_match.end()
+        # Find end of section (next separator like "===")
+        rest = clean_content[section_start:]
         end_pattern = r"^={10,}"
         end_match = re.search(end_pattern, rest, re.MULTILINE)
 
         if end_match:
-            failures_end = failures_start + end_match.start()
+            section_end = section_start + end_match.start()
         else:
-            failures_end = len(log_content)
+            section_end = len(clean_content)
 
-        failures_text = log_content[failures_start:failures_end]
+        section_text = clean_content[section_start:section_end]
 
-        # Extract individual test failures
-        # Pattern: "__ test_name __" or similar
+        # Extract individual test failures/errors
+        # Pattern: "__ test_name __" or "__ ERROR collecting test_file.py __" etc.
         test_pattern = r"^_{2,}\s+(.+?)\s+_{2,}"
-        lines = failures_text.split("\n")
+        lines = section_text.split("\n")
 
         i = 0
         while i < len(lines):

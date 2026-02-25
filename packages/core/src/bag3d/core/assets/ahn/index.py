@@ -27,7 +27,7 @@ def run_lasindex(
     config: LasIndexConfig,
     lastools: LASToolsResource,
     lazdownload: LAZDownload,
-):
+) -> None:
     cmd_list = [
         "{exe}",
         "-i {local_path}",
@@ -52,7 +52,7 @@ def lasindex_ahn3(
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn3: LAZDownload,
-):
+) -> None:
     """Append a spatial index to the AHN3 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
@@ -68,7 +68,7 @@ def lasindex_ahn4(
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn4: LAZDownload,
-):
+) -> None:
     """Append a spatial index to the AHN4 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.
@@ -84,7 +84,7 @@ def lasindex_ahn5(
     config: LasIndexConfig,
     lastools: LASToolsResource,
     laz_files_ahn5: LAZDownload,
-):
+) -> None:
     """Append a spatial index to the AHN5 LAZ file, using LASTools's `lasindex`.
 
     See https://lastools.osgeo.org/download/lasindex_README.txt.

@@ -12,13 +12,12 @@ from dagster import (
     AutomationCondition,
 )
 from pgutils import PostgresTableIdentifier
-from psycopg.sql import Literal, SQL
+from psycopg.sql import Identifier, Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
 from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
-from bag3d.common.types import PostgresTable
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import partition_definition_ahn
@@ -41,13 +40,13 @@ def metadata_table_ahn3(db_connection: DatabaseResource) -> PostgresTableIdentif
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn4(db_connection: DatabaseResource):
+def metadata_table_ahn4(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn5(db_connection: DatabaseResource):
+def metadata_table_ahn5(db_connection: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(db_connection, ahn_version=5)
 
@@ -61,7 +60,7 @@ def metadata_ahn3(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -85,7 +84,7 @@ def metadata_ahn4(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -109,7 +108,7 @@ def metadata_ahn5(
     tile_index_ahn,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'.
     The metadata is loaded into the metadata database table."""
@@ -127,7 +126,7 @@ def metadata_ahn5(
 @asset(deps=["metadata_ahn3"])
 def metadata_ahn3_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn3: PostgresTable,
+    metadata_table_ahn3: PostgresTableIdentifier,
 ):
     """Create indices on the AHN3 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn3)
@@ -137,7 +136,7 @@ def metadata_ahn3_index(
 @asset(deps=["metadata_ahn4"])
 def metadata_ahn4_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn4: PostgresTable,
+    metadata_table_ahn4: PostgresTableIdentifier,
 ):
     """Create indices on the AHN4 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn4)
@@ -147,7 +146,7 @@ def metadata_ahn4_index(
 @asset(deps=["metadata_ahn5"])
 def metadata_ahn5_index(
     db_connection: DatabaseResource,
-    metadata_table_ahn5: PostgresTable,
+    metadata_table_ahn5: PostgresTableIdentifier,
 ):
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(db_connection, metadata_table_ahn5)
@@ -155,16 +154,26 @@ def metadata_ahn5_index(
 
 
 def create_indices_metadata_table(
-    db_connection: DatabaseResource, metadata_table: PostgresTable
+    db_connection: DatabaseResource, metadata_table: PostgresTableIdentifier
 ):
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_boundary_index ON {metadata_table} USING gist (boundary)"
+        SQL("CREATE INDEX IF NOT EXISTS {} ON {} USING gist (boundary)").format(
+            Identifier(f"{metadata_table.table.str}_boundary_index"), metadata_table.id
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_hash_index ON {metadata_table} (hash) WHERE (hash IS NOT NULL);"
+        SQL(
+            "CREATE INDEX IF NOT EXISTS {} ON {} (hash) WHERE (hash IS NOT NULL);"
+        ).format(
+            Identifier(f"{metadata_table.table.str}_hash_index"), metadata_table.id
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX IF NOT EXISTS {metadata_table.table}_filename_index ON {metadata_table} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
+        SQL(
+            "CREATE INDEX IF NOT EXISTS {} ON {} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
+        ).format(
+            Identifier(f"{metadata_table.table.str}_filename_index"), metadata_table.id
+        )
     )
 
 
@@ -176,7 +185,7 @@ def compute_load_metadata(
     tile_index_ahn_pdok,
     db_connection: DatabaseResource,
     pdal: PDALResource,
-):
+) -> Output[None]:
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 

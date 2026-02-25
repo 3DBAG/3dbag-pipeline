@@ -3,7 +3,7 @@ import time
 import random
 import warnings
 from pathlib import Path
-from typing import Mapping, Union
+from typing import Any, Mapping, Union
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
 
@@ -127,6 +127,8 @@ class LAZDownload:
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
         self.compute_sha(sha_func=sha_func)
+        assert self.hash_name is not None
+        assert self.hash_hexdigest is not None
         match = match_sha(
             fpath=self.path,
             sha_reference=sha_reference,
@@ -139,25 +141,25 @@ class LAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn3():
+def md5_ahn3() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn4():
+def md5_ahn4() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn5():
+def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def tile_index_ahn():
+def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
     """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
 
@@ -177,7 +179,7 @@ def laz_files_ahn3(
     file_store: FileStoreResource,
     md5_ahn3,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -243,7 +245,7 @@ def laz_files_ahn4(
     file_store: FileStoreResource,
     md5_ahn4,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -312,7 +314,7 @@ def laz_files_ahn5(
     file_store: FileStoreResource,
     sha256_ahn5,
     tile_index_ahn,
-):
+) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
 
     The download links are retrieved from the AHN tile index service (blaadindex).
@@ -368,7 +370,7 @@ def laz_files_ahn5(
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, str]:
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
 
@@ -400,8 +402,8 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> Mapping[str, 
 
 def download_ahn_laz(
     fpath: Path,
-    url_laz: str = None,
-    url_base: str = None,
+    url_laz: str | None = None,
+    url_base: str | None = None,
     verify_ssl: bool = False,
     nr_retries: int = 5,
     force_download: bool = False,
@@ -422,14 +424,18 @@ def download_ahn_laz(
         A LAZDownload file
     """
 
-    url = url_laz if url_laz is not None else "/".join([url_base, fpath.name])
+    if url_laz is not None:
+        url = url_laz
+    else:
+        assert url_base is not None, "Either url_laz or url_base must be provided"
+        url = "/".join([url_base, fpath.name])
 
     success = False
     file_size = 0.0
     is_new = False
     if not fpath.is_file():
         logger.info(format_laz_log(fpath, "Not found. Downloading..."))
-        file_size, fpath, is_new, success, url_laz = download_laz(
+        file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
             file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
         )
     else:  # pragma: no cover
@@ -439,13 +445,15 @@ def download_ahn_laz(
         is_new = False
         if force_download:
             logger.info(format_laz_log(fpath, "Forcing re-download"))
-            file_size, fpath, is_new, success, url_laz = download_laz(
+            file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
                 file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
             )
 
     if not success:
         raise Failure(format_laz_log(fpath, "Downloading failed!"))
 
+    assert url_laz is not None
+    assert isinstance(fpath, Path)
     return LAZDownload(
         url=url_laz,
         path=fpath,

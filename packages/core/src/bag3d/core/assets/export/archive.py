@@ -3,6 +3,7 @@ import zipfile
 from zipfile import ZipFile
 import gzip
 from os import getenv
+from pathlib import Path
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
@@ -21,7 +22,7 @@ logger = get_dagster_logger()
 )
 def geopackage_nl(
     file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
-):
+) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = file_store.bag3d_export_dir(
         version=version.version,
@@ -191,7 +192,7 @@ def compressed_tiles(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     export_index,
-):
+) -> None:
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = file_store.bag3d_export_dir(

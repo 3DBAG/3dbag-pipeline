@@ -12,7 +12,7 @@ def test_extract_bgt(database, file_store, gdal, wkt_testarea):
         "gdal": gdal,
         "file_store": file_store,
         "db_connection": database,
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
     }
 
     defs = Definitions(

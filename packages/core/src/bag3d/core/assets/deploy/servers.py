@@ -30,7 +30,7 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
     ],
 )
-def compressed_export_nl(metadata, version: ReleaseVersionResource):
+def compressed_export_nl(metadata, version: ReleaseVersionResource) -> Output[Path]:
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
 
@@ -116,7 +116,7 @@ def transfer_to_server(
 )
 def transfer_to_podzilla(
     compressed_export_nl: Path, metadata: Path, podzilla_server: ServerTransferResource
-):
+) -> tuple[Path, Path]:
     """Transfer the 3D BAG export to the podzilla server for API access."""
     return transfer_to_server(
         podzilla_server,
@@ -131,7 +131,7 @@ def transfer_to_podzilla(
 )
 def transfer_to_godzilla(
     compressed_export_nl: Path, metadata: Path, godzilla_server: ServerTransferResource
-):
+) -> tuple[Path, Path]:
     """Transfer the 3D BAG export to the godzilla server for public downloads and webservices."""
     return transfer_to_server(
         godzilla_server,
@@ -148,7 +148,7 @@ def webservice_godzilla(
     transfer_to_godzilla,
     db_connection: DatabaseResource,
     godzilla_server: ServerTransferResource,
-):
+) -> tuple[str, str, str, str]:
     """
     Load the layers for WFS, WMS to the database on Godzilla.
     The layers will be loaded into the schema `webservice_dev` and
@@ -240,7 +240,7 @@ def webservice_godzilla(
     with godzilla_server.connection as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
-            "\copy "
+            r"\copy "
             + str(export_index)
             + " FROM '"
             + filepath
@@ -252,7 +252,7 @@ def webservice_godzilla(
         )
         filepath = f"{deploy_dir}/validate_compressed_files.csv"
         copy_cmd = (
-            "\copy "
+            r"\copy "
             + str(validate_compressed_files)
             + " FROM '"
             + filepath

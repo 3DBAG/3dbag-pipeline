@@ -84,7 +84,7 @@ def feature_evaluation(
     file_store_fastssd: FileStoreResource,
     db_connection: DatabaseResource,
     version: ReleaseVersionResource,
-):
+) -> Path:
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
@@ -113,7 +113,7 @@ def feature_evaluation(
     )
     cityobject_info = {lod: 0 for lod in lods}
     cityobject_info["has_geometry"] = False
-    cityobject_info.update(dict((a, None) for a in attributes_to_include))
+    cityobject_info.update(dict((a, None) for a in attributes_to_include))  # type: ignore[arg-type]
 
     reconstructed_buildings = set()
     cityobjects = {}
@@ -152,7 +152,7 @@ def feature_evaluation(
     for feature in not_reconstructed:
         cityobjects[feature] = cityobject_info
 
-    features_to_csv(output_csv, cityobjects, cityobject_info, lods)
+    features_to_csv(output_csv, cityobjects, cityobject_info, list(lods))
 
     return output_csv
 
@@ -201,7 +201,7 @@ def metadata(
     context: AssetExecutionContext,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
-):
+) -> Output[Path]:
     """3DBAG metadata for distribution.
     Metadata schema follows the Dutch metadata profile for geographical data,
     https://geonovum.github.io/Metadata-ISO19115/.
@@ -228,25 +228,25 @@ def metadata(
         ).records
         if len(event_record_list) > 0:
             event_record = event_record_list[0]
-
-            # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
-            # member instead of 'Rows'
-            rows = event_record.asset_materialization.metadata.get("Rows")
-            process_step_list.append(
-                {
-                    "name": ".".join(asset_key.path),
-                    "runId": event_record.run_id,
-                    "featureCount": rows.value if rows is not None else None,
-                    "dateTime": datetime.fromtimestamp(
-                        event_record.event_log_entry.timestamp
-                    )
-                    .date()
-                    .isoformat(),
-                    "dataVersion": event_record.asset_materialization.tags[
-                        "dagster/data_version"
-                    ],
-                }
-            )
+            materialization = event_record.asset_materialization
+            if materialization is not None:
+                # Just because the extract_top10nl asset has a 'Feature Count [gebouw]' metadata
+                # member instead of 'Rows'
+                rows = materialization.metadata.get("Rows")
+                tags = materialization.tags or {}
+                process_step_list.append(
+                    {
+                        "name": ".".join(asset_key.path),
+                        "runId": event_record.run_id,
+                        "featureCount": rows.value if rows is not None else None,
+                        "dateTime": datetime.fromtimestamp(
+                            event_record.event_log_entry.timestamp
+                        )
+                        .date()
+                        .isoformat(),
+                        "dataVersion": tags.get("dagster/data_version"),
+                    }
+                )
 
     top10NLdates = [
         ps["dataVersion"]

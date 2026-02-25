@@ -9,7 +9,7 @@ from dagster import (
 )
 from pgutils import PostgresConnection
 from psycopg.errors import OperationalError, UndefinedTable
-from psycopg.sql import SQL
+from psycopg.sql import SQL, Identifier, Literal
 
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources import tool_versions
@@ -29,7 +29,7 @@ logger = get_dagster_logger("input.tile")
 )
 def reconstruction_input_tiles(
     reconstruction_input, db_connection: DatabaseResource, tyler: TylerResource
-):
+) -> tuple[Output[PostgresTableIdentifier], Output[PostgresTableIdentifier]]:
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
     quadtree_capacity = 1200000
@@ -39,7 +39,9 @@ def reconstruction_input_tiles(
     geometry_column = "geometrie"
 
     conn = db_connection.connection
-    conn.send_query(f"CREATE SCHEMA IF NOT EXISTS {output_schema}")
+    conn.send_query(
+        SQL("CREATE SCHEMA IF NOT EXISTS {}").format(Identifier(output_schema))
+    )
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
     uri = conn.dsn.replace("sslmode=allow", "").strip()
@@ -64,19 +66,35 @@ def reconstruction_input_tiles(
         logger=logger,
     )
 
-    conn.send_query(f"ALTER TABLE {output_schema}.tiles ADD PRIMARY KEY (tile_id)")
     conn.send_query(
-        f"CREATE INDEX tiles_boundary_idx ON {output_schema}.tiles USING gist (boundary)"
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (tile_id)").format(
+            Identifier(output_schema, "tiles")
+        )
+    )
+    conn.send_query(
+        SQL("CREATE INDEX tiles_boundary_idx ON {} USING gist (boundary)").format(
+            Identifier(output_schema, "tiles")
+        )
     )
 
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY ({primary_key}) REFERENCES {reconstruction_input} ({primary_key})"
+        SQL("ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {} ({})").format(
+            Identifier(output_schema, "index"),
+            Identifier(primary_key),
+            reconstruction_input.id,
+            Identifier(primary_key),
+        )
     )
     conn.send_query(
-        f"ALTER TABLE {output_schema}.index ADD FOREIGN KEY (tile_id) REFERENCES {output_schema}.tiles (tile_id)"
+        SQL("ALTER TABLE {} ADD FOREIGN KEY (tile_id) REFERENCES {} (tile_id)").format(
+            Identifier(output_schema, "index"),
+            Identifier(output_schema, "tiles"),
+        )
     )
     conn.send_query(
-        f"CREATE INDEX index_tile_id_idx ON {output_schema}.index (tile_id)"
+        SQL("CREATE INDEX index_tile_id_idx ON {} (tile_id)").format(
+            Identifier(output_schema, "index")
+        )
     )
 
     return Output(
@@ -84,15 +102,15 @@ def reconstruction_input_tiles(
     ), Output(PostgresTableIdentifier(output_schema, "index"), output_name="index")
 
 
-def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str = None):
+def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str | None = None):
     """Get the input tile IDs from the database. If 'wkt' is provided, then get the
     tile IDs that intersect the wkt polygon. The SRID for the wkt is set to 28992."""
     if wkt:
         query = SQL(
-            f"select tile_id from {schema}.{table_tiles} where st_intersects(st_geometryfromtext('SRID=28992;{wkt}'), boundary)"
-        )
+            "SELECT tile_id FROM {} WHERE st_intersects(st_geometryfromtext({}), boundary)"
+        ).format(Identifier(schema, table_tiles), Literal(f"SRID=28992;{wkt}"))
     else:
-        query = SQL(f"select tile_id from {schema}.{table_tiles}")
+        query = SQL("SELECT tile_id FROM {}").format(Identifier(schema, table_tiles))
     try:
         conn = PostgresConnection(
             port=int(os.environ.get("BAG3D_PG_PORT", 5432)),

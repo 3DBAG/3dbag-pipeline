@@ -1,7 +1,7 @@
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import drop_table
 from bag3d.core.assets.input import intermediary, tile
-from dagster import get_dagster_logger
+from dagster import get_dagster_logger, Output
 
 
 def test_bag_kas_warenhuis(database):
@@ -17,6 +17,7 @@ def test_bag_kas_warenhuis(database):
         top10nl_gebouw,
         database,
     )
+    assert isinstance(res, Output)
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
     drop_table(database, new_table, logger)
@@ -33,6 +34,7 @@ def test_bag_bag_overlap(database):
         bag_pandactueelbestaand,
         database,
     )
+    assert isinstance(res, Output)
     assert isinstance(res.value, PostgresTableIdentifier)
     assert str(res.value) == f"{new_table.schema}.{new_table.table}"
     drop_table(database, new_table, logger)

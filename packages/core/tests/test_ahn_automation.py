@@ -81,7 +81,7 @@ def _requested_keys(result) -> set[dg.AssetKey]:
     return {r.key for r in result.results if result.get_num_requested(r.key) > 0}
 
 
-def _mat(instance, *keys: dg.AssetKey) -> None:
+def _mat(instance: dg.DagsterInstance, *keys: dg.AssetKey) -> None:
     """Report runless materializations for the given asset keys."""
     for key in keys:
         instance.report_runless_asset_event(dg.AssetMaterialization(asset_key=key))
@@ -226,7 +226,7 @@ def test_sensor_skips_when_no_materializations():
         )
         result = sensor(ctx)
     assert isinstance(result, dg.SkipReason)
-    assert "No new checksum materializations" in result.skip_message
+    assert "No new checksum materializations" in (result.skip_message or "")
 
 
 def test_sensor_establishes_baseline_on_first_run():
@@ -289,7 +289,7 @@ def test_sensor_skips_when_checksums_unchanged():
             result = sensor(ctx)
 
     assert isinstance(result, dg.SkipReason)
-    assert "No checksum changes detected" in result.skip_message
+    assert "No checksum changes detected" in (result.skip_message or "")
 
 
 def test_sensor_triggers_only_changed_partitions():

@@ -133,28 +133,28 @@ class CityJSONFileResults:
         sha256 (str): The SHA256 of the zipfile.
     """
 
-    zip_ok: bool = None
-    file_ok: bool = None
-    nr_building: int = None
-    nr_buildingpart: int = None
-    nr_invalid_building: int = None
-    nr_invalid_buildingpart_lod12: int = None
-    nr_invalid_buildingpart_lod13: int = None
-    nr_invalid_buildingpart_lod22: int = None
-    errors_lod12: list[int] = None
-    errors_lod13: list[int] = None
-    errors_lod22: list[int] = None
-    nr_mismatch_errors_lod12: int = None
-    nr_mismatch_errors_lod13: int = None
-    nr_mismatch_errors_lod22: int = None
-    lod: list[str] = None
-    schema_valid: bool = None
-    schema_warnings: bool = None
+    zip_ok: bool | None = None
+    file_ok: bool | None = None
+    nr_building: int | None = None
+    nr_buildingpart: int | None = None
+    nr_invalid_building: int | None = None
+    nr_invalid_buildingpart_lod12: int | None = None
+    nr_invalid_buildingpart_lod13: int | None = None
+    nr_invalid_buildingpart_lod22: int | None = None
+    errors_lod12: list[int] | None = None
+    errors_lod13: list[int] | None = None
+    errors_lod22: list[int] | None = None
+    nr_mismatch_errors_lod12: int | None = None
+    nr_mismatch_errors_lod13: int | None = None
+    nr_mismatch_errors_lod22: int | None = None
+    lod: list[str] | None = None
+    schema_valid: bool | None = None
+    schema_warnings: bool | None = None
     attributes_with_errors: AttributeValidationResults = field(
         default_factory=AttributeValidationResults
     )
-    download: str = None
-    sha256: str = None
+    download: str | None = None
+    sha256: str | None = None
 
     def asdict(self) -> dict:
         return {f"cj_{k}": v for k, v in self.__dict__.items()}
@@ -181,19 +181,19 @@ class OBJFileResults:
         sha256 (str): The SHA256 of the zipfile.
     """
 
-    zip_ok: bool = None
-    file_ok: bool = None
-    nr_building: int = None
-    nr_buildingpart: int = None
-    nr_invalid_building: int = None
-    nr_invalid_buildingpart_lod12: int = None
-    nr_invalid_buildingpart_lod13: int = None
-    nr_invalid_buildingpart_lod22: int = None
-    errors_lod12: list[int] = None
-    errors_lod13: list[int] = None
-    errors_lod22: list[int] = None
-    download: str = None
-    sha256: str = None
+    zip_ok: bool | None = None
+    file_ok: bool | None = None
+    nr_building: int | None = None
+    nr_buildingpart: int | None = None
+    nr_invalid_building: int | None = None
+    nr_invalid_buildingpart_lod12: int | None = None
+    nr_invalid_buildingpart_lod13: int | None = None
+    nr_invalid_buildingpart_lod22: int | None = None
+    errors_lod12: list[int] | None = None
+    errors_lod13: list[int] | None = None
+    errors_lod22: list[int] | None = None
+    download: str | None = None
+    sha256: str | None = None
 
     def asdict(self) -> dict:
         return {f"obj_{k}": v for k, v in self.__dict__.items()}
@@ -213,16 +213,16 @@ class GPKGFileResults:
         sha256 (str): The SHA256 of the zipfile.
     """
 
-    zip_ok: bool = None
-    file_ok: bool = None
-    nr_building: int = None
-    nr_buildingpart: int = None
-    nr_invalid_2d_geom: int = None
+    zip_ok: bool | None = None
+    file_ok: bool | None = None
+    nr_building: int | None = None
+    nr_buildingpart: int | None = None
+    nr_invalid_2d_geom: int | None = None
     attributes_with_errors: AttributeValidationResults = field(
         default_factory=AttributeValidationResults
     )
-    download: str = None
-    sha256: str = None
+    download: str | None = None
+    sha256: str | None = None
 
     def asdict(self) -> dict:
         return {f"gpkg_{k}": v for k, v in self.__dict__.items()}
@@ -239,7 +239,7 @@ class TileResults:
         gpkg (GPKGFileResults): GPKG file validation results.
     """
 
-    tile_id: str = None
+    tile_id: str | None = None
     cityjson: CityJSONFileResults = field(default_factory=CityJSONFileResults)
     obj: OBJFileResults = field(default_factory=OBJFileResults)
     gpkg: GPKGFileResults = field(default_factory=GPKGFileResults)
@@ -424,21 +424,21 @@ def cityjson(
         result = validation_runner.run(cmd, exe_name="cjio", local_path=dirpath)
         try:
             results.nr_building = int(
-                re.search(r"(?<=Building \()\d+", result.stdout).group(0)
+                re.search(r"(?<=Building \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
             )
         except Exception:
             logger.warning("Failed to extract number of buildings from output")
             results.nr_building = -1
         try:
             results.nr_buildingpart = int(
-                re.search(r"(?<=BuildingPart \()\d+", result.stdout).group(0)
+                re.search(r"(?<=BuildingPart \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
             )
         except Exception:
             logger.warning("Failed to extract number of building parts from output")
             results.nr_buildingpart = -1
         try:
             results.lod = ast.literal_eval(
-                re.search(r"(?<=LoD = ).+", result.stdout).group(0)
+                re.search(r"(?<=LoD = ).+", result.stdout).group(0)  # type: ignore[union-attr]
             )
         except Exception:
             logger.warning("Failed to extract LoD from output")
@@ -706,7 +706,7 @@ def obj(
                 with reportfile.open("r") as fo:
                     report = json.load(fo)
 
-                current_lod = re.search(r"(?<=LoD)\d{2}", inputfile.name).group(0)
+                current_lod = re.search(r"(?<=LoD)\d{2}", inputfile.name).group(0)  # type: ignore[union-attr]
                 invalid_building_ids = set()
                 nr_invalid_lod12 = 0
                 nr_invalid_lod13 = 0
@@ -898,7 +898,7 @@ def gpkg(
             re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
 
             try:
-                n = int(re.search(re_buildingpart_count, result.stdout).group(0))
+                n = int(re.search(re_buildingpart_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_buildingpart_all.append(n)
 
             except Exception:
@@ -920,7 +920,7 @@ def gpkg(
                 r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
             )
             try:
-                n = int(re.search(re_building_count, result.stdout).group(0))
+                n = int(re.search(re_building_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_building_all.append(n)
             except Exception:
                 logger.warning(
@@ -941,7 +941,7 @@ def gpkg(
             result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
             re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
             try:
-                n = int(re.search(re_invalid_count, result.stdout).group(0))
+                n = int(re.search(re_invalid_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_invalid_2d_geom_all.append(n)
             except Exception:
                 logger.warning(

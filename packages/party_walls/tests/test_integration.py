@@ -23,7 +23,7 @@ def test_job_party_walls(
         "file_store_fastssd": FileStoreResource(
             data_dir=str(party_walls_file_store_fastssd)
         ),
-        "version": ReleaseVersionResource("test_version"),
+        "version": ReleaseVersionResource(version="test_version"),
     }
     all_party_assets = load_assets_from_package_module(
         assets, key_prefix="party_walls", group_name="party_walls"

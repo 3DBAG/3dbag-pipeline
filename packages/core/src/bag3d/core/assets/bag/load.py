@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
+from psycopg.sql import SQL, Identifier
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.database import (
@@ -32,7 +33,7 @@ def bag_woonplaatsactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_woonplaats,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Woonplaats layer that only contains the current (timely) and physically
     existing objects."""
     create_schema(db_connection, NEW_SCHEMA, logger=logger)
@@ -60,7 +61,7 @@ def bag_verblijfsobjectactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_verblijfsobject,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Verblijfsobject layer that only contains the current (timely) and
     physically existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -80,13 +81,17 @@ def bag_verblijfsobjectactueelbestaand(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_geometrie_idx ON {new_table} USING gist (geometrie)"
+        SQL("CREATE INDEX {} ON {} USING gist (geometrie)").format(
+            Identifier(f"{table_name}_geometrie_idx"), new_table.id
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
+        SQL("CREATE INDEX {} ON {} (identificatie)").format(
+            Identifier(f"{table_name}_identificatie_idx"), new_table.id
+        )
     )
     return Output(new_table, metadata=metadata)
 
@@ -97,7 +102,7 @@ def bag_verblijfsobjectactueelbestaand(
 )
 def bag_pandactueelbestaand(
     config: BagLoadConfig, db_connection: DatabaseResource, stage_bag_pand
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Pand layer that only contains the current (timely) and physically
     existing buildings. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -117,16 +122,22 @@ def bag_pandactueelbestaand(
     )
     metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
     db_connection.connection.send_query(
-        f"ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
     geom_idx_name = f"{table_name}_geometrie_idx"
     db_connection.connection.send_query(
-        f"CREATE INDEX {geom_idx_name} ON {new_table} USING gist (geometrie)"
+        SQL("CREATE INDEX {} ON {} USING gist (geometrie)").format(
+            Identifier(geom_idx_name), new_table.id
+        )
     )
     db_connection.connection.send_query(
-        f"CREATE INDEX {table_name}_identificatie_idx ON {new_table} (identificatie)"
+        SQL("CREATE INDEX {} ON {} (identificatie)").format(
+            Identifier(f"{table_name}_identificatie_idx"), new_table.id
+        )
     )
-    db_connection.connection.send_query(f"CLUSTER {new_table} USING {geom_idx_name}")
+    db_connection.connection.send_query(
+        SQL("CLUSTER {} USING {}").format(new_table.id, Identifier(geom_idx_name))
+    )
     return Output(new_table, metadata=metadata)
 
 
@@ -138,7 +149,7 @@ def bag_openbareruimteactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_openbareruimte,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Pand layer that only contains the current (timely) and physically
     existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
@@ -167,7 +178,7 @@ def bag_nummeraanduidingactueelbestaand(
     config: BagLoadConfig,
     db_connection: DatabaseResource,
     stage_bag_nummeraanduiding,
-):
+) -> Output[PostgresTableIdentifier]:
     """The BAG Nummeraanduiding layer that only contains the current (timely) and
     physically existing objects. The data can be limited to a specific reference date by setting
     the *reference_date* parameter."""
