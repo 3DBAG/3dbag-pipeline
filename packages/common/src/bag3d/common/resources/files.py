@@ -1,12 +1,15 @@
 from pathlib import Path
 from shutil import rmtree
-import random
-import string
-from typing import Optional
 
 from dagster import get_dagster_logger, ConfigurableResource
 
 logger = get_dagster_logger("resources.file_store")
+
+# Path constants
+BAG3D_DIR = "3DBAG"
+CROP_RECONSTRUCT_DIR = "3DBAG/crop_reconstruct"
+POINTCLOUD_DIR = "pointcloud"
+LAZ_SUBDIR = "as_downloaded/LAZ"
 
 
 class FileStoreResource(ConfigurableResource):
@@ -41,49 +44,36 @@ class FileStoreResource(ConfigurableResource):
             p.rmdir()
         logger.info(f"Deleted directory {p}")
 
-    @staticmethod
-    def mkdir_temp(temp_dir_id: Optional[str] = None) -> Path:
-        """Create a temporary directory with the required permissions.
-
-        Creates a directory at ``/tmp/tmp_3dbag_{temp_dir_id}`` with 777
-        permissions so that Docker containers can read and write to it.
+    def create_subdir(self, subdir: str) -> Path:
+        """Create and return a subdirectory within the main file store directory.
 
         Args:
-            temp_dir_id: Identifier for the directory name. If None, generates
-                a random 8-character alphabetic string.
+            subdir: Relative path of the subdirectory to create.
 
         Returns:
-            Path object pointing to the created directory.
+            Path object pointing to the created subdirectory.
+
+        Note:
+            Creates parent directories if they don't exist.
         """
-        if temp_dir_id is None:
-            temp_dir_id = "".join(random.choice(string.ascii_letters) for _ in range(8))
-        tmp = Path(f"/tmp/tmp_3dbag_{temp_dir_id}")
-        tmp.mkdir(exist_ok=True)
-        tmp.chmod(mode=0o777)
-        return tmp
+        new_dir = self.path / subdir
+        new_dir.mkdir(exist_ok=True, parents=True)
+        return new_dir
 
     @property
     def bag3d_dir(self) -> Path:
-        """The 3D BAG data directory"""
-        return self.path / "3DBAG"
+        """Get the main 3D BAG data directory."""
+        return self.create_subdir(BAG3D_DIR)
 
     @property
     def geoflow_crop_dir(self) -> Path:
-        """Directory for the Geoflow crop-reconstruct output"""
-        return self.bag3d_dir / "crop_reconstruct"
+        """Get the directory for Geoflow crop-reconstruct operation output."""
+        return self.create_subdir(CROP_RECONSTRUCT_DIR)
 
     def bag3d_export_dir(self, version: str) -> Path:
-        """Create the 3DBAG export directory if does not exist"""
-        export_dir = self.bag3d_dir / f"export_{version}"
-        export_dir.mkdir(exist_ok=True, parents=True)
-        return export_dir
-
-    def ahn_dir(self, ahn_version: int) -> Path:
-        """Return a directory path where to store the AHN LAZ files for the given AHN
-        version."""
-        return self.path / "pointcloud" / f"AHN{ahn_version}"
+        """Get the 3DBAG export directory for a specific version."""
+        return self.create_subdir(f"{BAG3D_DIR}/export_{version}")
 
     def ahn_laz_dir(self, ahn_version: int) -> Path:
-        """Return a directory path where to store the AHN LAZ files for the given AHN
-        version."""
-        return self.ahn_dir(ahn_version) / "as_downloaded" / "LAZ"
+        """Get the directory for AHN LAZ files per version."""
+        return self.create_subdir(f"{POINTCLOUD_DIR}/AHN{ahn_version}/{LAZ_SUBDIR}")

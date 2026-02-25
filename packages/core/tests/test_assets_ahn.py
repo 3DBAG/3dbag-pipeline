@@ -73,8 +73,6 @@ def test_tile_index_ahn():
 
 @pytest.mark.slow
 def test_laz_files_ahn3(context_ahn, resources_ahn, md5_ahn3_fix, tile_index_ahn_fix):
-    laz_dir = resources_ahn["file_store"].ahn_laz_dir(3)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
     res = laz_files_ahn3(
         context_ahn,
@@ -90,8 +88,6 @@ def test_laz_files_ahn3(context_ahn, resources_ahn, md5_ahn3_fix, tile_index_ahn
 
 @pytest.mark.slow
 def test_laz_files_ahn4(context_ahn, resources_ahn, md5_ahn4_fix, tile_index_ahn_fix):
-    laz_dir = resources_ahn["file_store"].ahn_laz_dir(4)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
     res = laz_files_ahn4(
         context_ahn,
@@ -108,8 +104,6 @@ def test_laz_files_ahn4(context_ahn, resources_ahn, md5_ahn4_fix, tile_index_ahn
 def test_laz_files_ahn5(
     context_ahn, resources_ahn, sha256_ahn5_fix, tile_index_ahn_fix
 ):
-    laz_dir = resources_ahn["file_store"].ahn_laz_dir(5)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     config = LazFilesConfig(force_download=False, check_hash=False)
     res = laz_files_ahn5(
         context_ahn,

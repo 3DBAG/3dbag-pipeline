@@ -186,7 +186,6 @@ def laz_files_ahn3(
     """
     tile_id = context.partition_key
     laz_dir = file_store.ahn_laz_dir(3)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
@@ -254,7 +253,6 @@ def laz_files_ahn4(
     tile_id = context.partition_key
 
     laz_dir = file_store.ahn_laz_dir(4)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
@@ -322,7 +320,6 @@ def laz_files_ahn5(
     """
     tile_id = context.partition_key
     laz_dir = file_store.ahn_laz_dir(5)
-    laz_dir.mkdir(exist_ok=True, parents=True)
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
