@@ -125,24 +125,24 @@ def test_laz_files_ahn5(
 
 
 def test_metadata_table_ahn3(resources_ahn):
-    metadata = metadata_table_ahn3(resources_ahn["db_connection"])
+    metadata = metadata_table_ahn3(resources_ahn["production_db"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn3")
-    assert table_exists(resources_ahn["db_connection"], tbl)
+    assert table_exists(resources_ahn["production_db"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
 def test_metadata_table_ahn4(resources_ahn):
-    metadata = metadata_table_ahn4(resources_ahn["db_connection"])
+    metadata = metadata_table_ahn4(resources_ahn["production_db"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn4")
-    assert table_exists(resources_ahn["db_connection"], tbl)
+    assert table_exists(resources_ahn["production_db"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"
 
 
 def test_metadata_table_ahn5(resources_ahn):
-    metadata = metadata_table_ahn5(resources_ahn["db_connection"])
+    metadata = metadata_table_ahn5(resources_ahn["production_db"])
     tbl = PostgresTableIdentifier("ahn", "metadata_ahn5")
-    assert table_exists(resources_ahn["db_connection"], tbl)
+    assert table_exists(resources_ahn["production_db"], tbl)
     assert isinstance(metadata, PostgresTableIdentifier)
     assert str(metadata) == f"{tbl.schema}.{tbl.table}"

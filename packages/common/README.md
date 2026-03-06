@@ -24,8 +24,8 @@ For example, inject a resource into an asset in the workflow package using type-
 from bag3d.common.resources.database import DatabaseResource
 
 @asset
-def my_asset(context, db_connection: DatabaseResource):
-    data = db_connection.connection.get_dict(query)
+def my_asset(context, production_db: DatabaseResource):
+    data = production_db.connection.get_dict(query)
 ```
 
 ## Documentation

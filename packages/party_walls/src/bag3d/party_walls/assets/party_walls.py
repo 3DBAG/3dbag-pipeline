@@ -92,7 +92,7 @@ def distribution_tiles_files_index(
 def party_walls_nl(
     context: AssetExecutionContext,
     distribution_tiles_files_index: TilesFilesIndex,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> DataFrame:
     """Party walls calculation from the exported CityJSON tiles.
 
@@ -116,7 +116,7 @@ def party_walls_nl(
     ] + paths_neighbours
     df = city_stats(
         inputs=paths_inputs,
-        dsn=db_connection.connection.dsn,
+        dsn=production_db.connection.dsn,
         break_on_error=True,
     )
     if df is None:

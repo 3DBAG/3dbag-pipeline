@@ -174,7 +174,7 @@ def features_file_index(
 def bag3d_features(
     config: FloorsEstimationConfig,
     features_file_index: dict[str, Path],
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
     Extracts 3DBAG features from the cityJSONL files,
@@ -185,7 +185,7 @@ def bag3d_features(
     logger.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"bag3d_features": bag3d_features_table})
     metadata = postgrestable_from_query(
-        db_connection, query, bag3d_features_table, logger
+        production_db, query, bag3d_features_table, logger
     )
     logger.info(f"Extracting 3DBAG features for {len(features_file_index)} buildings.")
     chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
@@ -195,7 +195,7 @@ def bag3d_features(
         processing = {
             pool.submit(
                 process_chunk,
-                db_connection.connection,
+                production_db.connection,
                 chunk,
                 cid,
                 bag3d_features_table,
@@ -214,17 +214,17 @@ def bag3d_features(
 
 @asset(op_tags={"compute_kind": "sql"})
 def external_features(
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
     In contains features from CBS, ESRI and BAG."""
     logger.info("Extracting external features, from CBS, ESRI and BAG.")
-    create_schema(db_connection, SCHEMA, logger)
+    create_schema(production_db, SCHEMA, logger)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(query_params={"external_features": external_features_table})
     metadata = postgrestable_from_query(
-        db_connection, query, external_features_table, logger
+        production_db, query, external_features_table, logger
     )
     return Output(external_features_table, metadata=metadata)
 
@@ -233,10 +233,10 @@ def external_features(
 def all_features(
     external_features: PostgresTableIdentifier,
     bag3d_features: PostgresTableIdentifier,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_all` table."""
-    create_schema(db_connection, SCHEMA, logger)
+    create_schema(production_db, SCHEMA, logger)
     table_name = "building_features_all"
     all_features = PostgresTableIdentifier(SCHEMA, table_name)
     query = load_sql(
@@ -246,14 +246,14 @@ def all_features(
             "bag3d_features": bag3d_features,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, all_features, logger)
+    metadata = postgrestable_from_query(production_db, query, all_features, logger)
     return Output(all_features, metadata=metadata)
 
 
 @asset
 def preprocessed_features(
     all_features: PostgresTableIdentifier,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
     logger.info("Querying the features.")
@@ -270,7 +270,7 @@ def preprocessed_features(
     }
 
     query = inject_parameters(query, query_params)
-    res = db_connection.connection.get_dict(query)
+    res = production_db.connection.get_dict(query)
     data = pd.DataFrame.from_records(res)
     logger.info(f"Retrieved {len(data)} buildings.")
     data.set_index("identificatie", inplace=True, drop=True)
@@ -298,7 +298,7 @@ def inferenced_floors(
 
 @asset
 def predictions_table(
-    inferenced_floors: pd.DataFrame, db_connection: DatabaseResource
+    inferenced_floors: pd.DataFrame, production_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """Saves the floor predictions to the
     'floors_estimation.predictions' table."""
@@ -308,7 +308,7 @@ def predictions_table(
     predictions_table = PostgresTableIdentifier(SCHEMA, table_name)
     logger.info(f"Creating the {table_name} table.")
     query = load_sql(query_params={"predictions_table": predictions_table})
-    metadata = postgrestable_from_query(db_connection, query, predictions_table, logger)
+    metadata = postgrestable_from_query(production_db, query, predictions_table, logger)
 
     inferenced_floors.reset_index(inplace=True)
     data = [tuple(v) for v in inferenced_floors[["identificatie", "floors"]].to_numpy()]
@@ -316,7 +316,7 @@ def predictions_table(
     query = SQL("""INSERT INTO {}
                 VALUES (%s, %s);""").format(predictions_table.id)
 
-    with connect(db_connection.connection.dsn) as connection:
+    with connect(production_db.connection.dsn) as connection:
         with connection.cursor() as cur:
             cur.executemany(query, data, returning=True)
             connection.commit()

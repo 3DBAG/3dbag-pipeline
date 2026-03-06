@@ -27,12 +27,12 @@ def reconstruction_input(
     bag_pandactueelbestaand,
     bag_kas_warenhuis,
     bag_bag_overlap,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """The input for the building reconstruction, where:
     - duplicates are removed
     """
-    create_schema(db_connection, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    create_schema(production_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(
         RECONSTRUCTION_INPUT_SCHEMA, "reconstruction_input"
     )
@@ -44,8 +44,8 @@ def reconstruction_input(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(db_connection, query, new_table, logger=logger)
-    db_connection.connection.send_query(
+    metadata = postgrestable_from_query(production_db, query, new_table, logger=logger)
+    production_db.connection.send_query(
         SQL("ALTER TABLE {new_table} ADD PRIMARY KEY (fid)"),
         query_params={"new_table": new_table},
     )

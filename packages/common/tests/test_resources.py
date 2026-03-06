@@ -89,7 +89,7 @@ def test_file_store_init_data_dir(tmp_path):
     assert not path.exists()
 
 
-def test_db_connection_init():
+def test_production_db_init():
     """Can we initialize a local database resource?"""
     db = DatabaseResource(
         host=EnvVar("BAG3D_PG_HOST").get_value() or "",

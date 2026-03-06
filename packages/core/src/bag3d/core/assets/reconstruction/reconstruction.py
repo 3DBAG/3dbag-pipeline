@@ -87,7 +87,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
 def reconstructed_building_models_nl(
     context: AssetExecutionContext,
     config: RooferConfig,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
     roofer: RooferResource,
     file_store_fastssd: FileStoreResource,
     tiles,
@@ -103,7 +103,7 @@ def reconstructed_building_models_nl(
 
     roofer_toml, output_dir, tile_view = create_roofer_config(
         context,
-        db_connection=db_connection,
+        production_db=production_db,
         file_store_fastssd=file_store_fastssd,
         reconstruction_input=reconstruction_input,
         index=index,
@@ -129,14 +129,14 @@ def reconstructed_building_models_nl(
             raise Failure()
     finally:
         if config.drop_views:
-            db_connection.connection.send_query(
+            production_db.connection.send_query(
                 SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
             )
 
 
 def create_roofer_config(
     context: AssetExecutionContext,
-    db_connection: DatabaseResource,
+    production_db: DatabaseResource,
     file_store_fastssd: FileStoreResource,
     reconstruction_input,
     index,
@@ -239,20 +239,20 @@ def create_roofer_config(
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
     laz_files_ahn3 = [
         r["filename"]  # type: ignore[index]
-        for r in db_connection.connection.get_dict(
+        for r in production_db.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn3,
         )
     ]
     laz_files_ahn4 = [
         r["filename"]  # type: ignore[index]
-        for r in db_connection.connection.get_dict(
+        for r in production_db.connection.get_dict(
             query_laz_tiles, query_params=query_params_ahn4
         )
     ]
     laz_files_ahn5 = [
         r["filename"]  # type: ignore[index]
-        for r in db_connection.connection.get_dict(
+        for r in production_db.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,
         )
@@ -268,7 +268,7 @@ def create_roofer_config(
             USING (fid)
     WHERE ti.tile_id = {tile_id}
     """)
-    db_connection.connection.send_query(
+    production_db.connection.send_query(
         query_tile_view,
         query_params={
             "tile_view": tile_view,
@@ -280,7 +280,7 @@ def create_roofer_config(
     output_dir = file_store_fastssd.geoflow_crop_dir.joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
-        footprint_file=f"PG:{db_connection.connection.dsn} tables={tile_view}",
+        footprint_file=f"PG:{production_db.connection.dsn} tables={tile_view}",
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,

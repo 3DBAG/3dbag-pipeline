@@ -185,7 +185,7 @@ def resources(
     return {
         "gdal": gdal,
         "validation": validation,
-        "db_connection": database,
+        "production_db": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
         "publication_server": publication_server,
@@ -211,7 +211,7 @@ def resources_ahn(
     return {
         "gdal": gdal,
         "validation": validation,
-        "db_connection": database,
+        "production_db": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
         "publication_server": publication_server,
@@ -225,7 +225,7 @@ def resources_missing(database, file_store, gdal_missing, validation_missing):
     return {
         "gdal": gdal_missing,
         "validation": validation_missing,
-        "db_connection": database,
+        "production_db": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
     }

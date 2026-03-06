@@ -56,7 +56,7 @@ def file_store(tmp_path):
 def resources(database, file_store, gdal):
     return {
         "gdal": gdal,
-        "db_connection": database,
+        "production_db": database,
         "file_store": file_store,
         "version": "test_version",
     }
