@@ -81,7 +81,7 @@ def file_store_fastssd_resource(party_walls_file_store_fastssd):
 @pytest.fixture
 def resources(database, file_store_resource, file_store_fastssd_resource, version):
     return {
-        "production_db": database,
+        "computation_db": database,
         "file_store": file_store_resource,
         "file_store_fastssd": file_store_fastssd_resource,
         "version": version,

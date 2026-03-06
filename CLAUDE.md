@@ -223,7 +223,7 @@ class MyAssetConfig(Config):
     force_recompute: bool = Field(default=False, description="Force recompute even if data exists")
 
 @asset
-def my_asset(context, config: MyAssetConfig, production_db: DatabaseResource):
+def my_asset(context, config: MyAssetConfig, computation_db: DatabaseResource):
     if config.force_recompute:
         # ...
 ```
@@ -237,7 +237,7 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 
 @asset
-def my_asset(context, production_db: DatabaseResource, file_store: FileStoreResource):
+def my_asset(context, computation_db: DatabaseResource, file_store: FileStoreResource):
     data = db_connectio.get_dict(query)
     path = file_store.file_store.data_dir
 ```

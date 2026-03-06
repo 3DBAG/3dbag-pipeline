@@ -230,7 +230,7 @@ def ogr2postgres(
     feature_type: str,
     xsd: str,
     new_table: PostgresTableIdentifier,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     logger: Logger | None = None,
 ) -> dict | None:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
@@ -239,7 +239,7 @@ def ogr2postgres(
     the PDOK API.
 
     Args:
-        production_db:
+        computation_db:
         logger:
         gdal_runner: CommandRunner for GDAL tools.
         dsn: PostgreSQL connection string.
@@ -271,7 +271,7 @@ def ogr2postgres(
     kwargs = {
         "new_table": new_table,
         "feature_type": feature_type,
-        "dsn": production_db.connection.dsn,
+        "dsn": computation_db.connection.dsn,
         "xsd": xsd,
         "dataset": dataset,
     }
@@ -283,7 +283,7 @@ def ogr2postgres(
         logger=logger,
     )
     if result.success:
-        return postgrestable_metadata(production_db, new_table)
+        return postgrestable_metadata(computation_db, new_table)
 
 
 def pdal_info(

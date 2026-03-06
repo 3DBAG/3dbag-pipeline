@@ -34,21 +34,21 @@ class MetadataConfig(Config):
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn3(production_db: DatabaseResource) -> PostgresTableIdentifier:
+def metadata_table_ahn3(computation_db: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN3, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(production_db, ahn_version=3)
+    return metadata_table_ahn(computation_db, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn4(production_db: DatabaseResource) -> PostgresTableIdentifier:
+def metadata_table_ahn4(computation_db: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN4, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(production_db, ahn_version=4)
+    return metadata_table_ahn(computation_db, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn5(production_db: DatabaseResource) -> PostgresTableIdentifier:
+def metadata_table_ahn5(computation_db: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(production_db, ahn_version=5)
+    return metadata_table_ahn(computation_db, ahn_version=5)
 
 
 @asset(partitions_def=partition_definition_ahn, pool="ahn")
@@ -58,7 +58,7 @@ def metadata_ahn3(
     laz_files_ahn3,
     metadata_table_ahn3,
     tile_index_ahn,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
     """Metadata of the AHN3 LAZ file, retrieved from the PDOK tile index and
@@ -70,7 +70,7 @@ def metadata_ahn3(
         laz_files_ahn3,
         metadata_table_ahn3,
         tile_index_ahn,
-        production_db,
+        computation_db,
         pdal,
     )
 
@@ -82,7 +82,7 @@ def metadata_ahn4(
     laz_files_ahn4,
     metadata_table_ahn4,
     tile_index_ahn,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
     """Metadata of the AHN4 LAZ file, retrieved from the PDOK tile index and
@@ -94,7 +94,7 @@ def metadata_ahn4(
         laz_files_ahn4,
         metadata_table_ahn4,
         tile_index_ahn,
-        production_db,
+        computation_db,
         pdal,
     )
 
@@ -106,7 +106,7 @@ def metadata_ahn5(
     laz_files_ahn5,
     metadata_table_ahn5,
     tile_index_ahn,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
     """Metadata of the AHN5 LAZ file, retrieved from the PDOK tile index and
@@ -118,57 +118,57 @@ def metadata_ahn5(
         laz_files_ahn5,
         metadata_table_ahn5,
         tile_index_ahn,
-        production_db,
+        computation_db,
         pdal,
     )
 
 
 @asset(deps=["metadata_ahn3"])
 def metadata_ahn3_index(
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     metadata_table_ahn3: PostgresTableIdentifier,
 ):
     """Create indices on the AHN3 metadata table."""
-    create_indices_metadata_table(production_db, metadata_table_ahn3)
+    create_indices_metadata_table(computation_db, metadata_table_ahn3)
     return metadata_table_ahn3
 
 
 @asset(deps=["metadata_ahn4"])
 def metadata_ahn4_index(
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     metadata_table_ahn4: PostgresTableIdentifier,
 ):
     """Create indices on the AHN4 metadata table."""
-    create_indices_metadata_table(production_db, metadata_table_ahn4)
+    create_indices_metadata_table(computation_db, metadata_table_ahn4)
     return metadata_table_ahn4
 
 
 @asset(deps=["metadata_ahn5"])
 def metadata_ahn5_index(
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     metadata_table_ahn5: PostgresTableIdentifier,
 ):
     """Create indices on the AHN5 metadata table."""
-    create_indices_metadata_table(production_db, metadata_table_ahn5)
+    create_indices_metadata_table(computation_db, metadata_table_ahn5)
     return metadata_table_ahn5
 
 
 def create_indices_metadata_table(
-    production_db: DatabaseResource, metadata_table: PostgresTableIdentifier
+    computation_db: DatabaseResource, metadata_table: PostgresTableIdentifier
 ):
-    production_db.connection.send_query(
+    computation_db.connection.send_query(
         SQL("CREATE INDEX IF NOT EXISTS {} ON {} USING gist (boundary)").format(
             Identifier(f"{metadata_table.table.str}_boundary_index"), metadata_table.id
         )
     )
-    production_db.connection.send_query(
+    computation_db.connection.send_query(
         SQL(
             "CREATE INDEX IF NOT EXISTS {} ON {} (hash) WHERE (hash IS NOT NULL);"
         ).format(
             Identifier(f"{metadata_table.table.str}_hash_index"), metadata_table.id
         )
     )
-    production_db.connection.send_query(
+    computation_db.connection.send_query(
         SQL(
             "CREATE INDEX IF NOT EXISTS {} ON {} USING gin ((pdal_info -> 'filename') jsonb_path_ops) WHERE ((pdal_info -> 'filename') IS DISTINCT FROM jsonb('\"\"'))"
         ).format(
@@ -183,7 +183,7 @@ def compute_load_metadata(
     laz_files_ahn,
     metadata_table_ahn,
     tile_index_ahn_pdok,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
     """Metadata of the AHN LAZ file, retrieved from the PDOK tile index and
@@ -197,7 +197,7 @@ def compute_load_metadata(
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
         tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
-        production_db (DatabaseResource): Database connection resource.
+        computation_db (DatabaseResource): Database connection resource.
         pdal (PDALResource): PDAL resource for executing pdal info.
 
     Returns:
@@ -205,7 +205,7 @@ def compute_load_metadata(
     """
     logger = get_dagster_logger()
     tile_id = partition_key
-    conn = production_db.connection
+    conn = computation_db.connection
     if not laz_files_ahn.new:
         if not config.force:
             logger.info(
@@ -255,12 +255,12 @@ def compute_load_metadata(
 
 
 def metadata_table_ahn(
-    production_db: DatabaseResource, ahn_version: int
+    computation_db: DatabaseResource, ahn_version: int
 ) -> PostgresTableIdentifier:
     logger = get_dagster_logger()
-    conn = production_db.connection
+    conn = computation_db.connection
     new_schema = "ahn"
-    create_schema(production_db, new_schema, logger=logger)
+    create_schema(computation_db, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, f"metadata_ahn{ahn_version}")
     query = load_sql(query_params={"new_table": new_table})
     logger.info(conn.print_query(query))

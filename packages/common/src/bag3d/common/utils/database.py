@@ -79,24 +79,24 @@ def summary_md(fields, null_count):
 
 
 def postgrestable_from_query(
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     query: Composed,
     table: PostgresTableIdentifier,
     logger: Logger,
 ) -> dict:
     logger = logger or get_dagster_logger()
-    conn = production_db.connection
+    conn = computation_db.connection
     # log the query
     logger.info(conn.print_query(query))
     # execute the query
     conn.send_query(query)
-    return postgrestable_metadata(production_db, table)
+    return postgrestable_metadata(computation_db, table)
 
 
 def postgrestable_metadata(
-    production_db: DatabaseResource, table: PostgresTableIdentifier
+    computation_db: DatabaseResource, table: PostgresTableIdentifier
 ) -> dict:
-    conn = production_db.connection
+    conn = computation_db.connection
     # row count
     row_count = conn.get_count(table)
     # schema
@@ -113,23 +113,23 @@ def postgrestable_metadata(
     }
 
 
-def drop_table(production_db: DatabaseResource, new_table, logger: Logger):
+def drop_table(computation_db: DatabaseResource, new_table, logger: Logger):
     """DROP TABLE IF EXISTS new_table CASCADE"""
-    conn = production_db.connection
+    conn = computation_db.connection
     q = SQL("DROP TABLE IF EXISTS {tbl} CASCADE;").format(tbl=new_table.id)
     logger.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def create_schema(production_db: DatabaseResource, new_schema: str, logger: Logger):
+def create_schema(computation_db: DatabaseResource, new_schema: str, logger: Logger):
     """CREATE SCHEMA IF NOT EXISTS new_schema"""
-    conn = production_db.connection
+    conn = computation_db.connection
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
     logger.info(conn.print_query(q))
     conn.send_query(q)
 
 
-def table_exists(production_db: DatabaseResource, table) -> bool:
+def table_exists(computation_db: DatabaseResource, table) -> bool:
     """CHECKS IF TABLE EXISTS"""
     query = SQL("""SELECT EXISTS (
                    SELECT FROM
@@ -140,5 +140,5 @@ def table_exists(production_db: DatabaseResource, table) -> bool:
                     );""").format(
         schema=Literal(table.schema.str), table=Literal(table.table.str)
     )
-    res = production_db.connection.get_dict(query)
+    res = computation_db.connection.get_dict(query)
     return res[0]["exists"]  # type: ignore[index]

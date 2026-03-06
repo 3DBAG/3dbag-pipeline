@@ -82,7 +82,7 @@ def features_to_csv(
 def feature_evaluation(
     file_store: FileStoreResource,
     file_store_fastssd: FileStoreResource,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     version: ReleaseVersionResource,
 ) -> Path:
     """Compare the reconstruction output to the input, for each feature.
@@ -93,7 +93,7 @@ def feature_evaluation(
         version=version.version,
     )
     output_csv = output_dir.joinpath("reconstructed_features.csv")
-    conn = production_db.connection
+    conn = computation_db.connection
 
     lods = ("0", "1.2", "1.3", "2.2")
     attributes_to_include = (

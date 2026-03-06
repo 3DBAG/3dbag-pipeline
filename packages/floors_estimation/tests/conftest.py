@@ -82,7 +82,7 @@ def resources_with_data(file_store_fastssd):
 @pytest.fixture
 def resources(database, model_store, file_store_tmp, version):
     return {
-        "production_db": database,
+        "computation_db": database,
         "file_store_fastssd": FileStoreResource(data_dir=str(file_store_tmp)),
         "model_store": model_store,
         "version": version,

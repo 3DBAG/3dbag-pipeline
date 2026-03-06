@@ -133,7 +133,7 @@ def transfer_to_publication(
 )
 def webservice_publication(
     transfer_to_publication,
-    production_db: DatabaseResource,
+    computation_db: DatabaseResource,
     publication_server: ServerTransferResource,
     publication_db: DatabaseResource,
 ) -> tuple[str, str, str, str]:
@@ -198,7 +198,7 @@ def webservice_publication(
             "lod22_2d": lod22_2d,
         },
     )
-    sql = production_db.connection.print_query(sql)
+    sql = computation_db.connection.print_query(sql)
     with publication_server.connection as c:
         logger.debug(sql)
         c.run(
@@ -217,7 +217,7 @@ def webservice_publication(
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = production_db.connection.print_query(sql)
+    sql = computation_db.connection.print_query(sql)
     with publication_server.connection as c:
         logger.debug(sql)
         c.run(
@@ -261,7 +261,7 @@ def webservice_publication(
             "validate_compressed_files": validate_compressed_files,
         },
     )
-    sql = production_db.connection.print_query(sql)
+    sql = computation_db.connection.print_query(sql)
     with publication_server.connection as c:
         logger.debug(sql)
         c.run(

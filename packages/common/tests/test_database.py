@@ -17,8 +17,8 @@ NON_EXISTING_TABLE = PostgresTableIdentifier("public", "non_existing_table")
 
 
 def test_table_exists(resources):
-    assert table_exists(resources["production_db"], EXISTING_TABLE) is True
-    assert table_exists(resources["production_db"], NON_EXISTING_TABLE) is False
+    assert table_exists(resources["computation_db"], EXISTING_TABLE) is True
+    assert table_exists(resources["computation_db"], NON_EXISTING_TABLE) is False
 
 
 def test_drop_table(resources):
@@ -32,24 +32,24 @@ def test_drop_table(resources):
     ).format(
         table=Identifier(NON_EXISTING_TABLE.schema.str, NON_EXISTING_TABLE.table.str)
     )
-    resources["production_db"].connection.send_query(query)
-    assert table_exists(resources["production_db"], NON_EXISTING_TABLE) is True
-    drop_table(resources["production_db"], NON_EXISTING_TABLE, logger)
-    assert table_exists(resources["production_db"], NON_EXISTING_TABLE) is False
+    resources["computation_db"].connection.send_query(query)
+    assert table_exists(resources["computation_db"], NON_EXISTING_TABLE) is True
+    drop_table(resources["computation_db"], NON_EXISTING_TABLE, logger)
+    assert table_exists(resources["computation_db"], NON_EXISTING_TABLE) is False
 
 
 def test_create_schema(resources):
     from dagster import get_dagster_logger
 
     logger = get_dagster_logger()
-    create_schema(resources["production_db"], TEST_SCHEMA_NAME, logger)
+    create_schema(resources["computation_db"], TEST_SCHEMA_NAME, logger)
 
     query = SQL(
         """SELECT count(schema_name)
                 FROM information_schema.schemata
                 WHERE schema_name = {schema};"""
     ).format(schema=TEST_SCHEMA_NAME)
-    res = resources["production_db"].connection.get_dict(query)
+    res = resources["computation_db"].connection.get_dict(query)
     assert res[0]["count"] == 1
 
 
@@ -64,7 +64,7 @@ def test_summary_md(database):
 
 
 def test_postgrestable_metadata(resources):
-    res = postgrestable_metadata(resources["production_db"], EXISTING_TABLE)
+    res = postgrestable_metadata(resources["computation_db"], EXISTING_TABLE)
 
     assert (
         res["Database.Schema.Table"] == "baseregisters_test.lvbag.pandactueelbestaand"
@@ -76,12 +76,12 @@ def test_postgrestable_from_query(resources):
     from dagster import get_dagster_logger
 
     logger = get_dagster_logger()
-    create_schema(resources["production_db"], TEST_SCHEMA_NAME, logger)
+    create_schema(resources["computation_db"], TEST_SCHEMA_NAME, logger)
     tbl = PostgresTableIdentifier("public", "test_table")
     # Clean up if table exists from previous run
-    if table_exists(resources["production_db"], tbl):
-        drop_table(resources["production_db"], tbl, logger)
-    assert table_exists(resources["production_db"], tbl) is False
+    if table_exists(resources["computation_db"], tbl):
+        drop_table(resources["computation_db"], tbl, logger)
+    assert table_exists(resources["computation_db"], tbl) is False
 
     query = SQL(
         """CREATE TABLE {table} (id INTEGER, value TEXT);
@@ -89,11 +89,11 @@ def test_postgrestable_from_query(resources):
                    INSERT INTO {table} VALUES (2, 'foo');"""
     ).format(table=Identifier(tbl.schema.str, tbl.table.str))
 
-    metadata = postgrestable_from_query(resources["production_db"], query, tbl, logger)
+    metadata = postgrestable_from_query(resources["computation_db"], query, tbl, logger)
     assert metadata["Rows"] == 2
-    assert table_exists(resources["production_db"], tbl) is True
-    drop_table(resources["production_db"], tbl, logger)
-    assert table_exists(resources["production_db"], tbl) is False
+    assert table_exists(resources["computation_db"], tbl) is True
+    drop_table(resources["computation_db"], tbl, logger)
+    assert table_exists(resources["computation_db"], tbl) is False
 
 
 @pytest.mark.skip(reason="Cannot find module.")

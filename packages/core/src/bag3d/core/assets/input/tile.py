@@ -28,7 +28,7 @@ logger = get_dagster_logger("input.tile")
     code_version=tool_versions.get_version("tyler-db"),
 )
 def reconstruction_input_tiles(
-    reconstruction_input, production_db: DatabaseResource, tyler: TylerResource
+    reconstruction_input, computation_db: DatabaseResource, tyler: TylerResource
 ) -> tuple[Output[PostgresTableIdentifier], Output[PostgresTableIdentifier]]:
     """The reconstruction input partitioned into tiles where a tile is produced in about
     20 minutes."""
@@ -38,7 +38,7 @@ def reconstruction_input_tiles(
     primary_key = "fid"
     geometry_column = "geometrie"
 
-    conn = production_db.connection
+    conn = computation_db.connection
     conn.send_query(
         SQL("CREATE SCHEMA IF NOT EXISTS {}").format(Identifier(output_schema))
     )

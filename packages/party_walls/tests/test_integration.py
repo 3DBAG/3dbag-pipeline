@@ -18,7 +18,7 @@ def test_job_party_walls(
     party_walls_file_store_fastssd,
 ):
     resources = {
-        "production_db": database,
+        "computation_db": database,
         "file_store": FileStoreResource(data_dir=str(party_walls_file_store)),
         "file_store_fastssd": FileStoreResource(
             data_dir=str(party_walls_file_store_fastssd)

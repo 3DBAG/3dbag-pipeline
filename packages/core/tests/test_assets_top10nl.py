@@ -11,7 +11,7 @@ def test_extract_top10nl(database, file_store, gdal, wkt_testarea):
     resources = {
         "gdal": gdal,
         "file_store": file_store,
-        "production_db": database,
+        "computation_db": database,
         "version": ReleaseVersionResource(version="test_version"),
     }
 

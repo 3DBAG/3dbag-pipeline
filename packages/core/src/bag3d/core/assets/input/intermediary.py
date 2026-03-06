@@ -25,11 +25,11 @@ logger = get_dagster_logger("input.intermediary")
     automation_condition=AutomationCondition.eager(),
 )
 def bag_kas_warenhuis(
-    bag_pandactueelbestaand, top10nl_gebouw, production_db: DatabaseResource
+    bag_pandactueelbestaand, top10nl_gebouw, computation_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
-    create_schema(production_db, NEW_SCHEMA, logger=logger)
+    create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_kas_warenhuis")
     query = load_sql(
         query_params={
@@ -38,8 +38,8 @@ def bag_kas_warenhuis(
             "new_table": new_table,
         }
     )
-    metadata = postgrestable_from_query(production_db, query, new_table, logger=logger)
-    production_db.connection.send_query(
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    computation_db.connection.send_query(
         SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
     return Output(new_table, metadata=metadata)
@@ -54,17 +54,17 @@ def bag_kas_warenhuis(
     automation_condition=AutomationCondition.eager(),
 )
 def bag_bag_overlap(
-    bag_pandactueelbestaand, production_db: DatabaseResource
+    bag_pandactueelbestaand, computation_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
-    create_schema(production_db, NEW_SCHEMA, logger=logger)
+    create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bag_overlap")
     query = load_sql(
         query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
     )
-    metadata = postgrestable_from_query(production_db, query, new_table, logger=logger)
-    production_db.connection.send_query(
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    computation_db.connection.send_query(
         SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
     return Output(new_table, metadata=metadata)

@@ -47,7 +47,7 @@ def test_integration_ahn(database, core_file_store):
         "pdal": PDALResource(
             exe_pdal=os.getenv("EXE_PATH_PDAL", ""),
         ),
-        "production_db": database,
+        "computation_db": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
     }
 
@@ -142,7 +142,7 @@ def test_integration_reconstruction_and_export(
             exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
             exe_sozip=os.getenv("EXE_PATH_SOZIP"),
         ),
-        "production_db": database,
+        "computation_db": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
         "file_store_fastssd": FileStoreResource(data_dir=str(core_file_store_fastssd)),
         "version": ReleaseVersionResource(version="test_version"),
@@ -247,7 +247,7 @@ def test_integration_deploy_release(
         "version": ReleaseVersionResource(version="test_version"),
         "publication_server": publication_server,
         "publication_db": publication_db,
-        "production_db": database,
+        "computation_db": database,
         "mock_asset_io_manager": configured_mock_asset_io_manager,
     }
 

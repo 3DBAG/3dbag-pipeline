@@ -76,7 +76,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
             "file_store_fastssd": FileStoreResource.configure_at_launch(),
-            "production_db": DatabaseResource.configure_at_launch(),
+            "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
             "tyler": TylerResource.configure_at_launch(),
@@ -99,7 +99,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "file_store_fastssd": FileStoreResource(
                 data_dir=os.environ["BAG3D_FILESTORE_FASTSSD"]
             ),
-            "production_db": DatabaseResource(
+            "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],
                 user=os.environ["BAG3D_PG_USER"],
                 password=os.environ["BAG3D_PG_PASSWORD"],
