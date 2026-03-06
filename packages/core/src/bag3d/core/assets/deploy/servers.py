@@ -1,4 +1,4 @@
-"""Deploy 3D BAG to godzilla and podzilla servers and perform the final steps of the release"""
+"""Deploy 3D BAG to the publication server and perform the final steps of the release"""
 
 import tarfile
 from pathlib import Path
@@ -114,56 +114,44 @@ def transfer_to_server(
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")},
 )
-def transfer_to_podzilla(
-    compressed_export_nl: Path, metadata: Path, podzilla_server: ServerTransferResource
+def transfer_to_publication(
+    compressed_export_nl: Path,
+    metadata: Path,
+    publication_server: ServerTransferResource,
 ) -> tuple[Path, Path]:
-    """Transfer the 3D BAG export to the podzilla server for API access."""
+    """Transfer the 3D BAG export to the publication server for public downloads and webservices."""
     return transfer_to_server(
-        podzilla_server,
+        publication_server,
         compressed_export_nl,
         metadata,
-        podzilla_server.target_dir,
+        publication_server.target_dir,
     )
 
 
 @asset(
-    ins={"metadata": AssetIn(key_prefix="export")},
+    deps={AssetKey(("deploy", "transfer_to_publication"))},
 )
-def transfer_to_godzilla(
-    compressed_export_nl: Path, metadata: Path, godzilla_server: ServerTransferResource
-) -> tuple[Path, Path]:
-    """Transfer the 3D BAG export to the godzilla server for public downloads and webservices."""
-    return transfer_to_server(
-        godzilla_server,
-        compressed_export_nl,
-        metadata,
-        godzilla_server.target_dir,
-    )
-
-
-@asset(
-    deps={AssetKey(("transfer_to_godzilla"))},
-)
-def webservice_godzilla(
-    transfer_to_godzilla,
+def webservice_publication(
+    transfer_to_publication,
     db_connection: DatabaseResource,
-    godzilla_server: ServerTransferResource,
+    publication_server: ServerTransferResource,
+    publication_db: DatabaseResource,
 ) -> tuple[str, str, str, str]:
     """
-    Load the layers for WFS, WMS to the database on Godzilla.
+    Load the layers for WFS, WMS to the database on the publication server.
     The layers will be loaded into the schema `webservice_dev` and
     will not be published yet by the geoserver. The publication will
     be done in the `nl_release` job.
     """
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         logger.debug(sql)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
         )
 
-    deploy_dir, _ = transfer_to_godzilla
+    deploy_dir, _ = transfer_to_publication
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join(
@@ -177,14 +165,14 @@ def webservice_godzilla(
                 "SPATIAL_INDEX=NONE",
                 "-f",
                 "PostgreSQL",
-                f'PG:"dbname=baseregisters port=5432 host=localhost user=etl active_schema={schema}"',
+                f'PG:"dbname={publication_db.dbname} port={publication_db.port} host={publication_db.host} user={publication_db.user} active_schema={schema}"',
                 f"/vsizip/{str(deploy_dir)}/3dbag_nl.gpkg.zip",
                 layer,
                 "-nln",
                 layer + "_tmp",
             ]
         )
-        with godzilla_server.connection as c:
+        with publication_server.connection as c:
             logger.debug(cmd)
             r = c.run(cmd)
             logger.debug(r.stdout)
@@ -211,10 +199,10 @@ def webservice_godzilla(
         },
     )
     sql = db_connection.connection.print_query(sql)
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         logger.debug(sql)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
         )
 
     # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
@@ -230,14 +218,14 @@ def webservice_godzilla(
         },
     )
     sql = db_connection.connection.print_query(sql)
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         logger.debug(sql)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
         )
 
     # Load the CSV files into the intermediary tables
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         filepath = f"{deploy_dir}/export_index.csv"
         copy_cmd = (
             r"\copy "
@@ -248,7 +236,7 @@ def webservice_godzilla(
         )
         logger.debug(f"{copy_cmd}")
         c.run(
-            rf'psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" '
+            rf'psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c "{copy_cmd}" '
         )
         filepath = f"{deploy_dir}/validate_compressed_files.csv"
         copy_cmd = (
@@ -260,7 +248,7 @@ def webservice_godzilla(
         )
         logger.debug(f"{copy_cmd}")
         c.run(
-            rf'psql --dbname baseregisters --port 5432 --host localhost --user etl -c "{copy_cmd}" '
+            rf'psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c "{copy_cmd}" '
         )
 
     # Create the public 'tiles' table
@@ -274,23 +262,23 @@ def webservice_godzilla(
         },
     )
     sql = db_connection.connection.print_query(sql)
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         logger.debug(sql)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{sql}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
         )
 
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with godzilla_server.connection as c:
+    with publication_server.connection as c:
         logger.debug(grant_usage)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_usage}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{grant_usage}'"
         )
         logger.debug(grant_select)
         c.run(
-            f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{grant_select}'"
+            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{grant_select}'"
         )
 
     return (

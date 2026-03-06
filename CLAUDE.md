@@ -250,7 +250,7 @@ The `common` package provides reusable resources (all in `packages/common/src/ba
 - **RooferResource** - 3D building reconstruction tool
 - **PDALResource** - Point cloud processing (LAZ/LAS files)
 - **LASToolsResource** - LASTools suite (lasindex, las2las, lasinfo)
-- **ServerTransferResource** - Secure file transfer to deployment servers (`godzilla_server`, `podzilla_server`)
+- **ServerTransferResource** - Secure file transfer to the publication server (`publication_server`)
 - **GeoflowResource** - 3D geometry processing
 - **ValidationResource** - Data validation tools
 - **Specs3DBAGResource** - Building specifications from bag3d-specs

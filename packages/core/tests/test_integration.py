@@ -227,8 +227,8 @@ def test_integration_reconstruction_and_export(
 @pytest.mark.needs_deploy
 def test_integration_deploy_release(
     test_data_dir,
-    godzilla_server,
-    podzilla_server,
+    publication_server,
+    publication_db,
     database,
     mock_asset_compressed_tiles,
     mock_asset_compressed_tiles_validation,
@@ -245,8 +245,8 @@ def test_integration_deploy_release(
 
     resources = {
         "version": ReleaseVersionResource(version="test_version"),
-        "godzilla_server": godzilla_server,
-        "podzilla_server": podzilla_server,
+        "publication_server": publication_server,
+        "publication_db": publication_db,
         "db_connection": database,
         "mock_asset_io_manager": configured_mock_asset_io_manager,
     }

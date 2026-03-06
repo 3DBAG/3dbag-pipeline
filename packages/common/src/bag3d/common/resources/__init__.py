@@ -85,8 +85,8 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "roofer": RooferResource.configure_at_launch(),
             "version": version,
             "specs": specs,
-            "godzilla_server": ServerTransferResource.configure_at_launch(),
-            "podzilla_server": ServerTransferResource.configure_at_launch(),
+            "publication_server": ServerTransferResource.configure_at_launch(),
+            "publication_db": DatabaseResource.configure_at_launch(),
         }
     elif configure_from_env:
         return {
@@ -133,16 +133,25 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             ),
             "version": version,
             "specs": specs,
-            "godzilla_server": ServerTransferResource(
-                host=os.environ["BAG3D_GODZILLA_HOST"],
-                user=os.environ["BAG3D_GODZILLA_USER"],
-                target_dir=os.environ["BAG3D_GODZILLA_TARGET_DIR"],
-                public_dir=os.getenv("BAG3D_GODZILLA_PUBLIC_DIR"),
+            "publication_server": ServerTransferResource(
+                host=os.environ["BAG3D_PUBLICATION_HOST"],
+                port=int(os.environ["BAG3D_PUBLICATION_PORT"])
+                if os.environ.get("BAG3D_PUBLICATION_PORT")
+                else None,
+                user=os.environ["BAG3D_PUBLICATION_USER"],
+                key_filename=os.getenv("BAG3D_PUBLICATION_KEY_FILENAME"),
+                target_dir=os.environ["BAG3D_PUBLICATION_TARGET_DIR"],
+                public_dir=os.getenv("BAG3D_PUBLICATION_PUBLIC_DIR"),
             ),
-            "podzilla_server": ServerTransferResource(
-                host=os.environ["BAG3D_PODZILLA_HOST"],
-                user=os.environ["BAG3D_PODZILLA_USER"],
-                target_dir=os.environ["BAG3D_PODZILLA_TARGET_DIR"],
+            "publication_db": DatabaseResource(
+                host=os.environ["BAG3D_PUBLICATION_PG_HOST"],
+                user=os.environ["BAG3D_PUBLICATION_PG_USER"],
+                password=os.environ["BAG3D_PUBLICATION_PG_PASSWORD"],
+                port=int(os.environ["BAG3D_PUBLICATION_PG_PORT"]),
+                dbname=os.environ["BAG3D_PUBLICATION_PG_DATABASE"],
+                other_params={
+                    "sslmode": os.getenv("BAG3D_PUBLICATION_PG_SSLMODE", "allow")
+                },
             ),
         }
     else:

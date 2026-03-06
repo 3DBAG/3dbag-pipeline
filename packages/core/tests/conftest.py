@@ -73,20 +73,21 @@ def deployment_server():
 
 
 @pytest.fixture(scope="session")
-def godzilla_server(deployment_server):
+def publication_server(deployment_server):
     yield deployment_server
 
 
 @pytest.fixture(scope="session")
-def podzilla_server():
-    yield ServerTransferResource(
+def publication_db():
+    """PostgreSQL database on the publication server used for webservices."""
+    db = DatabaseResource(
         host="3dbag.docker.internal",
-        port=2222,
-        user="deploy",
-        password="deploy",
-        target_dir="/tmp",
-        public_dir="/tmp/podzilla_public",
+        port=5432,
+        user="postgres",
+        password="postgres",
+        dbname="baseregisters",
     )
+    yield db
 
 
 @pytest.fixture(scope="session")
@@ -178,8 +179,8 @@ def resources(
     file_store,
     gdal,
     validation,
-    godzilla_server,
-    podzilla_server,
+    publication_server,
+    publication_db,
 ):
     return {
         "gdal": gdal,
@@ -187,8 +188,8 @@ def resources(
         "db_connection": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
-        "godzilla_server": godzilla_server,
-        "podzilla_server": podzilla_server,
+        "publication_server": publication_server,
+        "publication_db": publication_db,
         "specs": Specs3DBAGResource(),
     }
 
@@ -204,8 +205,8 @@ def resources_ahn(
     file_store,
     gdal,
     validation,
-    godzilla_server,
-    podzilla_server,
+    publication_server,
+    publication_db,
 ):
     return {
         "gdal": gdal,
@@ -213,8 +214,8 @@ def resources_ahn(
         "db_connection": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
-        "godzilla_server": godzilla_server,
-        "podzilla_server": podzilla_server,
+        "publication_server": publication_server,
+        "publication_db": publication_db,
         "specs": Specs3DBAGResource(),
     }
 
