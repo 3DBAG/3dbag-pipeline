@@ -11,7 +11,7 @@ from dagster import (
     AssetExecutionContext,
     AutomationCondition,
 )
-from pgutils import PostgresTableIdentifier
+from bag3d.common.types import PostgresTableIdentifier
 from psycopg.sql import Identifier, Literal, SQL
 from psycopg.types.json import Jsonb, set_json_dumps
 from pydantic import Field
