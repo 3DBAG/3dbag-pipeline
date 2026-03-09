@@ -29,14 +29,14 @@ def test_load_bag_layer(database, file_store, gdal, test_data_dir):
         partition_key="01cz1",
         resources={
             "gdal": gdal,
-            "db_connection": database,
+            "computation_db": database,
             "file_store": file_store,
             "version": ReleaseVersionResource(version="test_version"),
         },
     )
 
     res = load_bag_layer(
-        db_connection=database,
+        computation_db=database,
         gdal=gdal,
         extract_dir=test_data_dir / "lvbag-extract",
         layer="ligplaats",
@@ -63,14 +63,14 @@ def test_stage_bag_layer(database, file_store, gdal, test_data_dir):
         partition_key="01cz1",
         resources={
             "gdal": gdal,
-            "db_connection": database,
+            "computation_db": database,
             "file_store": file_store,
             "version": ReleaseVersionResource(version="test_version"),
         },
     )
 
     res = stage_bag_layer(
-        db_connection=database,
+        computation_db=database,
         gdal=gdal,
         layer="ligplaats",
         new_schema="stage_lvbag",

@@ -98,7 +98,7 @@ def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]
 @asset(automation_condition=AutomationCondition.eager())
 def stage_bag_woonplaats(
     config: BagDownloadConfig,
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
 ) -> Output[PostgresTableIdentifier]:
@@ -107,7 +107,7 @@ def stage_bag_woonplaats(
     new_schema = "stage_lvbag"
     layer = "woonplaats"
     metadata, new_table = stage_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         layer=layer,
         new_schema=new_schema,
@@ -123,7 +123,7 @@ def stage_bag_woonplaats(
 @asset(automation_condition=AutomationCondition.eager())
 def stage_bag_verblijfsobject(
     config: BagDownloadConfig,
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
 ) -> Output[PostgresTableIdentifier]:
@@ -132,7 +132,7 @@ def stage_bag_verblijfsobject(
     new_schema = "stage_lvbag"
     layer = "verblijfsobject"
     metadata, new_table = stage_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         layer=layer,
         new_schema=new_schema,
@@ -148,7 +148,7 @@ def stage_bag_verblijfsobject(
 @asset(automation_condition=AutomationCondition.eager())
 def stage_bag_pand(
     config: BagDownloadConfig,
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
 ) -> Output[PostgresTableIdentifier]:
@@ -157,7 +157,7 @@ def stage_bag_pand(
     new_schema = "stage_lvbag"
     layer = "pand"
     metadata, new_table = stage_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         layer=layer,
         new_schema=new_schema,
@@ -173,7 +173,7 @@ def stage_bag_pand(
 @asset(automation_condition=AutomationCondition.eager())
 def stage_bag_openbareruimte(
     config: BagDownloadConfig,
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
 ) -> Output[PostgresTableIdentifier]:
@@ -182,7 +182,7 @@ def stage_bag_openbareruimte(
     new_schema = "stage_lvbag"
     layer = "openbareruimte"
     metadata, new_table = stage_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         layer=layer,
         new_schema=new_schema,
@@ -198,7 +198,7 @@ def stage_bag_openbareruimte(
 @asset(automation_condition=AutomationCondition.eager())
 def stage_bag_nummeraanduiding(
     config: BagDownloadConfig,
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_bag,
 ) -> Output[PostgresTableIdentifier]:
@@ -207,7 +207,7 @@ def stage_bag_nummeraanduiding(
     new_schema = "stage_lvbag"
     layer = "nummeraanduiding"
     metadata, new_table = stage_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         layer=layer,
         new_schema=new_schema,
@@ -221,7 +221,7 @@ def stage_bag_nummeraanduiding(
 
 
 def stage_bag_layer(
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     layer: str,
     new_schema: str,
@@ -232,11 +232,11 @@ def stage_bag_layer(
     with_parallel: bool = False,
     geofilter: str | None = None,
 ):
-    create_schema(db_connection, new_schema, logger=logger)
+    create_schema(computation_db, new_schema, logger=logger)
     new_table = PostgresTableIdentifier(new_schema, layer)
-    drop_table(db_connection, new_table, logger=logger)
+    drop_table(computation_db, new_table, logger=logger)
     _ = load_bag_layer(
-        db_connection=db_connection,
+        computation_db=computation_db,
         gdal=gdal,
         extract_dir=extract_dir,
         layer=layer,
@@ -246,13 +246,13 @@ def stage_bag_layer(
         with_parallel=with_parallel,
         geofilter=geofilter,
     )
-    _m = postgrestable_metadata(db_connection, new_table)
+    _m = postgrestable_metadata(computation_db, new_table)
     metadata.update(_m)
     return metadata, new_table
 
 
 def load_bag_layer(
-    db_connection: DatabaseResource,
+    computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_dir: Path,
     layer: str,
@@ -274,7 +274,7 @@ def load_bag_layer(
     - gnu parallel (if `with_parallel` is True)
 
     Args:
-        db_connection: Database resource for PostgreSQL connection.
+        computation_db: Database resource for PostgreSQL connection.
         gdal: GDAL resource for ogr2ogr execution.
         extract_dir: Path to the directory with the extract.
         layer: Name of the layer to load (e.g. `Pand`).
@@ -304,7 +304,7 @@ def load_bag_layer(
         "layer_dir": layer_id,
         "shortdate": shortdate,
         "new_table": new_table,
-        "dsn": db_connection.connection.dsn,
+        "dsn": computation_db.connection.dsn,
     }
 
     # Create the ogr2ogr command. The order of parameters is important!

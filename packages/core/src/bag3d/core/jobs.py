@@ -115,9 +115,8 @@ job_nl_deploy = define_asset_job(
     name="nl_deploy",
     description="Deploy the Netherland data.",
     selection=AssetSelection.assets(["deploy", "compressed_export_nl"])
-    | AssetSelection.assets(["deploy", "transfer_to_godzilla"])
-    | AssetSelection.assets(["deploy", "transfer_to_podzilla"])
-    | AssetSelection.assets(["deploy", "webservice_godzilla"]),
+    | AssetSelection.assets(["deploy", "transfer_to_publication"])
+    | AssetSelection.assets(["deploy", "webservice_publication"]),
 )
 
 

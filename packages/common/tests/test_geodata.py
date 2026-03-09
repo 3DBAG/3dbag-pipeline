@@ -179,7 +179,7 @@ def test_ogr2postgres(data, gdal, database, test_data_dir):
         feature_type=feature_types[0],
         xsd=xsd,
         new_table=PostgresTableIdentifier("public", feature_types[0]),
-        db_connection=database,
+        computation_db=database,
     )
     assert res is not None
     assert (

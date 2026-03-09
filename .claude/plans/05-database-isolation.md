@@ -58,7 +58,7 @@ Tests that create tables use the isolated schema:
 ```python
 def test_load_bag_layer(database, isolated_schema, ...):
     test_table = PostgresTableIdentifier(isolated_schema, "test_ligplaats")
-    res = load_bag_layer(db_connection=database, ..., new_table=test_table, ...)
+    res = load_bag_layer(computation_db=database, ..., new_table=test_table, ...)
     assert res is True
     # No manual cleanup needed — schema dropped by fixture
 ```

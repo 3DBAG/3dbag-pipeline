@@ -1,13 +1,14 @@
-"""Deploy 3D BAG to godzilla and podzilla servers and perform the final steps of the release"""
+"""Perform the final steps for the 3D BAG release on the publication server"""
 
 from pathlib import Path
 import json
+from datetime import datetime
 
 from dagster import AssetIn, asset, AssetKey
 
 from bag3d.common.resources.server_transfer import ServerTransferResource
+from bag3d.common.resources.database import DatabaseResource
 from dagster import get_dagster_logger
-from datetime import datetime
 
 
 logger = get_dagster_logger("release.publish")
@@ -16,29 +17,29 @@ logger = get_dagster_logger("release.publish")
 @asset(
     ins={
         "metadata": AssetIn(key_prefix="export"),
-        "transfer_to_godzilla": AssetIn(key_prefix="deploy"),
+        "transfer_to_publication": AssetIn(key_prefix="deploy"),
     },
 )
 def publish_data(
-    transfer_to_godzilla: tuple[Path, Path],
+    transfer_to_publication: tuple[Path, Path],
     metadata: Path,
-    godzilla_server: ServerTransferResource,
+    publication_server: ServerTransferResource,
 ) -> None:
-    """On godzilla, create symlink to the 'export' to the current version
+    """On the publication server, create symlink to the 'export' to the current version
     and add the current version to the tar.gz archive.
     """
-    if godzilla_server.public_dir is None:
+    if publication_server.public_dir is None:
         raise ValueError(
-            "godzilla_server.public_dir must be configured for publish_data"
+            "publication_server.public_dir must be configured for publish_data"
         )
-    public_dir = godzilla_server.public_dir
-    deploy_dir, compressed_file = transfer_to_godzilla
+    public_dir = publication_server.public_dir
+    deploy_dir, compressed_file = transfer_to_publication
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
 
     try:
-        with godzilla_server.connection as c:
+        with publication_server.connection as c:
             # test connection
             result = c.run("echo connected", hide=True)
             assert result.ok, "Connection command failed"
@@ -70,7 +71,7 @@ def publish_data(
             assert result.ok, "Removing compressed file failed"
 
             logger.info(
-                f"Data Release successful: Link made to {public_dir}/{version_nopoints} on godzilla"
+                f"Data Release successful: Link made to {public_dir}/{version_nopoints} on publication server"
             )
     except Exception as e:
         logger.error(f"Data release failed: {e}")
@@ -78,10 +79,13 @@ def publish_data(
 
 
 @asset(
-    deps={AssetKey(("deploy", "webservice_godzilla"))},
+    deps={AssetKey(("deploy", "webservice_publication"))},
 )
-def publish_webservices(godzilla_server: ServerTransferResource) -> None:
-    """ """
+def publish_webservices(
+    publication_server: ServerTransferResource,
+    publication_db: DatabaseResource,
+) -> None:
+    """Publish the webservices by promoting the dev schema to live on the publication server."""
     latest_schema = "webservice"
     dev_schema = "webservice_dev"
 
@@ -92,15 +96,15 @@ def publish_webservices(godzilla_server: ServerTransferResource) -> None:
     alter_dev_to_latest = f"ALTER SCHEMA {dev_schema} RENAME TO {latest_schema};"
 
     try:
-        with godzilla_server.connection as c:
+        with publication_server.connection as c:
             logger.debug(alter_latest_to_archive)
             c.run(
-                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_latest_to_archive}'"
+                f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{alter_latest_to_archive}'"
             )
             logger.debug(alter_dev_to_latest)
             c.run(
-                f"psql --dbname baseregisters --port 5432 --host localhost --user etl -c '{alter_dev_to_latest}'"
+                f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{alter_dev_to_latest}'"
             )
     except Exception as e:
-        logger.error(f"Publishing Webservices on Godzilla failed: {e}")
+        logger.error(f"Publishing Webservices on publication server failed: {e}")
         raise

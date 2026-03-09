@@ -223,7 +223,7 @@ class MyAssetConfig(Config):
     force_recompute: bool = Field(default=False, description="Force recompute even if data exists")
 
 @asset
-def my_asset(context, config: MyAssetConfig, db_connection: DatabaseResource):
+def my_asset(context, config: MyAssetConfig, computation_db: DatabaseResource):
     if config.force_recompute:
         # ...
 ```
@@ -237,7 +237,7 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 
 @asset
-def my_asset(context, db_connection: DatabaseResource, file_store: FileStoreResource):
+def my_asset(context, computation_db: DatabaseResource, file_store: FileStoreResource):
     data = db_connectio.get_dict(query)
     path = file_store.file_store.data_dir
 ```
@@ -250,7 +250,7 @@ The `common` package provides reusable resources (all in `packages/common/src/ba
 - **RooferResource** - 3D building reconstruction tool
 - **PDALResource** - Point cloud processing (LAZ/LAS files)
 - **LASToolsResource** - LASTools suite (lasindex, las2las, lasinfo)
-- **ServerTransferResource** - Secure file transfer to deployment servers (`godzilla_server`, `podzilla_server`)
+- **ServerTransferResource** - Secure file transfer to the publication server (`publication_server`)
 - **GeoflowResource** - 3D geometry processing
 - **ValidationResource** - Data validation tools
 - **Specs3DBAGResource** - Building specifications from bag3d-specs

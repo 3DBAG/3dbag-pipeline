@@ -47,7 +47,7 @@ def test_integration_ahn(database, core_file_store):
         "pdal": PDALResource(
             exe_pdal=os.getenv("EXE_PATH_PDAL", ""),
         ),
-        "db_connection": database,
+        "computation_db": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
     }
 
@@ -142,7 +142,7 @@ def test_integration_reconstruction_and_export(
             exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
             exe_sozip=os.getenv("EXE_PATH_SOZIP"),
         ),
-        "db_connection": database,
+        "computation_db": database,
         "file_store": FileStoreResource(data_dir=str(core_file_store)),
         "file_store_fastssd": FileStoreResource(data_dir=str(core_file_store_fastssd)),
         "version": ReleaseVersionResource(version="test_version"),
@@ -227,8 +227,8 @@ def test_integration_reconstruction_and_export(
 @pytest.mark.needs_deploy
 def test_integration_deploy_release(
     test_data_dir,
-    godzilla_server,
-    podzilla_server,
+    publication_server,
+    publication_db,
     database,
     mock_asset_compressed_tiles,
     mock_asset_compressed_tiles_validation,
@@ -245,9 +245,9 @@ def test_integration_deploy_release(
 
     resources = {
         "version": ReleaseVersionResource(version="test_version"),
-        "godzilla_server": godzilla_server,
-        "podzilla_server": podzilla_server,
-        "db_connection": database,
+        "publication_server": publication_server,
+        "publication_db": publication_db,
+        "computation_db": database,
         "mock_asset_io_manager": configured_mock_asset_io_manager,
     }
 

@@ -1,10 +1,51 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -ec
 
+.DEFAULT_GOAL := help
+
 include docker/.env
 
 export COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),bag3d-dev)
 export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_IMAGE_TAG),develop)
+
+.PHONY: help
+help:
+	@echo "3dbag-pipeline - Available targets:"
+	@echo ""
+	@echo "Docker Management:"
+	@echo "  docker_up                    Start all Docker services with build"
+	@echo "  docker_up_postgres           Start only PostgreSQL (faster for small tests)"
+	@echo "  docker_up_nobuild            Start services without rebuilding images"
+	@echo "  docker_dev                   Start services with dev overrides"
+	@echo "  docker_watch                 Watch for source changes and auto-rebuild"
+	@echo "  docker_build                 Rebuild all Docker images without cache"
+	@echo "  docker_restart               Stop, recreate volumes, and start fresh"
+	@echo "  docker_restart_containers    Restart running containers (keep volumes)"
+	@echo "  docker_down                  Stop all services"
+	@echo "  docker_down_rm               Stop and remove volumes/images"
+	@echo "  docker_prune_cache           Prune Docker builder cache"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test                         Run standard unit tests"
+	@echo "  test_slow                    Run tests including slow tests"
+	@echo "  test_integration             Run integration tests (full workflows)"
+	@echo "  test_deploy                  Run deployment tests (end-to-end)"
+	@echo "  test_all                     Run all test variants"
+	@echo "  test_report                  Parse and summarize test results"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  lint                         Format and lint check all packages"
+	@echo "  lint_fix                     Apply automatic formatting and fixes"
+	@echo ""
+	@echo "Development:"
+	@echo "  local_install_uv             Install uv package manager"
+	@echo "  local_venv                   Create virtualenvs for all packages"
+	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
+	@echo "  download                     Download test data (required once)"
+	@echo ""
+	@echo "Build Tools:"
+	@echo "  docker_build_tools           Build custom tool Docker image"
+	@echo ""
 
 sleep_a_bit:
 	sleep 2
