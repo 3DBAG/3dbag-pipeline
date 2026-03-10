@@ -3,6 +3,7 @@ from psycopg.sql import SQL
 
 from bag3d.common.utils.database import (
     create_schema,
+    drop_table,
     load_sql,
     postgrestable_from_query,
 )
@@ -67,4 +68,89 @@ def bag_bag_overlap(
     computation_db.connection.send_query(
         SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
     )
+    return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_verblijfsobjectactueelbestaand": AssetIn(key_prefix="bag"),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_pand_vbo_views(
+    bag_pandactueelbestaand,
+    bag_verblijfsobjectactueelbestaand,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    """Create views joining BAG pand with verblijfsobject (VBO) data.
+
+    Creates three views in the reconstruction_input schema:
+
+    - pand_vbo_single: pand with exactly 1 VBO with woonfunctie
+    - pand_vbo_multi: pand with multiple VBOs with woonfunctie
+    - pand_vbo_woonfunctie: all pand joined with VBOs with woonfunctie
+    """
+    create_schema(computation_db, NEW_SCHEMA, logger=logger)
+    view_single = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_single")
+    view_multi = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_multi")
+    view_woonfunctie = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_woonfunctie")
+    query = load_sql(
+        query_params={
+            "view_single": view_single,
+            "view_multi": view_multi,
+            "view_woonfunctie": view_woonfunctie,
+            "bag_pand": bag_pandactueelbestaand,
+            "bag_vbo": bag_verblijfsobjectactueelbestaand,
+        }
+    )
+    conn = computation_db.connection
+    logger.info(conn.print_query(query))
+    conn.send_query(query)
+    return Output(
+        view_single,
+        metadata={
+            "schema": NEW_SCHEMA,
+            "views": "pand_vbo_single, pand_vbo_multi, pand_vbo_woonfunctie",
+        },
+    )
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pand_vbo_views": AssetIn(key_prefix=INTERMEDIARY),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_building_type(
+    bag_pandactueelbestaand,
+    bag_pand_vbo_views,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    """Classify BAG buildings into dwelling types (woningtypen).
+
+    Uses spatial clustering with a 0.1m buffer and adjacency counting to classify
+    residential buildings into: vrijstaande woning, twee-onder-een-kap, hoekwoning,
+    tussenwoning/geschakeld, appartement.
+
+    Depends on the bag_pand_vbo_views asset for the pand_vbo_single and pand_vbo_multi views.
+    """
+    new_table = PostgresTableIdentifier(NEW_SCHEMA, "woningtypen")
+    drop_table(computation_db, new_table, logger=logger)
+    pand_vbo_single = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_single")
+    pand_vbo_multi = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_multi")
+    query = load_sql(
+        query_params={
+            "new_table": new_table,
+            "bag_pand": bag_pandactueelbestaand,
+            "pand_vbo_single": pand_vbo_single,
+            "pand_vbo_multi": pand_vbo_multi,
+        }
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     return Output(new_table, metadata=metadata)
