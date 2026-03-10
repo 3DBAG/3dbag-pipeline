@@ -68,6 +68,24 @@ def test_bag_pand_vbo_views(database):
 
 
 @pytest.mark.slow
+def test_bag_adjacency(database):
+    """Does the bag_adjacency asset work?"""
+    logger = get_dagster_logger()
+    bag_pandactueelbestaand = PostgresTableIdentifier("lvbag", "pandactueelbestaand")
+
+    new_table = PostgresTableIdentifier("reconstruction_input", "bag_adjacency")
+
+    res = intermediary.bag_adjacency(
+        bag_pandactueelbestaand,
+        database,
+    )
+    assert isinstance(res, Output)
+    assert isinstance(res.value, PostgresTableIdentifier)
+    assert str(res.value) == f"{new_table.schema}.{new_table.table}"
+    drop_table(database, new_table, logger)
+
+
+@pytest.mark.slow
 def test_bag_building_type(database):
     """Does the bag_building_type asset work?"""
     logger = get_dagster_logger()

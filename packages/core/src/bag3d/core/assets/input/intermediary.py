@@ -75,6 +75,35 @@ def bag_bag_overlap(
     key_prefix=INTERMEDIARY,
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_adjacency(
+    bag_pandactueelbestaand, computation_db: DatabaseResource
+) -> Output[PostgresTableIdentifier]:
+    """BAG polygon adjacency index.
+
+    For every BAG polygon, records the IDs of all adjacent polygons that share
+    at least 0.5 m of boundary within a 10 cm tolerance. Uses ST_MakeValid to
+    repair invalid geometries before the spatial checks.
+    """
+    create_schema(computation_db, NEW_SCHEMA, logger=logger)
+    new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_adjacency")
+    query = load_sql(
+        query_params={"bag_pand": bag_pandactueelbestaand, "new_table": new_table}
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    computation_db.connection.send_query(
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (identificatie)").format(new_table.id)
+    )
+    return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
         "bag_verblijfsobjectactueelbestaand": AssetIn(key_prefix="bag"),
     },
     op_tags={"compute_kind": "sql"},
