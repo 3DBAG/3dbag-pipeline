@@ -19,14 +19,4 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Lint
-        run: uv tool run ruff check
-      - name: Format
-        run: uv tool run ruff format --check
-      - name: Type check
-        run: |
-          FAILED=0
-          uv --project packages/common run pyright packages/common || FAILED=1
-          uv --project packages/core run pyright packages/core || FAILED=1
-          uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1
-          uv --project packages/party_walls run pyright packages/party_walls || FAILED=1
-          exit $FAILED
+        run: make lint

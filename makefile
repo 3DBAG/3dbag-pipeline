@@ -8,7 +8,15 @@ include docker/.env
 export COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),bag3d-dev)
 export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_IMAGE_TAG),develop)
 
-.PHONY: help
+.PHONY: help \
+	docker_up docker_up_postgres docker_up_nobuild docker_dev docker_build \
+	docker_restart docker_restart_containers docker_down docker_down_rm docker_prune_cache \
+	docker_volume_create docker_volume_create_data_postgresql docker_volume_create_data_pipeline \
+	docker_volume_create_dagster_home docker_volume_create_dagster_postgresql \
+	docker_volume_rm docker_volume_recreate \
+	test test_report lint lint_fix \
+	local_install_uv local_venv local_dev
+
 help:
 	@echo "3dbag-pipeline - Available targets:"
 	@echo ""
@@ -29,7 +37,7 @@ help:
 	@echo "  test_report                  Parse and summarize test results"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  lint                         Format and lint check all packages"
+	@echo "  lint                         Check formatting, style, and types"
 	@echo "  lint_fix                     Apply automatic formatting and fixes"
 	@echo ""
 	@echo "Development:"
@@ -37,18 +45,15 @@ help:
 	@echo "  local_venv                   Create virtualenvs for all packages"
 	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
 	@echo ""
-	@echo "Build Tools:"
-	@echo "  docker_build_tools           Build custom tool Docker image"
-	@echo ""
-
-sleep_a_bit:
-	sleep 2
 
 docker_volume_create_data_postgresql:
 	docker volume create $(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL)
 	docker run -d --name $(TEMP_CONTAINER) --mount source=$(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL),target=/data busybox sleep infinity
 	docker exec $(TEMP_CONTAINER) mkdir -p /data/pgdata /data/pglog
 	docker rm -f $(TEMP_CONTAINER)
+
+docker_volume_create_data_pipeline:
+	docker volume create $(BAG3D_DOCKER_VOLUME_DATA_PIPELINE)
 
 docker_volume_create_dagster_home:
 	docker volume create $(BAG3D_DOCKER_VOLUME_DAGSTER_HOME)
@@ -60,32 +65,32 @@ docker_volume_create_dagster_home:
 docker_volume_create_dagster_postgresql:
 	docker volume create $(BAG3D_DOCKER_VOLUME_DAGSTER_POSTGRESQL)
 
-docker_volume_create: docker_volume_create_dagster_home docker_volume_create_dagster_postgresql docker_volume_create_data_postgresql
+docker_volume_create: docker_volume_create_dagster_home docker_volume_create_dagster_postgresql docker_volume_create_data_postgresql docker_volume_create_data_pipeline
 
 docker_volume_rm:
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL)
+	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DATA_PIPELINE)
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DAGSTER_HOME)
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DAGSTER_POSTGRESQL)
 
 docker_volume_recreate: docker_volume_rm docker_volume_create
 
 docker_up_postgres:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d data-postgresql
-	sleep 5
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --wait data-postgresql
 
 docker_up:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d
 
 docker_up_nobuild:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml up -d --no-build
 
 docker_dev:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml -f docker/compose.dev.yaml up -d
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml -f docker/compose.dev.yaml up -d
 
 docker_build:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
+	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
 
-docker_restart: docker_down docker_volume_recreate sleep_a_bit docker_up
+docker_restart: docker_down docker_volume_recreate docker_up
 
 docker_restart_containers:
 	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml restart
@@ -115,8 +120,8 @@ test_report:
 
 lint:
 	@set -e; set -o pipefail; \
-	echo "Format"; \
-	uv tool run ruff format ./packages; \
+	echo "Format check"; \
+	uv tool run ruff format --check ./packages; \
 	echo "Syntax and style"; \
 	uv tool run ruff check ./packages; \
 	FAILED=0; \
@@ -124,21 +129,17 @@ lint:
 	uv --project packages/common run pyright packages/common || FAILED=1; \
 	echo "Type check: core"; \
 	uv --project packages/core run pyright packages/core || FAILED=1; \
+	echo "Type check: export"; \
+	uv --project packages/export run pyright packages/export || FAILED=1; \
 	echo "Type check: floors_estimation"; \
 	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
 	echo "Type check: party_walls"; \
 	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
-	echo "Type check: export"; \
-	uv --project packages/export run pyright packages/export || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
 	uv tool run ruff format ./packages
 	uv tool run ruff check --fix ./packages
-
-docker_build_tools:
-	rm docker_build_tools.log || true
-	docker buildx build --build-arg JOBS=$(BAG3D_TOOLS_DOCKERIMAGE_JOBS) --build-arg VERSION=$(BAG3D_TOOLS_DOCKERIMAGE_VERSION) --progress plain -t "$(BAG3D_TOOLS_DOCKERIMAGE):$(BAG3D_TOOLS_DOCKERIMAGE_VERSION)" -f "$(BAG3D_TOOLS_DOCKERFILE)" . >> docker_build_tools.log 2>&1
 
 local_install_uv:
 	curl -LsSf https://astral.sh/uv/install.sh | sh
