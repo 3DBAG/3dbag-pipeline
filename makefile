@@ -26,12 +26,7 @@ help:
 	@echo "  docker_prune_cache           Prune Docker builder cache"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test                         Run standard unit tests"
-	@echo "  test_slow                    Run tests including slow tests"
-	@echo "  test_integration             Run integration tests (full workflows)"
-	@echo "  test_deploy                  Run deployment tests (end-to-end)"
-	@echo "  test_all                     Run all test variants"
-	@echo "  test_report                  Parse and summarize test results"
+	@echo "  test                         Run unit tests (fast, offline, no Docker)"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  lint                         Format and lint check all packages"
@@ -41,7 +36,6 @@ help:
 	@echo "  local_install_uv             Install uv package manager"
 	@echo "  local_venv                   Create virtualenvs for all packages"
 	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
-	@echo "  download                     Download test data (required once)"
 	@echo ""
 	@echo "Build Tools:"
 	@echo "  docker_build_tools           Build custom tool Docker image"
@@ -118,60 +112,14 @@ docker_prune_cache:
 	docker builder prune --filter type=exec.cachemount
 
 test:
-	@set -e; set -o pipefail; \
-	rm -f tests/test.log; \
+	@set -o pipefail; \
 	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
+	uv --project packages/common run pytest packages/common/tests/ -v || FAILED=1; \
+	uv --project packages/core run pytest packages/core/tests/ -v || FAILED=1; \
+	uv --project packages/export run pytest packages/export/tests/ -v || FAILED=1; \
+	uv --project packages/floors_estimation run pytest packages/floors_estimation/tests/ -v || FAILED=1; \
+	uv --project packages/party_walls run pytest packages/party_walls/tests/ -v || FAILED=1; \
 	exit $$FAILED
-
-test_slow:
-	@set -e; set -o pipefail; \
-	rm -f tests/test.log; \
-	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-    exit $$FAILED
-
-test_integration:
-	@set -e; set -o pipefail; \
-	rm -f tests/test.log; \
-	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/test_integration.py -v -s --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-    exit $$FAILED
-
-test_deploy:
-	@set -e; set -o pipefail; \
-	rm -f tests/test.log; \
-	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_integration.py -v -s --run-all --run-deploy -k 'test_integration_deploy_release' --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-    exit $$FAILED
-
-test_all:
-	@set -e; set -o pipefail; \
-	rm -f tests/test.log; \
-	FAILED=0; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/common/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/ -v --run-slow  --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-party-walls pytest /opt/3dbag-pipeline/packages/party_walls/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-	docker compose -p $(COMPOSE_PROJECT_NAME) exec bag3d-floors-estimation pytest /opt/3dbag-pipeline/packages/floors_estimation/tests/ -v --run-slow --run-all --color=yes 2>&1 | tee -a tests/test.log || FAILED=1; \
-    exit $$FAILED
-
-test_report:
-	python3 scripts/parse_test_log.py
-
-include .env
-
-download:
-	rm -rf $(BAG3D_TEST_DATA)
-	mkdir -p $(BAG3D_TEST_DATA)
-	cd $(BAG3D_TEST_DATA) ; curl -O https://data.3dbag.nl/testdata/pipeline/test_data_v14.zip ; unzip -q test_data_v14.zip ; rm test_data_v14.zip
 
 lint:
 	@set -e; set -o pipefail; \
@@ -203,7 +151,9 @@ local_install_uv:
 
 local_venv:
 	uv sync
+	uv --project packages/common sync
 	uv --project packages/core sync
+	uv --project packages/export sync
 	uv --project packages/floors_estimation sync
 	uv --project packages/party_walls sync
 
