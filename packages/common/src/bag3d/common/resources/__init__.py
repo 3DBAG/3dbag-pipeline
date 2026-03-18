@@ -1,5 +1,6 @@
 import os
 from enum import StrEnum
+from pathlib import Path
 
 from dagster import get_dagster_logger
 
@@ -75,7 +76,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
         return {
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
-            "file_store_fastssd": FileStoreResource.configure_at_launch(),
+            "pointcloud_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
@@ -95,9 +96,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                 exe_sozip=os.getenv("EXE_PATH_SOZIP"),
             ),
-            "file_store": FileStoreResource(data_dir=os.environ["BAG3D_FILESTORE"]),
-            "file_store_fastssd": FileStoreResource(
-                data_dir=os.environ["BAG3D_FILESTORE_FASTSSD"]
+            "file_store": FileStoreResource(root_dir=os.environ["BAG3D_FILESTORE"]),
+            "pointcloud_store": FileStoreResource(
+                root_dir=os.getenv(
+                    "BAG3D_POINTCLOUD_DIR",
+                    str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
+                ),
             ),
             "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],

@@ -8,8 +8,9 @@ from bag3d.common.resources.executables import (
     GDALResource,
     PDALResource,
 )
-from bag3d.common.resources.files import FileStoreResource
 from dagster import build_asset_context
+
+pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
 LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
 HOST = os.getenv("BAG3D_PG_HOST", "")
@@ -40,16 +41,22 @@ def wkt_testarea():
 
 
 @pytest.fixture
+def context(wkt_testarea):
+    yield build_asset_context()
+
+
+@pytest.fixture(scope="session")
+def test_data_dir():
+    yield Path(LOCAL_DIR)
+
+
+@pytest.fixture
 def database():
+    """Live database connection for tests that require a real database."""
     db = DatabaseResource(
         host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
     )
     yield db
-
-
-@pytest.fixture
-def file_store(tmp_path):
-    yield FileStoreResource(data_dir=str(tmp_path))
 
 
 @pytest.fixture
@@ -60,54 +67,3 @@ def resources(database, file_store, gdal):
         "file_store": file_store,
         "version": "test_version",
     }
-
-
-@pytest.fixture
-def context(wkt_testarea):
-    yield build_asset_context()
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="run slow tests"
-    )
-    parser.addoption(
-        "--run-all",
-        action="store_true",
-        default=False,
-        help="run all tests, including the ones that needs local builds of tools",
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-    config.addinivalue_line(
-        "markers", "needs_tools: mark test as needing local builds of tools"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-slow"):  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
-        for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(skip_slow)
-
-    if not config.getoption("--run-all"):  # pragma: no cover
-        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
-        for item in items:
-            if "needs_tools" in item.keywords:
-                item.add_marker(skip_needs_tools)
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def sample_laz_file(test_data_dir):
-    yield (
-        test_data_dir
-        / "integration_core/file_store/pointcloud/AHN3/as_downloaded/LAZ/C_32BZ2.LAZ"
-    )

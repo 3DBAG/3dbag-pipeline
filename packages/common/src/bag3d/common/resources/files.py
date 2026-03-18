@@ -5,39 +5,25 @@ from dagster import get_dagster_logger, ConfigurableResource
 
 logger = get_dagster_logger("resources.file_store")
 
-# Path constants
-BAG3D_DIR = "3DBAG"
-CROP_RECONSTRUCT_DIR = "3DBAG/crop_reconstruct"
-POINTCLOUD_DIR = "pointcloud"
-LAZ_SUBDIR = "as_downloaded/LAZ"
-
 
 class FileStoreResource(ConfigurableResource):
     """Location of the data files that are generated in the pipeline."""
 
-    data_dir: str
+    root_dir: str
 
     @property
     def path(self) -> Path:
-        """Return the data directory as a Path, creating it if it does not exist."""
-        p = Path(self.data_dir).resolve()
+        """Return the root directory as a Path, creating it if it does not exist."""
+        p = Path(self.root_dir).resolve()
         if not p.is_dir():
-            p.mkdir()
+            p.mkdir(parents=True)
             p.chmod(mode=0o777)
             logger.info(f"Created directory {p}")
         return p
 
     def rm(self, force: bool = False) -> None:
-        """Remove the storage directory.
-
-        Args:
-            force: If True, recursively removes the directory with its contents.
-                   If False, only removes an empty directory.
-
-        Warning:
-            This permanently deletes data. Use force=True with caution.
-        """
-        p = Path(self.data_dir)
+        """Remove the storage directory."""
+        p = Path(self.root_dir)
         if force:
             rmtree(str(p))
         else:
@@ -45,35 +31,21 @@ class FileStoreResource(ConfigurableResource):
         logger.info(f"Deleted directory {p}")
 
     def create_subdir(self, subdir: str) -> Path:
-        """Create and return a subdirectory within the main file store directory.
-
-        Args:
-            subdir: Relative path of the subdirectory to create.
-
-        Returns:
-            Path object pointing to the created subdirectory.
-
-        Note:
-            Creates parent directories if they don't exist.
-        """
+        """Create and return a subdirectory within the file store directory."""
         new_dir = self.path / subdir
         new_dir.mkdir(exist_ok=True, parents=True)
         return new_dir
 
-    @property
-    def bag3d_dir(self) -> Path:
-        """Get the main 3D BAG data directory."""
-        return self.create_subdir(BAG3D_DIR)
+    def stage_dir(self, stage: str) -> Path:
+        """Return the directory for a pipeline stage, creating it if needed.
 
-    @property
-    def geoflow_crop_dir(self) -> Path:
-        """Get the directory for Geoflow crop-reconstruct operation output."""
-        return self.create_subdir(CROP_RECONSTRUCT_DIR)
+        Args:
+            stage: Stage name, e.g. "reconstruction", "party_walls",
+                   "floors_estimation", "export", "deploy"
 
-    def bag3d_export_dir(self, version: str) -> Path:
-        """Get the 3DBAG export directory for a specific version."""
-        return self.create_subdir(f"{BAG3D_DIR}/export_{version}")
-
-    def ahn_laz_dir(self, ahn_version: int) -> Path:
-        """Get the directory for AHN LAZ files per version."""
-        return self.create_subdir(f"{POINTCLOUD_DIR}/AHN{ahn_version}/{LAZ_SUBDIR}")
+        Returns:
+            Path object pointing to stages/{stage}/ under root_dir.
+        """
+        d = self.path / "stages" / stage
+        d.mkdir(parents=True, exist_ok=True)
+        return d

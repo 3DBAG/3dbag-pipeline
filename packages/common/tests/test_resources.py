@@ -77,7 +77,7 @@ def test_lastools(sample_laz_file):
 
 def test_file_store_init_data_dir(tmp_path):
     """Can we use an existing directory?"""
-    res = FileStoreResource(data_dir=str(tmp_path))
+    res = FileStoreResource(root_dir=str(tmp_path))
     path = res.path
     assert path.exists()
     assert path == tmp_path
