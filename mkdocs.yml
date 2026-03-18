@@ -50,6 +50,7 @@ nav:
   - Overview:
     - index.md
     - Source datasets: source_datasets.md
+    - Data flow: data_flow.md
   - Development: development/
   - Deployment: deployment/
   - Production: production.md

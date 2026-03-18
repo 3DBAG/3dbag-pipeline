@@ -16,7 +16,7 @@ from bag3d.common.utils.database import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.floors_estimation.resources import ModelStoreResource
-from dagster import Config, Output, asset, get_dagster_logger
+from dagster import AssetKey, Config, Output, asset, get_dagster_logger
 from joblib import load
 from pgutils import inject_parameters, PostgresConnection
 from psycopg import connect
@@ -148,7 +148,7 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
         yield {k: data[k] for k in islice(it, SIZE)}
 
 
-@asset
+@asset(deps=[AssetKey(["party_walls", "party_walls_nl"])])
 def features_file_index(
     config: FloorsEstimationConfig, file_store: FileStoreResource
 ) -> dict[str, Path]:

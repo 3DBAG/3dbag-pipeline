@@ -15,3 +15,8 @@ load_from:
       location_name: floors_estimation_py_312_virtual_env
       executable_path: packages/floors_estimation/.venv/bin/python
       working_directory: packages/floors_estimation
+  - python_file:
+      relative_path: ../../packages/export/src/bag3d/export/code_location.py
+      location_name: export_py_312_virtual_env
+      executable_path: packages/export/.venv/bin/python
+      working_directory: packages/export

@@ -66,7 +66,7 @@ def features_file_index_generator(
                 yield identificatie, path
 
 
-@asset
+@asset(deps=[AssetKey(["reconstruction", "reconstructed_building_models_nl"])])
 def features_file_index(
     config: PartyWallsConfig, file_store: FileStoreResource
 ) -> dict[str, Path]:
@@ -182,7 +182,7 @@ def _process_building(
 @asset(
     partitions_def=PartitionDefinition3DBagDistribution(),
     pool="party_walls",
-    deps=[AssetKey(["input", "bag_adjacency"])],
+    deps=[AssetKey(["input", "intermediary", "bag_adjacency"])],
 )
 def party_walls_nl(
     context: AssetExecutionContext,

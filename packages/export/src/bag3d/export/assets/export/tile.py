@@ -170,7 +170,7 @@ class TylerConfig(Config):
 
 
 @asset(
-    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler-multiformat"),
     pool="tyler",
 )
@@ -203,7 +203,7 @@ def reconstruction_output_multitiles_nl(
 
 
 @asset(
-    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
@@ -236,7 +236,7 @@ def reconstruction_output_3dtiles_lod12_nl(
 
 
 @asset(
-    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
@@ -269,7 +269,7 @@ def reconstruction_output_3dtiles_lod13_nl(
 
 
 @asset(
-    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
