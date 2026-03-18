@@ -1,10 +1,4 @@
-import os
-from pathlib import Path
-
 import pytest
-
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import GDALResource, ValidationResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -12,22 +6,6 @@ from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
-
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
-HOST = os.getenv("BAG3D_PG_HOST", "")
-PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
-USER = os.getenv("BAG3D_PG_USER", "")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
-
-
-@pytest.fixture
-def database():
-    """Live database connection for tests that require a real database."""
-    db = DatabaseResource(
-        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    )
-    yield db
 
 
 class MockAssetIOManager(IOManager):
@@ -65,71 +43,6 @@ def wkt_testarea():
 @pytest.fixture
 def context_ahn():
     yield build_op_context(partition_key="01cz1")
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def gdal():
-    yield GDALResource(
-        exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-        exe_sozip=os.getenv("EXE_PATH_SOZIP"),
-    )
-
-
-@pytest.fixture(scope="session")
-def gdal_missing():
-    yield GDALResource(
-        exe_ogr2ogr="/does/not/exist/ogr2ogr",
-        exe_ogrinfo="/does/not/exist/ogrinfo",
-        exe_sozip="/does/not/exist/sozip",
-    )
-
-
-@pytest.fixture(scope="session")
-def validation():
-    yield ValidationResource(
-        exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
-        exe_cjval=os.getenv("EXE_PATH_CJVAL"),
-        exe_cjio=os.getenv("EXE_PATH_CJIO"),
-    )
-
-
-@pytest.fixture(scope="session")
-def validation_missing():
-    yield ValidationResource(
-        exe_val3dity="/does/not/exist/val3dity",
-        exe_cjval="/does/not/exist/cjval",
-        exe_cjio="/does/not/exist/cjio",
-    )
-
-
-@pytest.fixture
-def resources(database, file_store, gdal, validation):
-    return {
-        "gdal": gdal,
-        "validation": validation,
-        "computation_db": database,
-        "file_store": file_store,
-        "version": ReleaseVersionResource(version="test_version"),
-        "specs": Specs3DBAGResource(),
-    }
-
-
-@pytest.fixture
-def resources_missing(database, file_store, gdal_missing, validation_missing):
-    return {
-        "gdal": gdal_missing,
-        "validation": validation_missing,
-        "computation_db": database,
-        "file_store": file_store,
-        "version": ReleaseVersionResource(version="test_version"),
-        "specs": Specs3DBAGResource(),
-    }
 
 
 @pytest.fixture

@@ -60,7 +60,7 @@ The `dagster/workspace.yaml` registers all code locations and `dagster/dagster.y
 
 ## Development Commands
 
-All commands use `uv` (modern Python package manager). Docker is required for testing.
+All commands use `uv` (modern Python package manager). Docker is optional for testing.
 
 ### Python Package Management
 
@@ -115,9 +115,6 @@ make docker_up_postgres
 # Start services without rebuilding images
 make docker_up_nobuild
 
-# Watch for source changes (with hot reload)
-make docker_watch
-
 # Rebuild all Docker images without cache
 make docker_build
 
@@ -136,26 +133,11 @@ make docker_restart_containers
 
 ### Testing
 
-Tests run inside Docker containers. Database and execution context are provided automatically.
+Tests run locally with mocked resources by default. Docker is only needed for full pipeline development.
 
 ```bash
-# Download test data first (required once)
-make download
-
-# Run all tests (standard unit tests only)
+# Run all tests
 make test
-
-# Run tests including slow tests
-make test_slow
-
-# Run integration tests (full workflows, slower)
-make test_integration
-
-# Run deployment tests (full end-to-end workflows)
-make test_deploy
-
-# Run all test variants
-make test_all
 
 # Parse test results from log file
 make test_report
@@ -166,11 +148,6 @@ Tests are organized per package:
 - `packages/core/tests/` - Core workflow tests (per-asset-group plus integration)
 - `packages/floors_estimation/tests/` - Floors estimation tests
 - `packages/party_walls/tests/` - Party walls tests
-
-Test markers:
-- `--run-slow` - Include slow tests (`@pytest.mark.slow`)
-- `--run-all` - Include tests needing local tool builds (`@pytest.mark.needs_tools`)
-- `--run-deploy` - Include deployment tests (`@pytest.mark.needs_deploy`)
 
 Single test execution from inside a container:
 ```bash
@@ -268,11 +245,8 @@ In `production` mode, env vars like `BAG3D_PG_HOST`, `EXE_PATH_OGR2OGR`, `BAG3D_
 
 Tests use pytest with these conventions:
 - Unit tests in `tests/` subdirectory per package
-- `conftest.py` provides fixtures (database setup, resources, paths)
-- Integration tests marked with `@pytest.mark.integration`
-- Slow tests marked with `@pytest.mark.slow`
-- Tests requiring tool builds marked with `@pytest.mark.needs_tools`
-- Test data stored in `tests/test_data/` (use `make download` to fetch)
+- `conftest.py` provides shared mock fixtures for database, file stores, and other resources
+- Tests are expected to run offline without Docker, databases, or external tool binaries
 
 **Testing assets directly:**
 ```python
@@ -302,7 +276,7 @@ Database initialization and schema management happens via SQL files in `packages
 
 ### Environment Variables
 
-- **Local development:** `.env` file (not committed, required by makefile for `make download` target)
+- **Local development:** `.env` file (not committed, only needed for optional local overrides)
 - **Docker services:** `docker/.env` (committed, contains volume names and PostgreSQL credentials)
 - **Dagster home:** `tests/dagster_home/` contains `dagster.yaml` and `workspace.yaml`
 

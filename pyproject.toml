@@ -22,7 +22,6 @@ lint = [
 dev = [
     "dagster~=1.12.14",
     "dagster-webserver~=1.12.14",
-    "pytest-dotenv~=0.5.2",
     "bumpver~=2025.1131",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]

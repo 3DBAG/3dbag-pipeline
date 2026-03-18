@@ -17,7 +17,6 @@ help:
 	@echo "  docker_up_postgres           Start only PostgreSQL (faster for small tests)"
 	@echo "  docker_up_nobuild            Start services without rebuilding images"
 	@echo "  docker_dev                   Start services with dev overrides"
-	@echo "  docker_watch                 Watch for source changes and auto-rebuild"
 	@echo "  docker_build                 Rebuild all Docker images without cache"
 	@echo "  docker_restart               Stop, recreate volumes, and start fresh"
 	@echo "  docker_restart_containers    Restart running containers (keep volumes)"
@@ -44,13 +43,6 @@ help:
 sleep_a_bit:
 	sleep 2
 
-docker_volume_create_data_pipeline:
-	docker rm -f $(TEMP_CONTAINER) > /dev/null 2>&1 || true
-	docker volume create $(BAG3D_DOCKER_VOLUME_DATA_PIPELINE)
-	docker run -d --name $(TEMP_CONTAINER) --mount source=$(BAG3D_DOCKER_VOLUME_DATA_PIPELINE),target=/data/volume busybox sleep infinity
-	docker cp ./tests/test_data/. $(TEMP_CONTAINER):/data/volume
-	docker rm -f $(TEMP_CONTAINER)
-
 docker_volume_create_data_postgresql:
 	docker volume create $(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL)
 	docker run -d --name $(TEMP_CONTAINER) --mount source=$(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL),target=/data busybox sleep infinity
@@ -67,10 +59,9 @@ docker_volume_create_dagster_home:
 docker_volume_create_dagster_postgresql:
 	docker volume create $(BAG3D_DOCKER_VOLUME_DAGSTER_POSTGRESQL)
 
-docker_volume_create: docker_volume_create_dagster_home docker_volume_create_dagster_postgresql docker_volume_create_data_pipeline docker_volume_create_data_postgresql
+docker_volume_create: docker_volume_create_dagster_home docker_volume_create_dagster_postgresql docker_volume_create_data_postgresql
 
 docker_volume_rm:
-	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DATA_PIPELINE)
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DATA_POSTGRESQL)
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DAGSTER_HOME)
 	docker volume rm -f $(BAG3D_DOCKER_VOLUME_DAGSTER_POSTGRESQL)
@@ -89,9 +80,6 @@ docker_up_nobuild:
 
 docker_dev:
 	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml -f docker/compose.dev.yaml up -d
-
-docker_watch:
-	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml watch
 
 docker_build:
 	BAG3D_DOCKER_IMAGE_TAG=$(BAG3D_DOCKER_IMAGE_TAG) docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache

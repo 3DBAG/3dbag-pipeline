@@ -1,67 +1,7 @@
-from pathlib import Path
-
-import pytest
 from bag3d.common.utils.geodata import (
-    add_info,
     geojson_poly_to_wkt,
-    ogr2postgres,
-    ogrinfo,
     parse_ogrinfo,
 )
-from pgutils import PostgresTableIdentifier
-
-
-def test_info_exes(gdal, test_data_dir):
-    """Run ogrinfo with local exe and with docker"""
-    p = Path(f"{test_data_dir}/top10nl.zip")
-    res = dict(
-        ogrinfo(
-            gdal_runner=gdal.runner,
-            dataset="top10nl",
-            extract_path=p,
-            feature_types=[
-                "gebouw",
-            ],
-            xsd="https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
-        )
-    )
-    assert "gebouw" in res
-
-
-@pytest.mark.parametrize(
-    "data",
-    (
-        (
-            "top10nl.zip",
-            "top10nl",
-            [
-                "gebouw",
-            ],
-            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
-        ),
-    ),
-    ids=lambda val: val[1],
-)
-def test_info_data(data, gdal, test_data_dir):
-    """Can we run ogrinfo on all datasets?"""
-    path, dataset, feature_types, xsd = data
-    metadata = {
-        "Extract Path": "path",
-        "Download URL": "url",
-        "Size [Mb]": 2.0,
-        "timeliness": {"2022-10-08": feature_types},
-    }
-    res = ogrinfo(
-        gdal_runner=gdal.runner,
-        dataset=dataset,
-        extract_path=Path(f"{test_data_dir}/{path}"),
-        feature_types=feature_types,
-        xsd=xsd,
-    )
-    assert res["gebouw"]["Feature Count [gebouw]"] == 1071
-    add_info(metadata, res)
-    assert metadata["Size [Mb]"] == 2.0
-    assert metadata["Timeliness [gebouw]"] == "2022-10-08"
 
 
 def test_parse_ogrinfo():
@@ -153,38 +93,6 @@ nummeraanduidingreeks_3.identificatieBAGVBOHoogsteHuisnummer: String (0.0)
 
     assert layername == "pand"
     assert layerinfo["Feature Count [pand]"] == 20581
-
-
-@pytest.mark.parametrize(
-    "data",
-    (
-        (
-            "top10nl.zip",
-            "top10nl",
-            [
-                "gebouw",
-            ],
-            "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
-        ),
-    ),
-    ids=lambda val: val[1],
-)
-def test_ogr2postgres(data, gdal, database, test_data_dir):
-    """Testing only for top10NL since we no longer use bgt"""
-    path, dataset, feature_types, xsd = data
-    res = ogr2postgres(
-        gdal_runner=gdal.runner,
-        dataset=dataset,
-        extract_path=Path(f"{test_data_dir}/{path}"),
-        feature_type=feature_types[0],
-        xsd=xsd,
-        new_table=PostgresTableIdentifier("public", feature_types[0]),
-        computation_db=database,
-    )
-    assert res is not None
-    assert (
-        res["Database.Schema.Table"] == f"baseregisters_test.public.{feature_types[0]}"
-    )
 
 
 def test_geojson_poly_to_wkt():

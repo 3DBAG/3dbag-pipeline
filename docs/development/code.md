@@ -19,23 +19,12 @@ Requirements:
 
 We use `make` for managing many commands that we use in development.
 
-### Test data & Docker Volumes
+### Docker Volumes
 
 The Makefile uses two different .env files for controlling the local environment and the environment in the Docker containers.
 The `.env` file in the root directory is used for the local environment and the `docker/.env` file is used for the Docker environment.
-The values in the root `.env` file are specific to your local environment and you need to set them up yourself.
 
-```shell
-echo "BAG3D_TEST_DATA=${PWD}/tests/test_data" > .env
-```
-
-Download test data:
-
-```shell
-make download
-```
-
-Create the docker volumes that store the test data:
+Create the Docker volumes with:
 
 ```shell
 make docker_volume_create
@@ -43,23 +32,15 @@ make docker_volume_create
 
 In addition, `make docker_volume_rm` removes the volumes, `make docker_volume_recreate` recreates the volumes.
 
-Note that if you change the test data locally and you want the docker services to use the updated data, you need to:
-
-1. stop the services: `make docker_down`
-
-2. recreate the volumes in order to copy the new data into them: `make docker_volume_recreate`
-
-3. start the service again: `make docker_up`
-
 ### Docker containers
 
-Start the docker containers with `watch` enabled with the following command:
+Start the Docker containers with:
 
 ```shell
-make docker_watch
+make docker_up
 ```
 
-The `watch` attribute allows you to synchronize changes in the code with your containers. When you issue this command for the first time, several things happen:
+When you issue this command for the first time, several things happen:
 
 1. The required base images are pulled from DockerHub.
 
@@ -69,18 +50,10 @@ The `watch` attribute allows you to synchronize changes in the code with your co
 
 4. The dagster-webserver is published on `localhost:3003`.
 
-5. Docker compose starts watching for changes in the source code on the host machine.
-
 The running containers contain all the tools required for a complete run of the 3dbag-pipeline.
 This means that you can develop and test any part of the code locally.
 
-If you make a change in the source code in your code editor, the files are automatically synced into the running containers. You can see your changes in effect **after reloading the code location, job, asset or resource** in the Dagster UI on `localhost:3003`.
-
-The docker documentation describes in detail [how the compose watch functionality works](https://docs.docker.com/compose/how-tos/file-watch/).
-
-If you don't want to enable the code synchronization, you can use `make docker_up` command, which starts the containers without without the  `watch` attribute.
-
-The `docker_watch` and `docker_up` targets will set the docker compose project name to `bag3d-dev`.
+The `docker_up` target sets the docker compose project name to `bag3d-dev`.
 
 ### Docker setup in PyCharm (professional)
 
@@ -140,33 +113,14 @@ make format
 Tests are run separately for each package and they are located in the `tests` directory of the package.
 Tests use `pytest`.
 
-Some tests take a long time to execute. These are marked with the `@pytest.mark.slow` decorator and they will be skipped by default. In order to include the slow tests in the test execution, use the `--run-slow` command line option.
+The default pytest tier is expected to run offline with mocked database, HTTP, and file resources.
 
-The tests use the sample data that are downloaded as shown above.
-
-You can run the fast unit test for all packages with:
+You can run the tests for all packages with:
 
 ```shell
 make test
 ```
 
-For running also the slow tests (which require more time) you can run:
-
-```shell
-make test_slow
-```
-
-For running the integration tests you can use:
-
-```shell
-make test_integration
-```
-
-For running all tests, you can run:
-
-```shell
-make test_all
-```
 
 ### Analyzing Test Results
 

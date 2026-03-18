@@ -15,4 +15,5 @@ MOCK_RESOURCES = {
     "roofer": dg.ResourceDefinition.mock_resource(),
     "version": dg.ResourceDefinition.mock_resource(),
     "specs": dg.ResourceDefinition.mock_resource(),
+    "model_store": dg.ResourceDefinition.mock_resource(),
 }
