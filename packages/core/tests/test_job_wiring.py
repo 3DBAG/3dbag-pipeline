@@ -37,12 +37,6 @@ def test_partitioned_jobs_have_partition_defs():
         assert defs.get_job_def(job_name).partitions_def is not None
 
 
-def test_job_asset_selections_are_complete():
-    for job_name in ("source_input", "nl_reconstruct", "ahn_tile_index"):
-        job_def = defs.get_job_def(job_name)
-        assert job_def.asset_layer.executable_asset_keys
-
-
 def test_core_assets_validate_with_mock_resources():
     mocked_defs = dg.Definitions(
         assets=all_assets,

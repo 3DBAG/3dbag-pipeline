@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pandas as pd
+
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationConfig,
@@ -96,13 +98,13 @@ def test_make_chunks():
 
 def test_save_cjfiles(
     tmp_path,
-    mock_inferenced_floors,
 ):
-    """save_cjfiles reads party_walls features, adds b3_bouwlagen, writes to floors_estimation stage."""
+    """save_cjfiles writes the expected b3_bouwlagen values for each output feature."""
     # Build mock features in stages/party_walls/
     pand_ids = [
-        "NL.IMBAG.Pand.0307100000364333",
         "NL.IMBAG.Pand.0307100000340455",
+        "NL.IMBAG.Pand.0307100000351286",
+        "NL.IMBAG.Pand.0307100000364333",
     ]
     mock_index = {}
     for pand_id in pand_ids:
@@ -118,16 +120,58 @@ def test_save_cjfiles(
         _make_party_walls_feature(feature_path, pand_id)
         mock_index[pand_id] = feature_path
 
+    inferenced_floors = pd.DataFrame(
+        {
+            "identificatie": [
+                "NL.IMBAG.Pand.0307100000340455",
+                "NL.IMBAG.Pand.0307100000351286",
+            ],
+            "floors_int": [3.0, 8.0],
+        }
+    ).set_index("identificatie")
+
     file_store = FileStoreResource(root_dir=str(tmp_path))
     save_cjfiles(
         FloorsEstimationIOConfig(),
-        mock_inferenced_floors,
+        inferenced_floors,
         mock_index,
         file_store,
     )
 
-    output = (
-        tmp_path
-        / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
+    within_limit = json.loads(
+        (
+            tmp_path
+            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000340455.city.jsonl"
+        ).read_text()
     )
-    assert output.exists()
+    over_limit = json.loads(
+        (
+            tmp_path
+            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000351286.city.jsonl"
+        ).read_text()
+    )
+    missing_prediction = json.loads(
+        (
+            tmp_path
+            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
+        ).read_text()
+    )
+
+    assert (
+        within_limit["CityObjects"]["NL.IMBAG.Pand.0307100000340455"]["attributes"][
+            "b3_bouwlagen"
+        ]
+        == 3
+    )
+    assert (
+        over_limit["CityObjects"]["NL.IMBAG.Pand.0307100000351286"]["attributes"][
+            "b3_bouwlagen"
+        ]
+        is None
+    )
+    assert (
+        missing_prediction["CityObjects"]["NL.IMBAG.Pand.0307100000364333"][
+            "attributes"
+        ]["b3_bouwlagen"]
+        is None
+    )
