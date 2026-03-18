@@ -14,9 +14,6 @@ from bag3d.core.asset_groups import (
     source_assets,
     input_assets,
     reconstruction_assets,
-    export_assets,
-    deploy_assets,
-    release_assets,
 )
 from bag3d.core.jobs import (
     job_bgt,
@@ -28,10 +25,6 @@ from bag3d.core.jobs import (
     job_ahn_metadata_index,
     job_nl_reconstruct,
     job_nl_reconstruct_debug,
-    job_nl_export,
-    job_nl_export_after_floors,
-    job_nl_deploy,
-    job_nl_release,
 )
 
 all_assets = [
@@ -39,9 +32,6 @@ all_assets = [
     *source_assets,
     *input_assets,
     *reconstruction_assets,
-    *export_assets,
-    *deploy_assets,
-    *release_assets,
 ]
 
 all_jobs = [
@@ -54,10 +44,6 @@ all_jobs = [
     job_ahn_metadata_index,
     job_nl_reconstruct,
     job_nl_reconstruct_debug,
-    job_nl_export,
-    job_nl_export_after_floors,
-    job_nl_deploy,
-    job_nl_release,
 ]
 
 sensor_status = (

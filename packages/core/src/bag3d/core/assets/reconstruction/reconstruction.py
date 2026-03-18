@@ -89,7 +89,7 @@ def reconstructed_building_models_nl(
     config: RooferConfig,
     computation_db: DatabaseResource,
     roofer: RooferResource,
-    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
     tiles,
     index,
     reconstruction_input,
@@ -104,7 +104,7 @@ def reconstructed_building_models_nl(
     roofer_toml, output_dir, tile_view = create_roofer_config(
         context,
         computation_db=computation_db,
-        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
         reconstruction_input=reconstruction_input,
         index=index,
         tiles=tiles,
@@ -137,7 +137,7 @@ def reconstructed_building_models_nl(
 def create_roofer_config(
     context: AssetExecutionContext,
     computation_db: DatabaseResource,
-    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
     reconstruction_input,
     index,
     tiles,
@@ -277,7 +277,7 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    output_dir = file_store_fastssd.geoflow_crop_dir.joinpath(tile_id)
+    output_dir = file_store.stage_dir("reconstruction").joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
         footprint_file=f"PG:{computation_db.connection.dsn} tables={tile_view}",
