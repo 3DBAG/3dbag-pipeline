@@ -26,6 +26,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test                         Run unit tests (fast, offline, no Docker)"
+	@echo "  test_report                  Parse and summarize test results"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  lint                         Format and lint check all packages"
@@ -108,6 +109,9 @@ test:
 	uv --project packages/floors_estimation run pytest packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run pytest packages/party_walls/tests/ -v || FAILED=1; \
 	exit $$FAILED
+
+test_report:
+	python3 scripts/parse_test_log.py
 
 lint:
 	@set -e; set -o pipefail; \
