@@ -124,6 +124,8 @@ lint:
 	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
 	echo "Type check: party_walls"; \
 	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
+	echo "Type check: export"; \
+	uv --project packages/export run pyright packages/export || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
