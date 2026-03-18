@@ -1,65 +1,13 @@
-import os
-from pathlib import Path
 from io import StringIO
-import pandas as pd
+from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import build_op_context
 
-
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
-HOST = os.getenv("BAG3D_PG_HOST", "")
-PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
-USER = os.getenv("BAG3D_PG_USER", "")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def floors_estimation_integration_test_dir(test_data_dir):
-    yield test_data_dir / "integration_floors_estimation"
-
-
-@pytest.fixture(scope="session")
-def floors_estimation_file_store_fastssd(
-    floors_estimation_integration_test_dir,
-) -> Path:
-    """Root directory path for test data"""
-    return floors_estimation_integration_test_dir / "file_store_fastssd"
-
-
-@pytest.fixture(scope="session")
-def model(test_data_dir) -> Path:
-    """Directory for the floors estimation model"""
-    return test_data_dir / "model" / "pipeline_model1_gbr_untuned.joblib"
-
-
-@pytest.fixture
-def model_store(model) -> ModelStoreResource:
-    """Model store resource for testing."""
-    return ModelStoreResource(model_path=str(model))
-
-
-@pytest.fixture
-def database():
-    db = DatabaseResource(
-        host=HOST, port=PORT, user=USER, password=PASSWORD or "", dbname=DB_NAME
-    )
-    yield db
-
-
-@pytest.fixture
-def file_store_fastssd(floors_estimation_file_store_fastssd):
-    yield FileStoreResource(data_dir=str(floors_estimation_file_store_fastssd))
+pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
 
 @pytest.fixture
@@ -73,27 +21,9 @@ def file_store_tmp(tmp_path):
 
 
 @pytest.fixture
-def resources_with_data(file_store_fastssd):
-    return {
-        "file_store_fastssd": file_store_fastssd,
-    }
-
-
-@pytest.fixture
-def resources(database, model_store, file_store_tmp, version):
-    return {
-        "computation_db": database,
-        "file_store_fastssd": FileStoreResource(data_dir=str(file_store_tmp)),
-        "model_store": model_store,
-        "version": version,
-    }
-
-
-@pytest.fixture
-def context_with_data():
-    yield build_op_context(
-        partition_key="0/0/0",
-    )
+def model_store() -> ModelStoreResource:
+    """Mock model store resource for testing."""
+    return MagicMock(spec=ModelStoreResource)
 
 
 @pytest.fixture
@@ -103,37 +33,11 @@ def context():
     )
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="run slow tests"
+@pytest.fixture
+def context_with_data():
+    yield build_op_context(
+        partition_key="0/0/0",
     )
-    parser.addoption(
-        "--run-all",
-        action="store_true",
-        default=False,
-        help="run all tests, including the ones that needs local builds of tools",
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-    config.addinivalue_line(
-        "markers", "needs_tools: mark test as needing local builds of tools"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-slow"):  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
-        for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(skip_slow)
-
-    if not config.getoption("--run-all"):  # pragma: no cover
-        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
-        for item in items:
-            if "needs_tools" in item.keywords:
-                item.add_marker(skip_needs_tools)
 
 
 @pytest.fixture(scope="session")
@@ -150,24 +54,24 @@ def mock_preprocessed_features():
     return pd.read_csv(StringIO(csv_text.strip()))
 
 
-@pytest.fixture(scope="session")
-def mock_features_file_index(floors_estimation_file_store_fastssd):
+@pytest.fixture
+def mock_features_file_index(tmp_path):
     return {
-        "NL.IMBAG.Pand.0307100000340455": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000340455": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000340455.city.jsonl",
-        "NL.IMBAG.Pand.0307100000364333": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000364333": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000364333.city.jsonl",
-        "NL.IMBAG.Pand.0307100000378340": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000378340": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000378340.city.jsonl",
-        "NL.IMBAG.Pand.0307100000522025": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000522025": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000522025.city.jsonl",
-        "NL.IMBAG.Pand.0307100000351286": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000351286": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000351286.city.jsonl",
-        "NL.IMBAG.Pand.0307100000522233": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000522233": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000522233.city.jsonl",
-        "NL.IMBAG.Pand.0307100000353630": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000353630": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000353630.city.jsonl",
-        "NL.IMBAG.Pand.0307100000312499": floors_estimation_file_store_fastssd
+        "NL.IMBAG.Pand.0307100000312499": tmp_path
         / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000312499.city.jsonl",
     }
 

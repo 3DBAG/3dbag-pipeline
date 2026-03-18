@@ -150,16 +150,12 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
 
 @asset
 def features_file_index(
-    config: FloorsEstimationConfig, file_store_fastssd: FileStoreResource
+    config: FloorsEstimationConfig, file_store: FileStoreResource
 ) -> dict[str, Path]:
     """
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
-
-    reconstructed_with_party_walls_dir = reconstructed_root_dir.parent.joinpath(
-        "party_walls_features"
-    )
+    reconstructed_with_party_walls_dir = file_store.stage_dir("party_walls")
 
     res = dict(
         features_file_index_generator(
@@ -342,9 +338,7 @@ def save_cjfile(
     else:
         attributes["b3_bouwlagen"] = None
 
-    output_path = output_dir.joinpath(
-        path.parents[2].name, path.parents[1].name, path.parents[0].name, path.name
-    )
+    output_path = output_dir.joinpath(path.parent.name, path.name)
 
     with output_path.open("w") as fo:
         json.dump(feature_json, fo, separators=(",", ":"))
@@ -355,19 +349,14 @@ def save_cjfiles(
     config: FloorsEstimationIOConfig,
     inferenced_floors: pd.DataFrame,
     features_file_index: dict[str, Path],
-    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
 ) -> None:
     """Saves the new cj files."""
-    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
-    reconstructed_with_floors_estimation_dir = reconstructed_root_dir.parent.joinpath(
-        "bouwlagen_features"
-    )
+    reconstructed_with_floors_estimation_dir = file_store.stage_dir("floors_estimation")
     logger.info("Creating directories for the new files.")
     tile_paths = set([f.parent for f in list(features_file_index.values())])
     for tile_path in tile_paths:
-        new_tile = reconstructed_with_floors_estimation_dir.joinpath(
-            tile_path.parents[1].name, tile_path.parents[0].name, tile_path.name
-        )
+        new_tile = reconstructed_with_floors_estimation_dir / tile_path.name
         new_tile.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Saving to {reconstructed_with_floors_estimation_dir}")

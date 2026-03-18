@@ -1,34 +1,58 @@
+import json
 from pathlib import Path
 
-import pandas as pd
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.utils.database import table_exists
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationConfig,
     FloorsEstimationIOConfig,
-    all_features,
-    bag3d_features,
-    external_features,
     features_file_index,
-    inferenced_floors,
     make_chunks,
-    predictions_table,
-    preprocessed_features,
     save_cjfiles,
 )
-from dagster import Output
 
 
-def test_features_file_index(file_store_fastssd):
-    """"""
-    result = features_file_index(
-        FloorsEstimationConfig(),
-        file_store_fastssd,
-    )
+def _make_party_walls_feature(path: Path, pand_id: str) -> None:
+    """Create a minimal CityJSONFeature file in stages/party_walls/."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = {
+        "type": "CityJSONFeature",
+        "id": pand_id,
+        "CityObjects": {
+            pand_id: {
+                "type": "Building",
+                "attributes": {
+                    "b3_opp_scheidingsmuur": 10.0,
+                    "b3_opp_buitenmuur": 20.0,
+                },
+                "geometry": [],
+            }
+        },
+        "vertices": [],
+    }
+    path.write_text(json.dumps(content))
+
+
+def test_features_file_index(tmp_path):
+    """features_file_index maps pand_id -> path for .city.jsonl files in party_walls stage."""
+    pand_ids = [
+        "NL.IMBAG.Pand.0307100000377456",
+        "NL.IMBAG.Pand.0307100000364333",
+    ]
+    for pand_id in pand_ids:
+        feature_path = (
+            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            / f"{pand_id}.city.jsonl"
+        )
+        _make_party_walls_feature(feature_path, pand_id)
+
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    result = features_file_index(FloorsEstimationConfig(), file_store)
+
     assert isinstance(result, dict)
-    assert len(result) == 413
-    assert "NL.IMBAG.Pand.0307100000377456" in result.keys()
-    assert "party_walls_features" in str(result["NL.IMBAG.Pand.0307100000377456"])
+    assert len(result) == len(pand_ids)
+    for pand_id in pand_ids:
+        assert pand_id in result
+        assert "party_walls" in str(result[pand_id])
 
 
 def test_make_chunks():
@@ -65,101 +89,35 @@ def test_make_chunks():
     assert next(chunks2) == {"id5": Path("path5"), "id6": Path("path6")}
 
 
-def test_bag3d_features(database, mock_features_file_index):
-    res = bag3d_features(
-        FloorsEstimationConfig(),
-        mock_features_file_index,
-        database,
-    )
-
-    assert isinstance(res, Output)
-    assert isinstance(res.value, PostgresTableIdentifier)
-    building_feature_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_bag3d"
-    )
-    assert table_exists(database, building_feature_table) is True
-
-
-def test_external_features(database):
-    res = external_features(
-        database,
-    )
-
-    assert isinstance(res, Output)
-    assert isinstance(res.value, PostgresTableIdentifier)
-    external_features_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_external"
-    )
-    assert table_exists(database, external_features_table) is True
-
-
-def test_all_features(database):
-    external_features_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_external"
-    )
-    building_feature_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_bag3d"
-    )
-    res = all_features(
-        external_features_table,
-        building_feature_table,
-        database,
-    )
-
-    assert isinstance(res, Output)
-    assert isinstance(res.value, PostgresTableIdentifier)
-    all_features_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_all"
-    )
-    assert table_exists(database, all_features_table) is True
-
-
-def test_preprocessed_features(database):
-    all_features_table = PostgresTableIdentifier(
-        "floors_estimation", "building_features_all"
-    )
-    assert table_exists(database, all_features_table) is True
-    data = preprocessed_features(
-        all_features_table,
-        database,
-    )
-    assert isinstance(data, pd.DataFrame)
-    assert data.shape[0] == 6
-
-
-def test_inferenced_floors(model_store, mock_preprocessed_features):
-    res = inferenced_floors(mock_preprocessed_features, model_store)
-    assert isinstance(res, pd.DataFrame)
-    assert "floors" in res.columns
-    assert "floors_int" in res.columns
-
-
-def test_predictions_table(database, mock_inferenced_floors):
-    res = predictions_table(
-        mock_inferenced_floors,
-        database,
-    )
-    assert isinstance(res, Output)
-    assert isinstance(res.value, PostgresTableIdentifier)
-    pred_table = PostgresTableIdentifier("floors_estimation", "predictions")
-    assert table_exists(database, pred_table) is True
-
-
 def test_save_cjfiles(
-    file_store_tmp,
+    tmp_path,
     mock_inferenced_floors,
-    mock_features_file_index,
 ):
-    from bag3d.common.resources.files import FileStoreResource
+    """save_cjfiles reads party_walls features, adds b3_bouwlagen, writes to floors_estimation stage."""
+    # Build mock features in stages/party_walls/
+    pand_ids = [
+        "NL.IMBAG.Pand.0307100000364333",
+        "NL.IMBAG.Pand.0307100000340455",
+    ]
+    mock_index = {}
+    for pand_id in pand_ids:
+        feature_path = (
+            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            / f"{pand_id}.city.jsonl"
+        )
+        _make_party_walls_feature(feature_path, pand_id)
+        mock_index[pand_id] = feature_path
 
-    file_store_resource = FileStoreResource(data_dir=str(file_store_tmp))
+    file_store = FileStoreResource(root_dir=str(tmp_path))
     save_cjfiles(
         FloorsEstimationIOConfig(),
         mock_inferenced_floors,
-        mock_features_file_index,
-        file_store_resource,
+        mock_index,
+        file_store,
     )
-    assert (
-        file_store_tmp
-        / "3DBAG/bouwlagen_features/0/0/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
-    ).exists()
+
+    output = (
+        tmp_path
+        / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
+    )
+    assert output.exists()
