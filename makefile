@@ -15,7 +15,8 @@ export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_I
 	docker_volume_create_dagster_home docker_volume_create_dagster_postgresql \
 	docker_volume_rm docker_volume_recreate \
 	test test_report lint lint_fix \
-	local_install_uv local_venv local_dev
+	local_install_uv local_venv local_dev \
+	set_version
 
 help:
 	@echo "3dbag-pipeline - Available targets:"
@@ -44,6 +45,7 @@ help:
 	@echo "  local_install_uv             Install uv package manager"
 	@echo "  local_venv                   Create virtualenvs for all packages"
 	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
+	@echo "  set_version                  Set pipeline version (make set_version VERSION=YYYY.MM.DD)"
 	@echo ""
 
 docker_volume_create_data_postgresql:
@@ -156,3 +158,7 @@ local_venv:
 
 local_dev:
 	uv run dagster dev -w tests/dagster_home/workspace.yaml
+
+set_version:
+	@if [ -z "$(VERSION)" ]; then echo "Usage: make set_version VERSION=YYYY.MM.DD"; exit 1; fi
+	python3 scripts/set_version.py $(VERSION)

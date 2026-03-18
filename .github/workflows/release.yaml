@@ -29,9 +29,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install bumpver
-        run: pip install bumpver
-
       - name: Configure Git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -39,7 +36,11 @@ jobs:
 
       - name: Update version
         run: |
-          bumpver update --set-version=${{ github.event.inputs.version }} --no-fetch
+          python3 scripts/set_version.py ${{ github.event.inputs.version }}
+          git add -A
+          git commit -m "bump version -> ${{ github.event.inputs.version }}"
+          git tag "v${{ github.event.inputs.version }}"
+          git push origin master --tags
 
       - name: Parse Changelog
         run: |
