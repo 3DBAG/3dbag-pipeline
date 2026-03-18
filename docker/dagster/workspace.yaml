@@ -12,3 +12,7 @@ load_from:
       host: bag3d-party-walls
       port: 4002
       location_name: "party_walls"
+  - grpc_server:
+      host: bag3d-export
+      port: 4003
+      location_name: "export"

@@ -229,6 +229,36 @@ services:
           path: ../packages/party_walls/uv.lock
           target: /opt/3dbag-pipeline/packages/party_walls/uv.lock
 
+  bag3d-export:
+    platform: linux/amd64
+    build:
+      context: ../
+      dockerfile: docker/pipeline/bag3d-export.dockerfile
+      args:
+        VERSION: ${BAG3D_DOCKER_IMAGE_TAG}
+    image: 3dbag-pipeline-export:${BAG3D_DOCKER_IMAGE_TAG}
+    pull_policy: build
+    container_name: 3dbag-pipeline-export-${BAG3D_DOCKER_IMAGE_TAG}
+    healthcheck:
+      test: ["CMD-SHELL", "dagster api grpc-health-check -p 4003"]
+      interval: 2s
+      retries: 10
+    restart: always
+    environment:
+      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-export:${BAG3D_DOCKER_IMAGE_TAG}"
+    env_file:
+      - ./.env
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ~/.ssh:/root/.ssh:ro
+    networks:
+      - bag3d-network
+    depends_on:
+      data-postgresql:
+        condition: service_healthy
+        restart: true
+
   # This service runs dagster-webserver, which loads your user code from the user code container.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
   # a queue and later dequeued and launched by dagster-daemon.
@@ -270,6 +300,9 @@ services:
       bag3d-party-walls:
         condition: service_healthy
         restart: true
+      bag3d-export:
+        condition: service_healthy
+        restart: true
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -301,6 +334,9 @@ services:
         condition: service_healthy
         restart: true
       bag3d-party-walls:
+        condition: service_healthy
+        restart: true
+      bag3d-export:
         condition: service_healthy
         restart: true
 
