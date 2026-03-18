@@ -3,27 +3,42 @@
     "tyler": {
       "version": "0.3.14",
       "url": "docker.io/3dgi/tyler:0.3.14",
-      "type": "docker"
+      "type": "docker",
+      "display_name": "tyler",
+      "repository": "https://github.com/3DGI/tyler",
+      "description": "Generating Cesium 3DTiles"
     },
     "tyler-multiformat": {
       "version": "0.4.0-alpha10",
       "url": "docker.io/3dgi/tyler-multiformat:0.4.0-alpha10",
-      "type": "docker"
+      "type": "docker",
+      "display_name": "tyler-multiformat",
+      "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
+      "description": "Generating GeoPackage, OBJ and CityJSON tiles"
     },
     "tyler-db": {
       "version": "0.3.4-db-alpha5",
       "url": "docker.io/3dgi/tyler-db:0.3.4-db-alpha5",
-      "type": "docker"
+      "type": "docker",
+      "display_name": "tyler-db",
+      "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
+      "description": "Input tiling"
     },
     "roofer": {
       "version": "develop",
       "url": "docker.io/3dgi/roofer:develop",
-      "type": "docker"
+      "type": "docker",
+      "display_name": "roofer",
+      "repository": "https://github.com/3DBAG/roofer",
+      "description": "Point cloud selection and building reconstruction"
     },
     "geoflow-bundle": {
       "version": "2025.09.01",
       "url": "docker.io/3dgi/geoflow-bundle-builder:2025.09.01",
-      "type": "docker"
+      "type": "docker",
+      "display_name": "geoflow-bundle",
+      "repository": "https://github.com/geoflow3d/geoflow-bundle",
+      "description": "Format conversion to CityJSON, OBJ, GeoPackage, glTF"
     },
     "cjval": {
       "version": "0.8.2",
@@ -38,7 +53,10 @@
     "gdal": {
       "version": "3.8.5",
       "url": "https://github.com/OSGeo/gdal/releases/download/v3.8.5/gdal-3.8.5.tar.gz",
-      "type": "source"
+      "type": "source",
+      "display_name": "GDAL",
+      "repository": "https://gdal.org/",
+      "description": "Data loading with ogr2ogr"
     },
     "proj": {
       "version": "9.4.0",
@@ -58,12 +76,18 @@
     "lastools": {
       "version": "2.0.4",
       "url": "https://github.com/LAStools/LAStools/archive/refs/tags/v2.0.4.zip",
-      "type": "source"
+      "type": "source",
+      "display_name": "LASTools",
+      "repository": "https://lastools.github.io/",
+      "description": "Point cloud tiling and indexing"
     },
     "pdal": {
       "version": "2.8.4",
       "url": "https://github.com/PDAL/PDAL/releases/download/2.8.4/PDAL-2.8.4-src.tar.gz",
-      "type": "source"
+      "type": "source",
+      "display_name": "PDAL",
+      "repository": "https://pdal.io",
+      "description": "Computing point cloud metadata"
     },
     "val3dity": {
       "version": "2.4.0",

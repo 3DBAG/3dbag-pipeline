@@ -22,8 +22,43 @@ from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
 from bag3d.common.resources import resource_defs
+from bag3d.common.utils.manifest import get_tool_metadata
 
 logger = get_dagster_logger("export.metadata")
+
+# (manifest_key, resource_key, executable, version_cmd)
+_SOFTWARE_TOOLS = [
+    ("geoflow-bundle", "geoflow", "geof", "--list-plugins --verbose"),
+    ("roofer", "roofer", "roofer", None),
+    ("tyler", "tyler", "tyler", None),
+    ("tyler-db", "tyler", "tyler-db", None),
+    ("tyler-multiformat", "tyler", "tyler-multiformat", None),
+    ("gdal", "gdal", "ogr2ogr", None),
+    ("pdal", "pdal", "pdal", None),
+    ("lastools", "lastools", "lasindex", "-version"),
+]
+
+
+def _build_software_list() -> list[dict]:
+    """Build the software list from manifest metadata and runtime versions."""
+    software = []
+    for manifest_key, resource_key, executable, version_cmd in _SOFTWARE_TOOLS:
+        meta = get_tool_metadata(manifest_key)
+        kwargs = {}
+        if version_cmd is not None:
+            kwargs["version_cmd"] = version_cmd
+        version = resource_defs[resource_key].runner.version(executable, **kwargs)
+        if manifest_key == "pdal":
+            version = version.replace("-", "").replace(",", "")
+        software.append(
+            {
+                "name": meta.get("display_name", manifest_key),
+                "version": version,
+                "repository": meta["repository"],
+                "description": meta["description"],
+            }
+        )
+    return software
 
 
 def get_info_per_cityobject(
@@ -356,65 +391,7 @@ def metadata(
                         },
                     },
                 ],
-                "software": [
-                    {
-                        "name": "geoflow-bundle",
-                        "version": resource_defs["geoflow"].runner.version(
-                            "geof", version_cmd="--list-plugins --verbose"
-                        ),
-                        "repository": "https://github.com/geoflow3d/geoflow-bundle",
-                        "description": "Format conversion to CityJSON, OBJ, GeoPackage, glTF",
-                    },
-                    {
-                        "name": "roofer",
-                        "version": resource_defs["roofer"].runner.version("roofer"),
-                        "repository": "https://github.com/3DBAG/roofer",
-                        "description": "Point cloud selection and building reconstruction",
-                    },
-                    {
-                        "name": "tyler",
-                        "version": resource_defs["tyler"].runner.version("tyler"),
-                        "repository": "https://github.com/3DGI/tyler",
-                        "description": "Generating Cesium 3DTiles",
-                    },
-                    {
-                        "name": "tyler-db",
-                        "version": resource_defs["tyler"].runner.version("tyler-db"),
-                        "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
-                        "description": "Input tiling",
-                    },
-                    {
-                        "name": "tyler-multiformat",
-                        "version": resource_defs["tyler"].runner.version(
-                            "tyler-multiformat"
-                        ),
-                        "repository": "https://github.com/3DGI/tyler/tree/multi-format-output",
-                        "description": "Generating GeoPackage, OBJ and CityJSON tiles",
-                    },
-                    {
-                        "name": "GDAL",
-                        "version": resource_defs["gdal"].runner.version("ogr2ogr"),
-                        "repository": "https://gdal.org/",
-                        "description": "Data loading with ogr2ogr",
-                    },
-                    {
-                        "name": "PDAL",
-                        "version": resource_defs["pdal"]
-                        .runner.version("pdal")
-                        .replace("-", "")
-                        .replace(",", ""),
-                        "repository": "https://pdal.io",
-                        "description": "Computing point cloud metadata",
-                    },
-                    {
-                        "name": "LASTools",
-                        "version": resource_defs["lastools"].runner.version(
-                            "lasindex", version_cmd="-version"
-                        ),
-                        "repository": "https://lastools.github.io/",
-                        "description": "Point cloud tiling and indexing",
-                    },
-                ],
+                "software": _build_software_list(),
             },
         },
     }

@@ -120,6 +120,8 @@ test_report:
 
 lint:
 	@set -e; set -o pipefail; \
+	echo "Manifest version check"; \
+	python3 scripts/check_manifest_versions.py; \
 	echo "Format check"; \
 	uv tool run ruff format --check ./packages; \
 	echo "Syntax and style"; \

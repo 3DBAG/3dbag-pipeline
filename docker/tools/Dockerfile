@@ -61,6 +61,8 @@ COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /bin/uv
 RUN uv python install 3.11 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
+COPY ./3dbag-manifest.json $BAG3D_PIPELINE_LOCATION/
+ENV BAG3D_MANIFEST_PATH=$BAG3D_PIPELINE_LOCATION/3dbag-manifest.json
 COPY ./tools-build.sh $BAG3D_PIPELINE_LOCATION
 COPY ./tools-test.sh $BAG3D_PIPELINE_LOCATION
 
