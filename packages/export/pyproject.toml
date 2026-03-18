@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bag3d-export"
+version = "2025.11.18"
+description = "Workflow for exporting and deploying the 3D BAG data set"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
+    { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
+    { name = "Gina Stavropoulou", email = "G.Stavropoulou@tudelft.nl" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: OSI Approved :: Apache Software License"
+]
+urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
+dependencies = [
+    "pgutils",
+    "psycopg[binary]~=3.3.2",
+    "dagster~=1.12.14",
+    "dagster-postgres~=0.28.14",
+    "lxml~=6.0.2",
+    "bag3d-common",
+    "certifi>=2026.1.4",
+    "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
+    "fabric~=3.2",
+    "paramiko",
+]
+
+[dependency-groups]
+dev = [
+    "coverage~=7.13.4",
+    "pytest~=9.0.2",
+    "pytest-dotenv~=0.5.2",
+    "dagster-webserver",
+    "pyright>=1.1",
+]
+
+[tool.ruff]
+# Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
+
+[tool.uv.sources]
+pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }
+bag3d-common = { path = "../common", editable = true }
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*is not a Python type.*:UserWarning",
+    "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
+    "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
+    "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
+]
