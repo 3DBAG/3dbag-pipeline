@@ -40,7 +40,12 @@ def test_features_file_index(tmp_path):
     ]
     for pand_id in pand_ids:
         feature_path = (
-            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            tmp_path
+            / "stages"
+            / "party_walls"
+            / "0"
+            / "0"
+            / "0"
             / f"{pand_id}.city.jsonl"
         )
         _make_party_walls_feature(feature_path, pand_id)
@@ -102,7 +107,12 @@ def test_save_cjfiles(
     mock_index = {}
     for pand_id in pand_ids:
         feature_path = (
-            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            tmp_path
+            / "stages"
+            / "party_walls"
+            / "0"
+            / "0"
+            / "0"
             / f"{pand_id}.city.jsonl"
         )
         _make_party_walls_feature(feature_path, pand_id)

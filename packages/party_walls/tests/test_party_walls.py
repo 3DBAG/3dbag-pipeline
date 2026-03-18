@@ -36,7 +36,13 @@ def test_features_file_index(tmp_path):
     ]
     for pand_id in pand_ids:
         feature_path = (
-            recon_dir / "0" / "0" / "0" / "objects" / pand_id / "reconstruct"
+            recon_dir
+            / "0"
+            / "0"
+            / "0"
+            / "objects"
+            / pand_id
+            / "reconstruct"
             / f"{pand_id}.city.jsonl"
         )
         _make_feature_file(feature_path, pand_id)
@@ -66,7 +72,13 @@ def test_party_walls_nl_empty_tile(tmp_path):
     recon_dir = tmp_path / "stages" / "reconstruction"
     pand_id = "NL.IMBAG.Pand.0307100000308298"
     feature_path = (
-        recon_dir / "0" / "0" / "0" / "objects" / pand_id / "reconstruct"
+        recon_dir
+        / "0"
+        / "0"
+        / "0"
+        / "objects"
+        / pand_id
+        / "reconstruct"
         / f"{pand_id}.city.jsonl"
     )
     _make_feature_file(feature_path, pand_id)

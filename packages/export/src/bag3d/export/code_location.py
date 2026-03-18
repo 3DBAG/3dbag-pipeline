@@ -18,6 +18,4 @@ all_jobs = [
     job_nl_release,
 ]
 
-defs = Definitions(
-    resources=resource_defs, assets=all_assets, jobs=all_jobs
-)
+defs = Definitions(resources=resource_defs, assets=all_assets, jobs=all_jobs)

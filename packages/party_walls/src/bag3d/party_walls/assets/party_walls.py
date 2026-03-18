@@ -1,7 +1,7 @@
 from pathlib import Path
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable
+from typing import Any, Iterable, cast
 import json
 from os import getenv
 
@@ -14,7 +14,7 @@ from dagster import (
     Config,
 )
 from pydantic import Field
-from psycopg2 import sql as pgsql
+from psycopg import sql as pgsql
 from bag3d_surfaces.walls import shared_walls, write_cityjsonfeature
 
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
@@ -110,7 +110,7 @@ def _read_transform_from_export(
     }
 
 
-def _load_feature_as_citymodel(path: Path, transform: dict) -> tuple[dict, str]:
+def _load_feature_as_citymodel(path: Path, transform: dict) -> tuple[dict, str | None]:
     """Load a .city.jsonl feature file and wrap it as a minimal CityJSON dict.
 
     Returns (citymodel_dict, building_part_object_id).
@@ -201,9 +201,7 @@ def party_walls_nl(
     tile_id = context.partition_key  # e.g. "10/434/716"
 
     # Filter features_file_index to buildings in this tile
-    tile_prefix = str(
-        file_store.stage_dir("reconstruction") / tile_id / "objects" / ""
-    )
+    tile_prefix = str(file_store.stage_dir("reconstruction") / tile_id / "objects" / "")
     tile_features = {
         pand_id: path
         for pand_id, path in features_file_index.items()
@@ -225,7 +223,7 @@ def party_walls_nl(
         WHERE identificatie = ANY({pand_ids})
         """
     ).format(pand_ids=pgsql.Literal(pand_ids))
-    rows = computation_db.connection.get_dict(query)
+    rows = cast(list[dict[str, Any]], computation_db.connection.get_dict(query))
     adjacency: dict[str, list[str]] = defaultdict(list)
     for row in rows:
         adjacency[row["identificatie"]].append(row["adjacent_identificatie"])
