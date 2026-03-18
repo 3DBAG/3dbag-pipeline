@@ -1,55 +1,88 @@
-import pytest
-from pandas import DataFrame
+import json
+
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
-    TilesFilesIndex,
-    cityjsonfeatures_with_party_walls_nl,
-    distribution_tiles_files_index,
     features_file_index,
     party_walls_nl,
 )
-
-TILE_IDS = ("0/0/0",)
-
-
-def test_distribution_tiles_files_index(file_store_resource, version):
-    """Can we parse the CityJSON tiles and return valid data?"""
-
-    result = distribution_tiles_files_index(file_store_resource, version)
-    assert isinstance(result, TilesFilesIndex)
-    assert len(result.tree.geometries) == len(TILE_IDS)
-    assert len(result.paths_array) == len(TILE_IDS)
-    result_tile_ids = tuple(sorted(result.export_results.keys()))
-    assert result_tile_ids == TILE_IDS
+from bag3d.common.resources.files import FileStoreResource
 
 
-@pytest.mark.slow
-def test_party_walls(context, database, mock_distribution_tiles_files_index):
-    """Can we compute the party walls and other statistics?"""
+def _make_feature_file(path, pand_id: str) -> None:
+    """Create a minimal CityJSONFeature file for testing."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = {
+        "type": "CityJSONFeature",
+        "id": pand_id,
+        "CityObjects": {
+            pand_id: {
+                "type": "Building",
+                "attributes": {},
+                "geometry": [],
+            }
+        },
+        "vertices": [],
+    }
+    path.write_text(json.dumps(content))
 
-    result = party_walls_nl(context, mock_distribution_tiles_files_index, database)
-    assert isinstance(result, DataFrame)
-    assert not result.empty
 
+def test_features_file_index(tmp_path):
+    """features_file_index maps pand_id -> path for all .city.jsonl files."""
+    recon_dir = tmp_path / "stages" / "reconstruction"
+    # Create z/x/y/objects/<pand_id>/reconstruct/<pand_id>.city.jsonl structure
+    pand_ids = [
+        "NL.IMBAG.Pand.0307100000308298",
+        "NL.IMBAG.Pand.0307100000368987",
+    ]
+    for pand_id in pand_ids:
+        feature_path = (
+            recon_dir / "0" / "0" / "0" / "objects" / pand_id / "reconstruct"
+            / f"{pand_id}.city.jsonl"
+        )
+        _make_feature_file(feature_path, pand_id)
 
-def test_features_file_index(file_store_fastssd_resource):
-    """Can we find and map all the cityjson feature files of the test data?"""
-    result = features_file_index(PartyWallsConfig(), file_store_fastssd_resource)
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    result = features_file_index(PartyWallsConfig(), file_store)
+
     assert isinstance(result, dict)
-    assert len(result) == 415
+    assert len(result) == len(pand_ids)
+    for pand_id in pand_ids:
+        assert pand_id in result
+        assert result[pand_id].exists()
 
 
-@pytest.mark.slow
-def test_cityjsonfeatures_with_party_walls_nl(
-    context, file_store_fastssd_resource, mock_party_walls_nl, mock_features_file_index
-):
-    """Can we create cityjsonfeatures with the party wall data?"""
-    result = cityjsonfeatures_with_party_walls_nl(
-        context,
-        mock_party_walls_nl,
-        mock_features_file_index,
-        file_store_fastssd_resource,
+def test_party_walls_nl_empty_tile(tmp_path):
+    """party_walls_nl returns [] when no features are found for the tile."""
+    from unittest.mock import MagicMock
+
+    from dagster import build_asset_context
+    from bag3d.common.resources.version import ReleaseVersionResource
+
+    tile_id = "10/434/716"
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version="test_version")
+
+    # features_file_index has features only for a different tile
+    recon_dir = tmp_path / "stages" / "reconstruction"
+    pand_id = "NL.IMBAG.Pand.0307100000308298"
+    feature_path = (
+        recon_dir / "0" / "0" / "0" / "objects" / pand_id / "reconstruct"
+        / f"{pand_id}.city.jsonl"
     )
-    assert isinstance(result, list)
-    assert result[0].stem == "NL.IMBAG.Pand.0307100000308298.city"
-    assert result[0].suffix == ".jsonl"
+    _make_feature_file(feature_path, pand_id)
+
+    mock_db = MagicMock()
+
+    with build_asset_context(partition_key=tile_id) as context:
+        result = party_walls_nl(
+            context,
+            PartyWallsConfig(),
+            {pand_id: feature_path},
+            mock_db,
+            file_store,
+            version,
+        )
+
+    assert result == []
+    # DB should not be queried when tile is empty
+    mock_db.connection.get_dict.assert_not_called()
