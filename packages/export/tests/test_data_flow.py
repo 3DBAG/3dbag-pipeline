@@ -7,6 +7,7 @@ and produce the expected output files.
 import csv
 import json
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock
 
 from bag3d.common.resources.files import FileStoreResource
@@ -93,7 +94,7 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         (extra_input_id,),
     ]
 
-    result_csv = feature_evaluation(file_store, mock_db, version)
+    result_csv = cast(Path, feature_evaluation(file_store, mock_db, version))
 
     assert result_csv.exists()
     assert result_csv.name == "reconstructed_features.csv"
@@ -117,6 +118,7 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         "lod_22",
         "has_geometry",
     }
+    assert reader.fieldnames is not None
     assert expected_cols.issubset(set(reader.fieldnames))
 
     # Reconstructed buildings should have geometry
@@ -170,7 +172,7 @@ def test_export_index_reads_quadtree(tmp_path):
     for tid in tile_ids:
         _make_tile_files(tiles_dir, tid)
 
-    result_path = export_index(file_store, version)
+    result_path = cast(Path, export_index(file_store, version))
 
     assert result_path.exists()
     assert result_path.name == "export_index.csv"
@@ -181,6 +183,7 @@ def test_export_index_reads_quadtree(tmp_path):
 
     assert len(rows) == len(tile_ids)
     expected_cols = {"tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"}
+    assert reader.fieldnames is not None
     assert expected_cols == set(reader.fieldnames)
 
     for row in rows:

@@ -5,6 +5,7 @@ Chains features_file_index -> party_walls_nl to verify stage-to-stage handoff.
 
 import json
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock
 
 from dagster import build_asset_context
@@ -69,9 +70,9 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert "stages/reconstruction" in str(index[pand_id])
 
     # Step 2: party_walls_nl consumes the index and writes to party_walls stage
-    shared_walls_calls = []
+    shared_walls_calls: list[tuple] = []
 
-    def fake_shared_walls(target, adjacent):
+    def fake_shared_walls(target: object, adjacent: object) -> dict:
         shared_walls_calls.append((target, adjacent))
         return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
 
@@ -115,7 +116,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     # Verify output files exist at stages/party_walls/{tile_id}/
     party_walls_dir = tmp_path / "stages" / "party_walls" / tile_id
     assert party_walls_dir.is_dir()
-    assert len(output_paths) == 2
+    assert len(cast(list, output_paths)) == 2
 
     for pand_id in (target_id, adjacent_id):
         output_file = party_walls_dir / f"{pand_id}.city.jsonl"
@@ -127,4 +128,4 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert attrs["b3_opp_buitenmuur"] == 8.0
 
     # shared_walls was called for both buildings
-    assert len(shared_walls_calls) == 2
+    assert len(cast(list, shared_walls_calls)) == 2
