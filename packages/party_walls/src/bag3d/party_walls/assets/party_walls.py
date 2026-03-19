@@ -15,7 +15,7 @@ from dagster import (
 )
 from pydantic import Field
 from psycopg import sql as pgsql
-from bag3d_surfaces.walls import shared_walls, write_cityjsonfeature
+from building_surfaces.walls import shared_walls, write_cityjsonfeature
 
 from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
 from bag3d.common.resources.files import FileStoreResource

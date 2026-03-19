@@ -23,7 +23,7 @@ dependencies = [
     "dagster~=1.12.14",
     "dagster-postgres~=0.28.14",
     "shapely~=2.0.1",
-    "bag3d-surfaces",
+    "building-surfaces",
     "bag3d-common",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
@@ -39,7 +39,7 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-bag3d-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1005" }
+building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1009" }
 bag3d-common = { path = "../common", editable = true}
 
 [tool.pytest.ini_options]
