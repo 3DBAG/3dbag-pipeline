@@ -148,7 +148,7 @@ def make_chunks(data: dict[str, Path], SIZE: int = 1000):
         yield {k: data[k] for k in islice(it, SIZE)}
 
 
-@asset(deps=[AssetKey(["party_walls", "party_walls_nl"])])
+@asset(deps=[AssetKey(["party_walls", "building_surfaces"])])
 def features_file_index(
     config: FloorsEstimationConfig, file_store: FileStoreResource
 ) -> dict[str, Path]:

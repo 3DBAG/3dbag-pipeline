@@ -1,6 +1,6 @@
 """Integration test: reconstruction stage -> party_walls stage.
 
-Chains features_file_index -> party_walls_nl to verify stage-to-stage handoff.
+Chains features_file_index -> building_surfaces to verify stage-to-stage handoff.
 """
 
 import json
@@ -15,7 +15,7 @@ from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
-    adjacency_wall_surfaces,
+    building_surfaces,
 )
 
 
@@ -69,7 +69,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert pand_id in index
         assert "stages/reconstruction" in str(index[pand_id])
 
-    # Step 2: adjacency_wall_surfaces consumes the index and writes to party_walls stage
+    # Step 2: building_surfaces consumes the index and writes to party_walls stage
     shared_walls_calls: list[tuple] = []
 
     def fake_shared_walls(target: object, adjacent: object) -> dict:
@@ -104,7 +104,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     ]
 
     with build_asset_context(partition_key=tile_id) as context:
-        output_paths = adjacency_wall_surfaces(
+        output_paths = building_surfaces(
             context,
             PartyWallsConfig(concurrency=1),
             index,

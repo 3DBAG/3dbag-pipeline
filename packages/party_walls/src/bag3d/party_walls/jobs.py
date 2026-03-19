@@ -12,5 +12,5 @@ job_party_walls = define_asset_job(
     bag3d-surfaces shared_walls() per building, driven by the BAG adjacency index.
     Writes CityJSONFeature files to stages/party_walls/{tile_id}/.
     """,
-    selection=AssetSelection.assets(["party_walls", "adjacency_wall_surfaces"]),
+    selection=AssetSelection.assets(["party_walls", "building_surfaces"]),
 )

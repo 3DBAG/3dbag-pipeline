@@ -7,8 +7,8 @@ The main pipeline stages pass data through the file system via **stage directori
 ```
 stages/reconstruction/{tile_id}/objects/{pand_id}/reconstruct/{pand_id}.city.jsonl
         |
-        |  party_walls.features_file_index  (walks stages/reconstruction/, builds {id: path} dict)
-        |  party_walls.party_walls_nl       (reads per-partition, also reads DB: bag_adjacency)
+        |  party_walls.features_file_index    (walks stages/reconstruction/, builds {id: path} dict)
+        |  party_walls.building_surfaces (reads per-partition, also reads DB: bag_adjacency)
         v
 stages/party_walls/{tile_id}/{pand_id}.city.jsonl          <-- adds shared_walls geometry
         |
@@ -45,7 +45,7 @@ The `reconstructed_building_models_nl` asset (partitioned by tile) runs roofer t
 
 ### Party walls
 
-`features_file_index` walks the reconstruction output directory tree (concurrently per z-level) and builds a `{pand_id: path}` mapping. `party_walls_nl` (partitioned) uses this index together with the `bag_adjacency` database table to compute shared walls per building. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
+`features_file_index` walks the reconstruction output directory tree (concurrently per z-level) and builds a `{pand_id: path}` mapping. `building_surfaces` (partitioned) uses this index together with the `bag_adjacency` database table to compute shared walls per building. `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
 
 ### Floors estimation
 
@@ -59,7 +59,7 @@ Four tyler assets read from `stages/floors_estimation/` and write tiled output t
 
 ## Database as side channel
 
-The `floors_estimation` workflow uses PostgreSQL as an intermediate store: `bag3d_features` extracts attributes from the `.city.jsonl` files into a database table, the ML pipeline runs entirely in DB/pandas, and `save_cjfiles` writes the predictions back into the files. The `party_walls_nl` asset reads the `bag_adjacency` table to determine which buildings are adjacent.
+The `floors_estimation` workflow uses PostgreSQL as an intermediate store: `bag3d_features` extracts attributes from the `.city.jsonl` files into a database table, the ML pipeline runs entirely in DB/pandas, and `save_cjfiles` writes the predictions back into the files. The `building_surfaces` asset reads the row-based `bag_adjacency` table to determine which buildings are adjacent.
 
 ## Directory structure
 

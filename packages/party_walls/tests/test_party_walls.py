@@ -4,10 +4,12 @@ from typing import cast
 from unittest.mock import MagicMock
 
 from dagster import build_asset_context
+
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
-    adjacency_wall_surfaces,
+    building_surfaces,
 )
 from bag3d.common.resources.files import FileStoreResource
 
@@ -76,8 +78,8 @@ def test_features_file_index(tmp_path):
         assert result[pand_id].exists()
 
 
-def test_party_walls_nl_empty_tile(tmp_path):
-    """adjacency_wall_surfaces returns [] when no features are found for the tile."""
+def test_building_surfaces_empty_tile(tmp_path):
+    """building_surfaces returns [] when no features are found for the tile."""
     from bag3d.common.resources.version import ReleaseVersionResource
 
     tile_id = "10/434/716"
@@ -102,7 +104,7 @@ def test_party_walls_nl_empty_tile(tmp_path):
     mock_db = MagicMock()
 
     with build_asset_context(partition_key=tile_id) as context:
-        result = adjacency_wall_surfaces(
+        result = building_surfaces(
             context,
             PartyWallsConfig(),
             {pand_id: feature_path},
@@ -116,10 +118,11 @@ def test_party_walls_nl_empty_tile(tmp_path):
     mock_db.connection.get_dict.assert_not_called()
 
 
-def test_party_walls_nl_writes_computed_features(tmp_path, version, monkeypatch):
-    """adjacency_wall_surfaces computes shared walls for tile features and writes outputs."""
+def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
+    """building_surfaces computes shared walls for tile features and writes outputs."""
     tile_id = "10/434/716"
     file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version="test_version")
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
@@ -151,11 +154,15 @@ def test_party_walls_nl_writes_computed_features(tmp_path, version, monkeypatch)
         {
             "identificatie": target_id,
             "adjacent_identificatie": adjacent_id,
-        }
+        },
+        {
+            "identificatie": adjacent_id,
+            "adjacent_identificatie": target_id,
+        },
     ]
 
     with build_asset_context(partition_key=tile_id) as context:
-        result = adjacency_wall_surfaces(
+        result = building_surfaces(
             context,
             PartyWallsConfig(concurrency=1),
             {
@@ -174,7 +181,7 @@ def test_party_walls_nl_writes_computed_features(tmp_path, version, monkeypatch)
         tmp_path / "stages" / "party_walls" / tile_id / f"{adjacent_id}.city.jsonl",
     ]
     assert len(shared_walls_calls) == 2
-    assert len(shared_walls_calls[0][1]) == 1
+    assert sorted(len(call[1]) for call in shared_walls_calls) == [1, 1]
 
     target_output = json.loads(output_paths[0].read_text())
     assert (

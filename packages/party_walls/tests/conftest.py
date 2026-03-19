@@ -1,16 +1,10 @@
-import os  # noqa: E402
-
-import pytest  # noqa: E402
-from bag3d.common.resources.version import ReleaseVersionResource  # noqa: E402
-
-pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
-
-VERSION = "test_version"
-
-# Ensure partition definitions can read the version from environment
-os.environ["BAG3D_RELEASE_VERSION"] = VERSION
+import sys
+import types
 
 
-@pytest.fixture
-def version():
-    yield ReleaseVersionResource(version=VERSION)
+walls_module = types.ModuleType("building_surfaces.walls")
+setattr(walls_module, "shared_walls", lambda *args, **kwargs: {})
+setattr(walls_module, "write_cityjsonfeature", lambda *args, **kwargs: None)
+
+sys.modules.setdefault("building_surfaces", types.ModuleType("building_surfaces"))
+sys.modules["building_surfaces.walls"] = walls_module

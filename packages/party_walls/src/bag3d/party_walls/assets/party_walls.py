@@ -184,7 +184,7 @@ def _process_building(
     pool="party_walls",
     deps=[AssetKey(["input", "intermediary", "bag_adjacency"])],
 )
-def adjacency_wall_surfaces(
+def building_surfaces(
     context: AssetExecutionContext,
     config: PartyWallsConfig,
     features_file_index: dict[str, Path],
@@ -195,8 +195,9 @@ def adjacency_wall_surfaces(
     """Feature-based party walls calculation using bag3d-surfaces shared_walls().
 
     For each building in the tile partition, loads the reconstructed CityJSONFeature,
-    queries adjacent building IDs from the bag_adjacency table, and computes party walls
-    using shared_walls(). Results are written to stages/party_walls/{tile_id}/.
+    queries adjacent building IDs from the row-based bag_adjacency table, and
+    computes party walls using shared_walls(). Results are written to
+    stages/party_walls/{tile_id}/.
     """
     tile_id = context.partition_key  # e.g. "10/434/716"
 
@@ -218,7 +219,7 @@ def adjacency_wall_surfaces(
     pand_ids = list(tile_features.keys())
     query = pgsql.SQL(
         """
-        SELECT identificatie, unnest(adjacent_ids) AS adjacent_identificatie
+        SELECT identificatie, adjacent_identificatie
         FROM reconstruction_input.bag_adjacency
         WHERE identificatie = ANY({pand_ids})
         """

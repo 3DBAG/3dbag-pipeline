@@ -2,6 +2,10 @@
 
 Workflow for calculating the party walls from the 3D BAG
 
+The workflow reads adjacency relations from `reconstruction_input.bag_adjacency`,
+which stores one directed pair per row as
+`(identificatie, adjacent_identificatie)`.
+
 ## License
 
 Licensed under Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0).
