@@ -130,27 +130,19 @@
       ]
     },
     {
-      "name": "nl_reconstruct",
-      "display_name": "nl_reconstruct",
+      "name": "reconstruct",
+      "display_name": "reconstruct",
       "allow_partial_failure": true,
       "jobs": [
-        { "job": "nl_reconstruct", "code_location": "core", "partitioned": true }
+        { "job": "reconstruct", "code_location": "core", "partitioned": true }
       ]
     },
     {
-      "name": "nl_party_walls_index",
-      "display_name": "nl_party_walls_index",
-      "allow_partial_failure": false,
-      "jobs": [
-        { "job": "nl_party_walls_index", "code_location": "party_walls", "partitioned": false }
-      ]
-    },
-    {
-      "name": "nl_party_walls",
-      "display_name": "nl_party_walls",
+      "name": "party_walls",
+      "display_name": "party_walls",
       "allow_partial_failure": true,
       "jobs": [
-        { "job": "nl_party_walls", "code_location": "party_walls", "partitioned": true }
+        { "job": "party_walls", "code_location": "party_walls", "partitioned": true }
       ]
     },
     {
@@ -162,11 +154,11 @@
       ]
     },
     {
-      "name": "nl_export",
-      "display_name": "nl_export",
+      "name": "export",
+      "display_name": "export",
       "allow_partial_failure": false,
       "jobs": [
-        { "job": "nl_export", "code_location": "export", "partitioned": false }
+        { "job": "export", "code_location": "export", "partitioned": false }
       ]
     }
   ]
