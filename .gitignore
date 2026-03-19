@@ -39,6 +39,8 @@ docs/reference
 # Tools
 .tox
 .coverage
+.coverage.*
+coverage-report.md
 *.ruff_cache
 
 # Misc

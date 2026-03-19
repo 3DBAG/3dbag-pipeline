@@ -14,7 +14,7 @@ export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_I
 	docker_volume_create docker_volume_create_data_postgresql docker_volume_create_data_pipeline \
 	docker_volume_create_dagster_home docker_volume_create_dagster_postgresql \
 	docker_volume_rm docker_volume_recreate \
-	test test_report lint lint_fix \
+	test test_coverage test_report lint lint_fix \
 	local_install_uv local_venv local_dev \
 	set_version
 
@@ -35,6 +35,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test                         Run unit tests (fast, offline, no Docker)"
+	@echo "  test_coverage                Run tests with coverage report per package"
 	@echo "  test_report                  Parse and summarize test results"
 	@echo ""
 	@echo "Code Quality:"
@@ -115,6 +116,33 @@ test:
 	uv --project packages/export run pytest packages/export/tests/ -v || FAILED=1; \
 	uv --project packages/floors_estimation run pytest packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run pytest packages/party_walls/tests/ -v || FAILED=1; \
+	exit $$FAILED
+
+test_coverage:
+	@set -o pipefail; \
+	FAILED=0; \
+	uv --project packages/common run coverage run --source=packages/common/src --data-file=.coverage.common -m pytest packages/common/tests/ -v || FAILED=1; \
+	uv --project packages/core run coverage run --source=packages/core/src --data-file=.coverage.core -m pytest packages/core/tests/ -v || FAILED=1; \
+	uv --project packages/export run coverage run --source=packages/export/src --data-file=.coverage.export -m pytest packages/export/tests/ -v || FAILED=1; \
+	uv --project packages/floors_estimation run coverage run --source=packages/floors_estimation/src --data-file=.coverage.floors_estimation -m pytest packages/floors_estimation/tests/ -v || FAILED=1; \
+	uv --project packages/party_walls run coverage run --source=packages/party_walls/src --data-file=.coverage.party_walls -m pytest packages/party_walls/tests/ -v || FAILED=1; \
+	echo ""; \
+	echo "=== Coverage per package ==="; \
+	echo ""; \
+	echo "--- common ---"; \
+	uv --project packages/common run coverage report --data-file=.coverage.common; \
+	echo ""; \
+	echo "--- core ---"; \
+	uv --project packages/core run coverage report --data-file=.coverage.core; \
+	echo ""; \
+	echo "--- export ---"; \
+	uv --project packages/export run coverage report --data-file=.coverage.export; \
+	echo ""; \
+	echo "--- floors_estimation ---"; \
+	uv --project packages/floors_estimation run coverage report --data-file=.coverage.floors_estimation; \
+	echo ""; \
+	echo "--- party_walls ---"; \
+	uv --project packages/party_walls run coverage report --data-file=.coverage.party_walls; \
 	exit $$FAILED
 
 test_report:
