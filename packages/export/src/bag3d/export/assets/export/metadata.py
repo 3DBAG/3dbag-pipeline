@@ -112,7 +112,7 @@ def features_to_csv(
 
 
 @asset(
-    deps={AssetKey(("reconstruction", "reconstructed_building_models_nl"))},
+    deps={AssetKey(("reconstruction", "reconstructed_building_models"))},
 )
 def feature_evaluation(
     file_store: FileStoreResource,
@@ -190,7 +190,7 @@ def feature_evaluation(
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
+    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
 )
 def export_index(
     file_store: FileStoreResource, version: ReleaseVersionResource

@@ -71,18 +71,18 @@ job_source_input = define_asset_job(
     | AssetSelection.groups("input"),
 )
 
-job_nl_reconstruct = define_asset_job(
-    name="nl_reconstruct",
+job_reconstruct = define_asset_job(
+    name="reconstruct",
     description="Run the crop and reconstruct steps for the Netherlands.",
     selection=AssetSelection.assets(
-        ["reconstruction", "reconstructed_building_models_nl"]
+        ["reconstruction", "reconstructed_building_models"]
     ),
 )
 
-job_nl_reconstruct_debug = define_asset_job(
-    name="nl_reconstruct_debug",
+job_reconstruct_debug = define_asset_job(
+    name="reconstruct_debug",
     description="Run the crop and reconstruct steps for the Netherlands with debug info.",
     selection=AssetSelection.assets(
-        ["reconstruction", "reconstructed_building_models_nl"]
+        ["reconstruction", "reconstructed_building_models"]
     ),
 )

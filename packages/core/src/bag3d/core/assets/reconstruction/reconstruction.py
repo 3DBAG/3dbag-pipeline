@@ -84,7 +84,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     code_version=tool_versions.get_version("roofer"),
     pool="roofer",
 )
-def reconstructed_building_models_nl(
+def reconstructed_building_models(
     context: AssetExecutionContext,
     config: RooferConfig,
     computation_db: DatabaseResource,

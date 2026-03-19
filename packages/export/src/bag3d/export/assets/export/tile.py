@@ -174,7 +174,7 @@ class TylerConfig(Config):
     code_version=tool_versions.get_version("tyler-multiformat"),
     pool="tyler",
 )
-def reconstruction_output_multitiles_nl(
+def reconstruction_output_multitiles(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
@@ -207,7 +207,7 @@ def reconstruction_output_multitiles_nl(
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
-def reconstruction_output_3dtiles_lod12_nl(
+def reconstruction_output_3dtiles_lod12(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
@@ -240,7 +240,7 @@ def reconstruction_output_3dtiles_lod12_nl(
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
-def reconstruction_output_3dtiles_lod13_nl(
+def reconstruction_output_3dtiles_lod13(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
@@ -273,7 +273,7 @@ def reconstruction_output_3dtiles_lod13_nl(
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
-def reconstruction_output_3dtiles_lod22_nl(
+def reconstruction_output_3dtiles_lod22(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,

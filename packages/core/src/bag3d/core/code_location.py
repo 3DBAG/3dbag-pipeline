@@ -23,8 +23,8 @@ from bag3d.core.jobs import (
     job_ahn4,
     job_ahn5,
     job_ahn_metadata_index,
-    job_nl_reconstruct,
-    job_nl_reconstruct_debug,
+    job_reconstruct,
+    job_reconstruct_debug,
 )
 
 all_assets = [
@@ -42,8 +42,8 @@ all_jobs = [
     job_ahn4,
     job_ahn5,
     job_ahn_metadata_index,
-    job_nl_reconstruct,
-    job_nl_reconstruct_debug,
+    job_reconstruct,
+    job_reconstruct_debug,
 ]
 
 sensor_status = (

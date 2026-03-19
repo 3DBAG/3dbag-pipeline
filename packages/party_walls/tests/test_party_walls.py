@@ -7,7 +7,7 @@ from dagster import build_asset_context
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
-    party_walls_nl,
+    adjacency_wall_surfaces,
 )
 from bag3d.common.resources.files import FileStoreResource
 
@@ -77,7 +77,7 @@ def test_features_file_index(tmp_path):
 
 
 def test_party_walls_nl_empty_tile(tmp_path):
-    """party_walls_nl returns [] when no features are found for the tile."""
+    """adjacency_wall_surfaces returns [] when no features are found for the tile."""
     from bag3d.common.resources.version import ReleaseVersionResource
 
     tile_id = "10/434/716"
@@ -102,7 +102,7 @@ def test_party_walls_nl_empty_tile(tmp_path):
     mock_db = MagicMock()
 
     with build_asset_context(partition_key=tile_id) as context:
-        result = party_walls_nl(
+        result = adjacency_wall_surfaces(
             context,
             PartyWallsConfig(),
             {pand_id: feature_path},
@@ -117,7 +117,7 @@ def test_party_walls_nl_empty_tile(tmp_path):
 
 
 def test_party_walls_nl_writes_computed_features(tmp_path, version, monkeypatch):
-    """party_walls_nl computes shared walls for tile features and writes outputs."""
+    """adjacency_wall_surfaces computes shared walls for tile features and writes outputs."""
     tile_id = "10/434/716"
     file_store = FileStoreResource(root_dir=str(tmp_path))
     target_id = "NL.IMBAG.Pand.0307100000308298"
@@ -155,7 +155,7 @@ def test_party_walls_nl_writes_computed_features(tmp_path, version, monkeypatch)
     ]
 
     with build_asset_context(partition_key=tile_id) as context:
-        result = party_walls_nl(
+        result = adjacency_wall_surfaces(
             context,
             PartyWallsConfig(concurrency=1),
             {

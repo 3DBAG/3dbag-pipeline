@@ -15,7 +15,7 @@ from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
-    party_walls_nl,
+    adjacency_wall_surfaces,
 )
 
 
@@ -38,7 +38,7 @@ def _make_feature_file(path: Path, pand_id: str) -> None:
 
 
 def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
-    """Chain features_file_index -> party_walls_nl: reconstruction stage feeds party_walls stage."""
+    """Chain features_file_index -> party_walls: reconstruction stage feeds party_walls stage."""
     tile_id = "10/434/716"
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
@@ -69,7 +69,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert pand_id in index
         assert "stages/reconstruction" in str(index[pand_id])
 
-    # Step 2: party_walls_nl consumes the index and writes to party_walls stage
+    # Step 2: adjacency_wall_surfaces consumes the index and writes to party_walls stage
     shared_walls_calls: list[tuple] = []
 
     def fake_shared_walls(target: object, adjacent: object) -> dict:
@@ -104,7 +104,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     ]
 
     with build_asset_context(partition_key=tile_id) as context:
-        output_paths = party_walls_nl(
+        output_paths = adjacency_wall_surfaces(
             context,
             PartyWallsConfig(concurrency=1),
             index,

@@ -18,9 +18,9 @@ logger = get_dagster_logger()
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles_nl"))},
+    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
 )
-def geopackage_nl(
+def geopackage(
     file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
 ) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
@@ -181,7 +181,7 @@ class CompressionConfig(Config):
 
 @asset(
     deps={
-        AssetKey("geopackage_nl"),
+        AssetKey("geopackage"),
     },
     pool="compression",
 )

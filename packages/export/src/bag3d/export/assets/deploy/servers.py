@@ -20,17 +20,17 @@ logger = get_dagster_logger("deploy")
 @asset(
     ins={"metadata": AssetIn(key_prefix="export")},
     deps=[
-        AssetKey(("export", "geopackage_nl")),
+        AssetKey(("export", "geopackage")),
         AssetKey(("export", "export_index")),
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
-        AssetKey(("export", "reconstruction_output_multitiles_nl")),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod12_nl")),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod13_nl")),
-        AssetKey(("export", "reconstruction_output_3dtiles_lod22_nl")),
+        AssetKey(("export", "reconstruction_output_multitiles")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod12")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod13")),
+        AssetKey(("export", "reconstruction_output_3dtiles_lod22")),
     ],
 )
-def compressed_export_nl(metadata, version: ReleaseVersionResource) -> Output[Path]:
+def compressed_export(metadata, version: ReleaseVersionResource) -> Output[Path]:
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
 
@@ -55,7 +55,7 @@ def compressed_export_nl(metadata, version: ReleaseVersionResource) -> Output[Pa
 
 def transfer_to_server(
     server: ServerTransferResource,
-    compressed_export_nl: Path,
+    compressed_export: Path,
     metadata: Path,
     target_dir: str,
 ) -> tuple[Path, Path]:
@@ -63,7 +63,7 @@ def transfer_to_server(
 
     Args:
         server: SSH connection resource for the target server
-        compressed_export_nl: Path to the compressed export file
+        compressed_export: Path to the compressed export file
         metadata: Path to metadata file containing version information
         target_dir: Base directory on remote server for deployment
 
@@ -79,7 +79,7 @@ def transfer_to_server(
         metadata_json = json.load(fo)
         version = metadata_json["identificationInfo"]["citation"]["edition"]
         deploy_dir = Path(target_dir) / version
-        compressed_file = Path(target_dir) / compressed_export_nl.name
+        compressed_file = Path(target_dir) / compressed_export.name
 
     try:
         with server.connection as c:
@@ -88,8 +88,8 @@ def transfer_to_server(
             assert result.ok, "Connection command failed"
             logger.debug("SSH connection successful")
 
-            logger.debug(f"Transferring {compressed_export_nl} to {target_dir}")
-            result = c.put(compressed_export_nl, remote=target_dir)
+            logger.debug(f"Transferring {compressed_export} to {target_dir}")
+            result = c.put(compressed_export, remote=target_dir)
             logger.debug(f"Transferred: {result}")
 
             logger.debug(f"Creating deploy_dir {deploy_dir}")
@@ -115,14 +115,14 @@ def transfer_to_server(
     ins={"metadata": AssetIn(key_prefix="export")},
 )
 def transfer_to_publication(
-    compressed_export_nl: Path,
+    compressed_export: Path,
     metadata: Path,
     publication_server: ServerTransferResource,
 ) -> tuple[Path, Path]:
     """Transfer the 3D BAG export to the publication server for public downloads and webservices."""
     return transfer_to_server(
         publication_server,
-        compressed_export_nl,
+        compressed_export,
         metadata,
         publication_server.target_dir,
     )
