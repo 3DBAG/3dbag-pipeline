@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from dagster import build_asset_context
 
-from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.common.resources import nl_transform
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
@@ -122,7 +122,6 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     """building_surfaces computes shared walls for tile features and writes outputs."""
     tile_id = "10/434/716"
     file_store = FileStoreResource(root_dir=str(tmp_path))
-    version = ReleaseVersionResource(version="test_version")
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
@@ -171,7 +170,7 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
             },
             mock_db,
             file_store,
-            version,
+            nl_transform,
         )
 
     output_paths = cast(list[Path], result)

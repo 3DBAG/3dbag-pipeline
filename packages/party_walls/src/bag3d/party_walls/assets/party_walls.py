@@ -1,6 +1,6 @@
 from pathlib import Path
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Iterable, cast
 import json
 from os import getenv
@@ -203,7 +203,7 @@ def building_surfaces(
 
     # Process buildings concurrently within this tile
     files_written: list[Path] = []
-    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
+    with ThreadPoolExecutor(max_workers=config.concurrency) as executor:
         futures = {
             executor.submit(
                 _process_building,

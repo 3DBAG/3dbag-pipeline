@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 
 from dagster import build_asset_context
 
+from bag3d.common.resources import nl_transform
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     features_file_index,
@@ -58,7 +58,6 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         _make_feature_file(feature_path, pand_id)
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
-    version = ReleaseVersionResource(version="test_version")
 
     # Step 1: features_file_index reads from reconstruction stage
     index = features_file_index(PartyWallsConfig(concurrency=1), file_store)
@@ -110,7 +109,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
             index,
             mock_db,
             file_store,
-            version,
+            nl_transform,
         )
 
     # Verify output files exist at stages/party_walls/{tile_id}/

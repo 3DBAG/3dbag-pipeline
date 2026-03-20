@@ -16,4 +16,5 @@ MOCK_RESOURCES = {
     "version": dg.ResourceDefinition.mock_resource(),
     "specs": dg.ResourceDefinition.mock_resource(),
     "model_store": dg.ResourceDefinition.mock_resource(),
+    "nl_transform": dg.ResourceDefinition.mock_resource(),
 }
