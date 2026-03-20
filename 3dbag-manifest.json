@@ -107,18 +107,19 @@
       "display_name": "source_input / ahn_tile_index",
       "allow_partial_failure": false,
       "jobs": [
-        { "job": "source_input",   "code_location": "core", "partitioned": false },
-        { "job": "ahn_tile_index", "code_location": "core", "partitioned": false }
+        { "job": "source_input",   "code_location": "core" },
+        { "job": "ahn_tile_index", "code_location": "core" }
       ]
     },
     {
       "name": "ahn",
       "display_name": "ahn downloads (ahn3/4/5)",
       "allow_partial_failure": true,
+      "partition_asset": ["ahn", "laz_files_ahn3"],
       "jobs": [
-        { "job": "ahn3", "code_location": "core", "partitioned": true },
-        { "job": "ahn4", "code_location": "core", "partitioned": true },
-        { "job": "ahn5", "code_location": "core", "partitioned": true }
+        { "job": "ahn3", "code_location": "core" },
+        { "job": "ahn4", "code_location": "core" },
+        { "job": "ahn5", "code_location": "core" }
       ]
     },
     {
@@ -126,23 +127,33 @@
       "display_name": "ahn_metadata_index",
       "allow_partial_failure": false,
       "jobs": [
-        { "job": "ahn_metadata_index", "code_location": "core", "partitioned": false }
+        { "job": "ahn_metadata_index", "code_location": "core" }
       ]
     },
     {
       "name": "reconstruct",
       "display_name": "reconstruct",
       "allow_partial_failure": true,
+      "partition_asset": ["reconstruction", "reconstructed_building_models"],
       "jobs": [
-        { "job": "reconstruct", "code_location": "core", "partitioned": true }
+        { "job": "reconstruct", "code_location": "core" }
+      ]
+    },
+    {
+      "name": "party_walls_index",
+      "display_name": "party_walls_index",
+      "allow_partial_failure": false,
+      "jobs": [
+        { "job": "party_walls_index", "code_location": "party_walls" }
       ]
     },
     {
       "name": "party_walls",
       "display_name": "party_walls",
       "allow_partial_failure": true,
+      "partition_asset": ["party_walls", "building_surfaces"],
       "jobs": [
-        { "job": "party_walls", "code_location": "party_walls", "partitioned": true }
+        { "job": "party_walls", "code_location": "party_walls" }
       ]
     },
     {
@@ -150,7 +161,7 @@
       "display_name": "floors_estimation",
       "allow_partial_failure": false,
       "jobs": [
-        { "job": "floors_estimation", "code_location": "floors_estimation", "partitioned": false }
+        { "job": "floors_estimation", "code_location": "floors_estimation" }
       ]
     },
     {
@@ -158,7 +169,7 @@
       "display_name": "export",
       "allow_partial_failure": false,
       "jobs": [
-        { "job": "export", "code_location": "export", "partitioned": false }
+        { "job": "export", "code_location": "export" }
       ]
     }
   ]
