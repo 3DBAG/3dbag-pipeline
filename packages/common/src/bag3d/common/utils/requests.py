@@ -67,6 +67,9 @@ def download_file(
         headers = {}
         if attempt_resume and os.path.exists(fpath):
             local_size = os.path.getsize(fpath)
+            if remote_size > 0 and local_size == remote_size:
+                logger.info(f"File already complete ({local_size} bytes), skipping download")
+                return fpath
             headers = {"Range": f"bytes={local_size}-"}
             logger.info(f"Resuming download at {local_size}/{remote_size} bytes")
         else:
