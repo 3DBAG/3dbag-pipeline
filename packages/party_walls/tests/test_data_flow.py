@@ -8,8 +8,7 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock
 
-from dagster import build_asset_context
-
+from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources import nl_transform
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.party_walls.assets.party_walls import (
@@ -102,7 +101,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         },
     ]
 
-    with build_asset_context(partition_key=tile_id) as context:
+    with build_asset_context_for(building_surfaces) as context:
         output_paths = building_surfaces(
             context,
             PartyWallsConfig(concurrency=1),

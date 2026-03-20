@@ -162,29 +162,18 @@ def building_surfaces(
 ) -> list[Path]:
     """Feature-based party walls calculation using bag3d-surfaces shared_walls().
 
-    For each building in the tile partition, loads the reconstructed CityJSONFeature,
-    queries adjacent building IDs from the row-based bag_adjacency table, and
-    computes party walls using shared_walls(). Results are written to
-    stages/party_walls/{tile_id}/.
+    For each building, loads the reconstructed CityJSONFeature, queries adjacent
+    building IDs from the row-based bag_adjacency table, and computes party walls
+    using shared_walls(). Results are written to stages/party_walls/{tile_id}/.
     """
-    tile_id = context.partition_key  # e.g. "10/434/716"
-
-    # Filter features_file_index to buildings in this tile
-    tile_prefix = str(file_store.stage_dir("reconstruction") / tile_id / "objects" / "")
-    tile_features = {
-        pand_id: path
-        for pand_id, path in features_file_index.items()
-        if str(path).startswith(tile_prefix)
-    }
-
-    if not tile_features:
-        logger.warning(f"No features found for tile {tile_id}, skipping.")
+    if not features_file_index:
+        logger.warning("No features found, skipping.")
         return []
 
     transform = {"translate": nl_transform.translate, "scale": nl_transform.scale}
 
-    # Query bag_adjacency for all pand_ids in this tile
-    pand_ids = list(tile_features.keys())
+    # Query bag_adjacency for all pand_ids
+    pand_ids = list(features_file_index.keys())
     query = pgsql.SQL(
         """
         SELECT identificatie, adjacent_identificatie
@@ -197,25 +186,35 @@ def building_surfaces(
     for row in rows:
         adjacency[row["identificatie"]].append(row["adjacent_identificatie"])
 
-    # Prepare output directory
-    output_dir = file_store.stage_dir("party_walls") / tile_id
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Group buildings by tile and create output directories
+    tiles_with_buildings: dict[str, list[tuple[str, Path]]] = defaultdict(list)
+    reconstruction_root = file_store.stage_dir("reconstruction")
+    for pand_id, path in features_file_index.items():
+        # Extract tile_id from path: .../reconstruction/{z}/{x}/{y}/objects/{pand_id}/...
+        rel_path = path.relative_to(reconstruction_root)
+        tile_id = "/".join(rel_path.parts[:3])
+        tiles_with_buildings[tile_id].append((pand_id, path))
 
-    # Process buildings concurrently within this tile
+    # Process buildings concurrently
     files_written: list[Path] = []
     with ThreadPoolExecutor(max_workers=config.concurrency) as executor:
-        futures = {
-            executor.submit(
-                _process_building,
-                pand_id,
-                path,
-                adjacency,
-                features_file_index,
-                transform,
-                output_dir,
-            ): pand_id
-            for pand_id, path in tile_features.items()
-        }
+        futures = {}
+        for tile_id, buildings in tiles_with_buildings.items():
+            output_dir = file_store.stage_dir("party_walls") / tile_id
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            for pand_id, path in buildings:
+                future = executor.submit(
+                    _process_building,
+                    pand_id,
+                    path,
+                    adjacency,
+                    features_file_index,
+                    transform,
+                    output_dir,
+                )
+                futures[future] = pand_id
+
         for future in futures:
             pand_id = futures[future]
             try:
@@ -225,6 +224,7 @@ def building_surfaces(
             except Exception as exc:
                 logger.error(f"Error processing building {pand_id}: {exc}")
 
+    output_dir = file_store.stage_dir("party_walls")
     context.add_output_metadata(
         metadata={
             "Nr. features": len(files_written),

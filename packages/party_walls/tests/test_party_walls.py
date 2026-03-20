@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock
 
-from dagster import build_asset_context
-
+from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources import nl_transform
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
@@ -78,43 +77,23 @@ def test_features_file_index(tmp_path):
         assert result[pand_id].exists()
 
 
-def test_building_surfaces_empty_tile(tmp_path):
-    """building_surfaces returns [] when no features are found for the tile."""
-    from bag3d.common.resources.version import ReleaseVersionResource
-
-    tile_id = "10/434/716"
+def test_building_surfaces_empty_index(tmp_path):
+    """building_surfaces returns [] when features_file_index is empty."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
-    version = ReleaseVersionResource(version="test_version")
-
-    # features_file_index has features only for a different tile
-    recon_dir = tmp_path / "stages" / "reconstruction"
-    pand_id = "NL.IMBAG.Pand.0307100000308298"
-    feature_path = (
-        recon_dir
-        / "0"
-        / "0"
-        / "0"
-        / "objects"
-        / pand_id
-        / "reconstruct"
-        / f"{pand_id}.city.jsonl"
-    )
-    _make_feature_file(feature_path, pand_id)
-
     mock_db = MagicMock()
 
-    with build_asset_context(partition_key=tile_id) as context:
+    with build_asset_context_for(building_surfaces) as context:
         result = building_surfaces(
             context,
             PartyWallsConfig(),
-            {pand_id: feature_path},
+            {},  # Empty index
             mock_db,
             file_store,
-            version,
+            nl_transform,
         )
 
     assert result == []
-    # DB should not be queried when tile is empty
+    # DB should not be queried when index is empty
     mock_db.connection.get_dict.assert_not_called()
 
 
@@ -160,7 +139,7 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         },
     ]
 
-    with build_asset_context(partition_key=tile_id) as context:
+    with build_asset_context_for(building_surfaces) as context:
         result = building_surfaces(
             context,
             PartyWallsConfig(concurrency=1),
