@@ -1,6 +1,6 @@
 from pathlib import Path
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from typing import Any, Iterable, cast
 import json
 from os import getenv
@@ -17,16 +17,11 @@ from pydantic import Field
 from psycopg import sql as pgsql
 from building_surfaces.walls import shared_walls, write_cityjsonfeature
 
-from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
+from bag3d.common.resources import NlTransform
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.resources.database import DatabaseResource
 
 logger = get_dagster_logger("party_walls")
-
-# Fallback roofer transform constants (from reconstruction.py)
-_ROOFER_TRANSLATE = [171800.0, 472700.0, 0.0]
-_ROOFER_SCALE = [0.001, 0.001, 0.001]
 
 
 class PartyWallsConfig(Config):
@@ -34,7 +29,7 @@ class PartyWallsConfig(Config):
 
     concurrency: int = Field(
         default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_PARTY_WALLS", "4")),
-        description="Number of threads for per-tile building processing.",
+        description="Number of threads for building processing.",
     )
 
 
@@ -83,31 +78,6 @@ def features_file_index(
     return dict(
         features_file_index_generator(reconstructed_root_dir, config.concurrency)
     )
-
-
-def _read_transform_from_export(
-    file_store: FileStoreResource, version: ReleaseVersionResource
-) -> dict:
-    """Read the CityJSON transform from an existing exported tile file.
-
-    Falls back to hardcoded roofer constants if no export tile is found.
-    """
-    tile_dir = file_store.stage_dir("export") / version.version / "tiles"
-    some_tile = next(tile_dir.rglob("*.city.json"), None) if tile_dir.exists() else None
-    if some_tile is not None:
-        try:
-            transform = json.loads(some_tile.read_text()).get("transform")
-            if transform is not None:
-                return transform
-        except Exception:
-            pass
-    logger.warning(
-        "No export tile found to read transform from; using roofer fallback constants."
-    )
-    return {
-        "scale": _ROOFER_SCALE,
-        "translate": _ROOFER_TRANSLATE,
-    }
 
 
 def _load_feature_as_citymodel(path: Path, transform: dict) -> tuple[dict, str | None]:
@@ -180,8 +150,6 @@ def _process_building(
 
 
 @asset(
-    partitions_def=PartitionDefinition3DBagDistribution(),
-    pool="party_walls",
     deps=[AssetKey(["input", "intermediary", "bag_adjacency"])],
 )
 def building_surfaces(
@@ -190,7 +158,7 @@ def building_surfaces(
     features_file_index: dict[str, Path],
     computation_db: DatabaseResource,
     file_store: FileStoreResource,
-    version: ReleaseVersionResource,
+    nl_transform: NlTransform,
 ) -> list[Path]:
     """Feature-based party walls calculation using bag3d-surfaces shared_walls().
 
@@ -213,7 +181,7 @@ def building_surfaces(
         logger.warning(f"No features found for tile {tile_id}, skipping.")
         return []
 
-    transform = _read_transform_from_export(file_store, version)
+    transform = {"translate": nl_transform.translate, "scale": nl_transform.scale}
 
     # Query bag_adjacency for all pand_ids in this tile
     pand_ids = list(tile_features.keys())
@@ -235,7 +203,7 @@ def building_surfaces(
 
     # Process buildings concurrently within this tile
     files_written: list[Path] = []
-    with ThreadPoolExecutor(max_workers=config.concurrency) as executor:
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         futures = {
             executor.submit(
                 _process_building,

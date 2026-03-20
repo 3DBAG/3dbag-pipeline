@@ -17,7 +17,7 @@ from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
-from bag3d.common.resources import tool_versions
+from bag3d.common.resources import tool_versions, NlTransform
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import RooferResource
@@ -90,6 +90,7 @@ def reconstructed_building_models(
     computation_db: DatabaseResource,
     roofer: RooferResource,
     file_store: FileStoreResource,
+    nl_transform: NlTransform,
     tiles,
     index,
     reconstruction_input,
@@ -105,6 +106,7 @@ def reconstructed_building_models(
         context,
         computation_db=computation_db,
         file_store=file_store,
+        nl_transform=nl_transform,
         reconstruction_input=reconstruction_input,
         index=index,
         tiles=tiles,
@@ -138,6 +140,7 @@ def create_roofer_config(
     context: AssetExecutionContext,
     computation_db: DatabaseResource,
     file_store: FileStoreResource,
+    nl_transform: NlTransform,
     reconstruction_input,
     index,
     tiles,
@@ -154,8 +157,8 @@ def create_roofer_config(
 
     split-cjseq = true
     omit-metadata = true
-    cj-translate = [171800.0,472700.0,0.0]
-    cj-scale = [0.001, 0.001, 0.001]
+    cj-translate = {nl_transform_translate}
+    cj-scale = {nl_transform_scale}
     output-directory = "{output_path}"
 
     lod12 = true
@@ -285,6 +288,8 @@ def create_roofer_config(
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,
         output_path=output_dir,
+        nl_transform_scale=nl_transform.scale,
+        nl_transform_translate=nl_transform.translate,
     )
     path_toml = output_dir / "roofer.toml"
     with path_toml.open("w") as of:

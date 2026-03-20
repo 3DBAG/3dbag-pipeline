@@ -18,6 +18,7 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
+from bag3d.common.resources.values import NlTransform
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 # Use os.environ[key] for required env vars: raises KeyError if unset and returns str (not
@@ -43,6 +44,8 @@ class DagsterDeployment(StrEnum):
 version = ReleaseVersionResource(version=os.getenv("BAG3D_RELEASE_VERSION"))  # type: ignore[arg-type]
 
 specs = Specs3DBAGResource()
+
+nl_transform = NlTransform()
 
 # Tool versions resource - instantiated at import time for code_version access
 tool_versions = ToolVersionsResource(
@@ -88,6 +91,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "specs": specs,
             "publication_server": ServerTransferResource.configure_at_launch(),
             "publication_db": DatabaseResource.configure_at_launch(),
+            "nl_transform": nl_transform,
         }
     elif configure_from_env:
         return {
@@ -157,6 +161,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                     "sslmode": os.getenv("BAG3D_PUBLICATION_PG_SSLMODE", "allow")
                 },
             ),
+            "nl_transform": nl_transform,
         }
     else:
         raise RuntimeError("Cannot configure dagster environment")
