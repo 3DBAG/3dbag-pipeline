@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.floors_estimation.resources import ModelStoreResource
-from dagster import build_op_context
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
@@ -24,20 +23,6 @@ def file_store_tmp(tmp_path):
 def model_store() -> ModelStoreResource:
     """Mock model store resource for testing."""
     return MagicMock(spec=ModelStoreResource)
-
-
-@pytest.fixture
-def context():
-    yield build_op_context(
-        partition_key="0/0/0",
-    )
-
-
-@pytest.fixture
-def context_with_data():
-    yield build_op_context(
-        partition_key="0/0/0",
-    )
 
 
 @pytest.fixture(scope="session")

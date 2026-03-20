@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import patch
 
 import requests
-from dagster import build_asset_context
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
@@ -119,8 +118,3 @@ def mock_requests():
 def wkt_testarea():
     """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
     yield "Polygon ((136251.531 456118.126, 136620.128 456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 456118.126))"
-
-
-@pytest.fixture
-def context(wkt_testarea):
-    yield build_asset_context()

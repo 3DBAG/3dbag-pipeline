@@ -3,7 +3,7 @@ from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
+from dagster import AssetKey, AssetSpec, IOManager, io_manager
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
@@ -38,11 +38,6 @@ def mock_asset_io_manager(init_context):
 def wkt_testarea():
     """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
     yield "Polygon ((136251.531 456118.126, 136620.128 456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 456118.126))"
-
-
-@pytest.fixture
-def context_ahn():
-    yield build_op_context(partition_key="01cz1")
 
 
 @pytest.fixture
