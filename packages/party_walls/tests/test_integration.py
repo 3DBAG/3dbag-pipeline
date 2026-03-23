@@ -29,6 +29,8 @@ for _mod in list(sys.modules):
     if _mod.startswith("building_surfaces"):
         del sys.modules[_mod]
 
+_real_shared_walls: object = None
+_real_write_cityjsonfeature: object = None
 try:
     from building_surfaces.walls import (  # noqa: E402
         shared_walls as _real_shared_walls,
