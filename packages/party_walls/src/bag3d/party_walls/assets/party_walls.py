@@ -241,7 +241,9 @@ def _summarize_building_timings(
         "mean_building_total_s": total_building_s / len(timings),
         "top_slowest_buildings": [
             asdict(item)
-            for item in sorted(timings, key=lambda item: item.total_s, reverse=True)[:10]
+            for item in sorted(timings, key=lambda item: item.total_s, reverse=True)[
+                :10
+            ]
         ],
     }
 
@@ -354,7 +356,5 @@ def building_surfaces(
             summary["shared_walls_total_s"], 3
         )
         metadata["Profile asset total (s)"] = round(summary["asset_total_s"], 3)
-    context.add_output_metadata(
-        metadata=metadata
-    )
+    context.add_output_metadata(metadata=metadata)
     return files_written

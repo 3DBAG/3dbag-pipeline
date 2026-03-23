@@ -115,7 +115,7 @@ def reconstruction_output_tiles_func(
         data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
     """
     reconstructed_root_dir = file_store.stage_dir("floors_estimation")
-    export_dir = file_store.stage_dir("export") / version.version
+    export_dir = file_store.stage_subdir("export", version.version)
     logger.debug(f"{reconstructed_root_dir=}")
     version_3dbag: str = kwargs["version_3dbag"]
 

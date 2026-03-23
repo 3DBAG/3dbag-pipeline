@@ -49,3 +49,9 @@ class FileStoreResource(ConfigurableResource):
         d = self.path / "stages" / stage
         d.mkdir(parents=True, exist_ok=True)
         return d
+
+    def stage_subdir(self, stage: str, *parts: str) -> Path:
+        """Return a subdirectory inside a stage, creating it if needed."""
+        d = self.stage_dir(stage).joinpath(*parts)
+        d.mkdir(parents=True, exist_ok=True)
+        return d

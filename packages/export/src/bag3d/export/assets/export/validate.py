@@ -1082,7 +1082,7 @@ def compressed_tiles_validation(
 
     The computed attributes are described at the members of the TileResults class.
     """
-    path_export_dir = file_store.stage_dir("export") / version.version
+    path_export_dir = file_store.stage_subdir("export", version.version)
     url_root = "https://data.3dbag.nl"
     with metadata.open("r") as fo:
         metadata_json = json.load(fo)

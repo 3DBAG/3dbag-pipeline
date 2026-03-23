@@ -7,12 +7,14 @@ and produce the expected output files.
 import csv
 import json
 from pathlib import Path
-from typing import cast
+from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.export.assets.export.metadata import feature_evaluation, export_index
+from bag3d.export.assets.export import metadata as metadata_module
+from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.archive import compressed_tiles, CompressionConfig
 
 
@@ -81,10 +83,7 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
-
-    # Create output directory so feature_evaluation can write
     output_dir = tmp_path / "stages" / "export" / VERSION
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     mock_db = MagicMock()
     # Return reconstructed + one extra that was not reconstructed
@@ -136,6 +135,32 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     not_recon_ids = not_recon_file.read_text().strip().splitlines()
     assert extra_input_id in not_recon_ids
     assert pand_ids[0] not in not_recon_ids
+
+
+def test_metadata_creates_versioned_export_directory(tmp_path, monkeypatch):
+    """metadata writes metadata.json even when the versioned export dir is absent."""
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+
+    mock_instance = MagicMock()
+    mock_instance.fetch_materializations.return_value.records = []
+    context = cast(object, SimpleNamespace(instance=mock_instance))
+
+    monkeypatch.setattr(metadata_module, "_build_software_list", lambda: [])
+
+    decorated_fn = cast(Any, metadata_module.metadata.op.compute_fn).decorated_fn
+    result = decorated_fn(
+        context,
+        file_store,
+        version,
+    )
+
+    output_path = tmp_path / "stages" / "export" / VERSION / "metadata.json"
+    assert output_path.exists()
+    assert cast(Path, result.value) == output_path
+
+    metadata_json = json.loads(output_path.read_text())
+    assert metadata_json["dataQualityInfo"]["lineage"]["software"] == []
 
 
 def _make_quadtree_tsv(path: Path, tile_ids: list[str]) -> None:

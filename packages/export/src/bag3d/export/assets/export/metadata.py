@@ -123,7 +123,7 @@ def feature_evaluation(
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
     reconstructed_root_dir = file_store.stage_dir("reconstruction")
-    output_dir = file_store.stage_dir("export") / version.version
+    output_dir = file_store.stage_subdir("export", version.version)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = computation_db.connection
 
@@ -201,7 +201,7 @@ def export_index(
     a tile. If a tile does not have any features in the quadtree, it is not included.
     Output it written to export_index.csv.
     """
-    path_export_dir = file_store.stage_dir("export") / version.version
+    path_export_dir = file_store.stage_subdir("export", version.version)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
     path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
@@ -395,7 +395,7 @@ def metadata(
             },
         },
     }
-    output_dir = file_store.stage_dir("export") / version.version
+    output_dir = file_store.stage_subdir("export", version.version)
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
         json.dump(metadata, fo)
