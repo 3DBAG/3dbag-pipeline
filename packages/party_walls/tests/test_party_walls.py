@@ -171,3 +171,71 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         == 8.0
     )
     mock_db.connection.get_dict.assert_called_once()
+
+
+def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
+    """building_surfaces can emit a minimal profiling summary artifact."""
+    tile_id = "10/434/716"
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    target_id = "NL.IMBAG.Pand.0307100000308298"
+    adjacent_id = "NL.IMBAG.Pand.0307100000368987"
+
+    target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
+    adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
+
+    def fake_shared_walls(target, adjacent):
+        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
+
+    def fake_write_cityjsonfeature(raw_feature, result, output_path):
+        building_id = raw_feature["id"]
+        raw_feature["CityObjects"][building_id]["attributes"].update(result)
+        output_path.write_text(json.dumps(raw_feature))
+
+    monkeypatch.setattr(
+        "bag3d.party_walls.assets.party_walls.shared_walls",
+        fake_shared_walls,
+    )
+    monkeypatch.setattr(
+        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
+        fake_write_cityjsonfeature,
+    )
+
+    mock_db = MagicMock()
+    mock_db.connection.get_dict.return_value = [
+        {
+            "identificatie": target_id,
+            "adjacent_identificatie": adjacent_id,
+        },
+        {
+            "identificatie": adjacent_id,
+            "adjacent_identificatie": target_id,
+        },
+    ]
+
+    with build_asset_context_for(building_surfaces) as context:
+        _ = building_surfaces(
+            context,
+            PartyWallsConfig(concurrency=1, profile=True),
+            {
+                target_id: target_path,
+                adjacent_id: adjacent_path,
+            },
+            mock_db,
+            file_store,
+            nl_transform,
+        )
+
+    profile_path = (
+        tmp_path
+        / "stages"
+        / "party_walls"
+        / "_profiling"
+        / "building_surfaces_profile.json"
+    )
+    assert profile_path.exists()
+
+    summary = json.loads(profile_path.read_text())
+    assert summary["buildings_profiled"] == 2
+    assert summary["files_written"] == 2
+    assert summary["adjacency_rows"] == 2
+    assert len(summary["top_slowest_buildings"]) == 2
