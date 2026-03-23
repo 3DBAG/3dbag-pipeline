@@ -12,6 +12,9 @@ LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
+ENV BAG3D_MANIFEST_PATH=$BAG3D_PIPELINE_LOCATION/3dbag-manifest.json
+
+COPY ./3dbag-manifest.json $BAG3D_PIPELINE_LOCATION/
 
 # Install only third-party dependencies (layer cached by lock/pyproject content)
 RUN --mount=type=cache,target=/root/.cache/uv \
