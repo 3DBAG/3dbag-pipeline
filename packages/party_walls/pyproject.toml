@@ -43,6 +43,9 @@ building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = 
 bag3d-common = { path = "../common", editable = true}
 
 [tool.pytest.ini_options]
+markers = [
+    "integration: integration tests that run real building_surfaces computation against test data",
+]
 filterwarnings = [
     "ignore:.*is not a Python type.*:UserWarning",
     "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",
