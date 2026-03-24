@@ -125,5 +125,6 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert attrs["b3_opp_scheidingsmuur"] == 12.5
         assert attrs["b3_opp_buitenmuur"] == 8.0
 
-    # shared_walls was called for both buildings
-    assert len(cast(list, shared_walls_calls)) == 2
+    # shared_walls was called for both buildings (verified via output file content above;
+    # call-count cannot be asserted directly with ProcessPoolExecutor since worker
+    # mutations to the local list are not visible in the parent process)

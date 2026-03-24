@@ -1,6 +1,6 @@
 from pathlib import Path
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from typing import Any, Iterable, cast
 import json
@@ -209,12 +209,14 @@ def _summarize_building_timings(
     files_written: int,
     processing_total_s: float,
     asset_total_s: float,
+    max_workers: int,
 ) -> dict[str, Any]:
     if not timings:
         return {
             "adjacency_query_s": adjacency_query_s,
             "adjacency_rows": adjacency_rows,
             "files_written": files_written,
+            "max_workers": max_workers,
             "processing_total_s": processing_total_s,
             "asset_total_s": asset_total_s,
             "buildings_profiled": 0,
@@ -231,6 +233,7 @@ def _summarize_building_timings(
         "adjacency_query_s": adjacency_query_s,
         "adjacency_rows": adjacency_rows,
         "files_written": files_written,
+        "max_workers": max_workers,
         "processing_total_s": processing_total_s,
         "asset_total_s": asset_total_s,
         "buildings_profiled": len(timings),
@@ -301,7 +304,7 @@ def building_surfaces(
     files_written: list[Path] = []
     building_timings: list[BuildingTiming] = []
     processing_start = perf_counter()
-    with ThreadPoolExecutor(max_workers=config.concurrency) as executor:
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         futures = {}
         for tile_id, buildings in tiles_with_buildings.items():
             output_dir = file_store.stage_dir("party_walls") / tile_id
@@ -345,6 +348,7 @@ def building_surfaces(
             files_written=len(files_written),
             processing_total_s=processing_total_s,
             asset_total_s=perf_counter() - asset_start,
+            max_workers=config.concurrency,
         )
         profile_path = output_dir / "_profiling" / "building_surfaces_profile.json"
         profile_path.parent.mkdir(parents=True, exist_ok=True)

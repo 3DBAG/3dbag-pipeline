@@ -158,8 +158,9 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         tmp_path / "stages" / "party_walls" / tile_id / f"{target_id}.city.jsonl",
         tmp_path / "stages" / "party_walls" / tile_id / f"{adjacent_id}.city.jsonl",
     ]
-    assert len(shared_walls_calls) == 2
-    assert sorted(len(call[1]) for call in shared_walls_calls) == [1, 1]
+    # shared_walls call count cannot be asserted via a local list with ProcessPoolExecutor
+    # (worker mutations are not visible in the parent process); correctness is verified
+    # via output file content below.
 
     target_output = json.loads(output_paths[0].read_text())
     assert (
@@ -238,4 +239,5 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     assert summary["buildings_profiled"] == 2
     assert summary["files_written"] == 2
     assert summary["adjacency_rows"] == 2
+    assert summary["max_workers"] == 1
     assert len(summary["top_slowest_buildings"]) == 2
