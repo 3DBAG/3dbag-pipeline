@@ -127,15 +127,19 @@ def process_chunk(
 
 def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
     for x_level in z_level.iterdir():
+        if not x_level.is_dir():
+            continue
         for y_level in x_level.iterdir():
-            for feature_path in y_level.iterdir():
-                yield feature_path.with_suffix("").stem, feature_path
+            if not y_level.is_dir():
+                continue
+            for feature_path in y_level.glob("*.city.jsonl"):
+                yield feature_path.stem.removesuffix(".city"), feature_path
 
 
 def features_file_index_generator(
     path_features: Path, max_workers: int = 4
 ) -> Iterable[tuple[str, Path]]:
-    dir_z = [d for d in path_features.iterdir()]
+    dir_z = [d for d in path_features.iterdir() if d.is_dir()]
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for g in executor.map(visit_directory, dir_z):
             for identificatie, path in g:
