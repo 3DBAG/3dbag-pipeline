@@ -39,7 +39,7 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1010" }
+building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1011" }
 bag3d-common = { path = "../common", editable = true}
 
 [tool.pytest.ini_options]
