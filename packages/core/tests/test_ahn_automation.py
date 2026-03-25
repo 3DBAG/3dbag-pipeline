@@ -34,7 +34,7 @@ MOCK_RESOURCES = {
     "geoflow": dg.ResourceDefinition.mock_resource(),
     "roofer": dg.ResourceDefinition.mock_resource(),
     "version": dg.ResourceDefinition.mock_resource(),
-    "file_store_fastssd": dg.ResourceDefinition.mock_resource(),
+    "pointcloud_store": dg.ResourceDefinition.mock_resource(),
     "specs3dbag": dg.ResourceDefinition.mock_resource(),
     "lastools": dg.ResourceDefinition.mock_resource(),
 }

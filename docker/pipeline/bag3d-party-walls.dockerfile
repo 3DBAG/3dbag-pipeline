@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
 RUN rm -rf $VIRTUAL_ENV
-RUN uv venv --python 3.11 $VIRTUAL_ENV
+RUN uv venv --python 3.12 $VIRTUAL_ENV
 ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
 # Install packages into the virtual environment
 COPY docker/tools/requirements.txt .

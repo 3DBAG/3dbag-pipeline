@@ -1,113 +1,120 @@
-import os
-from pathlib import Path
-
 import pytest
+from unittest.mock import patch
 
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import (
-    GDALResource,
-    PDALResource,
-)
-from bag3d.common.resources.files import FileStoreResource
-from dagster import build_asset_context
+import requests
 
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
-HOST = os.getenv("BAG3D_PG_HOST", "")
-PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
-USER = os.getenv("BAG3D_PG_USER", "")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
+pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
 
-@pytest.fixture(scope="session")
-def gdal():
-    yield GDALResource(
-        exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
-        exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
-        exe_sozip=os.getenv("EXE_PATH_SOZIP"),
-    )
+class _MockResponse:
+    def __init__(
+        self,
+        *,
+        status_code: int = 200,
+        text: str = "",
+        body: bytes = b"",
+        json_data=None,
+        headers: dict[str, str] | None = None,
+        url: str = "",
+    ):
+        self.status_code = status_code
+        self.text = text
+        self._body = body
+        self._json_data = json_data
+        self.headers = headers or {}
+        self.url = url
+
+    def json(self):
+        return self._json_data
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {self.status_code} for {self.url}")
+
+    def iter_content(self, chunk_size: int = 1024):
+        for start in range(0, len(self._body), chunk_size):
+            yield self._body[start : start + chunk_size]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
-@pytest.fixture(scope="session")
-def pdal():
-    yield PDALResource(exe_pdal=os.getenv("EXE_PATH_PDAL"))
+class _MockSession:
+    def __init__(self, registry: "_RequestsRegistry"):
+        self._registry = registry
+
+    def head(self, url: str, **kwargs):
+        return self._registry._build_response("HEAD", url)
+
+    def get(self, url: str, **kwargs):
+        return self._registry._build_response("GET", url)
+
+
+class _RequestsRegistry:
+    def __init__(self):
+        self._responses: dict[tuple[str, str], _MockResponse] = {}
+
+    def get(
+        self,
+        url: str,
+        *,
+        text: str = "",
+        body: bytes = b"",
+        json=None,
+        headers: dict[str, str] | None = None,
+        status_code: int = 200,
+    ) -> None:
+        self._responses[("GET", url)] = _MockResponse(
+            status_code=status_code,
+            text=text,
+            body=body,
+            json_data=json,
+            headers=headers,
+            url=url,
+        )
+
+    def head(
+        self, url: str, *, headers: dict[str, str] | None = None, status_code: int = 200
+    ) -> None:
+        self._responses[("HEAD", url)] = _MockResponse(
+            status_code=status_code,
+            headers=headers,
+            url=url,
+        )
+
+    def _build_response(self, method: str, url: str) -> _MockResponse:
+        response = self._responses[(method, url)]
+        return _MockResponse(
+            status_code=response.status_code,
+            text=response.text,
+            body=response._body,
+            json_data=response._json_data,
+            headers=response.headers,
+            url=url,
+        )
+
+
+@pytest.fixture
+def mock_requests():
+    registry = _RequestsRegistry()
+
+    def mock_get(url: str, **kwargs):
+        return registry._build_response("GET", url)
+
+    with (
+        patch("bag3d.common.utils.requests.requests.get", side_effect=mock_get),
+        patch(
+            "bag3d.common.utils.requests.requests.Session",
+            side_effect=lambda: _MockSession(registry),
+        ),
+    ):
+        yield registry
 
 
 @pytest.fixture(scope="function")
 def wkt_testarea():
     """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
     yield "Polygon ((136251.531 456118.126, 136620.128 456118.126, 136620.128 456522.218, 136251.531 456522.218, 136251.531 456118.126))"
-
-
-@pytest.fixture
-def database():
-    db = DatabaseResource(
-        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    )
-    yield db
-
-
-@pytest.fixture
-def file_store(tmp_path):
-    yield FileStoreResource(data_dir=str(tmp_path))
-
-
-@pytest.fixture
-def resources(database, file_store, gdal):
-    return {
-        "gdal": gdal,
-        "computation_db": database,
-        "file_store": file_store,
-        "version": "test_version",
-    }
-
-
-@pytest.fixture
-def context(wkt_testarea):
-    yield build_asset_context()
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="run slow tests"
-    )
-    parser.addoption(
-        "--run-all",
-        action="store_true",
-        default=False,
-        help="run all tests, including the ones that needs local builds of tools",
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-    config.addinivalue_line(
-        "markers", "needs_tools: mark test as needing local builds of tools"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-slow"):  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
-        for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(skip_slow)
-
-    if not config.getoption("--run-all"):  # pragma: no cover
-        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
-        for item in items:
-            if "needs_tools" in item.keywords:
-                item.add_marker(skip_needs_tools)
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def sample_laz_file(test_data_dir):
-    yield (
-        test_data_dir
-        / "integration_core/file_store/pointcloud/AHN3/as_downloaded/LAZ/C_32BZ2.LAZ"
-    )

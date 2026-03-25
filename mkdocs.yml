@@ -50,6 +50,7 @@ nav:
   - Overview:
     - index.md
     - Source datasets: source_datasets.md
+    - Data flow: data_flow.md
   - Development: development/
   - Deployment: deployment/
   - Production: production.md
@@ -60,4 +61,6 @@ nav:
     - party_walls: index_party_walls.md
   - Architecture Decisions:
     - adr/0001-ahn-checksum-automation-strategy.md
+    - adr/0002-independent-package-environments.md
+    - adr/0003-building-surfaces-performance.md
   - API Reference: reference/

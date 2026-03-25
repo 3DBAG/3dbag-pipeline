@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2025.09.03"
+version = "2025.11.18"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
     { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
@@ -22,10 +22,8 @@ urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "dagster~=1.12.14",
     "dagster-postgres~=0.28.14",
-    "numpy~=1.24.4",
-    "pandas~=2.1.0",
     "shapely~=2.0.1",
-    "urban-morphology-3d",
+    "building-surfaces",
     "bag3d-common",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
@@ -34,7 +32,6 @@ dependencies = [
 dev = [
     "coverage~=7.13.4",
     "pytest~=9.0.2",
-    "pytest-dotenv~=0.5.2",
     "pyright>=1.1",
 ]
 
@@ -42,10 +39,13 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
-urban-morphology-3d = { git = "https://github.com/3DGI/urban-morphology-3d.git", rev = "onlysharedwalls" }
+building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1012" }
 bag3d-common = { path = "../common", editable = true}
 
 [tool.pytest.ini_options]
+markers = [
+    "integration: integration tests that run real building_surfaces computation against test data",
+]
 filterwarnings = [
     "ignore:.*is not a Python type.*:UserWarning",
     "ignore:.*Accessing the 'model_fields' attribute on the instance is deprecated.*:DeprecationWarning",

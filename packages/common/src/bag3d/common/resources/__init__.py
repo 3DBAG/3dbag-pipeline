@@ -1,5 +1,6 @@
 import os
 from enum import StrEnum
+from pathlib import Path
 
 from dagster import get_dagster_logger
 
@@ -17,6 +18,7 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
+from bag3d.common.resources.values import NlTransform
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 # Use os.environ[key] for required env vars: raises KeyError if unset and returns str (not
@@ -42,6 +44,8 @@ class DagsterDeployment(StrEnum):
 version = ReleaseVersionResource(version=os.getenv("BAG3D_RELEASE_VERSION"))  # type: ignore[arg-type]
 
 specs = Specs3DBAGResource()
+
+nl_transform = NlTransform()
 
 # Tool versions resource - instantiated at import time for code_version access
 tool_versions = ToolVersionsResource(
@@ -75,7 +79,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
         return {
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
-            "file_store_fastssd": FileStoreResource.configure_at_launch(),
+            "pointcloud_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
@@ -87,6 +91,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "specs": specs,
             "publication_server": ServerTransferResource.configure_at_launch(),
             "publication_db": DatabaseResource.configure_at_launch(),
+            "nl_transform": nl_transform,
         }
     elif configure_from_env:
         return {
@@ -95,9 +100,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_ogrinfo=os.getenv("EXE_PATH_OGRINFO"),
                 exe_sozip=os.getenv("EXE_PATH_SOZIP"),
             ),
-            "file_store": FileStoreResource(data_dir=os.environ["BAG3D_FILESTORE"]),
-            "file_store_fastssd": FileStoreResource(
-                data_dir=os.environ["BAG3D_FILESTORE_FASTSSD"]
+            "file_store": FileStoreResource(root_dir=os.environ["BAG3D_FILESTORE"]),
+            "pointcloud_store": FileStoreResource(
+                root_dir=os.getenv(
+                    "BAG3D_POINTCLOUD_DIR",
+                    str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
+                ),
             ),
             "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],
@@ -153,6 +161,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                     "sslmode": os.getenv("BAG3D_PUBLICATION_PG_SSLMODE", "allow")
                 },
             ),
+            "nl_transform": nl_transform,
         }
     else:
         raise RuntimeError("Cannot configure dagster environment")

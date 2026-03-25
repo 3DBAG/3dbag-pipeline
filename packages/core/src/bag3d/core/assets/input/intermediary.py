@@ -84,9 +84,11 @@ def bag_adjacency(
 ) -> Output[PostgresTableIdentifier]:
     """BAG polygon adjacency index.
 
-    For every BAG polygon, records the IDs of all adjacent polygons that share
-    at least 0.5 m of boundary within a 10 cm tolerance. Uses ST_MakeValid to
-    repair invalid geometries before the spatial checks.
+    Stores one row per directed adjacency pair:
+    (identificatie, adjacent_identificatie).
+
+    Two polygons are adjacent when their geometries intersect or come within
+    0.1 units of each other. Self-pairs are excluded.
     """
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_adjacency")
@@ -95,7 +97,9 @@ def bag_adjacency(
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
-        SQL("ALTER TABLE {} ADD PRIMARY KEY (identificatie)").format(new_table.id)
+        SQL(
+            "ALTER TABLE {} ADD PRIMARY KEY (identificatie, adjacent_identificatie)"
+        ).format(new_table.id)
     )
     return Output(new_table, metadata=metadata)
 

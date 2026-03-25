@@ -20,6 +20,7 @@ services:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
       - ~/.ssh:/root/.ssh:ro
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
       # Bind-mount source for live editing — changes visible instantly in the container
       - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
       - ../packages/core/src:/opt/3dbag-pipeline/packages/core/src
@@ -32,6 +33,7 @@ services:
     volumes:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
       - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
       - ../packages/floors_estimation/src:/opt/3dbag-pipeline/packages/floors_estimation/src
       - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
@@ -42,8 +44,21 @@ services:
     volumes:
       - bag3d-data-pipeline:/data/volume
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
       - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
       - ../packages/party_walls/src:/opt/3dbag-pipeline/packages/party_walls/src
       - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
       - ../packages/party_walls/tests:/opt/3dbag-pipeline/packages/party_walls/tests
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  bag3d-export:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ~/.ssh:/root/.ssh:ro
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/export/src:/opt/3dbag-pipeline/packages/export/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/export/tests:/opt/3dbag-pipeline/packages/export/tests
       - /var/run/docker.sock:/var/run/docker.sock

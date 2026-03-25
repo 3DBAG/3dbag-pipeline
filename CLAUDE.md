@@ -29,8 +29,10 @@ The project uses a monorepo with independent packages to avoid dependency confli
   - `assets/top10nl/` - TOP10NL geographic data (download, load)
   - `assets/input/` - Input preparation (tiling, intermediary processing, reconstruction inputs)
   - `assets/reconstruction/` - 3D building reconstruction using roofer
+
+- **packages/export/** - Export, deploy, and release workflow (split from core for independent scaling):
   - `assets/export/` - Validation and format conversion
-  - `assets/deploy/` - Deployment to servers
+  - `assets/deploy/` - Deployment to publication server
   - `assets/release/` - Final release publishing
 
 - **packages/floors_estimation/** - ML-based floor count prediction workflow (separate due to heavy sklearn dependencies)
@@ -41,11 +43,14 @@ Each package has its own `pyproject.toml`, dependencies, tests, and Dagster code
 
 ### Docker Architecture
 
-Six services orchestrated via docker/compose.yaml:
+Services orchestrated via docker/compose.yaml:
 - **dagster-postgresql** - Dagster's event/run/schedule storage
 - **data-postgresql** - Pipeline data storage
-- **bag3d-core**, **bag3d-party-walls**, **bag3d-floors-estimation** - Workflow execution containers
-- **dagster-webserver** - Dagster UI and daemon
+- **bag3d-core**, **bag3d-export**, **bag3d-party-walls**, **bag3d-floors-estimation** - Workflow execution containers (gRPC code locations on ports 4000-4003)
+- **dagster-webserver** - Dagster UI
+- **dagster-daemon** - Dagster daemon (schedules, sensors, run queuing)
+
+For development with live source code bind-mounts, use `docker/compose.dev.yaml` overlay via `make docker_dev`.
 
 Docker images published to DockerHub as 3dgi/* with image tag controlling development/release versions.
 
@@ -56,11 +61,15 @@ Each workflow package registers a Dagster code location (files named `code_locat
 - Job definitions for orchestrating asset groups
 - Resource configuration for the workflow
 
-The `dagster/workspace.yaml` registers all code locations and `dagster/dagster.yaml` configures Dagster's run/event storage to use PostgreSQL.
+Two workspace configurations exist:
+- `docker/dagster/workspace.yaml` - Production: connects to code locations via gRPC servers
+- `tests/dagster_home/workspace.yaml` - Local dev: loads code locations directly via `python_file`
+
+Both register all code locations. `dagster/dagster.yaml` configures Dagster's run/event storage to use PostgreSQL.
 
 ## Development Commands
 
-All commands use `uv` (modern Python package manager). Docker is required for testing.
+All commands use `uv` (modern Python package manager). Docker is optional for testing.
 
 ### Python Package Management
 
@@ -90,18 +99,17 @@ make local_dev
 
 `make local_dev` starts Dagster at http://localhost:3000 using the local workspace config, without requiring Docker containers for the workflow services.
 
-### Code Quality (Ruff)
+### Code Quality (Ruff + Pyright)
 
 ```bash
-# Apply formatting and run lint checks (modifies files)
-make format
+# Full lint: format, style check, and type check all packages
+make lint
 
-# Manual formatting (without make)
-uv tool run ruff format ./packages
-uv tool run ruff check ./packages
+# Auto-fix: format and apply automatic lint fixes
+make lint_fix
 ```
 
-Ruff is configured for line-length 88, double quotes, and space indentation. Config is in pyproject.toml `[tool.ruff]` section.
+`make lint` runs ruff format, ruff check, and pyright type checking on all packages. Ruff is configured for line-length 88, double quotes, and space indentation. Config is in pyproject.toml `[tool.ruff]` section.
 
 ### Docker Setup and Teardown
 
@@ -115,8 +123,8 @@ make docker_up_postgres
 # Start services without rebuilding images
 make docker_up_nobuild
 
-# Watch for source changes (with hot reload)
-make docker_watch
+# Start services with dev overrides (bind-mounts for live editing)
+make docker_dev
 
 # Rebuild all Docker images without cache
 make docker_build
@@ -136,26 +144,11 @@ make docker_restart_containers
 
 ### Testing
 
-Tests run inside Docker containers. Database and execution context are provided automatically.
+Tests run locally with mocked resources by default. Docker is only needed for full pipeline development.
 
 ```bash
-# Download test data first (required once)
-make download
-
-# Run all tests (standard unit tests only)
+# Run all tests
 make test
-
-# Run tests including slow tests
-make test_slow
-
-# Run integration tests (full workflows, slower)
-make test_integration
-
-# Run deployment tests (full end-to-end workflows)
-make test_deploy
-
-# Run all test variants
-make test_all
 
 # Parse test results from log file
 make test_report
@@ -164,17 +157,13 @@ make test_report
 Tests are organized per package:
 - `packages/common/tests/` - Common package tests (database, geodata, requests, resources, types)
 - `packages/core/tests/` - Core workflow tests (per-asset-group plus integration)
+- `packages/export/tests/` - Export workflow tests
 - `packages/floors_estimation/tests/` - Floors estimation tests
 - `packages/party_walls/tests/` - Party walls tests
 
-Test markers:
-- `--run-slow` - Include slow tests (`@pytest.mark.slow`)
-- `--run-all` - Include tests needing local tool builds (`@pytest.mark.needs_tools`)
-- `--run-deploy` - Include deployment tests (`@pytest.mark.needs_deploy`)
-
-Single test execution from inside a container:
+Single test execution (locally):
 ```bash
-docker compose -p bag3d-dev exec bag3d-core pytest /opt/3dbag-pipeline/packages/core/tests/test_assets_ahn.py::test_function_name -v
+uv --project packages/core run pytest packages/core/tests/test_assets_ahn.py::test_function_name -v
 ```
 
 ### Versioning and Releases
@@ -183,7 +172,7 @@ Version follows `YYYY.0M.0D` format (date-based). Configured via bumpver in pypr
 
 ```bash
 # Bump version and auto-commit/tag/push
-bumpver update --patch  # Updates all 5 pyproject.toml files automatically
+bumpver update --patch  # Updates all 6 pyproject.toml files automatically
 ```
 
 The `.github/hooks/pre-commit` hook runs before commits.
@@ -251,6 +240,7 @@ The `common` package provides reusable resources (all in `packages/common/src/ba
 - **PDALResource** - Point cloud processing (LAZ/LAS files)
 - **LASToolsResource** - LASTools suite (lasindex, las2las, lasinfo)
 - **ServerTransferResource** - Secure file transfer to the publication server (`publication_server`)
+- **DatabaseResource** (as `publication_db`) - PostgreSQL on the publication server (BAG3D_PUBLICATION_PG_* env vars)
 - **GeoflowResource** - 3D geometry processing
 - **ValidationResource** - Data validation tools
 - **Specs3DBAGResource** - Building specifications from bag3d-specs
@@ -268,11 +258,8 @@ In `production` mode, env vars like `BAG3D_PG_HOST`, `EXE_PATH_OGR2OGR`, `BAG3D_
 
 Tests use pytest with these conventions:
 - Unit tests in `tests/` subdirectory per package
-- `conftest.py` provides fixtures (database setup, resources, paths)
-- Integration tests marked with `@pytest.mark.integration`
-- Slow tests marked with `@pytest.mark.slow`
-- Tests requiring tool builds marked with `@pytest.mark.needs_tools`
-- Test data stored in `tests/test_data/` (use `make download` to fetch)
+- `conftest.py` provides shared mock fixtures for database, file stores, and other resources
+- Tests are expected to run offline without Docker, databases, or external tool binaries
 
 **Testing assets directly:**
 ```python
@@ -302,7 +289,7 @@ Database initialization and schema management happens via SQL files in `packages
 
 ### Environment Variables
 
-- **Local development:** `.env` file (not committed, required by makefile for `make download` target)
+- **Local development:** `.env` file (not committed, only needed for optional local overrides)
 - **Docker services:** `docker/.env` (committed, contains volume names and PostgreSQL credentials)
 - **Dagster home:** `tests/dagster_home/` contains `dagster.yaml` and `workspace.yaml`
 
@@ -331,7 +318,7 @@ Key environment variables:
 
 ### Adding a New Job
 
-Jobs are defined in `packages/core/src/bag3d/core/jobs.py` using `define_asset_job` with explicit `AssetSelection`. Register in `code_location.py`'s `all_jobs` list.
+Jobs are defined using `define_asset_job` with explicit `AssetSelection` in each package's `jobs.py` (e.g., `packages/core/src/bag3d/core/jobs.py`, `packages/export/src/bag3d/export/jobs.py`). Register in `code_location.py`'s `all_jobs` list.
 
 ### Debugging
 

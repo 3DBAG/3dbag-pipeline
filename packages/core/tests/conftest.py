@@ -1,29 +1,11 @@
-import os
-from pathlib import Path
-
 import pytest
-
 from bag3d.common.resources.specs import Specs3DBAGResource
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import (
-    GDALResource,
-    ValidationResource,
-)
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.common.resources.server_transfer import ServerTransferResource
-
-
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
-from dagster import AssetKey, AssetSpec, IOManager, io_manager, build_op_context
+from dagster import AssetKey, AssetSpec, IOManager, io_manager
 
-LOCAL_DIR = os.getenv("BAG3D_TEST_DATA", "")
-HOST = os.getenv("BAG3D_PG_HOST", "")
-PORT = int(os.getenv("BAG3D_PG_PORT", "5432"))
-USER = os.getenv("BAG3D_PG_USER", "")
-PASSWORD = os.getenv("BAG3D_PG_PASSWORD", "")
-DB_NAME = os.getenv("BAG3D_PG_DATABASE", "")
+pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
 
 class MockAssetIOManager(IOManager):
@@ -52,92 +34,6 @@ def mock_asset_io_manager(init_context):
     return MockAssetIOManager(values)
 
 
-@pytest.fixture(scope="session")
-def deployment_server():
-    """Connection to the dockerized deployment setup.
-    The dockerized deployment setup is in the 3dbag-admin repo and it needs to be
-    managed manually, similar to the 3dbag-pipeline docker setup.
-    These credentials provide access to the ``deployment-server`` service of the
-    deployment setup.
-    """
-    server = ServerTransferResource(
-        host="3dbag.docker.internal",
-        port=2222,
-        user="deploy",
-        password="deploy",
-        target_dir="/data/3DBAG",
-        public_dir="/data/3DBAG/public",
-    )
-
-    yield server
-
-
-@pytest.fixture(scope="session")
-def publication_server(deployment_server):
-    yield deployment_server
-
-
-@pytest.fixture(scope="session")
-def publication_db():
-    """PostgreSQL database on the publication server used for webservices."""
-    db = DatabaseResource(
-        host="3dbag.docker.internal",
-        port=5432,
-        user="postgres",
-        password="postgres",
-        dbname="baseregisters",
-    )
-    yield db
-
-
-@pytest.fixture(scope="session")
-def gdal():
-    exe_ogr2ogr = os.getenv("EXE_PATH_OGR2OGR")
-    exe_ogrinfo = os.getenv("EXE_PATH_OGRINFO")
-    exe_sozip = os.getenv("EXE_PATH_SOZIP")
-    yield GDALResource(
-        exe_ogr2ogr=exe_ogr2ogr,
-        exe_ogrinfo=exe_ogrinfo,
-        exe_sozip=exe_sozip,
-    )
-
-
-@pytest.fixture(scope="session")
-def gdal_missing():
-    exe_ogr2ogr = "/does/not/exist/ogr2ogr"
-    exe_ogrinfo = "/does/not/exist/ogrinfo"
-    exe_sozip = "/does/not/exist/sozip"
-    yield GDALResource(
-        exe_ogr2ogr=exe_ogr2ogr,
-        exe_ogrinfo=exe_ogrinfo,
-        exe_sozip=exe_sozip,
-    )
-
-
-@pytest.fixture(scope="session")
-def validation():
-    exe_val3dity = os.getenv("EXE_PATH_VAL3DITY")
-    exe_cjval = os.getenv("EXE_PATH_CJVAL")
-    exe_cjio = os.getenv("EXE_PATH_CJIO")
-    yield ValidationResource(
-        exe_val3dity=exe_val3dity,
-        exe_cjval=exe_cjval,
-        exe_cjio=exe_cjio,
-    )
-
-
-@pytest.fixture(scope="session")
-def validation_missing():
-    exe_val3dity = "/does/not/exist/val3dity"
-    exe_cjval = "/does/not/exist/cjval"
-    exe_cjio = "/does/not/exist/cjio"
-    yield ValidationResource(
-        exe_val3dity=exe_val3dity,
-        exe_cjval=exe_cjval,
-        exe_cjio=exe_cjio,
-    )
-
-
 @pytest.fixture(scope="function")
 def wkt_testarea():
     """A small test area in the oldtown of Utrecht, incl. the Oudegracht."""
@@ -145,204 +41,13 @@ def wkt_testarea():
 
 
 @pytest.fixture
-def database():
-    db = DatabaseResource(
-        host=HOST, port=PORT, user=USER, password=PASSWORD, dbname=DB_NAME
-    )
-    yield db
-
-
-@pytest.fixture
-def file_store(tmp_path):
-    yield FileStoreResource(data_dir=str(tmp_path))
-
-
-@pytest.fixture
-def context(
-    wkt_testarea,
-):
-    yield build_op_context(
-        partition_key="01cz1",
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": [
-                "gebouw",
-            ],
-            "parallel": True,
-        },
-    )
-
-
-@pytest.fixture
-def resources(
-    database,
-    file_store,
-    gdal,
-    validation,
-    publication_server,
-    publication_db,
-):
+def resources_ahn(database, file_store):
     return {
-        "gdal": gdal,
-        "validation": validation,
         "computation_db": database,
         "file_store": file_store,
         "version": ReleaseVersionResource(version="test_version"),
-        "publication_server": publication_server,
-        "publication_db": publication_db,
         "specs": Specs3DBAGResource(),
     }
-
-
-@pytest.fixture
-def context_ahn():
-    yield build_op_context(partition_key="01cz1")
-
-
-@pytest.fixture
-def resources_ahn(
-    database,
-    file_store,
-    gdal,
-    validation,
-    publication_server,
-    publication_db,
-):
-    return {
-        "gdal": gdal,
-        "validation": validation,
-        "computation_db": database,
-        "file_store": file_store,
-        "version": ReleaseVersionResource(version="test_version"),
-        "publication_server": publication_server,
-        "publication_db": publication_db,
-        "specs": Specs3DBAGResource(),
-    }
-
-
-@pytest.fixture
-def resources_missing(database, file_store, gdal_missing, validation_missing):
-    return {
-        "gdal": gdal_missing,
-        "validation": validation_missing,
-        "computation_db": database,
-        "file_store": file_store,
-        "version": ReleaseVersionResource(version="test_version"),
-    }
-
-
-@pytest.fixture
-def context_missing(
-    wkt_testarea,
-):
-    yield build_op_context(
-        partition_key="01cz1",
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": [
-                "gebouw",
-            ],
-            "parallel": True,
-        },
-    )
-
-
-@pytest.fixture
-def context_top10nl(wkt_testarea):
-    yield build_op_context(
-        partition_key="01cz1",
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": [
-                "gebouw",
-            ],
-        },
-    )
-
-
-@pytest.fixture
-def context_bgt(wkt_testarea):
-    yield build_op_context(
-        partition_key="01cz1",
-        op_config={
-            "geofilter": wkt_testarea,
-            "featuretypes": [
-                "pand",
-            ],
-        },
-    )
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="run slow tests"
-    )
-    parser.addoption(
-        "--run-deploy",
-        action="store_true",
-        default=False,
-        help="run deployment tests that require the dockerized deployment setup",
-    )
-    parser.addoption(
-        "--run-all",
-        action="store_true",
-        default=False,
-        help="run all tests, including the ones that needs local builds of tools",
-    )
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-    config.addinivalue_line(
-        "markers", "needs_tools: mark test as needing local builds of tools"
-    )
-    config.addinivalue_line(
-        "markers", "needs_deploy: mark test as needing the dockerized deployment setup"
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-slow"):  # pragma: no cover
-        skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
-        for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(skip_slow)
-
-    if not config.getoption("--run-all"):  # pragma: no cover
-        skip_needs_tools = pytest.mark.skip(reason="needs the --run-all option to run")
-        for item in items:
-            if "needs_tools" in item.keywords:
-                item.add_marker(skip_needs_tools)
-
-    if not config.getoption("--run-deploy"):  # pragma: no cover
-        skip_needs_deploy = pytest.mark.skip(
-            reason="needs the --run-deploy option to run"
-        )
-        for item in items:
-            if "needs_deploy" in item.keywords:
-                item.add_marker(skip_needs_deploy)
-
-
-@pytest.fixture(scope="session")
-def test_data_dir():
-    yield Path(LOCAL_DIR)
-
-
-@pytest.fixture(scope="session")
-def core_integration_test_dir(test_data_dir):
-    yield test_data_dir / "integration_core"
-
-
-@pytest.fixture(scope="session")
-def core_file_store_fastssd(core_integration_test_dir) -> Path:
-    """Root directory path for test data"""
-    return core_integration_test_dir / "file_store_fastssd"
-
-
-@pytest.fixture(scope="session")
-def core_file_store(core_integration_test_dir) -> Path:
-    """Root directory path for test data"""
-    return core_integration_test_dir / "file_store"
 
 
 @pytest.fixture(scope="session")
@@ -435,79 +140,7 @@ def mock_asset_metadata_ahn5_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_compressed_tiles():
-    return AssetSpec(
-        key=AssetKey(["export", "compressed_tiles"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_compressed_tiles_validation(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "compressed_tiles_validation"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_export_index(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "export_index"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_geopackage_nl(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "geopackage_nl"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_metadata(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "metadata"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_reconstruction_output_3dtiles_lod12_nl(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod12_nl"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_reconstruction_output_3dtiles_lod13_nl(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod13_nl"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_reconstruction_output_3dtiles_lod22_nl(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "reconstruction_output_3dtiles_lod22_nl"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_reconstruction_output_multitiles_nl(test_data_dir):
-    return AssetSpec(
-        key=AssetKey(["export", "reconstruction_output_multitiles_nl"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
-def mock_asset_values(test_data_dir):
+def mock_asset_values():
     """Values to be returned by the mock IO manager for each asset key."""
     return {
         "input/reconstruction_input": PostgresTableIdentifier(
@@ -518,66 +151,6 @@ def mock_asset_values(test_data_dir):
         "ahn/metadata_ahn3_index": PostgresTableIdentifier("ahn", "metadata_ahn3"),
         "ahn/metadata_ahn4_index": PostgresTableIdentifier("ahn", "metadata_ahn4"),
         "ahn/metadata_ahn5_index": PostgresTableIdentifier("ahn", "metadata_ahn5"),
-        "export/compressed_tiles": None,
-        "export/compressed_tiles_validation": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "validate_compressed_files.csv"
-        ),
-        "export/export_index": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "export_index.csv"
-        ),
-        "export/geopackage_nl": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "3dbag_nl.gpkg.zip"
-        ),
-        "export/metadata": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "metadata.json"
-        ),
-        "export/reconstruction_output_3dtiles_lod12_nl": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "cesium3dtiles"
-            / "lod12"
-        ),
-        "export/reconstruction_output_3dtiles_lod13_nl": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "cesium3dtiles"
-            / "lod13"
-        ),
-        "export/reconstruction_output_3dtiles_lod22_nl": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "cesium3dtiles"
-            / "lod22"
-        ),
-        "export/reconstruction_output_multitiles_nl": (
-            test_data_dir
-            / "integration_deploy_release"
-            / "3DBAG"
-            / "export_test_version"
-            / "tiles"
-        ),
     }
 
 

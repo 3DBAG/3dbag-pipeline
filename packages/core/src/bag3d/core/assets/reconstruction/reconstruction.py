@@ -17,7 +17,7 @@ from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
 
-from bag3d.common.resources import tool_versions
+from bag3d.common.resources import tool_versions, NlTransform
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import RooferResource
@@ -84,12 +84,13 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     code_version=tool_versions.get_version("roofer"),
     pool="roofer",
 )
-def reconstructed_building_models_nl(
+def reconstructed_building_models(
     context: AssetExecutionContext,
     config: RooferConfig,
     computation_db: DatabaseResource,
     roofer: RooferResource,
-    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
+    nl_transform: NlTransform,
     tiles,
     index,
     reconstruction_input,
@@ -104,7 +105,8 @@ def reconstructed_building_models_nl(
     roofer_toml, output_dir, tile_view = create_roofer_config(
         context,
         computation_db=computation_db,
-        file_store_fastssd=file_store_fastssd,
+        file_store=file_store,
+        nl_transform=nl_transform,
         reconstruction_input=reconstruction_input,
         index=index,
         tiles=tiles,
@@ -137,7 +139,8 @@ def reconstructed_building_models_nl(
 def create_roofer_config(
     context: AssetExecutionContext,
     computation_db: DatabaseResource,
-    file_store_fastssd: FileStoreResource,
+    file_store: FileStoreResource,
+    nl_transform: NlTransform,
     reconstruction_input,
     index,
     tiles,
@@ -154,8 +157,8 @@ def create_roofer_config(
 
     split-cjseq = true
     omit-metadata = true
-    cj-translate = [171800.0,472700.0,0.0]
-    cj-scale = [0.001, 0.001, 0.001]
+    cj-translate = {nl_transform_translate}
+    cj-scale = {nl_transform_scale}
     output-directory = "{output_path}"
 
     lod12 = true
@@ -277,7 +280,7 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
-    output_dir = file_store_fastssd.geoflow_crop_dir.joinpath(tile_id)
+    output_dir = file_store.stage_dir("reconstruction").joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
         footprint_file=f"PG:{computation_db.connection.dsn} tables={tile_view}",
@@ -285,6 +288,8 @@ def create_roofer_config(
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,
         output_path=output_dir,
+        nl_transform_scale=nl_transform.scale,
+        nl_transform_translate=nl_transform.translate,
     )
     path_toml = output_dir / "roofer.toml"
     with path_toml.open("w") as of:

@@ -10,6 +10,7 @@
 .pytest_cache
 *__pycache__*
 *.log
+**/*.egg-info
 
 # Test data
 tmp/*
@@ -38,6 +39,8 @@ docs/reference
 # Tools
 .tox
 .coverage
+.coverage.*
+coverage-report.md
 *.ruff_cache
 
 # Misc

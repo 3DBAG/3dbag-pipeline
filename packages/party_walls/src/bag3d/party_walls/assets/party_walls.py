@@ -1,34 +1,33 @@
 from pathlib import Path
-from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from dataclasses import asdict, dataclass
+from typing import Any, Iterable, cast
 import json
 from os import getenv
+from time import perf_counter
 
 from dagster import (
     asset,
+    AssetKey,
     MetadataValue,
     get_dagster_logger,
     AssetExecutionContext,
     Config,
 )
 from pydantic import Field
-from shapely import STRtree, from_wkt
-import numpy as np
-from numpy.typing import NDArray
-from pandas import DataFrame
-from urban_morphology_3d.cityStats import city_stats
+from psycopg import sql as pgsql
+from building_surfaces.walls import shared_walls, write_cityjsonfeature
 
-from bag3d.common.utils.dagster import PartitionDefinition3DBagDistribution
-from bag3d.common.utils.files import (
-    check_export_results,
-)
-from bag3d.common.types import ExportResult
+from bag3d.common.resources import NlTransform
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.resources.database import DatabaseResource
 
 logger = get_dagster_logger("party_walls")
+
+
+def _env_flag(name: str) -> bool:
+    return getenv(name, "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 class PartyWallsConfig(Config):
@@ -36,100 +35,29 @@ class PartyWallsConfig(Config):
 
     concurrency: int = Field(
         default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_PARTY_WALLS", "4")),
-        description="Number of threads for directory traversal.",
+        description="Number of threads for building processing.",
+    )
+    profile: bool = Field(
+        default_factory=lambda: _env_flag("BAG3D_PROFILE_BUILDING_SURFACES"),
+        description="Write a minimal timing summary for building_surfaces().",
     )
 
 
-@dataclass
-class TilesFilesIndex:
-    """A collection type, storing the ExportResults per tile, the R-Tree of the tiles
-    and a path-array of the CityJSON files."""
-
-    export_results: dict[str, ExportResult]
-    tree: STRtree
-    paths_array: NDArray
-
-
-@asset
-def distribution_tiles_files_index(
-    file_store: FileStoreResource, version: ReleaseVersionResource
-) -> TilesFilesIndex:
-    """An index of the distribution tiles and the CityJSON file paths for each tile,
-    that has an existing CityJSON file.
-
-    The index is a [Shapely RTree index](https://shapely.readthedocs.io/en/stable/strtree.html).
-
-    Args:
-        context: asset execution context
-
-    Returns a collection type, storing the ExportResults per tile, the R-Tree of the tiles
-    and a path-array of the CityJSON files (TilesFilesIndex)
-    """
-    path_quadtree_tsv = file_store.bag3d_export_dir(
-        version=version.version,
-    ).joinpath("quadtree.tsv")
-    path_tiles_dir = file_store.bag3d_export_dir(
-        version=version.version,
-    ).joinpath("tiles")
-    export_results_gen = filter(
-        lambda t: t.has_cityjson,
-        check_export_results(
-            path_quadtree_tsv=path_quadtree_tsv, path_tiles_dir=path_tiles_dir
-        ),
-    )
-    export_results = dict((t.tile_id, t) for t in export_results_gen)
-    tree = STRtree(tuple(from_wkt(t.wkt) for t in export_results.values()))
-    paths_array = np.array(tuple(t.cityjson_path for t in export_results.values()))
-    return TilesFilesIndex(
-        export_results=export_results, tree=tree, paths_array=paths_array
-    )
+@dataclass(slots=True)
+class BuildingTiming:
+    pand_id: str
+    adjacent_count: int
+    load_target_s: float
+    load_adjacent_s: float
+    shared_walls_s: float
+    write_output_s: float
+    total_s: float
 
 
-@asset(
-    partitions_def=PartitionDefinition3DBagDistribution(),
-    pool="party_walls",
-)
-def party_walls_nl(
-    context: AssetExecutionContext,
-    distribution_tiles_files_index: TilesFilesIndex,
-    computation_db: DatabaseResource,
-) -> DataFrame:
-    """Party walls calculation from the exported CityJSON tiles.
-
-    Computes a DataFrame of statistics for a given tile. The tile-boundary problem is
-    resolved by including all the tile neighbours in the calculation.
-    The statistics calculation is done with the [CityStats.city_stats](https://github.com/balazsdukai/urban-morphology-3d/blob/f145a784225b668b936abda1505c322c5e33b5ca/src/urban_morphology_3d/cityStats.py#L583C1-L714C1)
-    function.
-    """
-    tile_id = context.partition_key
-    export_result = distribution_tiles_files_index.export_results[tile_id]
-
-    tile_shapley_poly = from_wkt(export_result.wkt)
-    paths_neighbours = []
-    for nbr_tile_idx in distribution_tiles_files_index.tree.query(tile_shapley_poly):
-        neighbour_path = distribution_tiles_files_index.paths_array.take(nbr_tile_idx)
-        if neighbour_path != export_result.cityjson_path:
-            paths_neighbours.append(neighbour_path)
-
-    paths_inputs = [
-        export_result.cityjson_path,
-    ] + paths_neighbours
-    df = city_stats(
-        inputs=paths_inputs,
-        dsn=computation_db.connection.dsn,
-        break_on_error=True,
-    )
-    if df is None:
-        logger.warning(f"No meshes were found for tile_id {tile_id}.")
-        df = DataFrame()
-
-    context.add_output_metadata(
-        metadata={
-            "Rows": len(df),
-            "Head": MetadataValue.md(df.head().to_markdown() or ""),
-        }
-    )
-    return df
+@dataclass(slots=True)
+class BuildingProcessingResult:
+    output_path: Path | None
+    timing: BuildingTiming | None
 
 
 def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
@@ -160,9 +88,9 @@ def features_file_index_generator(
                 yield identificatie, path
 
 
-@asset
+@asset(deps=[AssetKey(["reconstruction", "reconstructed_building_models"])])
 def features_file_index(
-    config: PartyWallsConfig, file_store_fastssd: FileStoreResource
+    config: PartyWallsConfig, file_store: FileStoreResource
 ) -> dict[str, Path]:
     """A mapping of {feature ID: feature file path} for the reconstructed features in
     the geoflow output directory.
@@ -173,64 +101,285 @@ def features_file_index(
 
     Returns a dict of {feature ID: feature file path}.
     """
-    reconstructed_root_dir = file_store_fastssd.geoflow_crop_dir
+    reconstructed_root_dir = file_store.stage_dir("reconstruction")
     return dict(
         features_file_index_generator(reconstructed_root_dir, config.concurrency)
     )
 
 
-@asset(
-    partitions_def=PartitionDefinition3DBagDistribution(),
-)
-def cityjsonfeatures_with_party_walls_nl(
-    context: AssetExecutionContext,
-    party_walls_nl: DataFrame,
-    features_file_index: dict[str, Path],
-    file_store_fastssd: FileStoreResource,
-) -> list[Path]:
-    """Writes the content of the party walls DataFrame back to the reconstructed
-    CityJSONFeatures. These CityJSONFeatures are the reconstruction output, not the
-    CityJSON tiles that is created with *tyler*."""
-    reconstructed_features_dir = file_store_fastssd.geoflow_crop_dir
-    # For now, we do not overwrite the reconstructed features with the part walls
-    # attributes, but save a new file
-    output_dir = reconstructed_features_dir.parent.joinpath("party_walls_features")
-    files_written = []
+def _load_feature_as_citymodel(path: Path, transform: dict) -> tuple[dict, str | None]:
+    """Load a .city.jsonl feature file and wrap it as a minimal CityJSON dict.
 
-    output_dir_tiles = []
-    for tile in party_walls_nl["tile"].unique():
-        output_dir_tile = output_dir.joinpath(tile)
-        output_dir_tile.mkdir(parents=True, exist_ok=True)
-        output_dir_tiles.append(str(output_dir_tile))
-    for row in party_walls_nl.to_dict("records"):
-        # identificatie without building part
-        identificatie_bag = row["identificatie"]
-        try:
-            feature_path = features_file_index[identificatie_bag]
-        except KeyError as e:
-            logger.error(f"Did not find object {e} in the feature files")
-            continue
-        with feature_path.open(encoding="utf-8", mode="r") as fo:
-            feature_json = json.load(fo)
-        attributes = feature_json["CityObjects"][identificatie_bag]["attributes"]
-        attributes["b3_opp_grond"] = row["area_ground"]
-        attributes["b3_opp_dak_plat"] = row["area_roof_flat"]
-        attributes["b3_opp_dak_schuin"] = row["area_roof_sloped"]
-        attributes["b3_opp_scheidingsmuur"] = row["area_shared_wall"]
-        attributes["b3_opp_buitenmuur"] = row["area_exterior_wall"]
+    Returns (citymodel_dict, building_part_object_id).
+    """
+    with path.open(encoding="utf-8") as fh:
+        feature = json.load(fh)
 
-        output_dir_tile = output_dir.joinpath(row["tile"])
-        feature_party_wall_path = Path(
-            f"{output_dir_tile}/{identificatie_bag}.city.jsonl"
-        )
-        with feature_party_wall_path.open("w") as fo:
-            json.dump(feature_json, fo, separators=(",", ":"))
-        files_written.append(feature_party_wall_path)
+    # Wrap as a CityJSON dict with the transform so CityModel can decode vertices
+    cm_dict = {
+        "type": "CityJSON",
+        "version": "1.1",
+        "transform": transform,
+        "CityObjects": feature.get("CityObjects", {}),
+        "vertices": feature.get("vertices", []),
+        "_feature": feature,  # keep original for write_cityjsonfeature
+    }
 
-    context.add_output_metadata(
-        metadata={
-            "Nr. features": len(files_written),
-            "Path": output_dir_tiles,
-        }
+    # Find the BuildingPart object_id
+    part_id = None
+    for obj_id, obj in feature.get("CityObjects", {}).items():
+        if obj.get("type") == "BuildingPart":
+            part_id = obj_id
+            break
+    if part_id is None:
+        # Fall back to first object if no BuildingPart
+        objects = feature.get("CityObjects", {})
+        part_id = next(iter(objects)) if objects else None
+
+    return cm_dict, part_id
+
+
+_worker_adjacency: dict[str, list[str]] = {}
+_worker_features_index: dict[str, Path] = {}
+_worker_transform: dict = {}
+
+
+def _init_worker(
+    adjacency: dict[str, list[str]],
+    features_index: dict[str, Path],
+    transform: dict,
+) -> None:
+    """Initializer for ProcessPoolExecutor workers.
+
+    Stores the large read-only dicts once per worker process instead of
+    pickling them with every submit() call.
+    """
+    global _worker_adjacency, _worker_features_index, _worker_transform
+    _worker_adjacency = adjacency
+    _worker_features_index = features_index
+    _worker_transform = transform
+
+
+def _process_building(
+    pand_id: str,
+    target_path: Path,
+    output_dir: Path,
+    profile: bool,
+) -> BuildingProcessingResult:
+    """Process a single building: compute shared_walls and write output.
+
+    Returns the output path and optional timing information.
+    """
+    total_start = perf_counter()
+    target_load_start = perf_counter()
+    target_cm, target_part_id = _load_feature_as_citymodel(
+        target_path, _worker_transform
     )
+    load_target_s = perf_counter() - target_load_start
+    if target_part_id is None:
+        logger.warning(f"No BuildingPart found in {pand_id}, skipping.")
+        return BuildingProcessingResult(output_path=None, timing=None)
+
+    adjacent_args = []
+    adjacent_count = 0
+    adjacent_load_start = perf_counter()
+    for adj_id in _worker_adjacency.get(pand_id, []):
+        adj_path = _worker_features_index.get(adj_id)
+        if adj_path is None:
+            continue
+        adj_cm, adj_part_id = _load_feature_as_citymodel(adj_path, _worker_transform)
+        if adj_part_id is not None:
+            adjacent_args.append((adj_cm, adj_part_id))
+            adjacent_count += 1
+    load_adjacent_s = perf_counter() - adjacent_load_start
+
+    shared_walls_start = perf_counter()
+    result = shared_walls(
+        target=(target_cm, target_part_id),
+        adjacent=adjacent_args,
+    )
+    shared_walls_s = perf_counter() - shared_walls_start
+
+    output_path = output_dir / f"{pand_id}.city.jsonl"
+    raw_feature = target_cm["_feature"]
+    write_start = perf_counter()
+    write_cityjsonfeature(raw_feature, result, output_path)
+    write_output_s = perf_counter() - write_start
+
+    timing = None
+    if profile:
+        timing = BuildingTiming(
+            pand_id=pand_id,
+            adjacent_count=adjacent_count,
+            load_target_s=load_target_s,
+            load_adjacent_s=load_adjacent_s,
+            shared_walls_s=shared_walls_s,
+            write_output_s=write_output_s,
+            total_s=perf_counter() - total_start,
+        )
+
+    return BuildingProcessingResult(output_path=output_path, timing=timing)
+
+
+def _summarize_building_timings(
+    timings: list[BuildingTiming],
+    *,
+    adjacency_query_s: float,
+    adjacency_rows: int,
+    files_written: int,
+    processing_total_s: float,
+    asset_total_s: float,
+    max_workers: int,
+) -> dict[str, Any]:
+    if not timings:
+        return {
+            "adjacency_query_s": adjacency_query_s,
+            "adjacency_rows": adjacency_rows,
+            "files_written": files_written,
+            "max_workers": max_workers,
+            "processing_total_s": processing_total_s,
+            "asset_total_s": asset_total_s,
+            "buildings_profiled": 0,
+            "load_target_total_s": 0.0,
+            "load_adjacent_total_s": 0.0,
+            "shared_walls_total_s": 0.0,
+            "write_output_total_s": 0.0,
+            "mean_building_total_s": 0.0,
+            "top_slowest_buildings": [],
+        }
+
+    total_building_s = sum(item.total_s for item in timings)
+    return {
+        "adjacency_query_s": adjacency_query_s,
+        "adjacency_rows": adjacency_rows,
+        "files_written": files_written,
+        "max_workers": max_workers,
+        "processing_total_s": processing_total_s,
+        "asset_total_s": asset_total_s,
+        "buildings_profiled": len(timings),
+        "load_target_total_s": sum(item.load_target_s for item in timings),
+        "load_adjacent_total_s": sum(item.load_adjacent_s for item in timings),
+        "shared_walls_total_s": sum(item.shared_walls_s for item in timings),
+        "write_output_total_s": sum(item.write_output_s for item in timings),
+        "mean_building_total_s": total_building_s / len(timings),
+        "top_slowest_buildings": [
+            asdict(item)
+            for item in sorted(timings, key=lambda item: item.total_s, reverse=True)[
+                :10
+            ]
+        ],
+    }
+
+
+@asset(
+    deps=[AssetKey(["input", "intermediary", "bag_adjacency"])],
+)
+def building_surfaces(
+    context: AssetExecutionContext,
+    config: PartyWallsConfig,
+    features_file_index: dict[str, Path],
+    computation_db: DatabaseResource,
+    file_store: FileStoreResource,
+    nl_transform: NlTransform,
+) -> list[Path]:
+    """Feature-based party walls calculation using bag3d-surfaces shared_walls().
+
+    For each building, loads the reconstructed CityJSONFeature, queries adjacent
+    building IDs from the row-based bag_adjacency table, and computes party walls
+    using shared_walls(). Results are written to stages/party_walls/{tile_id}/.
+    """
+    if not features_file_index:
+        logger.warning("No features found, skipping.")
+        return []
+
+    asset_start = perf_counter()
+    transform = {"translate": nl_transform.translate, "scale": nl_transform.scale}
+
+    # Query bag_adjacency for all pand_ids
+    pand_ids = list(features_file_index.keys())
+    adjacency_query_start = perf_counter()
+    query = pgsql.SQL(
+        """
+        SELECT identificatie, adjacent_identificatie
+        FROM reconstruction_input.bag_adjacency
+        WHERE identificatie = ANY({pand_ids})
+        """
+    ).format(pand_ids=pgsql.Literal(pand_ids))
+    rows = cast(list[dict[str, Any]], computation_db.connection.get_dict(query))
+    adjacency_query_s = perf_counter() - adjacency_query_start
+    adjacency: dict[str, list[str]] = defaultdict(list)
+    for row in rows:
+        adjacency[row["identificatie"]].append(row["adjacent_identificatie"])
+
+    # Group buildings by tile and create output directories
+    tiles_with_buildings: dict[str, list[tuple[str, Path]]] = defaultdict(list)
+    reconstruction_root = file_store.stage_dir("reconstruction")
+    for pand_id, path in features_file_index.items():
+        # Extract tile_id from path: .../reconstruction/{z}/{x}/{y}/objects/{pand_id}/...
+        rel_path = path.relative_to(reconstruction_root)
+        tile_id = "/".join(rel_path.parts[:3])
+        tiles_with_buildings[tile_id].append((pand_id, path))
+
+    # Process buildings concurrently
+    files_written: list[Path] = []
+    building_timings: list[BuildingTiming] = []
+    processing_start = perf_counter()
+    with ProcessPoolExecutor(
+        max_workers=config.concurrency,
+        initializer=_init_worker,
+        initargs=(adjacency, features_file_index, transform),
+    ) as executor:
+        futures = {}
+        for tile_id, buildings in tiles_with_buildings.items():
+            output_dir = file_store.stage_dir("party_walls") / tile_id
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            for pand_id, path in buildings:
+                future = executor.submit(
+                    _process_building,
+                    pand_id,
+                    path,
+                    output_dir,
+                    config.profile,
+                )
+                futures[future] = pand_id
+
+        for future in futures:
+            pand_id = futures[future]
+            try:
+                result = future.result()
+                if result.output_path is not None:
+                    files_written.append(result.output_path)
+                if result.timing is not None:
+                    building_timings.append(result.timing)
+            except Exception as exc:
+                logger.error(f"Error processing building {pand_id}: {exc}")
+    processing_total_s = perf_counter() - processing_start
+
+    output_dir = file_store.stage_dir("party_walls")
+    metadata: dict[str, Any] = {
+        "Nr. features": len(files_written),
+        "Path": MetadataValue.path(str(output_dir)),
+    }
+    if config.profile:
+        summary = _summarize_building_timings(
+            building_timings,
+            adjacency_query_s=adjacency_query_s,
+            adjacency_rows=len(rows),
+            files_written=len(files_written),
+            processing_total_s=processing_total_s,
+            asset_total_s=perf_counter() - asset_start,
+            max_workers=config.concurrency,
+        )
+        profile_path = output_dir / "_profiling" / "building_surfaces_profile.json"
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        profile_path.write_text(
+            json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8"
+        )
+        metadata["Profile"] = MetadataValue.path(str(profile_path))
+        metadata["Profile shared_walls total (s)"] = round(
+            summary["shared_walls_total_s"], 3
+        )
+        metadata["Profile asset total (s)"] = round(summary["asset_total_s"], 3)
+    context.add_output_metadata(metadata=metadata)
     return files_written
