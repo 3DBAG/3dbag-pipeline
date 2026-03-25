@@ -139,12 +139,30 @@ def _load_feature_as_citymodel(path: Path, transform: dict) -> tuple[dict, str |
     return cm_dict, part_id
 
 
+_worker_adjacency: dict[str, list[str]] = {}
+_worker_features_index: dict[str, Path] = {}
+_worker_transform: dict = {}
+
+
+def _init_worker(
+    adjacency: dict[str, list[str]],
+    features_index: dict[str, Path],
+    transform: dict,
+) -> None:
+    """Initializer for ProcessPoolExecutor workers.
+
+    Stores the large read-only dicts once per worker process instead of
+    pickling them with every submit() call.
+    """
+    global _worker_adjacency, _worker_features_index, _worker_transform
+    _worker_adjacency = adjacency
+    _worker_features_index = features_index
+    _worker_transform = transform
+
+
 def _process_building(
     pand_id: str,
     target_path: Path,
-    adjacency: dict[str, list[str]],
-    features_file_index: dict[str, Path],
-    transform: dict,
     output_dir: Path,
     profile: bool,
 ) -> BuildingProcessingResult:
@@ -154,7 +172,9 @@ def _process_building(
     """
     total_start = perf_counter()
     target_load_start = perf_counter()
-    target_cm, target_part_id = _load_feature_as_citymodel(target_path, transform)
+    target_cm, target_part_id = _load_feature_as_citymodel(
+        target_path, _worker_transform
+    )
     load_target_s = perf_counter() - target_load_start
     if target_part_id is None:
         logger.warning(f"No BuildingPart found in {pand_id}, skipping.")
@@ -163,11 +183,11 @@ def _process_building(
     adjacent_args = []
     adjacent_count = 0
     adjacent_load_start = perf_counter()
-    for adj_id in adjacency.get(pand_id, []):
-        adj_path = features_file_index.get(adj_id)
+    for adj_id in _worker_adjacency.get(pand_id, []):
+        adj_path = _worker_features_index.get(adj_id)
         if adj_path is None:
             continue
-        adj_cm, adj_part_id = _load_feature_as_citymodel(adj_path, transform)
+        adj_cm, adj_part_id = _load_feature_as_citymodel(adj_path, _worker_transform)
         if adj_part_id is not None:
             adjacent_args.append((adj_cm, adj_part_id))
             adjacent_count += 1
@@ -304,7 +324,11 @@ def building_surfaces(
     files_written: list[Path] = []
     building_timings: list[BuildingTiming] = []
     processing_start = perf_counter()
-    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
+    with ProcessPoolExecutor(
+        max_workers=config.concurrency,
+        initializer=_init_worker,
+        initargs=(adjacency, features_file_index, transform),
+    ) as executor:
         futures = {}
         for tile_id, buildings in tiles_with_buildings.items():
             output_dir = file_store.stage_dir("party_walls") / tile_id
@@ -315,9 +339,6 @@ def building_surfaces(
                     _process_building,
                     pand_id,
                     path,
-                    adjacency,
-                    features_file_index,
-                    transform,
                     output_dir,
                     config.profile,
                 )
