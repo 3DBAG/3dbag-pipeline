@@ -63,6 +63,7 @@ _TEST_DATA = (
 _CROP_RECONSTRUCT = _TEST_DATA / "file_store_fastssd" / "3DBAG" / "crop_reconstruct"
 _OBJECTS_DIR = _CROP_RECONSTRUCT / "10" / "564" / "624" / "objects"
 _NL_TRANSFORM = {"scale": [0.001, 0.001, 0.001], "translate": [171800.0, 472700.0, 0.0]}
+_HAS_TEST_DATA = _OBJECTS_DIR.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +136,12 @@ def _build_adjacency_from_features(
 
 
 # Computed once at module level so collection is fast on repeated runs.
-_ADJACENCY_ROWS = _build_adjacency_from_features(_OBJECTS_DIR, _NL_TRANSFORM)
+# Guard with _HAS_TEST_DATA so collection succeeds in CI when test data is absent.
+_ADJACENCY_ROWS: list[dict[str, str]] = (
+    _build_adjacency_from_features(_OBJECTS_DIR, _NL_TRANSFORM)
+    if _HAS_TEST_DATA
+    else []
+)
 
 
 # ---------------------------------------------------------------------------
