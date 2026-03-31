@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dagster import get_dagster_logger
 
+from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -92,6 +93,8 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "publication_server": ServerTransferResource.configure_at_launch(),
             "publication_db": DatabaseResource.configure_at_launch(),
             "nl_transform": nl_transform,
+            "reconstruction_index": CityIndexResource.configure_at_launch(),
+            "party_walls_index": CityIndexResource.configure_at_launch(),
         }
     elif configure_from_env:
         return {
@@ -162,6 +165,16 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 },
             ),
             "nl_transform": nl_transform,
+            "reconstruction_index": CityIndexResource(
+                dataset_dir=str(
+                    Path(os.environ["BAG3D_FILESTORE"]) / "stages" / "reconstruction"
+                )
+            ),
+            "party_walls_index": CityIndexResource(
+                dataset_dir=str(
+                    Path(os.environ["BAG3D_FILESTORE"]) / "stages" / "party_walls"
+                )
+            ),
         }
     else:
         raise RuntimeError("Cannot configure dagster environment")

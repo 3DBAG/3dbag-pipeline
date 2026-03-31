@@ -28,6 +28,7 @@ dependencies = [
     "psycopg[binary]~=3.3.2",
     "bag3d-specs",
     "fabric~=3.2.2",
+    "cjindex",
 ]
 
 [dependency-groups]
