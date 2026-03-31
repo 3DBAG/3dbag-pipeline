@@ -108,6 +108,30 @@ def _load_feature_as_citymodel(feature: dict, transform: dict) -> tuple[dict, st
     return cm_dict, part_id
 
 
+def _tile_id_from_source_path(
+    source_path: str | Path,
+    reconstruction_root: Path,
+) -> str:
+    """Derive the output tile id from an indexed feature source path.
+
+    The reconstruction layout can change from per-feature CityJSONFeature files
+    to tile-level NDJSON, so this helper only relies on the path segments under
+    the stage root. For the current layout that yields ``z/x/y``; for a tile
+    NDJSON file under the same directory tree it yields the same tile id.
+    """
+    source = Path(source_path)
+    try:
+        rel_path = source.relative_to(reconstruction_root)
+    except ValueError:
+        rel_path = source
+
+    if len(rel_path.parts) >= 3:
+        return "/".join(rel_path.parts[:3])
+    if len(rel_path.parts) == 2:
+        return rel_path.parts[0]
+    return rel_path.stem
+
+
 _worker_adjacency: dict[str, list[str]] = {}
 _worker_features_index: dict[str, cjindex.FeatureRef] = {}
 _worker_transform: dict = {}
@@ -311,16 +335,11 @@ def building_surfaces(
     for row in rows:
         adjacency[row["identificatie"]].append(row["adjacent_identificatie"])
 
-    # Group buildings by tile and create output directories
+    # Group buildings by tile using the indexed source path, not the per-feature
+    # reconstruction file layout.
     tiles_with_buildings: dict[str, list[tuple[str, cjindex.FeatureRef]]] = defaultdict(list)
     for pand_id, ref in features_index.items():
-        # Extract tile_id from source_path: .../reconstruction/{z}/{x}/{y}/objects/{pand_id}/...
-        source = Path(ref.source_path)
-        try:
-            rel_path = source.relative_to(reconstruction_root)
-            tile_id = "/".join(rel_path.parts[:3])
-        except ValueError:
-            tile_id = pand_id
+        tile_id = _tile_id_from_source_path(ref.source_path, reconstruction_root)
         tiles_with_buildings[tile_id].append((pand_id, ref))
 
     # Process buildings concurrently

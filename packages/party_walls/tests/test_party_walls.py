@@ -15,9 +15,8 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.cjindex import CityIndexResource
 
 
-def _make_feature_file(path, pand_id: str) -> None:
-    """Create a minimal CityJSONFeature file for testing."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _make_feature_bytes(pand_id: str) -> bytes:
+    """Create a minimal CityJSONFeature payload for testing."""
     content = {
         "type": "CityJSONFeature",
         "id": pand_id,
@@ -30,32 +29,22 @@ def _make_feature_file(path, pand_id: str) -> None:
         },
         "vertices": [],
     }
-    path.write_text(json.dumps(content))
-
-
-def _make_reconstruction_feature(root_dir: Path, tile_id: str, pand_id: str) -> Path:
-    feature_path = (
-        root_dir
-        / "stages"
-        / "reconstruction"
-        / tile_id
-        / "objects"
-        / pand_id
-        / "reconstruct"
-        / f"{pand_id}.city.jsonl"
-    )
-    _make_feature_file(feature_path, pand_id)
-    return feature_path
+    return json.dumps(content).encode()
 
 
 def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
-    """Create FeatureRef mocks backed by real on-disk feature files."""
+    """Create FeatureRef mocks backed by a tile-level reconstruction source."""
+    source_path = (
+        tmp_path
+        / "stages"
+        / "reconstruction"
+        / tile_id
+        / "reconstruct.ndjson"
+    )
     refs_with_bytes = []
     for pand_id in pand_ids:
-        feature_path = _make_reconstruction_feature(tmp_path, tile_id, pand_id)
-        feature_bytes = feature_path.read_bytes()
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
-        refs_with_bytes.append((ref, feature_bytes))
+        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(source_path))
+        refs_with_bytes.append((ref, _make_feature_bytes(pand_id)))
     return refs_with_bytes
 
 

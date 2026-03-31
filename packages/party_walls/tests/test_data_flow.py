@@ -4,7 +4,6 @@ Chains features_file_index -> building_surfaces to verify stage-to-stage handoff
 """
 
 import json
-from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -20,9 +19,8 @@ from bag3d.party_walls.assets.party_walls import (
 )
 
 
-def _make_feature_file(path: Path, pand_id: str) -> None:
-    """Create a minimal CityJSONFeature file for testing."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _make_feature_bytes(pand_id: str) -> bytes:
+    """Create a minimal CityJSONFeature payload for testing."""
     content = {
         "type": "CityJSONFeature",
         "id": pand_id,
@@ -35,7 +33,7 @@ def _make_feature_file(path: Path, pand_id: str) -> None:
         },
         "vertices": [],
     }
-    path.write_text(json.dumps(content))
+    return json.dumps(content).encode()
 
 
 def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
@@ -44,20 +42,14 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
-    # Seed reconstruction stage files
-    for pand_id in (target_id, adjacent_id):
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "reconstruction"
-            / tile_id
-            / "objects"
-            / pand_id
-            / "reconstruct"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_feature_file(feature_path, pand_id)
-
+    # Seed reconstruction stage refs
+    source_path = (
+        tmp_path
+        / "stages"
+        / "reconstruction"
+        / tile_id
+        / "reconstruct.ndjson"
+    )
     file_store = FileStoreResource(root_dir=str(tmp_path))
     resource = CityIndexResource(
         dataset_dir=str(tmp_path / "stages" / "reconstruction")
@@ -71,19 +63,9 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     refs = []
     bytes_map = {}
     for pand_id in (target_id, adjacent_id):
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "reconstruction"
-            / tile_id
-            / "objects"
-            / pand_id
-            / "reconstruct"
-            / f"{pand_id}.city.jsonl"
-        )
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
+        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(source_path))
         refs.append(ref)
-        bytes_map[pand_id] = feature_path.read_bytes()
+        bytes_map[pand_id] = _make_feature_bytes(pand_id)
 
     mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset : offset + limit]
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
