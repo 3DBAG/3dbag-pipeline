@@ -1,10 +1,10 @@
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from itertools import islice
 from os import getenv
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict
 
+import cjindex
 import numpy as np
 import pandas as pd
 from bag3d.common.types import PostgresTableIdentifier
@@ -13,6 +13,7 @@ from bag3d.common.utils.database import (
     load_sql,
     postgrestable_from_query,
 )
+from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.floors_estimation.resources import ModelStoreResource
@@ -51,45 +52,35 @@ class FloorsEstimationIOConfig(Config):
     )
 
 
-def extract_attributes_from_path(path: str, pand_id: str) -> Dict:
-    with Path(path).open(encoding="utf-8", mode="r") as fo:
-        feature_json = json.load(fo)
-    attributes = feature_json["CityObjects"][pand_id]["attributes"]
-    return attributes
+_REQUIRED_ATTRIBUTES = [
+    "identificatie",
+    "oorspronkelijkbouwjaar",
+    "b3_dak_type",
+    "b3_h_dak_50p",
+    "b3_h_dak_70p",
+    "b3_h_dak_max",
+    "b3_h_dak_min",
+    "b3_opp_dak_plat",
+    "b3_opp_dak_schuin",
+    "b3_opp_buitenmuur",
+    "b3_opp_scheidingsmuur",
+    "b3_opp_grond",
+    "b3_volume_lod22",
+    "b3_volume_lod12",
+]
 
 
-def process_chunk(
+def _process_chunk(
     conn: PostgresConnection,
-    chunk_files: Dict[str, Path],
+    chunk_attrs: list[Dict],
     chunk_id: int,
     table: PostgresTableIdentifier,
     logger,
 ):
-    chunk_features = [
-        extract_attributes_from_path(str(path), ex_id)
-        for ex_id, path in chunk_files.items()
-    ]
-    required_attributes = [
-        "identificatie",
-        "oorspronkelijkbouwjaar",
-        "b3_dak_type",
-        "b3_h_dak_50p",
-        "b3_h_dak_70p",
-        "b3_h_dak_max",
-        "b3_h_dak_min",
-        "b3_opp_dak_plat",
-        "b3_opp_dak_schuin",
-        "b3_opp_buitenmuur",
-        "b3_opp_scheidingsmuur",
-        "b3_opp_grond",
-        "b3_volume_lod22",
-        "b3_volume_lod12",
-    ]
-
+    """Insert a chunk of attribute dicts into the bag3d_features table."""
     data = []
-    for attr_dict in chunk_features:
-        # Check for missing attributes
-        missing_attrs = [attr for attr in required_attributes if attr not in attr_dict]
+    for attr_dict in chunk_attrs:
+        missing_attrs = [attr for attr in _REQUIRED_ATTRIBUTES if attr not in attr_dict]
         if missing_attrs:
             raise KeyError(f"Missing required attributes: {missing_attrs}")
 
@@ -125,59 +116,33 @@ def process_chunk(
     logger.info(f"Chunk {chunk_id} done.")
 
 
-def visit_directory(z_level: Path) -> Iterable[tuple[str, Path]]:
-    for x_level in z_level.iterdir():
-        if not x_level.is_dir():
-            continue
-        for y_level in x_level.iterdir():
-            if not y_level.is_dir():
-                continue
-            for feature_path in y_level.glob("*.city.jsonl"):
-                yield feature_path.stem.removesuffix(".city"), feature_path
-
-
-def features_file_index_generator(
-    path_features: Path, max_workers: int = 4
-) -> Iterable[tuple[str, Path]]:
-    dir_z = [d for d in path_features.iterdir() if d.is_dir()]
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for g in executor.map(visit_directory, dir_z):
-            for identificatie, path in g:
-                yield identificatie, path
-
-
-def make_chunks(data: dict[str, Path], SIZE: int = 1000):
-    it = iter(data)
-    for i in range(0, len(data), SIZE):
-        yield {k: data[k] for k in islice(it, SIZE)}
-
-
 @asset(deps=[AssetKey(["party_walls", "building_surfaces"])])
 def features_file_index(
-    config: FloorsEstimationConfig, file_store: FileStoreResource
-) -> dict[str, Path]:
+    party_walls_index: CityIndexResource,
+) -> dict:
+    """Index-readiness asset for party_walls stage features.
+
+    Opens the ``party_walls_index`` (creating or refreshing the SQLite
+    index if needed) and returns a small status payload.  The asset key is
+    preserved so that downstream jobs continue to resolve against it.
     """
-    Returns a dict of {feature ID: feature file path}.
-    """
-    reconstructed_with_party_walls_dir = file_store.stage_dir("party_walls")
-
-    res = dict(
-        features_file_index_generator(
-            reconstructed_with_party_walls_dir, config.concurrency
-        )
-    )
-    logger.info(f"Retrieved {len(res)} features.")
-    return res
+    idx = open_ready_index(party_walls_index)
+    count = idx.feature_ref_count()
+    logger.info(f"Party walls index ready: {count} features indexed.")
+    return {"indexed_feature_count": count}
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    deps=[AssetKey(["floors_estimation", "features_file_index"])],
+    op_tags={"compute_kind": "sql"},
+)
 def bag3d_features(
     config: FloorsEstimationConfig,
-    features_file_index: dict[str, Path],
+    party_walls_index: CityIndexResource,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_bag3d` table.
-    Extracts 3DBAG features from the cityJSONL files,
+    Extracts 3DBAG features from the party_walls index,
     which already contain the party walls information."""
     logger.info("Extracting 3DBAG features.")
     table_name = "building_features_bag3d"
@@ -187,28 +152,47 @@ def bag3d_features(
     metadata = postgrestable_from_query(
         computation_db, query, bag3d_features_table, logger
     )
-    logger.info(f"Extracting 3DBAG features for {len(features_file_index)} buildings.")
-    chunks = list(make_chunks(features_file_index, CHUNK_SIZE))
-    logger.info(f"Processing {len(chunks)} chunks.")
+
+    idx = open_ready_index(party_walls_index)
+    total = idx.feature_ref_count()
+    logger.info(f"Extracting 3DBAG features for {total} buildings.")
+
+    offset = 0
+    chunk_id = 0
+    futures_map = {}
 
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
-        processing = {
-            pool.submit(
-                process_chunk,
+        while offset < total:
+            refs = idx.feature_ref_page(offset, CHUNK_SIZE)
+            if not refs:
+                break
+
+            chunk_attrs = []
+            for ref in refs:
+                feature_bytes = idx.read_feature_bytes(ref)
+                feature_json = json.loads(feature_bytes)
+                attributes = feature_json["CityObjects"][ref.feature_id]["attributes"]
+                chunk_attrs.append(attributes)
+
+            future = pool.submit(
+                _process_chunk,
                 computation_db.connection,
-                chunk,
-                cid,
+                chunk_attrs,
+                chunk_id,
                 bag3d_features_table,
                 logger,
-            ): cid
-            for cid, chunk in enumerate(chunks)
-        }
-        for i, future in enumerate(as_completed(processing)):
+            )
+            futures_map[future] = chunk_id
+            chunk_id += 1
+            offset += len(refs)
+
+        for i, future in enumerate(as_completed(futures_map)):
             try:
                 _ = future.result()
             except Exception as e:  # pragma: no cover
                 logger.error(f"Error in chunk {i} raised an exception: {e}")
 
+    logger.info(f"Processed {chunk_id} chunks.")
     return Output(bag3d_features_table, metadata=metadata)
 
 
@@ -326,11 +310,15 @@ def predictions_table(
     return Output(predictions_table, metadata=metadata)
 
 
-def save_cjfile(
-    path: Path, pand_id: str, inferenced_floors: pd.DataFrame, output_dir: Path
-):
-    with path.open(encoding="utf-8", mode="r") as fo:
-        feature_json = json.load(fo)
+def _save_cjfile_from_ref(
+    ref: cjindex.FeatureRef,
+    feature_bytes: bytes,
+    inferenced_floors: pd.DataFrame,
+    floors_estimation_dir: Path,
+) -> None:
+    """Write a CityJSONFeature file with b3_bouwlagen injected."""
+    feature_json = json.loads(feature_bytes)
+    pand_id = ref.feature_id
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
 
     if pand_id in inferenced_floors.index:
@@ -342,45 +330,56 @@ def save_cjfile(
     else:
         attributes["b3_bouwlagen"] = None
 
-    output_path = output_dir.joinpath(path.parent.name, path.name)
+    # Mirror the party_walls tile layout: source_path is .../party_walls/{tile_id}/{pand_id}.city.jsonl
+    source = Path(ref.source_path)
+    tile_dir_name = source.parent.name  # e.g. "10/434/716" → last component
+    output_tile_dir = floors_estimation_dir / tile_dir_name
+    output_tile_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_tile_dir / source.name
 
     with output_path.open("w") as fo:
         json.dump(feature_json, fo, separators=(",", ":"))
 
 
-@asset
+@asset(
+    deps=[AssetKey(["floors_estimation", "features_file_index"])],
+)
 def save_cjfiles(
     config: FloorsEstimationIOConfig,
     inferenced_floors: pd.DataFrame,
-    features_file_index: dict[str, Path],
+    party_walls_index: CityIndexResource,
     file_store: FileStoreResource,
 ) -> None:
-    """Saves the new cj files."""
-    reconstructed_with_floors_estimation_dir = file_store.stage_dir("floors_estimation")
-    logger.info("Creating directories for the new files.")
-    tile_paths = set([f.parent for f in list(features_file_index.values())])
-    for tile_path in tile_paths:
-        new_tile = reconstructed_with_floors_estimation_dir / tile_path.name
-        new_tile.mkdir(parents=True, exist_ok=True)
+    """Saves the new cj files with floor predictions injected."""
+    floors_estimation_dir = file_store.stage_dir("floors_estimation")
+    logger.info(f"Saving to {floors_estimation_dir}")
 
-    logger.info(f"Saving to {reconstructed_with_floors_estimation_dir}")
+    idx = open_ready_index(party_walls_index)
+    total = idx.feature_ref_count()
 
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
-        processing = {
-            pool.submit(
-                save_cjfile,
-                path,
-                pand_id,
-                inferenced_floors,
-                reconstructed_with_floors_estimation_dir,
-            ): pand_id
-            for pand_id, path in features_file_index.items()
-        }
-        for i, future in enumerate(as_completed(processing)):
+        futures = {}
+        offset = 0
+        while offset < total:
+            refs = idx.feature_ref_page(offset, CHUNK_SIZE)
+            if not refs:
+                break
+            for ref in refs:
+                feature_bytes = idx.read_feature_bytes(ref)
+                future = pool.submit(
+                    _save_cjfile_from_ref,
+                    ref,
+                    feature_bytes,
+                    inferenced_floors,
+                    floors_estimation_dir,
+                )
+                futures[future] = ref.feature_id
+            offset += len(refs)
+
+        for i, future in enumerate(as_completed(futures)):
             try:
                 _ = future.result()
             except Exception as e:  # pragma: no cover
                 logger.error(f"Error in file {i} raised an exception: {e}")
 
-    logger.info(f"""Saved {len(features_file_index)} files
-                     to {reconstructed_with_floors_estimation_dir}""")
+    logger.info(f"Saved {total} files to {floors_estimation_dir}")
