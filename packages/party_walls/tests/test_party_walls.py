@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
 
+import cjindex
 from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources import nl_transform
 from bag3d.party_walls.assets.party_walls import (
@@ -53,9 +54,7 @@ def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     for pand_id in pand_ids:
         feature_path = _make_reconstruction_feature(tmp_path, tile_id, pand_id)
         feature_bytes = feature_path.read_bytes()
-        ref = MagicMock()
-        ref.feature_id = pand_id
-        ref.source_path = str(feature_path)
+        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
         refs_with_bytes.append((ref, feature_bytes))
     return refs_with_bytes
 
@@ -182,7 +181,7 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     for output_path in output_paths:
         assert output_path.exists()
         data = json.loads(output_path.read_text())
-        pand_id = output_path.stem
+        pand_id = output_path.name.removesuffix(".city.jsonl")
         assert data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"] == 12.5
         assert data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
 

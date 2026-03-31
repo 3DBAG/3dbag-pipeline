@@ -47,6 +47,7 @@ pytestmark = pytest.mark.skipif(
 
 # Common imports that don't depend on building_surfaces
 from bag3d.common.resources import nl_transform  # noqa: E402
+from bag3d.common.resources.cjindex import CityIndexResource  # noqa: E402
 from bag3d.common.resources.files import FileStoreResource  # noqa: E402
 from bag3d.common.testing import build_asset_context_for  # noqa: E402
 
@@ -187,7 +188,6 @@ def test_building_surfaces_integration(
     from bag3d.party_walls.assets.party_walls import (
         PartyWallsConfig,
         building_surfaces,
-        features_file_index_generator,
     )
 
     # Patch real functions into the asset module for the duration of this test.
@@ -197,8 +197,7 @@ def test_building_surfaces_integration(
     monkeypatch.setattr(_pw_mod, "write_cityjsonfeature", _real_write_cityjsonfeature)
 
     reconstruction_dir = integration_file_store.stage_dir("reconstruction")
-    index = dict(features_file_index_generator(reconstruction_dir, max_workers=4))
-    assert len(index) > 0, f"No features found in {reconstruction_dir}"
+    resource = CityIndexResource(dataset_dir=str(reconstruction_dir))
 
     config = PartyWallsConfig(concurrency=4, profile=True)
 
@@ -206,7 +205,7 @@ def test_building_surfaces_integration(
         result = building_surfaces(
             context,
             config,
-            index,
+            resource,
             adjacency_db,
             integration_file_store,
             nl_transform,

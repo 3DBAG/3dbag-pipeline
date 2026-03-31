@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import cjindex
 import pandas as pd
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.floors_estimation.assets.floors_estimation import (
-    FloorsEstimationConfig,
     FloorsEstimationIOConfig,
     features_file_index,
     save_cjfiles,
@@ -44,9 +44,7 @@ def _make_refs(tmp_path: Path, pand_ids: list[str]) -> list:
             / f"{pand_id}.city.jsonl"
         )
         _make_party_walls_feature(feature_path, pand_id)
-        ref = MagicMock()
-        ref.feature_id = pand_id
-        ref.source_path = str(feature_path)
+        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
         refs_with_bytes.append((ref, feature_path.read_bytes()))
     return refs_with_bytes
 

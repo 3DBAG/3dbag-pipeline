@@ -6,10 +6,12 @@ Chains features_file_index -> building_surfaces to verify stage-to-stage handoff
 import json
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+import cjindex
 from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources import nl_transform
+from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
@@ -57,15 +59,48 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         _make_feature_file(feature_path, pand_id)
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
 
     # Step 1: features_file_index reads from reconstruction stage
-    index = features_file_index(PartyWallsConfig(concurrency=1), file_store)
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_ref_count.return_value = 2
+
+    refs = []
+    bytes_map = {}
+    for pand_id in (target_id, adjacent_id):
+        feature_path = (
+            tmp_path
+            / "stages"
+            / "reconstruction"
+            / tile_id
+            / "objects"
+            / pand_id
+            / "reconstruct"
+            / f"{pand_id}.city.jsonl"
+        )
+        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
+        refs.append(ref)
+        bytes_map[pand_id] = feature_path.read_bytes()
+
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset : offset + limit]
+    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+    mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
+
+    import cjindex as _cjindex
+
+    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index",
+        return_value=mock_idx,
+    ):
+        index = features_file_index(resource)
 
     assert isinstance(index, dict)
-    assert len(index) == 2
-    for pand_id in (target_id, adjacent_id):
-        assert pand_id in index
-        assert "stages/reconstruction" in str(index[pand_id])
+    assert index["indexed_feature_count"] == 2
 
     # Step 2: building_surfaces consumes the index and writes to party_walls stage
     shared_walls_calls: list[tuple] = []
@@ -101,15 +136,19 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         },
     ]
 
-    with build_asset_context_for(building_surfaces) as context:
-        output_paths = building_surfaces(
-            context,
-            PartyWallsConfig(concurrency=1),
-            index,
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index",
+        return_value=mock_idx,
+    ):
+        with build_asset_context_for(building_surfaces) as context:
+            output_paths = building_surfaces(
+                context,
+                PartyWallsConfig(concurrency=1),
+                resource,
+                mock_db,
+                file_store,
+                nl_transform,
+            )
 
     # Verify output files exist at stages/party_walls/{tile_id}/
     party_walls_dir = tmp_path / "stages" / "party_walls" / tile_id

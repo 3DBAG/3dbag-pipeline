@@ -1,10 +1,14 @@
 import os
 from enum import StrEnum
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dagster import get_dagster_logger
 
-from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+from bag3d.common.resources.cjindex import (
+    CityIndexResource as CityIndexResource,
+    open_ready_index as open_ready_index,
+)
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -27,6 +31,9 @@ from bag3d.common.resources.values import NlTransform
 # genuinely optional env vars.
 
 logger = get_dagster_logger()
+
+if TYPE_CHECKING:
+    from bag3d.common.resources.cjindex import CityIndexResource
 
 
 class DagsterDeployment(StrEnum):
@@ -178,6 +185,20 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
         }
     else:
         raise RuntimeError("Cannot configure dagster environment")
+
+
+def __getattr__(name: str):
+    if name in {"CityIndexResource", "open_ready_index"}:
+        from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+
+        globals().update(
+            {
+                "CityIndexResource": CityIndexResource,
+                "open_ready_index": open_ready_index,
+            }
+        )
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 env_name = os.getenv("DAGSTER_DEPLOYMENT", "default")
