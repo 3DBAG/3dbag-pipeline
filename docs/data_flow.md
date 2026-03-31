@@ -7,14 +7,14 @@ The main pipeline stages pass data through the file system via **stage directori
 ```
 stages/reconstruction/{tile_id}/objects/{pand_id}/reconstruct/{pand_id}.city.jsonl
         |
-        |  party_walls.features_file_index    (walks stages/reconstruction/, builds {id: path} dict)
-        |  party_walls.building_surfaces (reads per-partition, also reads DB: bag_adjacency)
+        |  party_walls.features_file_index    (opens/refreshes cjindex over stages/reconstruction/)
+        |  party_walls.building_surfaces (pages FeatureRefs from index; reads DB: bag_adjacency)
         v
 stages/party_walls/{tile_id}/{pand_id}.city.jsonl          <-- adds shared_walls geometry
         |
-        |  floors_estimation.features_file_index  (walks stages/party_walls/, builds {id: path} dict)
-        |  floors_estimation.bag3d_features       (extracts attributes into DB table)
-        |  floors_estimation.save_cjfiles         (merges floor predictions back into files)
+        |  floors_estimation.features_file_index  (opens/refreshes cjindex over stages/party_walls/)
+        |  floors_estimation.bag3d_features       (pages FeatureRefs, extracts attributes into DB table)
+        |  floors_estimation.save_cjfiles         (pages FeatureRefs, merges floor predictions back into files)
         v
 stages/floors_estimation/{tile_id}/{pand_id}.city.jsonl    <-- adds b3_bouwlagen attribute
         |
@@ -45,17 +45,17 @@ The `reconstructed_building_models_nl` asset (partitioned by tile) runs roofer t
 
 ### Party walls
 
-`features_file_index` walks the reconstruction output directory tree (concurrently per z-level) and builds a `{pand_id: path}` mapping. `building_surfaces` (partitioned) uses this index together with the `bag_adjacency` database table to compute shared walls per building. `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
+`features_file_index` opens (or refreshes) a `cjindex` SQLite index over `stages/reconstruction/` and records the indexed feature count.  Stage handoff is still file-based; only **feature discovery** is backed by the index instead of directory walking.  `building_surfaces` pages over `FeatureRef` objects from the index, queries the `bag_adjacency` database table to determine adjacent buildings, and computes shared walls per building via multiprocessing. Each worker opens its own index instance.  `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
 
 ### Floors estimation
 
-`features_file_index` walks `stages/party_walls/` similarly. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. Finally `save_cjfiles` reads the party_walls `.city.jsonl` files and writes enriched copies with the `b3_bouwlagen` (floor count) attribute to `stages/floors_estimation/`.
+`features_file_index` opens (or refreshes) a `cjindex` index over `stages/party_walls/` and records the indexed feature count. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. `bag3d_features` and `save_cjfiles` page over `FeatureRef` objects from the index instead of consuming a `{id: path}` dict. Finally `save_cjfiles` reads the party_walls `.city.jsonl` files via the index and writes enriched copies with the `b3_bouwlagen` (floor count) attribute to `stages/floors_estimation/`.
 
 ### Export
 
 Four tyler assets read from `stages/floors_estimation/` and write tiled output to `stages/export/{version}/`. Post-processing assets (compression, GeoPackage aggregation, validation) operate within the export directory.
 
-`feature_evaluation` is a side branch that reads `stages/reconstruction/` directly (not the enriched files), producing a CSV summary of reconstruction quality.
+`feature_evaluation` is a side branch that enumerates features from the `reconstruction_index` (backed by `cjindex`) instead of walking `stages/reconstruction/` directly. It produces a CSV summary of reconstruction quality. Stage outputs are unchanged in shape and location.
 
 ## Database as side channel
 
