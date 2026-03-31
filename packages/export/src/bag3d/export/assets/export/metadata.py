@@ -16,6 +16,7 @@ from dagster import (
 )
 from psycopg.sql import SQL
 
+from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import ReleaseVersionResource
@@ -111,6 +112,9 @@ def features_to_csv(
             writer.writerow(row)
 
 
+_PAGE_SIZE = 1000
+
+
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models"))},
 )
@@ -118,11 +122,11 @@ def feature_evaluation(
     file_store: FileStoreResource,
     computation_db: DatabaseResource,
     version: ReleaseVersionResource,
+    reconstruction_index: CityIndexResource,
 ) -> Path:
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = file_store.stage_dir("reconstruction")
     output_dir = file_store.stage_subdir("export", version.version)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = computation_db.connection
@@ -149,14 +153,24 @@ def feature_evaluation(
 
     reconstructed_buildings = set()
     cityobjects = {}
-    for path in Path(reconstructed_root_dir).rglob("*.city.jsonl"):
-        reconstructed_buildings.add(path.stem[:-5])
-        with open(path, "r") as f:
-            cityjson = json.load(f)
+
+    idx = open_ready_index(reconstruction_index)
+    total = idx.feature_ref_count()
+    offset = 0
+    while offset < total:
+        refs = idx.feature_ref_page(offset, _PAGE_SIZE)
+        if not refs:
+            break
+        for ref in refs:
+            reconstructed_buildings.add(ref.feature_id)
+            feature_bytes = idx.read_feature_bytes(ref)
+            cityjson = json.loads(feature_bytes)
             codata = get_info_per_cityobject(
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )
-        cityobjects.update(codata)
+            cityobjects.update(codata)
+        offset += len(refs)
+
     logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
     logger.debug(f"len(cityobjects)={len(cityobjects)}")
 
