@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources import nl_transform
@@ -11,6 +11,7 @@ from bag3d.party_walls.assets.party_walls import (
     building_surfaces,
 )
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.cjindex import CityIndexResource
 
 
 def _make_feature_file(path, pand_id: str) -> None:
@@ -46,54 +47,81 @@ def _make_reconstruction_feature(root_dir: Path, tile_id: str, pand_id: str) -> 
     return feature_path
 
 
-def test_features_file_index(tmp_path):
-    """features_file_index maps pand_id -> path for all .city.jsonl files."""
-    recon_dir = tmp_path / "stages" / "reconstruction"
-    # Create z/x/y/objects/<pand_id>/reconstruct/<pand_id>.city.jsonl structure
+def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
+    """Create FeatureRef mocks backed by real on-disk feature files."""
+    refs_with_bytes = []
+    for pand_id in pand_ids:
+        feature_path = _make_reconstruction_feature(tmp_path, tile_id, pand_id)
+        feature_bytes = feature_path.read_bytes()
+        ref = MagicMock()
+        ref.feature_id = pand_id
+        ref.source_path = str(feature_path)
+        refs_with_bytes.append((ref, feature_bytes))
+    return refs_with_bytes
+
+
+def _stub_open_index(refs_with_bytes: list) -> MagicMock:
+    """Build a mock OpenedIndex that serves the given (ref, bytes) pairs."""
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_ref_count.return_value = len(refs_with_bytes)
+
+    refs = [r for r, _ in refs_with_bytes]
+    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+
+    def feature_ref_page(offset, limit):
+        return refs[offset: offset + limit]
+
+    mock_idx.feature_ref_page.side_effect = feature_ref_page
+    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+    mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
+    return mock_idx
+
+
+def test_features_file_index(tmp_path, monkeypatch):
+    """features_file_index returns indexed_feature_count from the reconstruction index."""
     pand_ids = [
         "NL.IMBAG.Pand.0307100000308298",
         "NL.IMBAG.Pand.0307100000368987",
     ]
-    for pand_id in pand_ids:
-        feature_path = (
-            recon_dir
-            / "0"
-            / "0"
-            / "0"
-            / "objects"
-            / pand_id
-            / "reconstruct"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_feature_file(feature_path, pand_id)
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, pand_ids, "0/0/0")
+    mock_idx = _stub_open_index(refs_with_bytes)
 
-    file_store = FileStoreResource(root_dir=str(tmp_path))
-    result = features_file_index(PartyWallsConfig(), file_store)
+    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+        result = features_file_index(resource)
 
     assert isinstance(result, dict)
-    assert len(result) == len(pand_ids)
-    for pand_id in pand_ids:
-        assert pand_id in result
-        assert result[pand_id].exists()
+    assert result["indexed_feature_count"] == len(pand_ids)
 
 
 def test_building_surfaces_empty_index(tmp_path):
-    """building_surfaces returns [] when features_file_index is empty."""
+    """building_surfaces returns [] when the reconstruction index has no features."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
     mock_db = MagicMock()
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
 
-    with build_asset_context_for(building_surfaces) as context:
-        result = building_surfaces(
-            context,
-            PartyWallsConfig(),
-            {},  # Empty index
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_ref_count.return_value = 0
+    mock_idx.feature_ref_page.return_value = []
+
+    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+        with build_asset_context_for(building_surfaces) as context:
+            result = building_surfaces(
+                context,
+                PartyWallsConfig(),
+                resource,
+                mock_db,
+                file_store,
+                nl_transform,
+            )
 
     assert result == []
-    # DB should not be queried when index is empty
     mock_db.connection.get_dict.assert_not_called()
 
 
@@ -104,13 +132,13 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
-    target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
-    adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
-
-    shared_walls_calls = []
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, [target_id, adjacent_id], tile_id)
+    mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
-        shared_walls_calls.append((target, adjacent))
         return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
 
     def fake_write_cityjsonfeature(raw_feature, result, output_path):
@@ -129,48 +157,35 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
 
     mock_db = MagicMock()
     mock_db.connection.get_dict.return_value = [
-        {
-            "identificatie": target_id,
-            "adjacent_identificatie": adjacent_id,
-        },
-        {
-            "identificatie": adjacent_id,
-            "adjacent_identificatie": target_id,
-        },
+        {"identificatie": target_id, "adjacent_identificatie": adjacent_id},
+        {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    with build_asset_context_for(building_surfaces) as context:
-        result = building_surfaces(
-            context,
-            PartyWallsConfig(concurrency=1),
-            {
-                target_id: target_path,
-                adjacent_id: adjacent_path,
-            },
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    # Workers open their own index via cjindex.OpenedIndex.open(dataset_dir)
+    import cjindex as _cjindex
+    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+        with build_asset_context_for(building_surfaces) as context:
+            result = building_surfaces(
+                context,
+                PartyWallsConfig(concurrency=1),
+                resource,
+                mock_db,
+                file_store,
+                nl_transform,
+            )
 
     output_paths = cast(list[Path], result)
+    assert len(output_paths) == 2
 
-    assert output_paths == [
-        tmp_path / "stages" / "party_walls" / tile_id / f"{target_id}.city.jsonl",
-        tmp_path / "stages" / "party_walls" / tile_id / f"{adjacent_id}.city.jsonl",
-    ]
-    # shared_walls call count cannot be asserted via a local list with ProcessPoolExecutor
-    # (worker mutations are not visible in the parent process); correctness is verified
-    # via output file content below.
+    for output_path in output_paths:
+        assert output_path.exists()
+        data = json.loads(output_path.read_text())
+        pand_id = output_path.stem
+        assert data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"] == 12.5
+        assert data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
 
-    target_output = json.loads(output_paths[0].read_text())
-    assert (
-        target_output["CityObjects"][target_id]["attributes"]["b3_opp_scheidingsmuur"]
-        == 12.5
-    )
-    assert (
-        target_output["CityObjects"][target_id]["attributes"]["b3_opp_buitenmuur"]
-        == 8.0
-    )
     mock_db.connection.get_dict.assert_called_once()
 
 
@@ -181,8 +196,11 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
-    target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
-    adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, [target_id, adjacent_id], tile_id)
+    mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
         return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
@@ -203,28 +221,23 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
 
     mock_db = MagicMock()
     mock_db.connection.get_dict.return_value = [
-        {
-            "identificatie": target_id,
-            "adjacent_identificatie": adjacent_id,
-        },
-        {
-            "identificatie": adjacent_id,
-            "adjacent_identificatie": target_id,
-        },
+        {"identificatie": target_id, "adjacent_identificatie": adjacent_id},
+        {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    with build_asset_context_for(building_surfaces) as context:
-        _ = building_surfaces(
-            context,
-            PartyWallsConfig(concurrency=1, profile=True),
-            {
-                target_id: target_path,
-                adjacent_id: adjacent_path,
-            },
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    import cjindex as _cjindex
+    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+        with build_asset_context_for(building_surfaces) as context:
+            _ = building_surfaces(
+                context,
+                PartyWallsConfig(concurrency=1, profile=True),
+                resource,
+                mock_db,
+                file_store,
+                nl_transform,
+            )
 
     profile_path = (
         tmp_path

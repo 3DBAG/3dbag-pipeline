@@ -9,8 +9,9 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.export.assets.export import metadata as metadata_module
@@ -70,7 +71,7 @@ def _make_reconstruction_feature(root_dir: Path, tile_id: str, pand_id: str) -> 
 
 
 def test_feature_evaluation_reads_reconstruction(tmp_path):
-    """feature_evaluation scans reconstruction stage and produces reconstructed_features.csv."""
+    """feature_evaluation reads reconstruction stage via cjindex and produces reconstructed_features.csv."""
     tile_id = "10/434/716"
     pand_ids = [
         "NL.IMBAG.Pand.0307100000308298",
@@ -78,8 +79,28 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     ]
     extra_input_id = "NL.IMBAG.Pand.9999999999999999"
 
-    for pand_id in pand_ids:
-        _make_reconstruction_feature(tmp_path, tile_id, pand_id)
+    paths = [_make_reconstruction_feature(tmp_path, tile_id, pand_id) for pand_id in pand_ids]
+
+    # Build mock FeatureRef objects backed by the real on-disk files
+    refs_with_bytes = []
+    for pand_id, path in zip(pand_ids, paths):
+        ref = MagicMock()
+        ref.feature_id = pand_id
+        ref.source_path = str(path)
+        refs_with_bytes.append((ref, path.read_bytes()))
+
+    refs = [r for r, _ in refs_with_bytes]
+    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_ref_count.return_value = len(refs)
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset: offset + limit]
+    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+
+    recon_resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
@@ -93,7 +114,13 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         (extra_input_id,),
     ]
 
-    result_csv = cast(Path, feature_evaluation(file_store, mock_db, version))
+    with patch(
+        "bag3d.export.assets.export.metadata.open_ready_index",
+        return_value=mock_idx,
+    ):
+        result_csv = cast(
+            Path, feature_evaluation(file_store, mock_db, version, recon_resource)
+        )
 
     assert result_csv.exists()
     assert result_csv.name == "reconstructed_features.csv"

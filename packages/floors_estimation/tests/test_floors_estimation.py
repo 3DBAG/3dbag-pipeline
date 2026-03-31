@@ -1,14 +1,15 @@
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationConfig,
     FloorsEstimationIOConfig,
     features_file_index,
-    make_chunks,
     save_cjfiles,
 )
 
@@ -34,91 +35,69 @@ def _make_party_walls_feature(path: Path, pand_id: str) -> None:
     path.write_text(json.dumps(content))
 
 
+def _make_refs(tmp_path: Path, pand_ids: list[str]) -> list:
+    """Create on-disk party_walls features and return matching mock FeatureRef list."""
+    refs_with_bytes = []
+    for pand_id in pand_ids:
+        feature_path = (
+            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            / f"{pand_id}.city.jsonl"
+        )
+        _make_party_walls_feature(feature_path, pand_id)
+        ref = MagicMock()
+        ref.feature_id = pand_id
+        ref.source_path = str(feature_path)
+        refs_with_bytes.append((ref, feature_path.read_bytes()))
+    return refs_with_bytes
+
+
+def _stub_index(refs_with_bytes: list) -> MagicMock:
+    """Build a mock OpenedIndex from a list of (ref, bytes) pairs."""
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_ref_count.return_value = len(refs_with_bytes)
+    refs = [r for r, _ in refs_with_bytes]
+    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset: offset + limit]
+    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+    return mock_idx
+
+
 def test_features_file_index(tmp_path):
-    """features_file_index maps pand_id -> path for .city.jsonl files in party_walls stage."""
+    """features_file_index returns indexed_feature_count from the party_walls index."""
     pand_ids = [
         "NL.IMBAG.Pand.0307100000377456",
         "NL.IMBAG.Pand.0307100000364333",
     ]
-    for pand_id in pand_ids:
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "party_walls"
-            / "0"
-            / "0"
-            / "0"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_party_walls_feature(feature_path, pand_id)
+    refs_with_bytes = _make_refs(tmp_path, pand_ids)
+    mock_idx = _stub_index(refs_with_bytes)
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "party_walls")
+    )
 
-    file_store = FileStoreResource(root_dir=str(tmp_path))
-    result = features_file_index(FloorsEstimationConfig(), file_store)
+    with patch(
+        "bag3d.floors_estimation.assets.floors_estimation.open_ready_index",
+        return_value=mock_idx,
+    ):
+        result = features_file_index(resource)
 
     assert isinstance(result, dict)
-    assert len(result) == len(pand_ids)
-    for pand_id in pand_ids:
-        assert pand_id in result
-        assert "party_walls" in str(result[pand_id])
+    assert result["indexed_feature_count"] == len(pand_ids)
 
 
-def test_make_chunks():
-    """Can we make data chunks from a dictionary of id:path pairs?"""
-    data = {
-        "id1": Path("path1"),
-        "id2": Path("path2"),
-        "id3": Path("path3"),
-        "id4": Path("path4"),
-        "id5": Path("path5"),
-        "id6": Path("path6"),
-    }
-
-    chunks = make_chunks(data, 3)
-    assert next(chunks) == {
-        "id1": Path("path1"),
-        "id2": Path("path2"),
-        "id3": Path("path3"),
-    }
-    assert next(chunks) == {
-        "id4": Path("path4"),
-        "id5": Path("path5"),
-        "id6": Path("path6"),
-    }
-
-    chunks2 = make_chunks(data, 4)
-
-    assert next(chunks2) == {
-        "id1": Path("path1"),
-        "id2": Path("path2"),
-        "id3": Path("path3"),
-        "id4": Path("path4"),
-    }
-    assert next(chunks2) == {"id5": Path("path5"), "id6": Path("path6")}
-
-
-def test_save_cjfiles(
-    tmp_path,
-):
+def test_save_cjfiles(tmp_path):
     """save_cjfiles writes the expected b3_bouwlagen values for each output feature."""
-    # Build mock features in stages/party_walls/
     pand_ids = [
         "NL.IMBAG.Pand.0307100000340455",
         "NL.IMBAG.Pand.0307100000351286",
         "NL.IMBAG.Pand.0307100000364333",
     ]
-    mock_index = {}
-    for pand_id in pand_ids:
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "party_walls"
-            / "0"
-            / "0"
-            / "0"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_party_walls_feature(feature_path, pand_id)
-        mock_index[pand_id] = feature_path
+    refs_with_bytes = _make_refs(tmp_path, pand_ids)
+    mock_idx = _stub_index(refs_with_bytes)
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "party_walls")
+    )
 
     inferenced_floors = pd.DataFrame(
         {
@@ -131,13 +110,19 @@ def test_save_cjfiles(
     ).set_index("identificatie")
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
-    save_cjfiles(
-        FloorsEstimationIOConfig(),
-        inferenced_floors,
-        mock_index,
-        file_store,
-    )
 
+    with patch(
+        "bag3d.floors_estimation.assets.floors_estimation.open_ready_index",
+        return_value=mock_idx,
+    ):
+        save_cjfiles(
+            FloorsEstimationIOConfig(),
+            inferenced_floors,
+            resource,
+            file_store,
+        )
+
+    # Output is under stages/floors_estimation/{last_tile_component}/{pand_id}.city.jsonl
     within_limit = json.loads(
         (
             tmp_path
