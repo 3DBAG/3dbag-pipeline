@@ -46,6 +46,8 @@ dev = [
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }
 bag3d-common = { path = "../common", editable = true }
+cjindex = { path = "../../../cjindex/python", editable = true }
+cjlib = { path = "../../../cjlib/ffi/python", editable = true }
 
 [tool.pytest.ini_options]
 filterwarnings = [

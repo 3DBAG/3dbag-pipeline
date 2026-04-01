@@ -46,7 +46,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 # Common imports that don't depend on building_surfaces
-from bag3d.common.resources import nl_transform  # noqa: E402
 from bag3d.common.resources.cjindex import CityIndexResource  # noqa: E402
 from bag3d.common.resources.files import FileStoreResource  # noqa: E402
 from bag3d.common.testing import build_asset_context_for  # noqa: E402
@@ -208,7 +207,6 @@ def test_building_surfaces_integration(
             resource,
             adjacency_db,
             integration_file_store,
-            nl_transform,
         )
 
     assert len(cast(list[Path], result)) > 0

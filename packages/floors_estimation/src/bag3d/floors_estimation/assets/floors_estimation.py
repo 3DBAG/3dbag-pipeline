@@ -2,7 +2,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import getenv
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import cjindex
 import numpy as np
@@ -116,24 +116,8 @@ def _process_chunk(
     logger.info(f"Chunk {chunk_id} done.")
 
 
-@asset(deps=[AssetKey(["party_walls", "building_surfaces"])])
-def features_file_index(
-    party_walls_index: CityIndexResource,
-) -> dict:
-    """Index-readiness asset for party_walls stage features.
-
-    Opens the ``party_walls_index`` (creating or refreshing the SQLite
-    index if needed) and returns a small status payload.  The asset key is
-    preserved so that downstream jobs continue to resolve against it.
-    """
-    idx = open_ready_index(party_walls_index)
-    count = idx.feature_ref_count()
-    logger.info(f"Party walls index ready: {count} features indexed.")
-    return {"indexed_feature_count": count}
-
-
 @asset(
-    deps=[AssetKey(["floors_estimation", "features_file_index"])],
+    deps=[AssetKey(["party_walls", "building_surfaces"])],
     op_tags={"compute_kind": "sql"},
 )
 def bag3d_features(
@@ -169,8 +153,7 @@ def bag3d_features(
 
             chunk_attrs = []
             for ref in refs:
-                feature_bytes = idx.read_feature_bytes(ref)
-                feature_json = json.loads(feature_bytes)
+                feature_json = idx.read_feature_json(ref)
                 attributes = feature_json["CityObjects"][ref.feature_id]["attributes"]
                 chunk_attrs.append(attributes)
 
@@ -312,12 +295,11 @@ def predictions_table(
 
 def _save_cjfile_from_ref(
     ref: cjindex.FeatureRef,
-    feature_bytes: bytes,
+    feature_json: dict[str, Any],
     inferenced_floors: pd.DataFrame,
     floors_estimation_dir: Path,
 ) -> None:
     """Write a CityJSONFeature file with b3_bouwlagen injected."""
-    feature_json = json.loads(feature_bytes)
     pand_id = ref.feature_id
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
 
@@ -342,7 +324,7 @@ def _save_cjfile_from_ref(
 
 
 @asset(
-    deps=[AssetKey(["floors_estimation", "features_file_index"])],
+    deps=[AssetKey(["party_walls", "building_surfaces"])],
 )
 def save_cjfiles(
     config: FloorsEstimationIOConfig,
@@ -365,11 +347,11 @@ def save_cjfiles(
             if not refs:
                 break
             for ref in refs:
-                feature_bytes = idx.read_feature_bytes(ref)
+                feature_json = idx.read_feature_json(ref)
                 future = pool.submit(
                     _save_cjfile_from_ref,
                     ref,
-                    feature_bytes,
+                    feature_json,
                     inferenced_floors,
                     floors_estimation_dir,
                 )

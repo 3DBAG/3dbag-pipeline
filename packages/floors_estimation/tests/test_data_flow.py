@@ -1,6 +1,6 @@
 """Integration test: party_walls stage -> floors_estimation stage.
 
-Chains features_file_index -> save_cjfiles to verify stage-to-stage handoff
+Runs save_cjfiles directly to verify stage-to-stage handoff
 and that upstream attributes survive enrichment.
 """
 
@@ -15,7 +15,6 @@ from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationIOConfig,
-    features_file_index,
     save_cjfiles,
 )
 
@@ -42,7 +41,7 @@ def _make_party_walls_feature(path: Path, pand_id: str) -> None:
 
 
 def test_party_walls_to_floors_estimation(tmp_path):
-    """Chain features_file_index -> save_cjfiles: party_walls stage feeds floors_estimation stage."""
+    """save_cjfiles reads party_walls stage data and writes floors_estimation output."""
     pand_ids = [
         "NL.IMBAG.Pand.0307100000377456",
         "NL.IMBAG.Pand.0307100000364333",
@@ -86,20 +85,13 @@ def test_party_walls_to_floors_estimation(tmp_path):
     mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
         offset : offset + limit
     ]
-    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
-    mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
+    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
+        bytes_map[ref.feature_id]
+    )
+    mock_idx.get_json.side_effect = lambda fid: (
+        json.loads(bytes_map[fid]) if fid in bytes_map else None
+    )
 
-    # Step 1: features_file_index reads from party_walls stage
-    with patch(
-        "bag3d.floors_estimation.assets.floors_estimation.open_ready_index",
-        return_value=mock_idx,
-    ):
-        index = features_file_index(resource)
-
-    assert isinstance(index, dict)
-    assert index["indexed_feature_count"] == len(pand_ids)
-
-    # Step 2: save_cjfiles consumes index + inference results, writes to floors_estimation stage
     inferenced_floors = pd.DataFrame(
         {
             "identificatie": [pand_ids[0], pand_ids[1]],

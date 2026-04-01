@@ -100,7 +100,9 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
         offset : offset + limit
     ]
-    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
+        bytes_map[ref.feature_id]
+    )
 
     recon_resource = CityIndexResource(
         dataset_dir=str(tmp_path / "stages" / "reconstruction")

@@ -7,14 +7,12 @@ The main pipeline stages pass data through the file system via **stage directori
 ```
 stages/reconstruction/{tile_id}/objects/{pand_id}/reconstruct/{pand_id}.city.jsonl
         |
-        |  party_walls.features_file_index    (opens/refreshes cjindex over stages/reconstruction/)
-        |  party_walls.building_surfaces (pages FeatureRefs from index; reads DB: bag_adjacency)
+        |  party_walls.building_surfaces (opens/refreshes cjindex; pages FeatureRefs; reads DB: bag_adjacency)
         v
 stages/party_walls/{tile_id}/{pand_id}.city.jsonl          <-- adds shared_walls geometry
         |
-        |  floors_estimation.features_file_index  (opens/refreshes cjindex over stages/party_walls/)
-        |  floors_estimation.bag3d_features       (pages FeatureRefs, extracts attributes into DB table)
-        |  floors_estimation.save_cjfiles         (pages FeatureRefs, merges floor predictions back into files)
+        |  floors_estimation.bag3d_features       (opens/refreshes cjindex; pages FeatureRefs; extracts attributes into DB table)
+        |  floors_estimation.save_cjfiles         (opens/refreshes cjindex; pages FeatureRefs; merges floor predictions back into files)
         v
 stages/floors_estimation/{tile_id}/{pand_id}.city.jsonl    <-- adds b3_bouwlagen attribute
         |
@@ -45,11 +43,11 @@ The `reconstructed_building_models_nl` asset (partitioned by tile) runs roofer t
 
 ### Party walls
 
-`features_file_index` opens (or refreshes) a `cjindex` SQLite index over `stages/reconstruction/` and records the indexed feature count.  Stage handoff is still file-based; only **feature discovery** is backed by the index instead of directory walking.  `building_surfaces` pages over `FeatureRef` objects from the index, queries the `bag_adjacency` database table to determine adjacent buildings, and computes shared walls per building via multiprocessing. Each worker opens its own index instance.  `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
+`building_surfaces` opens (or refreshes) a `cjindex` SQLite index over `stages/reconstruction/` directly. Stage handoff is still file-based; only **feature discovery** is backed by the index instead of directory walking. `building_surfaces` pages over `FeatureRef` objects from the index, queries the `bag_adjacency` database table to determine adjacent buildings, and computes shared walls per building via multiprocessing. Each worker opens its own index instance. `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
 
 ### Floors estimation
 
-`features_file_index` opens (or refreshes) a `cjindex` index over `stages/party_walls/` and records the indexed feature count. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. `bag3d_features` and `save_cjfiles` page over `FeatureRef` objects from the index instead of consuming a `{id: path}` dict. Finally `save_cjfiles` reads the party_walls `.city.jsonl` files via the index and writes enriched copies with the `b3_bouwlagen` (floor count) attribute to `stages/floors_estimation/`.
+`bag3d_features` and `save_cjfiles` each open (or refresh) a `cjindex` index over `stages/party_walls/` directly. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. `bag3d_features` and `save_cjfiles` page over `FeatureRef` objects from the index instead of consuming a `{id: path}` dict. Finally `save_cjfiles` reads the party_walls `.city.jsonl` files via the index and writes enriched copies with the `b3_bouwlagen` (floor count) attribute to `stages/floors_estimation/`.
 
 ### Export
 

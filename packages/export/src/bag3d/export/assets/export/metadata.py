@@ -163,8 +163,7 @@ def feature_evaluation(
             break
         for ref in refs:
             reconstructed_buildings.add(ref.feature_id)
-            feature_bytes = idx.read_feature_bytes(ref)
-            cityjson = json.loads(feature_bytes)
+            cityjson = idx.read_feature_json(ref)
             codata = get_info_per_cityobject(
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )

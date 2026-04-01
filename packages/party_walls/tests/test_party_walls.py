@@ -5,10 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import cjindex
 from bag3d.common.testing import build_asset_context_for
-from bag3d.common.resources import nl_transform
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
-    features_file_index,
     building_surfaces,
 )
 from bag3d.common.resources.files import FileStoreResource
@@ -51,36 +49,15 @@ def _stub_open_index(refs_with_bytes: list) -> MagicMock:
     mock_idx.feature_ref_count.return_value = len(refs_with_bytes)
 
     refs = [r for r, _ in refs_with_bytes]
-    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+    feature_map = {r.feature_id: json.loads(b) for r, b in refs_with_bytes}
 
     def feature_ref_page(offset, limit):
         return refs[offset : offset + limit]
 
     mock_idx.feature_ref_page.side_effect = feature_ref_page
-    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
-    mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
+    mock_idx.read_feature_json.side_effect = lambda ref: feature_map[ref.feature_id]
+    mock_idx.get_json.side_effect = lambda fid: feature_map.get(fid)
     return mock_idx
-
-
-def test_features_file_index(tmp_path, monkeypatch):
-    """features_file_index returns indexed_feature_count from the reconstruction index."""
-    pand_ids = [
-        "NL.IMBAG.Pand.0307100000308298",
-        "NL.IMBAG.Pand.0307100000368987",
-    ]
-    resource = CityIndexResource(
-        dataset_dir=str(tmp_path / "stages" / "reconstruction")
-    )
-    refs_with_bytes = _make_refs_and_index(tmp_path, pand_ids, "0/0/0")
-    mock_idx = _stub_open_index(refs_with_bytes)
-
-    with patch(
-        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
-    ):
-        result = features_file_index(resource)
-
-    assert isinstance(result, dict)
-    assert result["indexed_feature_count"] == len(pand_ids)
 
 
 def test_building_surfaces_empty_index(tmp_path):
@@ -106,7 +83,6 @@ def test_building_surfaces_empty_index(tmp_path):
                 resource,
                 mock_db,
                 file_store,
-                nl_transform,
             )
 
     assert result == []
@@ -164,7 +140,6 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
                 resource,
                 mock_db,
                 file_store,
-                nl_transform,
             )
 
     output_paths = cast(list[Path], result)
@@ -232,7 +207,6 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
                 resource,
                 mock_db,
                 file_store,
-                nl_transform,
             )
 
     profile_path = (

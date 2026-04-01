@@ -8,7 +8,7 @@ It replaces the expensive directory-walk ``dict[str, Path]`` indexes that
 import os
 import sys
 import types
-from typing import Self
+from typing import Any, Self
 from dataclasses import dataclass
 
 from dagster import ConfigurableResource
@@ -58,8 +58,14 @@ except ModuleNotFoundError:
         def get_bytes(self, feature_id):
             return None
 
+        def get_json(self, feature_id):
+            return None
+
         def read_feature_bytes(self, ref):
             return b"{}"
+
+        def read_feature_json(self, ref):
+            return {}
 
     cjindex = types.ModuleType("cjindex")
     cjindex.FeatureRef = FeatureRef  # type: ignore[attr-defined]
@@ -68,7 +74,7 @@ except ModuleNotFoundError:
     sys.modules.setdefault("cjindex", cjindex)
 
 
-def open_ready_index(resource: "CityIndexResource") -> cjindex.OpenedIndex:
+def open_ready_index(resource: "CityIndexResource") -> Any:
     """Open the index for *resource* and reindex if the index is stale.
 
     All pipeline consumers should use this helper so that stale SQLite indexes
@@ -94,7 +100,7 @@ class CityIndexResource(ConfigurableResource):
     dataset_dir: str
     index_path_override: str | None = None
 
-    def open(self) -> cjindex.OpenedIndex:
+    def open(self) -> Any:
         """Return an opened index for this resource's dataset directory."""
         return cjindex.OpenedIndex.open(
             self.dataset_dir,

@@ -15,13 +15,11 @@ from dagster import (
     get_dagster_logger,
     AssetExecutionContext,
     Config,
-    AssetIn,
 )
 from pydantic import Field
 from psycopg import sql as pgsql
 from building_surfaces.walls import shared_walls, write_cityjsonfeature
 
-from bag3d.common.resources import NlTransform
 from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
@@ -65,33 +63,13 @@ class BuildingProcessingResult:
     timing: BuildingTiming | None
 
 
-def _load_feature_as_citymodel(
-    feature: dict, transform: dict
-) -> tuple[dict, str | None]:
-    """Wrap a CityJSONFeature dict as a minimal CityJSON dict.
-
-    Returns (citymodel_dict, building_part_object_id).
-    """
-    cm_dict = {
-        "type": "CityJSON",
-        "version": "2.0",
-        "transform": transform,
-        "CityObjects": feature.get("CityObjects", {}),
-        "vertices": feature.get("vertices", []),
-        "_feature": feature,  # keep original for write_cityjsonfeature
-    }
-
-    # Find the BuildingPart object_id
-    part_id = None
-    for obj_id, obj in feature.get("CityObjects", {}).items():
-        if obj.get("type") == "BuildingPart":
-            part_id = obj_id
-            break
-    if part_id is None:
-        objects = feature.get("CityObjects", {})
-        part_id = next(iter(objects)) if objects else None
-
-    return cm_dict, part_id
+def _find_building_part_id(feature: dict[str, Any]) -> str | None:
+    """Return the BuildingPart object id or fall back to the first CityObject."""
+    city_objects = feature.get("CityObjects", {})
+    for object_id, city_object in city_objects.items():
+        if city_object.get("type") == "BuildingPart":
+            return object_id
+    return next(iter(city_objects), None)
 
 
 def _tile_id_from_source_path(
@@ -120,14 +98,12 @@ def _tile_id_from_source_path(
 
 _worker_adjacency: dict[str, list[str]] = {}
 _worker_features_index: dict[str, cjindex.FeatureRef] = {}
-_worker_transform: dict = {}
 _worker_dataset_dir: str = ""
 
 
 def _init_worker(
     adjacency: dict[str, list[str]],
     features_index: dict[str, cjindex.FeatureRef],
-    transform: dict,
     dataset_dir: str,
 ) -> None:
     """Initializer for ProcessPoolExecutor workers.
@@ -135,14 +111,9 @@ def _init_worker(
     Stores the large read-only dicts once per worker process instead of
     pickling them with every submit() call.
     """
-    global \
-        _worker_adjacency, \
-        _worker_features_index, \
-        _worker_transform, \
-        _worker_dataset_dir
+    global _worker_adjacency, _worker_features_index, _worker_dataset_dir
     _worker_adjacency = adjacency
     _worker_features_index = features_index
-    _worker_transform = transform
     _worker_dataset_dir = dataset_dir
 
 
@@ -162,11 +133,8 @@ def _process_building(
     worker_idx = cjindex.OpenedIndex.open(_worker_dataset_dir)
 
     target_load_start = perf_counter()
-    target_bytes = worker_idx.read_feature_bytes(ref)
-    target_feature = json.loads(target_bytes)
-    target_cm, target_part_id = _load_feature_as_citymodel(
-        target_feature, _worker_transform
-    )
+    target_feature = worker_idx.read_feature_json(ref)
+    target_part_id = _find_building_part_id(target_feature)
     load_target_s = perf_counter() - target_load_start
     if target_part_id is None:
         logger.warning(f"No BuildingPart found in {pand_id}, skipping.")
@@ -178,27 +146,25 @@ def _process_building(
     for adj_id in _worker_adjacency.get(pand_id, []):
         if _worker_features_index.get(adj_id) is None:
             continue
-        adj_bytes = worker_idx.get_bytes(adj_id)
-        if adj_bytes is None:
+        adj_feature = worker_idx.get_json(adj_id)
+        if adj_feature is None:
             continue
-        adj_feature = json.loads(adj_bytes)
-        adj_cm, adj_part_id = _load_feature_as_citymodel(adj_feature, _worker_transform)
+        adj_part_id = _find_building_part_id(adj_feature)
         if adj_part_id is not None:
-            adjacent_args.append((adj_cm, adj_part_id))
+            adjacent_args.append((adj_feature, adj_part_id))
             adjacent_count += 1
     load_adjacent_s = perf_counter() - adjacent_load_start
 
     shared_walls_start = perf_counter()
     result = shared_walls(
-        target=(target_cm, target_part_id),
+        target=(target_feature, target_part_id),
         adjacent=adjacent_args,
     )
     shared_walls_s = perf_counter() - shared_walls_start
 
     output_path = output_dir / f"{pand_id}.city.jsonl"
-    raw_feature = target_cm["_feature"]
     write_start = perf_counter()
-    write_cityjsonfeature(raw_feature, result, output_path)
+    write_cityjsonfeature(target_feature, result, output_path)
     write_output_s = perf_counter() - write_start
 
     timing = None
@@ -269,6 +235,7 @@ def _summarize_building_timings(
 @asset(
     deps=[
         AssetKey(["input", "intermediary", "bag_adjacency"]),
+        AssetKey(["reconstruction", "reconstructed_building_models"]),
     ],
 )
 def building_surfaces(
@@ -277,7 +244,6 @@ def building_surfaces(
     reconstruction_index: CityIndexResource,
     computation_db: DatabaseResource,
     file_store: FileStoreResource,
-    nl_transform: NlTransform,
 ) -> list[Path]:
     """Feature-based party walls calculation using bag3d-surfaces shared_walls().
 
@@ -293,7 +259,6 @@ def building_surfaces(
         return []
 
     asset_start = perf_counter()
-    transform = {"translate": nl_transform.translate, "scale": nl_transform.scale}
     reconstruction_root = file_store.stage_dir("reconstruction")
 
     # Collect all feature refs
@@ -343,7 +308,6 @@ def building_surfaces(
         initargs=(
             adjacency,
             features_index,
-            transform,
             reconstruction_index.dataset_dir,
         ),
     ) as executor:

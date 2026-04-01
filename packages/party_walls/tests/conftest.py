@@ -55,8 +55,14 @@ if "cjindex" not in sys.modules:
         def get_bytes(self, feature_id):
             return None
 
+        def get_json(self, feature_id):
+            return None
+
         def read_feature_bytes(self, ref):
             return b"{}"
+
+        def read_feature_json(self, ref):
+            return {}
 
     cjindex_module = types.ModuleType("cjindex")
     cjindex_module.FeatureRef = FeatureRef  # type: ignore[attr-defined]

@@ -9,7 +9,6 @@ from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationIOConfig,
-    features_file_index,
     save_cjfiles,
 )
 
@@ -65,28 +64,10 @@ def _stub_index(refs_with_bytes: list) -> MagicMock:
     mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
         offset : offset + limit
     ]
-    mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
+    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
+        bytes_map[ref.feature_id]
+    )
     return mock_idx
-
-
-def test_features_file_index(tmp_path):
-    """features_file_index returns indexed_feature_count from the party_walls index."""
-    pand_ids = [
-        "NL.IMBAG.Pand.0307100000377456",
-        "NL.IMBAG.Pand.0307100000364333",
-    ]
-    refs_with_bytes = _make_refs(tmp_path, pand_ids)
-    mock_idx = _stub_index(refs_with_bytes)
-    resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
-
-    with patch(
-        "bag3d.floors_estimation.assets.floors_estimation.open_ready_index",
-        return_value=mock_idx,
-    ):
-        result = features_file_index(resource)
-
-    assert isinstance(result, dict)
-    assert result["indexed_feature_count"] == len(pand_ids)
 
 
 def test_save_cjfiles(tmp_path):

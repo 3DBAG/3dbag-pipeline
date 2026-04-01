@@ -56,8 +56,14 @@ if "cjindex" not in sys.modules:
         def get_bytes(self, feature_id):
             return None
 
+        def get_json(self, feature_id):
+            return None
+
         def read_feature_bytes(self, ref):
             return b"{}"
+
+        def read_feature_json(self, ref):
+            return {}
 
     cjindex_module = types.ModuleType("cjindex")
     cjindex_module.FeatureRef = FeatureRef  # type: ignore[attr-defined]
@@ -94,28 +100,6 @@ def mock_preprocessed_features():
     """
 
     return pd.read_csv(StringIO(csv_text.strip()))
-
-
-@pytest.fixture
-def mock_features_file_index(tmp_path):
-    return {
-        "NL.IMBAG.Pand.0307100000340455": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000340455.city.jsonl",
-        "NL.IMBAG.Pand.0307100000364333": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000364333.city.jsonl",
-        "NL.IMBAG.Pand.0307100000378340": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000378340.city.jsonl",
-        "NL.IMBAG.Pand.0307100000522025": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000522025.city.jsonl",
-        "NL.IMBAG.Pand.0307100000351286": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000351286.city.jsonl",
-        "NL.IMBAG.Pand.0307100000522233": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000522233.city.jsonl",
-        "NL.IMBAG.Pand.0307100000353630": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000353630.city.jsonl",
-        "NL.IMBAG.Pand.0307100000312499": tmp_path
-        / "3DBAG/party_walls_features/0/0/0/NL.IMBAG.Pand.0307100000312499.city.jsonl",
-    }
 
 
 @pytest.fixture(scope="session")
