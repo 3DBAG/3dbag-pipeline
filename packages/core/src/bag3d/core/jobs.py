@@ -67,6 +67,7 @@ job_source_input = define_asset_job(
     | AssetSelection.assets(["bag", "bag_pandactueelbestaand"])
     | AssetSelection.assets(["bag", "stage_bag_verblijfsobject"])
     | AssetSelection.assets(["bag", "bag_verblijfsobjectactueelbestaand"])
+    | AssetSelection.groups("cbs")
     | AssetSelection.groups("top10nl")
     | AssetSelection.groups("input"),
 )
