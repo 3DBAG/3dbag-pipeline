@@ -30,6 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY packages/common $BAG3D_PIPELINE_LOCATION/packages/common
 COPY packages/core $BAG3D_PIPELINE_LOCATION/packages/core
+COPY docker/vendor $BAG3D_PIPELINE_LOCATION/docker/vendor
 
 # Install the workflow package and the bag3d-common package in editable mode
 RUN --mount=type=cache,target=/root/.cache/uv \
