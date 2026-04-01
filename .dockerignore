@@ -51,8 +51,6 @@ docker/
 
 # Root config files not needed in images
 makefile
-tools-build.sh
-tools-test.sh
 mkdocs.yml
 CHANGELOG.md
 LICENSE-*
