@@ -21,6 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/export/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/export/uv.lock \
     --mount=type=bind,source=./packages/export/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/export/pyproject.toml \
     --mount=type=bind,source=./packages/common/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/common/pyproject.toml \
+    --mount=type=bind,source=./docker/vendor/cjlib-0.1.0-py3-none-any.whl,target=$BAG3D_PIPELINE_LOCATION/docker/vendor/cjlib-0.1.0-py3-none-any.whl \
+    --mount=type=bind,source=./docker/vendor/cjindex-0.1.0-py3-none-any.whl,target=$BAG3D_PIPELINE_LOCATION/docker/vendor/cjindex-0.1.0-py3-none-any.whl \
     uv sync \
     --frozen \
     --all-extras \
