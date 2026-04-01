@@ -2,8 +2,8 @@
   "version": "2025.11.18",
   "tools": {
     "tyler": {
-      "version": "0.3.14",
-      "url": "docker.io/3dgi/tyler:0.3.14",
+      "version": "0.4.1-alpha1",
+      "url": "docker.io/3dgi/tyler:0.4.1-alpha1",
       "type": "docker",
       "display_name": "tyler",
       "repository": "https://github.com/3DGI/tyler",

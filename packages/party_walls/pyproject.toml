@@ -25,6 +25,7 @@ dependencies = [
     "shapely~=2.0.1",
     "building-surfaces",
     "bag3d-common",
+    "cjlib",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
 
@@ -41,8 +42,8 @@ dev = [
 [tool.uv.sources]
 building-surfaces = { git = "https://github.com/3DGI/3dbag-surfaces.git", rev = "2026.1012" }
 bag3d-common = { path = "../common", editable = true}
-cjindex = { path = "../../../cjindex/python", editable = true }
-cjlib = { path = "../../../cjlib/ffi/python", editable = true }
+cjindex = { path = "../../docker/vendor/cjindex-0.1.0-py3-none-any.whl" }
+cjlib = { path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 markers = [

@@ -55,6 +55,7 @@ dependencies = [
     { name = "bag3d-specs" },
     { name = "certifi" },
     { name = "cjindex" },
+    { name = "cjlib" },
     { name = "dagster" },
     { name = "docker" },
     { name = "fabric" },
@@ -67,7 +68,8 @@ dependencies = [
 requires-dist = [
     { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.09.03" },
     { name = "certifi", specifier = "==2026.1.4" },
-    { name = "cjindex", editable = "../../../cjindex/python" },
+    { name = "cjindex", path = "../../docker/vendor/cjindex-0.1.0-py3-none-any.whl" },
+    { name = "cjlib", path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" },
     { name = "dagster", specifier = "~=1.12.14" },
     { name = "docker", specifier = "~=7.1.0" },
     { name = "fabric", specifier = "~=3.2.2" },
@@ -90,6 +92,7 @@ source = { editable = "." }
 dependencies = [
     { name = "bag3d-common" },
     { name = "building-surfaces" },
+    { name = "cjlib" },
     { name = "dagster" },
     { name = "dagster-postgres" },
     { name = "rich" },
@@ -107,6 +110,7 @@ dev = [
 requires-dist = [
     { name = "bag3d-common", editable = "../common" },
     { name = "building-surfaces", git = "https://github.com/3DGI/3dbag-surfaces.git?rev=2026.1012" },
+    { name = "cjlib", path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" },
     { name = "dagster", specifier = "~=1.12.14" },
     { name = "dagster-postgres", specifier = "~=0.28.14" },
     { name = "rich", specifier = "<14" },
@@ -351,18 +355,24 @@ wheels = [
 [[package]]
 name = "cjindex"
 version = "0.1.0"
-source = { editable = "../../../cjindex/python" }
+source = { path = "../../docker/vendor/cjindex-0.1.0-py3-none-any.whl" }
 dependencies = [
     { name = "cjlib" },
 ]
+wheels = [
+    { filename = "cjindex-0.1.0-py3-none-any.whl", hash = "sha256:ed8a96b6193d785a38a7a30c16e3cb9c6ee55745377eb482f07cf8cff3ce1d82" },
+]
 
 [package.metadata]
-requires-dist = [{ name = "cjlib", editable = "../../../cjlib/ffi/python" }]
+requires-dist = [{ name = "cjlib" }]
 
 [[package]]
 name = "cjlib"
 version = "0.1.0"
-source = { editable = "../../../cjlib/ffi/python" }
+source = { path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" }
+wheels = [
+    { filename = "cjlib-0.1.0-py3-none-any.whl", hash = "sha256:0f528a58cb6fed6b7f33c3405cda7d1528bd748c1b9e3684a118e1e66b422253" },
+]
 
 [[package]]
 name = "click"
