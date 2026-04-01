@@ -377,7 +377,7 @@ dependencies = [
     { name = "cjlib" },
 ]
 wheels = [
-    { filename = "cjindex-0.1.0-py3-none-any.whl", hash = "sha256:ed8a96b6193d785a38a7a30c16e3cb9c6ee55745377eb482f07cf8cff3ce1d82" },
+    { filename = "cjindex-0.1.0-py3-none-any.whl", hash = "sha256:3844941493091a917a22a95e6455d8082214a909c24ec2f83bf5201f0220848e" },
 ]
 
 [package.metadata]
@@ -388,7 +388,7 @@ name = "cjlib"
 version = "0.1.0"
 source = { path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" }
 wheels = [
-    { filename = "cjlib-0.1.0-py3-none-any.whl", hash = "sha256:0f528a58cb6fed6b7f33c3405cda7d1528bd748c1b9e3684a118e1e66b422253" },
+    { filename = "cjlib-0.1.0-py3-none-any.whl", hash = "sha256:3af30b5482191dafc1946b2da36c2fbb4ea0a7d4cc11795a05ce570a5c25a5cf" },
 ]
 
 [[package]]
