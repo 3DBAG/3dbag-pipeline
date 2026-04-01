@@ -6,72 +6,39 @@ It replaces the expensive directory-walk ``dict[str, Path]`` indexes that
 """
 
 import os
-import sys
-import types
 from typing import Any, Self
-from dataclasses import dataclass
 
 from dagster import ConfigurableResource
 
+_CJINDEX_IMPORT_ERROR: ModuleNotFoundError | None = None
+
 try:
     import cjindex as cjindex
-except ModuleNotFoundError:
+except ModuleNotFoundError as exc:
+    _CJINDEX_IMPORT_ERROR = exc
+    cjindex = None
 
-    @dataclass(frozen=True)
-    class FeatureRef:
-        feature_id: str
-        source_path: str
-        offset: int = 0
-        length: int = 0
-        vertices_offset: int = 0
-        vertices_length: int = 0
-        member_ranges_json: str = ""
-        source_id: int = 0
 
-    @dataclass(frozen=True)
-    class IndexStatus:
-        exists: bool = True
-        needs_reindex: bool = False
-        indexed_feature_count: int = 0
-        indexed_source_count: int = 0
+def _ensure_cjindex_runtime_available() -> None:
+    if _CJINDEX_IMPORT_ERROR is not None:
+        raise RuntimeError(
+            "cjindex is not importable. Install the vendored cjindex wheel in the runtime "
+            "environment before opening a CityIndexResource."
+        ) from _CJINDEX_IMPORT_ERROR
+    if cjindex is None:
+        raise RuntimeError(
+            "cjindex is not importable. Install the vendored cjindex wheel in the runtime "
+            "environment before opening a CityIndexResource."
+        )
 
-    class OpenedIndex:
-        @classmethod
-        def open(cls, dataset_dir, index_path=None):
-            return cls()
-
-        def close(self):
-            pass
-
-        def status(self):
-            return IndexStatus()
-
-        def reindex(self):
-            pass
-
-        def feature_ref_count(self):
-            return 0
-
-        def feature_ref_page(self, offset, limit):
-            return []
-
-        def get_bytes(self, feature_id):
-            return None
-
-        def get_json(self, feature_id):
-            return None
-
-        def read_feature_bytes(self, ref):
-            return b"{}"
-
-        def read_feature_json(self, ref):
-            return {}
-
-    cjindex = types.ModuleType("cjindex")
-    cjindex.FeatureRef = FeatureRef  # type: ignore[attr-defined]
-    cjindex.IndexStatus = IndexStatus  # type: ignore[attr-defined]
-    cjindex.OpenedIndex = OpenedIndex  # type: ignore[attr-defined]
-    sys.modules.setdefault("cjindex", cjindex)
+    native_module = getattr(cjindex, "_native", None)
+    native_lib = getattr(native_module, "LIB", None)
+    if native_module is not None and native_lib is None:
+        raise RuntimeError(
+            "cjindex imported successfully but its native library is unavailable. "
+            "The vendored wheel only provides the Python wrapper; ensure the runtime also "
+            "ships libcjindex and that cjindex can locate it."
+        )
 
 
 def open_ready_index(resource: "CityIndexResource") -> Any:
@@ -102,6 +69,7 @@ class CityIndexResource(ConfigurableResource):
 
     def open(self) -> Any:
         """Return an opened index for this resource's dataset directory."""
+        _ensure_cjindex_runtime_available()
         return cjindex.OpenedIndex.open(
             self.dataset_dir,
             self.index_path_override,
