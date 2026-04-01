@@ -40,7 +40,12 @@ def _make_refs(tmp_path: Path, pand_ids: list[str]) -> list:
     refs_with_bytes = []
     for pand_id in pand_ids:
         feature_path = (
-            tmp_path / "stages" / "party_walls" / "0" / "0" / "0"
+            tmp_path
+            / "stages"
+            / "party_walls"
+            / "0"
+            / "0"
+            / "0"
             / f"{pand_id}.city.jsonl"
         )
         _make_party_walls_feature(feature_path, pand_id)
@@ -57,7 +62,9 @@ def _stub_index(refs_with_bytes: list) -> MagicMock:
     refs = [r for r, _ in refs_with_bytes]
     bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
 
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset: offset + limit]
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
+        offset : offset + limit
+    ]
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
     return mock_idx
 
@@ -70,9 +77,7 @@ def test_features_file_index(tmp_path):
     ]
     refs_with_bytes = _make_refs(tmp_path, pand_ids)
     mock_idx = _stub_index(refs_with_bytes)
-    resource = CityIndexResource(
-        dataset_dir=str(tmp_path / "stages" / "party_walls")
-    )
+    resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
 
     with patch(
         "bag3d.floors_estimation.assets.floors_estimation.open_ready_index",
@@ -93,9 +98,7 @@ def test_save_cjfiles(tmp_path):
     ]
     refs_with_bytes = _make_refs(tmp_path, pand_ids)
     mock_idx = _stub_index(refs_with_bytes)
-    resource = CityIndexResource(
-        dataset_dir=str(tmp_path / "stages" / "party_walls")
-    )
+    resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
 
     inferenced_floors = pd.DataFrame(
         {

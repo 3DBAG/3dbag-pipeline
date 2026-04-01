@@ -35,11 +35,7 @@ def _make_feature_bytes(pand_id: str) -> bytes:
 def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     """Create FeatureRef mocks backed by a tile-level reconstruction source."""
     source_path = (
-        tmp_path
-        / "stages"
-        / "reconstruction"
-        / tile_id
-        / "reconstruct.ndjson"
+        tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
     )
     refs_with_bytes = []
     for pand_id in pand_ids:
@@ -58,7 +54,7 @@ def _stub_open_index(refs_with_bytes: list) -> MagicMock:
     bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
 
     def feature_ref_page(offset, limit):
-        return refs[offset: offset + limit]
+        return refs[offset : offset + limit]
 
     mock_idx.feature_ref_page.side_effect = feature_ref_page
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
@@ -78,7 +74,9 @@ def test_features_file_index(tmp_path, monkeypatch):
     refs_with_bytes = _make_refs_and_index(tmp_path, pand_ids, "0/0/0")
     mock_idx = _stub_open_index(refs_with_bytes)
 
-    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
         result = features_file_index(resource)
 
     assert isinstance(result, dict)
@@ -98,7 +96,9 @@ def test_building_surfaces_empty_index(tmp_path):
     mock_idx.feature_ref_count.return_value = 0
     mock_idx.feature_ref_page.return_value = []
 
-    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
         with build_asset_context_for(building_surfaces) as context:
             result = building_surfaces(
                 context,
@@ -151,9 +151,12 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
 
     # Workers open their own index via cjindex.OpenedIndex.open(dataset_dir)
     import cjindex as _cjindex
+
     monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
-    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
         with build_asset_context_for(building_surfaces) as context:
             result = building_surfaces(
                 context,
@@ -171,7 +174,9 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         assert output_path.exists()
         data = json.loads(output_path.read_text())
         pand_id = output_path.name.removesuffix(".city.jsonl")
-        assert data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"] == 12.5
+        assert (
+            data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"] == 12.5
+        )
         assert data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
 
     mock_db.connection.get_dict.assert_called_once()
@@ -214,9 +219,12 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     ]
 
     import cjindex as _cjindex
+
     monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
-    with patch("bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx):
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
         with build_asset_context_for(building_surfaces) as context:
             _ = building_surfaces(
                 context,

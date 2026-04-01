@@ -79,7 +79,9 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     ]
     extra_input_id = "NL.IMBAG.Pand.9999999999999999"
 
-    paths = [_make_reconstruction_feature(tmp_path, tile_id, pand_id) for pand_id in pand_ids]
+    paths = [
+        _make_reconstruction_feature(tmp_path, tile_id, pand_id) for pand_id in pand_ids
+    ]
 
     # Build mock FeatureRef objects backed by the real on-disk files
     refs_with_bytes = []
@@ -95,7 +97,9 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
     mock_idx.feature_ref_count.return_value = len(refs)
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset: offset + limit]
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
+        offset : offset + limit
+    ]
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
 
     recon_resource = CityIndexResource(

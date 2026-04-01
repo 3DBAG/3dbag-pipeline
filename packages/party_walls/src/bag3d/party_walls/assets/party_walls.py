@@ -15,6 +15,7 @@ from dagster import (
     get_dagster_logger,
     AssetExecutionContext,
     Config,
+    AssetIn,
 )
 from pydantic import Field
 from psycopg import sql as pgsql
@@ -64,31 +65,16 @@ class BuildingProcessingResult:
     timing: BuildingTiming | None
 
 
-@asset(deps=[AssetKey(["reconstruction", "reconstructed_building_models"])])
-def features_file_index(
-    reconstruction_index: CityIndexResource,
-) -> dict:
-    """Index-readiness asset for reconstructed features.
-
-    Opens the ``reconstruction_index`` (creating or refreshing the SQLite
-    index if needed) and returns a small status payload.  The asset key is
-    preserved so that downstream jobs and the ``building_surfaces`` asset
-    continue to resolve against it.
-    """
-    idx = open_ready_index(reconstruction_index)
-    count = idx.feature_ref_count()
-    logger.info(f"Reconstruction index ready: {count} features indexed.")
-    return {"indexed_feature_count": count}
-
-
-def _load_feature_as_citymodel(feature: dict, transform: dict) -> tuple[dict, str | None]:
+def _load_feature_as_citymodel(
+    feature: dict, transform: dict
+) -> tuple[dict, str | None]:
     """Wrap a CityJSONFeature dict as a minimal CityJSON dict.
 
     Returns (citymodel_dict, building_part_object_id).
     """
     cm_dict = {
         "type": "CityJSON",
-        "version": "1.1",
+        "version": "2.0",
         "transform": transform,
         "CityObjects": feature.get("CityObjects", {}),
         "vertices": feature.get("vertices", []),
@@ -149,7 +135,11 @@ def _init_worker(
     Stores the large read-only dicts once per worker process instead of
     pickling them with every submit() call.
     """
-    global _worker_adjacency, _worker_features_index, _worker_transform, _worker_dataset_dir
+    global \
+        _worker_adjacency, \
+        _worker_features_index, \
+        _worker_transform, \
+        _worker_dataset_dir
     _worker_adjacency = adjacency
     _worker_features_index = features_index
     _worker_transform = transform
@@ -279,7 +269,6 @@ def _summarize_building_timings(
 @asset(
     deps=[
         AssetKey(["input", "intermediary", "bag_adjacency"]),
-        AssetKey(["party_walls", "features_file_index"]),
     ],
 )
 def building_surfaces(
@@ -337,7 +326,9 @@ def building_surfaces(
 
     # Group buildings by tile using the indexed source path, not the per-feature
     # reconstruction file layout.
-    tiles_with_buildings: dict[str, list[tuple[str, cjindex.FeatureRef]]] = defaultdict(list)
+    tiles_with_buildings: dict[str, list[tuple[str, cjindex.FeatureRef]]] = defaultdict(
+        list
+    )
     for pand_id, ref in features_index.items():
         tile_id = _tile_id_from_source_path(ref.source_path, reconstruction_root)
         tiles_with_buildings[tile_id].append((pand_id, ref))
@@ -349,7 +340,12 @@ def building_surfaces(
     with ProcessPoolExecutor(
         max_workers=config.concurrency,
         initializer=_init_worker,
-        initargs=(adjacency, features_index, transform, reconstruction_index.dataset_dir),
+        initargs=(
+            adjacency,
+            features_index,
+            transform,
+            reconstruction_index.dataset_dir,
+        ),
     ) as executor:
         futures = {}
         for tile_id, buildings in tiles_with_buildings.items():

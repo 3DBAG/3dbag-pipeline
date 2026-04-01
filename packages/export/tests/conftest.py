@@ -7,6 +7,7 @@ pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 
 # Stub cjindex if not installed so tests can be collected without the native extension.
 if "cjindex" not in sys.modules:
+
     @dataclass(frozen=True)
     class FeatureRef:
         feature_id: str

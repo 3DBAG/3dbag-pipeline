@@ -13,6 +13,7 @@ sys.modules["building_surfaces.walls"] = walls_module
 
 # Stub cjindex if not installed so tests can be collected without the native extension.
 if "cjindex" not in sys.modules:
+
     @dataclass(frozen=True)
     class FeatureRef:
         feature_id: str

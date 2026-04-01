@@ -16,6 +16,7 @@ from dagster import ConfigurableResource
 try:
     import cjindex as cjindex
 except ModuleNotFoundError:
+
     @dataclass(frozen=True)
     class FeatureRef:
         feature_id: str
@@ -27,14 +28,12 @@ except ModuleNotFoundError:
         member_ranges_json: str = ""
         source_id: int = 0
 
-
     @dataclass(frozen=True)
     class IndexStatus:
         exists: bool = True
         needs_reindex: bool = False
         indexed_feature_count: int = 0
         indexed_source_count: int = 0
-
 
     class OpenedIndex:
         @classmethod
@@ -61,7 +60,6 @@ except ModuleNotFoundError:
 
         def read_feature_bytes(self, ref):
             return b"{}"
-
 
     cjindex = types.ModuleType("cjindex")
     cjindex.FeatureRef = FeatureRef  # type: ignore[attr-defined]

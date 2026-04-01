@@ -62,9 +62,7 @@ def test_party_walls_to_floors_estimation(tmp_path):
         _make_party_walls_feature(feature_path, pand_id)
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
-    resource = CityIndexResource(
-        dataset_dir=str(tmp_path / "stages" / "party_walls")
-    )
+    resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
 
     refs = []
     bytes_map = {}
@@ -85,7 +83,9 @@ def test_party_walls_to_floors_estimation(tmp_path):
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
     mock_idx.feature_ref_count.return_value = len(pand_ids)
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset : offset + limit]
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
+        offset : offset + limit
+    ]
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
     mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
 

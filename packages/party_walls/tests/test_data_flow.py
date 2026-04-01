@@ -44,11 +44,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
 
     # Seed reconstruction stage refs
     source_path = (
-        tmp_path
-        / "stages"
-        / "reconstruction"
-        / tile_id
-        / "reconstruct.ndjson"
+        tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
     )
     file_store = FileStoreResource(root_dir=str(tmp_path))
     resource = CityIndexResource(
@@ -67,7 +63,9 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         refs.append(ref)
         bytes_map[pand_id] = _make_feature_bytes(pand_id)
 
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[offset : offset + limit]
+    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
+        offset : offset + limit
+    ]
     mock_idx.read_feature_bytes.side_effect = lambda ref: bytes_map[ref.feature_id]
     mock_idx.get_bytes.side_effect = lambda fid: bytes_map.get(fid)
 
