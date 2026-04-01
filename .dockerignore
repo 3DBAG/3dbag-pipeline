@@ -42,8 +42,10 @@ packages/*/.venv
 
 # Docker config (not needed inside pipeline images)
 # Exception: docker/tools/requirements.txt is needed by bag3d-party-walls.dockerfile
+# Exception: docker/vendor/ is needed by dockerfiles that depend on local wheel packages
 docker/
 !docker/tools/requirements.txt
+!docker/vendor/
 
 # Git and GitHub
 .git/
