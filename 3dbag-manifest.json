@@ -140,14 +140,6 @@
       ]
     },
     {
-      "name": "party_walls_index",
-      "display_name": "party_walls_index",
-      "allow_partial_failure": false,
-      "jobs": [
-        { "job": "party_walls_index", "code_location": "party_walls" }
-      ]
-    },
-    {
       "name": "party_walls",
       "display_name": "party_walls",
       "allow_partial_failure": false,
