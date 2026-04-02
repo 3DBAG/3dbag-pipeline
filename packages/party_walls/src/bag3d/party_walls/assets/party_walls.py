@@ -54,6 +54,7 @@ class BuildingTiming:
     load_adjacent_s: float
     shared_walls_s: float
     write_output_s: float
+    overhead_s: float
     total_s: float
 
 
@@ -99,6 +100,7 @@ def _tile_id_from_source_path(
 _worker_adjacency: dict[str, list[str]] = {}
 _worker_features_index: dict[str, cjindex.FeatureRef] = {}
 _worker_dataset_dir: str = ""
+_worker_index: cjindex.OpenedIndex | None = None
 
 
 def _init_worker(
@@ -109,12 +111,14 @@ def _init_worker(
     """Initializer for ProcessPoolExecutor workers.
 
     Stores the large read-only dicts once per worker process instead of
-    pickling them with every submit() call.
+    pickling them with every submit() call. Opens the index once per worker
+    so that per-building calls avoid repeated index-open overhead.
     """
-    global _worker_adjacency, _worker_features_index, _worker_dataset_dir
+    global _worker_adjacency, _worker_features_index, _worker_dataset_dir, _worker_index
     _worker_adjacency = adjacency
     _worker_features_index = features_index
     _worker_dataset_dir = dataset_dir
+    _worker_index = cjindex.OpenedIndex.open(dataset_dir)
 
 
 def _process_building(
@@ -128,12 +132,10 @@ def _process_building(
     Returns the output path and optional timing information.
     """
     total_start = perf_counter()
-
-    # Open per-worker index instance
-    worker_idx = cjindex.OpenedIndex.open(_worker_dataset_dir)
+    assert _worker_index is not None
 
     target_load_start = perf_counter()
-    target_feature = worker_idx.read_feature_json(ref)
+    target_feature = _worker_index.read_feature_json(ref)
     target_part_id = _find_building_part_id(target_feature)
     load_target_s = perf_counter() - target_load_start
     if target_part_id is None:
@@ -146,7 +148,7 @@ def _process_building(
     for adj_id in _worker_adjacency.get(pand_id, []):
         if _worker_features_index.get(adj_id) is None:
             continue
-        adj_feature = worker_idx.get_json(adj_id)
+        adj_feature = _worker_index.get_json(adj_id)
         if adj_feature is None:
             continue
         adj_part_id = _find_building_part_id(adj_feature)
@@ -169,6 +171,8 @@ def _process_building(
 
     timing = None
     if profile:
+        total_s = perf_counter() - total_start
+        accounted_s = load_target_s + load_adjacent_s + shared_walls_s + write_output_s
         timing = BuildingTiming(
             pand_id=pand_id,
             adjacent_count=adjacent_count,
@@ -176,7 +180,8 @@ def _process_building(
             load_adjacent_s=load_adjacent_s,
             shared_walls_s=shared_walls_s,
             write_output_s=write_output_s,
-            total_s=perf_counter() - total_start,
+            overhead_s=total_s - accounted_s,
+            total_s=total_s,
         )
 
     return BuildingProcessingResult(output_path=output_path, timing=timing)
@@ -188,6 +193,8 @@ def _summarize_building_timings(
     adjacency_query_s: float,
     adjacency_rows: int,
     files_written: int,
+    index_load_s: float,
+    tile_grouping_s: float,
     processing_total_s: float,
     asset_total_s: float,
     max_workers: int,
@@ -198,6 +205,8 @@ def _summarize_building_timings(
             "adjacency_rows": adjacency_rows,
             "files_written": files_written,
             "max_workers": max_workers,
+            "index_load_s": index_load_s,
+            "tile_grouping_s": tile_grouping_s,
             "processing_total_s": processing_total_s,
             "asset_total_s": asset_total_s,
             "buildings_profiled": 0,
@@ -205,6 +214,7 @@ def _summarize_building_timings(
             "load_adjacent_total_s": 0.0,
             "shared_walls_total_s": 0.0,
             "write_output_total_s": 0.0,
+            "overhead_total_s": 0.0,
             "mean_building_total_s": 0.0,
             "top_slowest_buildings": [],
         }
@@ -215,6 +225,8 @@ def _summarize_building_timings(
         "adjacency_rows": adjacency_rows,
         "files_written": files_written,
         "max_workers": max_workers,
+        "index_load_s": index_load_s,
+        "tile_grouping_s": tile_grouping_s,
         "processing_total_s": processing_total_s,
         "asset_total_s": asset_total_s,
         "buildings_profiled": len(timings),
@@ -222,6 +234,7 @@ def _summarize_building_timings(
         "load_adjacent_total_s": sum(item.load_adjacent_s for item in timings),
         "shared_walls_total_s": sum(item.shared_walls_s for item in timings),
         "write_output_total_s": sum(item.write_output_s for item in timings),
+        "overhead_total_s": sum(item.overhead_s for item in timings),
         "mean_building_total_s": total_building_s / len(timings),
         "top_slowest_buildings": [
             asdict(item)
@@ -252,13 +265,15 @@ def building_surfaces(
     computes party walls using shared_walls(). Results are written to
     stages/party_walls/{tile_id}/.
     """
+    asset_start = perf_counter()
+
+    index_load_start = perf_counter()
     idx = open_ready_index(reconstruction_index)
     total = idx.feature_ref_count()
     if total == 0:
         logger.warning("No features found in reconstruction index, skipping.")
         return []
 
-    asset_start = perf_counter()
     reconstruction_root = file_store.stage_dir("reconstruction")
 
     # Collect all feature refs
@@ -271,6 +286,7 @@ def building_surfaces(
         for ref in refs:
             features_index[ref.feature_id] = ref
         offset += len(refs)
+    index_load_s = perf_counter() - index_load_start
 
     pand_ids = list(features_index.keys())
 
@@ -291,12 +307,14 @@ def building_surfaces(
 
     # Group buildings by tile using the indexed source path, not the per-feature
     # reconstruction file layout.
+    tile_grouping_start = perf_counter()
     tiles_with_buildings: dict[str, list[tuple[str, cjindex.FeatureRef]]] = defaultdict(
         list
     )
     for pand_id, ref in features_index.items():
         tile_id = _tile_id_from_source_path(ref.source_path, reconstruction_root)
         tiles_with_buildings[tile_id].append((pand_id, ref))
+    tile_grouping_s = perf_counter() - tile_grouping_start
 
     # Process buildings concurrently
     files_written: list[Path] = []
@@ -349,6 +367,8 @@ def building_surfaces(
             adjacency_query_s=adjacency_query_s,
             adjacency_rows=len(rows),
             files_written=len(files_written),
+            index_load_s=index_load_s,
+            tile_grouping_s=tile_grouping_s,
             processing_total_s=processing_total_s,
             asset_total_s=perf_counter() - asset_start,
             max_workers=config.concurrency,
