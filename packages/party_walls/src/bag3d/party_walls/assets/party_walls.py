@@ -146,9 +146,10 @@ def _process_building(
     adjacent_count = 0
     adjacent_load_start = perf_counter()
     for adj_id in _worker_adjacency.get(pand_id, []):
-        if _worker_features_index.get(adj_id) is None:
+        adj_ref = _worker_features_index.get(adj_id)
+        if adj_ref is None:
             continue
-        adj_feature = _worker_index.get_json(adj_id)
+        adj_feature = _worker_index.read_feature_json(adj_ref)
         if adj_feature is None:
             continue
         adj_part_id = _find_building_part_id(adj_feature)
