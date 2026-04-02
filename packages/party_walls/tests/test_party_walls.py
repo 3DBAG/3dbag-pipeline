@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import cast
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import cjindex
@@ -103,20 +104,17 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
-        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
-
-    def fake_write_cityjsonfeature(raw_feature, result, output_path):
-        building_id = raw_feature["id"]
-        raw_feature["CityObjects"][building_id]["attributes"].update(result)
-        output_path.write_text(json.dumps(raw_feature))
+        return SimpleNamespace(
+            area_shared_wall=12.5,
+            area_exterior_wall=8.0,
+            area_ground=0.0,
+            area_roof_flat=0.0,
+            area_roof_sloped=0.0,
+        )
 
     monkeypatch.setattr(
         "bag3d.party_walls.assets.party_walls.shared_walls",
         fake_shared_walls,
-    )
-    monkeypatch.setattr(
-        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
-        fake_write_cityjsonfeature,
     )
 
     mock_db = MagicMock()
@@ -143,16 +141,22 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
             )
 
     output_paths = cast(list[Path], result)
-    assert len(output_paths) == 2
+    assert len(output_paths) == 1
 
     for output_path in output_paths:
         assert output_path.exists()
-        data = json.loads(output_path.read_text())
-        pand_id = output_path.name.removesuffix(".city.jsonl")
-        assert (
-            data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"] == 12.5
-        )
-        assert data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
+        lines = output_path.read_text().splitlines()
+        assert len(lines) == 2
+        for line in lines:
+            data = json.loads(line)
+            pand_id = data["id"]
+            assert (
+                data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"]
+                == 12.5
+            )
+            assert (
+                data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
+            )
 
     mock_db.connection.get_dict.assert_called_once()
 
@@ -171,20 +175,17 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
-        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
-
-    def fake_write_cityjsonfeature(raw_feature, result, output_path):
-        building_id = raw_feature["id"]
-        raw_feature["CityObjects"][building_id]["attributes"].update(result)
-        output_path.write_text(json.dumps(raw_feature))
+        return SimpleNamespace(
+            area_shared_wall=12.5,
+            area_exterior_wall=8.0,
+            area_ground=0.0,
+            area_roof_flat=0.0,
+            area_roof_sloped=0.0,
+        )
 
     monkeypatch.setattr(
         "bag3d.party_walls.assets.party_walls.shared_walls",
         fake_shared_walls,
-    )
-    monkeypatch.setattr(
-        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
-        fake_write_cityjsonfeature,
     )
 
     mock_db = MagicMock()
@@ -220,7 +221,8 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
 
     summary = json.loads(profile_path.read_text())
     assert summary["buildings_profiled"] == 2
-    assert summary["files_written"] == 2
+    assert summary["features_written"] == 2
+    assert summary["tiles_written"] == 1
     assert summary["adjacency_rows"] == 2
     assert summary["max_workers"] == 1
     assert len(summary["top_slowest_buildings"]) == 2

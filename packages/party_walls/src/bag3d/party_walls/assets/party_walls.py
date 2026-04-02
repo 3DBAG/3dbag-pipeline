@@ -1,11 +1,11 @@
-from pathlib import Path
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
-from typing import Any, cast
 import json
 from os import getenv
+from pathlib import Path
 from time import perf_counter
+from typing import Any, cast
 
 import cjindex
 from dagster import (
@@ -18,7 +18,7 @@ from dagster import (
 )
 from pydantic import Field
 from psycopg import sql as pgsql
-from building_surfaces.walls import shared_walls, write_cityjsonfeature
+from building_surfaces.walls import shared_walls
 
 from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
@@ -53,14 +53,14 @@ class BuildingTiming:
     load_target_s: float
     load_adjacent_s: float
     shared_walls_s: float
-    write_output_s: float
     overhead_s: float
     total_s: float
 
 
 @dataclass(slots=True)
 class BuildingProcessingResult:
-    output_path: Path | None
+    tile_id: str | None
+    feature_json: dict[str, Any] | None
     timing: BuildingTiming | None
 
 
@@ -124,12 +124,12 @@ def _init_worker(
 def _process_building(
     pand_id: str,
     ref: cjindex.FeatureRef,
-    output_dir: Path,
+    tile_id: str,
     profile: bool,
 ) -> BuildingProcessingResult:
-    """Process a single building: compute shared_walls and write output.
+    """Process a single building: compute shared_walls and inject attributes.
 
-    Returns the output path and optional timing information.
+    Returns the modified feature JSON, tile_id, and optional timing information.
     """
     total_start = perf_counter()
     assert _worker_index is not None
@@ -140,7 +140,7 @@ def _process_building(
     load_target_s = perf_counter() - target_load_start
     if target_part_id is None:
         logger.warning(f"No BuildingPart found in {pand_id}, skipping.")
-        return BuildingProcessingResult(output_path=None, timing=None)
+        return BuildingProcessingResult(tile_id=None, feature_json=None, timing=None)
 
     adjacent_args = []
     adjacent_count = 0
@@ -164,27 +164,36 @@ def _process_building(
     )
     shared_walls_s = perf_counter() - shared_walls_start
 
-    output_path = output_dir / f"{pand_id}.city.jsonl"
-    write_start = perf_counter()
-    write_cityjsonfeature(target_feature, result, output_path)
-    write_output_s = perf_counter() - write_start
+    for obj in target_feature["CityObjects"].values():
+        if obj["type"] == "Building":
+            obj.setdefault("attributes", {}).update(
+                {
+                    "b3_opp_scheidingsmuur": result.area_shared_wall,
+                    "b3_opp_buitenmuur": result.area_exterior_wall,
+                    "b3_opp_grond": result.area_ground,
+                    "b3_opp_dak_plat": result.area_roof_flat,
+                    "b3_opp_dak_schuin": result.area_roof_sloped,
+                }
+            )
+            break
 
     timing = None
     if profile:
         total_s = perf_counter() - total_start
-        accounted_s = load_target_s + load_adjacent_s + shared_walls_s + write_output_s
+        accounted_s = load_target_s + load_adjacent_s + shared_walls_s
         timing = BuildingTiming(
             pand_id=pand_id,
             adjacent_count=adjacent_count,
             load_target_s=load_target_s,
             load_adjacent_s=load_adjacent_s,
             shared_walls_s=shared_walls_s,
-            write_output_s=write_output_s,
             overhead_s=total_s - accounted_s,
             total_s=total_s,
         )
 
-    return BuildingProcessingResult(output_path=output_path, timing=timing)
+    return BuildingProcessingResult(
+        tile_id=tile_id, feature_json=target_feature, timing=timing
+    )
 
 
 def _summarize_building_timings(
@@ -192,7 +201,8 @@ def _summarize_building_timings(
     *,
     adjacency_query_s: float,
     adjacency_rows: int,
-    files_written: int,
+    features_written: int,
+    tiles_written: int,
     index_load_s: float,
     tile_grouping_s: float,
     processing_total_s: float,
@@ -203,7 +213,8 @@ def _summarize_building_timings(
         return {
             "adjacency_query_s": adjacency_query_s,
             "adjacency_rows": adjacency_rows,
-            "files_written": files_written,
+            "features_written": features_written,
+            "tiles_written": tiles_written,
             "max_workers": max_workers,
             "index_load_s": index_load_s,
             "tile_grouping_s": tile_grouping_s,
@@ -213,7 +224,6 @@ def _summarize_building_timings(
             "load_target_total_s": 0.0,
             "load_adjacent_total_s": 0.0,
             "shared_walls_total_s": 0.0,
-            "write_output_total_s": 0.0,
             "overhead_total_s": 0.0,
             "mean_building_total_s": 0.0,
             "top_slowest_buildings": [],
@@ -223,7 +233,8 @@ def _summarize_building_timings(
     return {
         "adjacency_query_s": adjacency_query_s,
         "adjacency_rows": adjacency_rows,
-        "files_written": files_written,
+        "features_written": features_written,
+        "tiles_written": tiles_written,
         "max_workers": max_workers,
         "index_load_s": index_load_s,
         "tile_grouping_s": tile_grouping_s,
@@ -233,7 +244,6 @@ def _summarize_building_timings(
         "load_target_total_s": sum(item.load_target_s for item in timings),
         "load_adjacent_total_s": sum(item.load_adjacent_s for item in timings),
         "shared_walls_total_s": sum(item.shared_walls_s for item in timings),
-        "write_output_total_s": sum(item.write_output_s for item in timings),
         "overhead_total_s": sum(item.overhead_s for item in timings),
         "mean_building_total_s": total_building_s / len(timings),
         "top_slowest_buildings": [
@@ -316,8 +326,8 @@ def building_surfaces(
         tiles_with_buildings[tile_id].append((pand_id, ref))
     tile_grouping_s = perf_counter() - tile_grouping_start
 
-    # Process buildings concurrently
-    files_written: list[Path] = []
+    # Process buildings concurrently; workers return modified feature JSON
+    tile_features: dict[str, list[dict[str, Any]]] = defaultdict(list)
     building_timings: list[BuildingTiming] = []
     processing_start = perf_counter()
     with ProcessPoolExecutor(
@@ -331,15 +341,12 @@ def building_surfaces(
     ) as executor:
         futures = {}
         for tile_id, buildings in tiles_with_buildings.items():
-            output_dir = file_store.stage_dir("party_walls") / tile_id
-            output_dir.mkdir(parents=True, exist_ok=True)
-
             for pand_id, ref in buildings:
                 future = executor.submit(
                     _process_building,
                     pand_id,
                     ref,
-                    output_dir,
+                    tile_id,
                     config.profile,
                 )
                 futures[future] = pand_id
@@ -348,17 +355,32 @@ def building_surfaces(
             pand_id = futures[future]
             try:
                 result = future.result()
-                if result.output_path is not None:
-                    files_written.append(result.output_path)
+                if result.feature_json is not None and result.tile_id is not None:
+                    tile_features[result.tile_id].append(result.feature_json)
                 if result.timing is not None:
                     building_timings.append(result.timing)
             except Exception as exc:
                 logger.error(f"Error processing building {pand_id}: {exc}")
     processing_total_s = perf_counter() - processing_start
 
+    # Write per-tile cityjsonseq files
+    party_walls_stage_dir = file_store.stage_dir("party_walls")
+    files_written: list[Path] = []
+    for tile_id, features in tile_features.items():
+        parts = tile_id.split("/")
+        out_dir = party_walls_stage_dir.joinpath(*parts)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"{parts[-1]}.city.jsonl"
+        with out_file.open("w") as f:
+            for feat in features:
+                f.write(json.dumps(feat, separators=(",", ":")))
+                f.write("\n")
+        files_written.append(out_file)
+
     output_dir = file_store.stage_dir("party_walls")
     metadata: dict[str, Any] = {
-        "Nr. features": len(files_written),
+        "Nr. features": sum(len(v) for v in tile_features.values()),
+        "Nr. tiles": len(files_written),
         "Path": MetadataValue.path(str(output_dir)),
     }
     if config.profile:
@@ -366,7 +388,8 @@ def building_surfaces(
             building_timings,
             adjacency_query_s=adjacency_query_s,
             adjacency_rows=len(rows),
-            files_written=len(files_written),
+            features_written=sum(len(v) for v in tile_features.values()),
+            tiles_written=len(files_written),
             index_load_s=index_load_s,
             tile_grouping_s=tile_grouping_s,
             processing_total_s=processing_total_s,

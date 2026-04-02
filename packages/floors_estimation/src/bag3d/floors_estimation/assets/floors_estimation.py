@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import getenv
 from pathlib import Path
@@ -293,34 +294,29 @@ def predictions_table(
     return Output(predictions_table, metadata=metadata)
 
 
-def _save_cjfile_from_ref(
+def _inject_floors(
     ref: cjindex.FeatureRef,
     feature_json: dict[str, Any],
     inferenced_floors: pd.DataFrame,
-    floors_estimation_dir: Path,
-) -> None:
-    """Write a CityJSONFeature file with b3_bouwlagen injected."""
+    party_walls_stage_dir: Path,
+) -> tuple[str, dict[str, Any]]:
+    """Inject b3_bouwlagen into a feature and return (tile_id, modified_feature)."""
     pand_id = ref.feature_id
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
 
     if pand_id in inferenced_floors.index:
         num_floors = int(inferenced_floors.loc[pand_id, "floors_int"])
-        if num_floors <= 5:
-            attributes["b3_bouwlagen"] = num_floors
-        else:
-            attributes["b3_bouwlagen"] = None
+        attributes["b3_bouwlagen"] = num_floors if num_floors <= 5 else None
     else:
         attributes["b3_bouwlagen"] = None
 
-    # Mirror the party_walls tile layout: source_path is .../party_walls/{tile_id}/{pand_id}.city.jsonl
     source = Path(ref.source_path)
-    tile_dir_name = source.parent.name  # e.g. "10/434/716" → last component
-    output_tile_dir = floors_estimation_dir / tile_dir_name
-    output_tile_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_tile_dir / source.name
-
-    with output_path.open("w") as fo:
-        json.dump(feature_json, fo, separators=(",", ":"))
+    try:
+        rel = source.relative_to(party_walls_stage_dir)
+    except ValueError:
+        rel = source
+    tile_id = "/".join(rel.parts[:3])  # e.g. "10/434/716"
+    return tile_id, feature_json
 
 
 @asset(
@@ -332,13 +328,16 @@ def save_cjfiles(
     party_walls_index: CityIndexResource,
     file_store: FileStoreResource,
 ) -> None:
-    """Saves the new cj files with floor predictions injected."""
+    """Saves per-tile cityjsonseq files with b3_bouwlagen injected."""
     floors_estimation_dir = file_store.stage_dir("floors_estimation")
+    party_walls_stage_dir = Path(party_walls_index.dataset_dir)
     logger.info(f"Saving to {floors_estimation_dir}")
 
     idx = open_ready_index(party_walls_index)
     total = idx.feature_ref_count()
 
+    # Collect (tile_id, feature_json) pairs; workers only do attribute injection
+    tile_features: dict[str, list[dict[str, Any]]] = defaultdict(list)
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         futures = {}
         offset = 0
@@ -349,19 +348,35 @@ def save_cjfiles(
             for ref in refs:
                 feature_json = idx.read_feature_json(ref)
                 future = pool.submit(
-                    _save_cjfile_from_ref,
+                    _inject_floors,
                     ref,
                     feature_json,
                     inferenced_floors,
-                    floors_estimation_dir,
+                    party_walls_stage_dir,
                 )
                 futures[future] = ref.feature_id
             offset += len(refs)
 
-        for i, future in enumerate(as_completed(futures)):
+        for future in as_completed(futures):
             try:
-                _ = future.result()
+                tile_id, feature_json = future.result()
+                tile_features[tile_id].append(feature_json)
             except Exception as e:  # pragma: no cover
-                logger.error(f"Error in file {i} raised an exception: {e}")
+                logger.error(f"Error processing feature: {e}")
 
-    logger.info(f"Saved {total} files to {floors_estimation_dir}")
+    # Write per-tile cityjsonseq files
+    files_written = 0
+    for tile_id, features in tile_features.items():
+        parts = tile_id.split("/")
+        out_dir = floors_estimation_dir.joinpath(*parts)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"{parts[-1]}.city.jsonl"
+        with out_file.open("w") as f:
+            for feat in features:
+                f.write(json.dumps(feat, separators=(",", ":")))
+                f.write("\n")
+        files_written += 1
+
+    logger.info(
+        f"Saved {total} features across {files_written} tiles to {floors_estimation_dir}"
+    )

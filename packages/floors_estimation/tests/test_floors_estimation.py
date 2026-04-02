@@ -13,43 +13,35 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
-def _make_party_walls_feature(path: Path, pand_id: str) -> None:
-    """Create a minimal CityJSONFeature file in stages/party_walls/."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = {
-        "type": "CityJSONFeature",
-        "id": pand_id,
-        "CityObjects": {
-            pand_id: {
-                "type": "Building",
-                "attributes": {
-                    "b3_opp_scheidingsmuur": 10.0,
-                    "b3_opp_buitenmuur": 20.0,
-                },
-                "geometry": [],
-            }
-        },
-        "vertices": [],
-    }
-    path.write_text(json.dumps(content))
-
-
-def _make_refs(tmp_path: Path, pand_ids: list[str]) -> list:
+def _make_refs(tmp_path: Path, pand_ids: list[str], tile_id: str) -> list:
     """Create on-disk party_walls features and return matching mock FeatureRef list."""
+    tile_leaf = tile_id.split("/")[-1]
+    feature_path = (
+        tmp_path / "stages" / "party_walls" / tile_id / f"{tile_leaf}.city.jsonl"
+    )
+    feature_path.parent.mkdir(parents=True, exist_ok=True)
     refs_with_bytes = []
+    lines: list[str] = []
     for pand_id in pand_ids:
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "party_walls"
-            / "0"
-            / "0"
-            / "0"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_party_walls_feature(feature_path, pand_id)
+        feature = {
+            "type": "CityJSONFeature",
+            "id": pand_id,
+            "CityObjects": {
+                pand_id: {
+                    "type": "Building",
+                    "attributes": {
+                        "b3_opp_scheidingsmuur": 10.0,
+                        "b3_opp_buitenmuur": 20.0,
+                    },
+                    "geometry": [],
+                }
+            },
+            "vertices": [],
+        }
+        lines.append(json.dumps(feature))
         ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
-        refs_with_bytes.append((ref, feature_path.read_bytes()))
+        refs_with_bytes.append((ref, json.dumps(feature).encode()))
+    feature_path.write_text("\n".join(lines))
     return refs_with_bytes
 
 
@@ -77,7 +69,8 @@ def test_save_cjfiles(tmp_path):
         "NL.IMBAG.Pand.0307100000351286",
         "NL.IMBAG.Pand.0307100000364333",
     ]
-    refs_with_bytes = _make_refs(tmp_path, pand_ids)
+    tile_id = "10/434/716"
+    refs_with_bytes = _make_refs(tmp_path, pand_ids, tile_id)
     mock_idx = _stub_index(refs_with_bytes)
     resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
 
@@ -104,41 +97,30 @@ def test_save_cjfiles(tmp_path):
             file_store,
         )
 
-    # Output is under stages/floors_estimation/{last_tile_component}/{pand_id}.city.jsonl
-    within_limit = json.loads(
-        (
-            tmp_path
-            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000340455.city.jsonl"
-        ).read_text()
-    )
-    over_limit = json.loads(
-        (
-            tmp_path
-            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000351286.city.jsonl"
-        ).read_text()
-    )
-    missing_prediction = json.loads(
-        (
-            tmp_path
-            / "stages/floors_estimation/0/NL.IMBAG.Pand.0307100000364333.city.jsonl"
-        ).read_text()
-    )
+    # Output is under stages/floors_estimation/{z}/{x}/{y}/{y}.city.jsonl
+    output_file = tmp_path / "stages/floors_estimation/10/434/716/716.city.jsonl"
+    lines = output_file.read_text().splitlines()
+    assert len(lines) == 3
+    features = {}
+    for line in lines:
+        feature = json.loads(line)
+        features[feature["id"]] = feature
 
     assert (
-        within_limit["CityObjects"]["NL.IMBAG.Pand.0307100000340455"]["attributes"][
-            "b3_bouwlagen"
-        ]
+        features["NL.IMBAG.Pand.0307100000340455"]["CityObjects"][
+            "NL.IMBAG.Pand.0307100000340455"
+        ]["attributes"]["b3_bouwlagen"]
         == 3
     )
     assert (
-        over_limit["CityObjects"]["NL.IMBAG.Pand.0307100000351286"]["attributes"][
-            "b3_bouwlagen"
-        ]
+        features["NL.IMBAG.Pand.0307100000351286"]["CityObjects"][
+            "NL.IMBAG.Pand.0307100000351286"
+        ]["attributes"]["b3_bouwlagen"]
         is None
     )
     assert (
-        missing_prediction["CityObjects"]["NL.IMBAG.Pand.0307100000364333"][
-            "attributes"
-        ]["b3_bouwlagen"]
+        features["NL.IMBAG.Pand.0307100000364333"]["CityObjects"][
+            "NL.IMBAG.Pand.0307100000364333"
+        ]["attributes"]["b3_bouwlagen"]
         is None
     )

@@ -5,7 +5,6 @@ and that upstream attributes survive enrichment.
 """
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import cjindex
@@ -19,27 +18,6 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
-def _make_party_walls_feature(path: Path, pand_id: str) -> None:
-    """Create a CityJSONFeature with party wall attributes (upstream output)."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = {
-        "type": "CityJSONFeature",
-        "id": pand_id,
-        "CityObjects": {
-            pand_id: {
-                "type": "Building",
-                "attributes": {
-                    "b3_opp_scheidingsmuur": 10.0,
-                    "b3_opp_buitenmuur": 20.0,
-                },
-                "geometry": [],
-            }
-        },
-        "vertices": [],
-    }
-    path.write_text(json.dumps(content))
-
-
 def test_party_walls_to_floors_estimation(tmp_path):
     """save_cjfiles reads party_walls stage data and writes floors_estimation output."""
     pand_ids = [
@@ -47,18 +25,31 @@ def test_party_walls_to_floors_estimation(tmp_path):
         "NL.IMBAG.Pand.0307100000364333",
     ]
 
-    # Seed party_walls stage files (z/x/y/<pand>.city.jsonl)
+    tile_id = "10/434/716"
+    feature_path = tmp_path / "stages" / "party_walls" / tile_id / "716.city.jsonl"
+    feature_path.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+
+    # Seed party_walls stage files (z/x/y/y.city.jsonl)
     for pand_id in pand_ids:
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "party_walls"
-            / "0"
-            / "0"
-            / "0"
-            / f"{pand_id}.city.jsonl"
-        )
-        _make_party_walls_feature(feature_path, pand_id)
+        content = {
+            "type": "CityJSONFeature",
+            "id": pand_id,
+            "CityObjects": {
+                pand_id: {
+                    "type": "Building",
+                    "attributes": {
+                        "b3_opp_scheidingsmuur": 10.0,
+                        "b3_opp_buitenmuur": 20.0,
+                    },
+                    "geometry": [],
+                }
+            },
+            "vertices": [],
+        }
+        lines.append(json.dumps(content))
+
+    feature_path.write_text("\n".join(lines))
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
@@ -66,18 +57,25 @@ def test_party_walls_to_floors_estimation(tmp_path):
     refs = []
     bytes_map = {}
     for pand_id in pand_ids:
-        feature_path = (
-            tmp_path
-            / "stages"
-            / "party_walls"
-            / "0"
-            / "0"
-            / "0"
-            / f"{pand_id}.city.jsonl"
-        )
         ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
         refs.append(ref)
-        bytes_map[pand_id] = feature_path.read_bytes()
+        bytes_map[pand_id] = json.dumps(
+            {
+                "type": "CityJSONFeature",
+                "id": pand_id,
+                "CityObjects": {
+                    pand_id: {
+                        "type": "Building",
+                        "attributes": {
+                            "b3_opp_scheidingsmuur": 10.0,
+                            "b3_opp_buitenmuur": 20.0,
+                        },
+                        "geometry": [],
+                    }
+                },
+                "vertices": [],
+            }
+        ).encode()
 
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
@@ -110,20 +108,28 @@ def test_party_walls_to_floors_estimation(tmp_path):
             file_store,
         )
 
-    # Verify output files at stages/floors_estimation/{z_level}/{pand}.city.jsonl
+    # Verify output file at stages/floors_estimation/{z}/{x}/{y}/{y}.city.jsonl
     floors_dir = tmp_path / "stages" / "floors_estimation"
     assert floors_dir.is_dir()
 
-    for pand_id, expected_floors in [(pand_ids[0], 3), (pand_ids[1], 2)]:
-        output_file = floors_dir / "0" / f"{pand_id}.city.jsonl"
-        assert output_file.exists(), f"Missing output for {pand_id}"
+    output_file = floors_dir / tile_id / "716.city.jsonl"
+    assert output_file.exists()
 
-        feature = json.loads(output_file.read_text())
-        attrs = feature["CityObjects"][pand_id]["attributes"]
+    features = {}
+    for line in output_file.read_text().splitlines():
+        feature = json.loads(line)
+        features[feature["id"]] = feature
 
-        # Floors estimation attribute was added
-        assert attrs["b3_bouwlagen"] == expected_floors
+    assert (
+        features[pand_ids[0]]["CityObjects"][pand_ids[0]]["attributes"]["b3_bouwlagen"]
+        == 3
+    )
+    assert (
+        features[pand_ids[1]]["CityObjects"][pand_ids[1]]["attributes"]["b3_bouwlagen"]
+        == 2
+    )
 
-        # Upstream party wall attributes are preserved
+    for pand_id in pand_ids:
+        attrs = features[pand_id]["CityObjects"][pand_id]["attributes"]
         assert attrs["b3_opp_scheidingsmuur"] == 10.0
         assert attrs["b3_opp_buitenmuur"] == 20.0

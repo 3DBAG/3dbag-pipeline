@@ -30,11 +30,9 @@ for _mod in list(sys.modules):
         del sys.modules[_mod]
 
 _real_shared_walls: object = None
-_real_write_cityjsonfeature: object = None
 try:
     from building_surfaces.walls import (  # noqa: E402
         shared_walls as _real_shared_walls,
-        write_cityjsonfeature as _real_write_cityjsonfeature,
     )
 
     _HAS_BUILDING_SURFACES = True
@@ -193,7 +191,6 @@ def test_building_surfaces_integration(
     # Using monkeypatch (rather than direct assignment) ensures they are restored
     # afterward so the stub-relying unit tests are unaffected.
     monkeypatch.setattr(_pw_mod, "shared_walls", _real_shared_walls)
-    monkeypatch.setattr(_pw_mod, "write_cityjsonfeature", _real_write_cityjsonfeature)
 
     reconstruction_dir = integration_file_store.stage_dir("reconstruction")
     resource = CityIndexResource(dataset_dir=str(reconstruction_dir))

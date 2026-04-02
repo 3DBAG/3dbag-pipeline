@@ -4,6 +4,7 @@ Runs building_surfaces directly to verify stage-to-stage handoff.
 """
 
 import json
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -70,25 +71,18 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
 
     monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
-    shared_walls_calls: list[tuple] = []
-
-    def fake_shared_walls(target: object, adjacent: object) -> dict:
-        shared_walls_calls.append((target, adjacent))
-        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
-
-    def fake_write_cityjsonfeature(raw_feature, result, output_path):
-        building_id = raw_feature["id"]
-        raw_feature["CityObjects"][building_id]["attributes"].update(result)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(raw_feature))
+    def fake_shared_walls(target: object, adjacent: object) -> SimpleNamespace:
+        return SimpleNamespace(
+            area_shared_wall=12.5,
+            area_exterior_wall=8.0,
+            area_ground=0.0,
+            area_roof_flat=0.0,
+            area_roof_sloped=0.0,
+        )
 
     monkeypatch.setattr(
         "bag3d.party_walls.assets.party_walls.shared_walls",
         fake_shared_walls,
-    )
-    monkeypatch.setattr(
-        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
-        fake_write_cityjsonfeature,
     )
 
     mock_db = MagicMock()
@@ -119,13 +113,16 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     # Verify output files exist at stages/party_walls/{tile_id}/
     party_walls_dir = tmp_path / "stages" / "party_walls" / tile_id
     assert party_walls_dir.is_dir()
-    assert len(cast(list, output_paths)) == 2
+    assert len(cast(list, output_paths)) == 1
 
-    for pand_id in (target_id, adjacent_id):
-        output_file = party_walls_dir / f"{pand_id}.city.jsonl"
-        assert output_file.exists(), f"Missing output for {pand_id}"
+    output_file = party_walls_dir / f"{tile_id.split('/')[-1]}.city.jsonl"
+    assert output_file.exists(), "Missing output for tile"
 
-        feature = json.loads(output_file.read_text())
+    lines = output_file.read_text().splitlines()
+    assert len(lines) == 2
+    for line in lines:
+        feature = json.loads(line)
+        pand_id = feature["id"]
         attrs = feature["CityObjects"][pand_id]["attributes"]
         assert attrs["b3_opp_scheidingsmuur"] == 12.5
         assert attrs["b3_opp_buitenmuur"] == 8.0

@@ -70,6 +70,7 @@ class CityIndexResource(ConfigurableResource):
     def open(self) -> Any:
         """Return an opened index for this resource's dataset directory."""
         _ensure_cjindex_runtime_available()
+        assert cjindex is not None
         return cjindex.OpenedIndex.open(
             self.dataset_dir,
             self.index_path_override,
