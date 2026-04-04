@@ -31,10 +31,38 @@ def _make_feature_bytes(pand_id: str) -> bytes:
     return json.dumps(content).encode()
 
 
+def _make_root_bytes() -> bytes:
+    content = {
+        "type": "CityJSON",
+        "version": "2.0",
+        "transform": {
+            "scale": [0.001, 0.001, 0.001],
+            "translate": [100.0, 200.0, 300.0],
+        },
+        "metadata": {"title": "reconstruction-root"},
+        "CityObjects": {},
+        "vertices": [],
+    }
+    return json.dumps(content).encode()
+
+
+def _stream_items(path: Path) -> list[dict]:
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
 def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     """Create FeatureRef mocks backed by a tile-level reconstruction source."""
     source_path = (
         tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
+    )
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_bytes(
+        b"\n".join([_make_root_bytes(), *[_make_feature_bytes(pand_id) for pand_id in pand_ids]])
+        + b"\n"
     )
     refs_with_bytes = []
     for pand_id in pand_ids:
@@ -145,10 +173,11 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
 
     for output_path in output_paths:
         assert output_path.exists()
-        lines = output_path.read_text().splitlines()
-        assert len(lines) == 2
-        for line in lines:
-            data = json.loads(line)
+        items = _stream_items(output_path)
+        assert len(items) == 3
+        assert items[0]["type"] == "CityJSON"
+        assert items[0]["metadata"]["title"] == "reconstruction-root"
+        for data in items[1:]:
             pand_id = data["id"]
             assert (
                 data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"]

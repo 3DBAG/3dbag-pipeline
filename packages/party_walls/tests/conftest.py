@@ -1,6 +1,7 @@
 import sys
 import types
 from dataclasses import dataclass
+import json
 
 
 walls_module = types.ModuleType("building_surfaces.walls")
@@ -69,3 +70,34 @@ if "cjindex" not in sys.modules:
     cjindex_module.IndexStatus = IndexStatus  # type: ignore[attr-defined]
     cjindex_module.OpenedIndex = OpenedIndex  # type: ignore[attr-defined]
     sys.modules["cjindex"] = cjindex_module
+
+
+if "cjlib" not in sys.modules:
+
+    class CityModel:
+        def __init__(self, payload):
+            self.payload = payload
+
+        @classmethod
+        def parse_document_bytes(cls, data):
+            return cls(json.loads(data))
+
+        @classmethod
+        def parse_feature_bytes(cls, data):
+            return cls(json.loads(data))
+
+        def close(self):
+            pass
+
+    def write_cityjsonseq_auto_transform_bytes(base_root, features):
+        lines = [base_root.payload, *[feature.payload for feature in features]]
+        return (
+            "\n".join(json.dumps(item, separators=(",", ":")) for item in lines) + "\n"
+        ).encode()
+
+    cjlib_module = types.ModuleType("cjlib")
+    cjlib_module.CityModel = CityModel  # type: ignore[attr-defined]
+    cjlib_module.write_cityjsonseq_auto_transform_bytes = (
+        write_cityjsonseq_auto_transform_bytes  # type: ignore[attr-defined]
+    )
+    sys.modules["cjlib"] = cjlib_module

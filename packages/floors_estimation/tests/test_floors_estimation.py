@@ -13,6 +13,20 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
+def _make_root() -> dict:
+    return {
+        "type": "CityJSON",
+        "version": "2.0",
+        "transform": {
+            "scale": [0.001, 0.001, 0.001],
+            "translate": [100.0, 200.0, 300.0],
+        },
+        "metadata": {"title": "party-walls-root"},
+        "CityObjects": {},
+        "vertices": [],
+    }
+
+
 def _make_refs(tmp_path: Path, pand_ids: list[str], tile_id: str) -> list:
     """Create on-disk party_walls features and return matching mock FeatureRef list."""
     tile_leaf = tile_id.split("/")[-1]
@@ -21,7 +35,7 @@ def _make_refs(tmp_path: Path, pand_ids: list[str], tile_id: str) -> list:
     )
     feature_path.parent.mkdir(parents=True, exist_ok=True)
     refs_with_bytes = []
-    lines: list[str] = []
+    lines: list[str] = [json.dumps(_make_root())]
     for pand_id in pand_ids:
         feature = {
             "type": "CityJSONFeature",
@@ -99,10 +113,11 @@ def test_save_cjfiles(tmp_path):
 
     # Output is under stages/floors_estimation/{z}/{x}/{y}/{y}.city.jsonl
     output_file = tmp_path / "stages/floors_estimation/10/434/716/716.city.jsonl"
-    lines = output_file.read_text().splitlines()
-    assert len(lines) == 3
+    lines = output_file.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 4
+    assert json.loads(lines[0])["type"] == "CityJSON"
     features = {}
-    for line in lines:
+    for line in lines[1:]:
         feature = json.loads(line)
         features[feature["id"]] = feature
 

@@ -1,4 +1,3 @@
-import json
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import getenv
@@ -17,6 +16,10 @@ from bag3d.common.utils.database import (
 from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.utils.cityjsonseq import (
+    FeatureRecord,
+    write_feature_records_as_cityjsonseq,
+)
 from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import AssetKey, Config, Output, asset, get_dagster_logger
 from joblib import load
@@ -337,7 +340,7 @@ def save_cjfiles(
     total = idx.feature_ref_count()
 
     # Collect (tile_id, feature_json) pairs; workers only do attribute injection
-    tile_features: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    tile_features: dict[str, list[FeatureRecord]] = defaultdict(list)
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         futures = {}
         offset = 0
@@ -354,13 +357,16 @@ def save_cjfiles(
                     inferenced_floors,
                     party_walls_stage_dir,
                 )
-                futures[future] = ref.feature_id
+                futures[future] = (ref.feature_id, ref.source_path)
             offset += len(refs)
 
         for future in as_completed(futures):
             try:
                 tile_id, feature_json = future.result()
-                tile_features[tile_id].append(feature_json)
+                _, source_path = futures[future]
+                tile_features[tile_id].append(
+                    FeatureRecord(feature=feature_json, source_path=source_path)
+                )
             except Exception as e:  # pragma: no cover
                 logger.error(f"Error processing feature: {e}")
 
@@ -371,10 +377,7 @@ def save_cjfiles(
         out_dir = floors_estimation_dir.joinpath(*parts)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_file = out_dir / f"{parts[-1]}.city.jsonl"
-        with out_file.open("w") as f:
-            for feat in features:
-                f.write(json.dumps(feat, separators=(",", ":")))
-                f.write("\n")
+        write_feature_records_as_cityjsonseq(out_file, features)
         files_written += 1
 
     logger.info(

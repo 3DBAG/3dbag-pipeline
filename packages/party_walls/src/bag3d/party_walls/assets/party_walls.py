@@ -23,6 +23,10 @@ from building_surfaces.walls import shared_walls
 from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.utils.cityjsonseq import (
+    FeatureRecord,
+    write_feature_records_as_cityjsonseq,
+)
 
 logger = get_dagster_logger("party_walls")
 
@@ -328,7 +332,7 @@ def building_surfaces(
     tile_grouping_s = perf_counter() - tile_grouping_start
 
     # Process buildings concurrently; workers return modified feature JSON
-    tile_features: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    tile_features: dict[str, list[FeatureRecord]] = defaultdict(list)
     building_timings: list[BuildingTiming] = []
     processing_start = perf_counter()
     with ProcessPoolExecutor(
@@ -350,14 +354,19 @@ def building_surfaces(
                     tile_id,
                     config.profile,
                 )
-                futures[future] = pand_id
+                futures[future] = (pand_id, ref.source_path)
 
         for future in futures:
-            pand_id = futures[future]
+            pand_id, source_path = futures[future]
             try:
                 result = future.result()
                 if result.feature_json is not None and result.tile_id is not None:
-                    tile_features[result.tile_id].append(result.feature_json)
+                    tile_features[result.tile_id].append(
+                        FeatureRecord(
+                            feature=result.feature_json,
+                            source_path=source_path,
+                        )
+                    )
                 if result.timing is not None:
                     building_timings.append(result.timing)
             except Exception as exc:
@@ -372,10 +381,7 @@ def building_surfaces(
         out_dir = party_walls_stage_dir.joinpath(*parts)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_file = out_dir / f"{parts[-1]}.city.jsonl"
-        with out_file.open("w") as f:
-            for feat in features:
-                f.write(json.dumps(feat, separators=(",", ":")))
-                f.write("\n")
+        write_feature_records_as_cityjsonseq(out_file, features)
         files_written.append(out_file)
 
     output_dir = file_store.stage_dir("party_walls")

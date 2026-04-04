@@ -18,6 +18,20 @@ from bag3d.floors_estimation.assets.floors_estimation import (
 )
 
 
+def _make_root() -> dict:
+    return {
+        "type": "CityJSON",
+        "version": "2.0",
+        "transform": {
+            "scale": [0.001, 0.001, 0.001],
+            "translate": [100.0, 200.0, 300.0],
+        },
+        "metadata": {"title": "party-walls-root"},
+        "CityObjects": {},
+        "vertices": [],
+    }
+
+
 def test_party_walls_to_floors_estimation(tmp_path):
     """save_cjfiles reads party_walls stage data and writes floors_estimation output."""
     pand_ids = [
@@ -28,7 +42,7 @@ def test_party_walls_to_floors_estimation(tmp_path):
     tile_id = "10/434/716"
     feature_path = tmp_path / "stages" / "party_walls" / tile_id / "716.city.jsonl"
     feature_path.parent.mkdir(parents=True, exist_ok=True)
-    lines: list[str] = []
+    lines: list[str] = [json.dumps(_make_root())]
 
     # Seed party_walls stage files (z/x/y/y.city.jsonl)
     for pand_id in pand_ids:
@@ -49,7 +63,7 @@ def test_party_walls_to_floors_estimation(tmp_path):
         }
         lines.append(json.dumps(content))
 
-    feature_path.write_text("\n".join(lines))
+    feature_path.write_text("\n".join(lines), encoding="utf-8")
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     resource = CityIndexResource(dataset_dir=str(tmp_path / "stages" / "party_walls"))
@@ -116,7 +130,9 @@ def test_party_walls_to_floors_estimation(tmp_path):
     assert output_file.exists()
 
     features = {}
-    for line in output_file.read_text().splitlines():
+    lines = output_file.read_text(encoding="utf-8").splitlines()
+    assert json.loads(lines[0])["type"] == "CityJSON"
+    for line in lines[1:]:
         feature = json.loads(line)
         features[feature["id"]] = feature
 

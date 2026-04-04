@@ -35,6 +35,22 @@ def _make_feature_bytes(pand_id: str) -> bytes:
     return json.dumps(content).encode()
 
 
+def _make_root_bytes() -> bytes:
+    return json.dumps(
+        {
+            "type": "CityJSON",
+            "version": "2.0",
+            "transform": {
+                "scale": [0.001, 0.001, 0.001],
+                "translate": [100.0, 200.0, 300.0],
+            },
+            "metadata": {"title": "reconstruction-root"},
+            "CityObjects": {},
+            "vertices": [],
+        }
+    ).encode()
+
+
 def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     """building_surfaces reads reconstruction stage data and writes party_walls output."""
     tile_id = "10/434/716"
@@ -45,6 +61,7 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     source_path = (
         tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
     )
+    source_path.parent.mkdir(parents=True, exist_ok=True)
     file_store = FileStoreResource(root_dir=str(tmp_path))
     resource = CityIndexResource(
         dataset_dir=str(tmp_path / "stages" / "reconstruction")
@@ -60,6 +77,10 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(source_path))
         refs.append(ref)
         feature_map[pand_id] = json.loads(_make_feature_bytes(pand_id))
+    source_path.write_bytes(
+        b"\n".join([_make_root_bytes(), *[_make_feature_bytes(pand_id) for pand_id in feature_map]])
+        + b"\n"
+    )
 
     mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
         offset : offset + limit
@@ -118,10 +139,14 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     output_file = party_walls_dir / f"{tile_id.split('/')[-1]}.city.jsonl"
     assert output_file.exists(), "Missing output for tile"
 
-    lines = output_file.read_text().splitlines()
-    assert len(lines) == 2
-    for line in lines:
-        feature = json.loads(line)
+    items = [
+        json.loads(line)
+        for line in output_file.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(items) == 3
+    assert items[0]["type"] == "CityJSON"
+    for feature in items[1:]:
         pand_id = feature["id"]
         attrs = feature["CityObjects"][pand_id]["attributes"]
         assert attrs["b3_opp_scheidingsmuur"] == 12.5
