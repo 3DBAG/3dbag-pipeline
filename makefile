@@ -190,3 +190,7 @@ local_dev:
 set_version:
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make set_version VERSION=YYYY.MM.DD"; exit 1; fi
 	python3 scripts/set_version.py $(VERSION)
+
+_copy_vendor_balazs:
+	cp ~/Development/cjlib/ffi/python/dist/*.whl ./docker/vendor/
+	cp ~/Development/cjindex/python/dist/*.whl ./docker/vendor/
