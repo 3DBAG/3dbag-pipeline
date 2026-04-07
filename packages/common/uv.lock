@@ -76,8 +76,8 @@ dev = [
 requires-dist = [
     { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.09.03" },
     { name = "certifi", specifier = "==2026.1.4" },
-    { name = "cjindex", path = "../../docker/vendor/cjindex-0.1.0-py3-none-any.whl" },
-    { name = "cjlib", path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" },
+    { name = "cjindex", path = "../../docker/vendor/cjindex-0.2.0-py3-none-any.whl" },
+    { name = "cjlib", path = "../../docker/vendor/cjlib-0.2.0-py3-none-any.whl" },
     { name = "dagster", specifier = "~=1.12.14" },
     { name = "docker", specifier = "~=7.1.0" },
     { name = "fabric", specifier = "~=3.2.2" },
@@ -341,13 +341,13 @@ wheels = [
 
 [[package]]
 name = "cjindex"
-version = "0.1.0"
-source = { path = "../../docker/vendor/cjindex-0.1.0-py3-none-any.whl" }
+version = "0.2.0"
+source = { path = "../../docker/vendor/cjindex-0.2.0-py3-none-any.whl" }
 dependencies = [
     { name = "cjlib" },
 ]
 wheels = [
-    { filename = "cjindex-0.1.0-py3-none-any.whl", hash = "sha256:3844941493091a917a22a95e6455d8082214a909c24ec2f83bf5201f0220848e" },
+    { filename = "cjindex-0.2.0-py3-none-any.whl", hash = "sha256:cd65a696cca5379e763955221401eebe4d84bbd396f5fa87b110c978e0d5ffce" },
 ]
 
 [package.metadata]
@@ -355,10 +355,10 @@ requires-dist = [{ name = "cjlib" }]
 
 [[package]]
 name = "cjlib"
-version = "0.1.0"
-source = { path = "../../docker/vendor/cjlib-0.1.0-py3-none-any.whl" }
+version = "0.2.0"
+source = { path = "../../docker/vendor/cjlib-0.2.0-py3-none-any.whl" }
 wheels = [
-    { filename = "cjlib-0.1.0-py3-none-any.whl", hash = "sha256:3af30b5482191dafc1946b2da36c2fbb4ea0a7d4cc11795a05ce570a5c25a5cf" },
+    { filename = "cjlib-0.2.0-py3-none-any.whl", hash = "sha256:45da5f39b41df274a01ac735be859235a5b5b60e18d86bb047457ba60dd76c9a" },
 ]
 
 [[package]]
