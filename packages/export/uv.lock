@@ -90,8 +90,8 @@ dependencies = [
 requires-dist = [
     { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.09.03" },
     { name = "certifi", specifier = "==2026.1.4" },
-    { name = "cjindex", path = "../../docker/vendor/cjindex-0.2.0-py3-none-any.whl" },
-    { name = "cjlib", path = "../../docker/vendor/cjlib-0.2.0-py3-none-any.whl" },
+    { name = "cjindex", path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" },
+    { name = "cjlib", path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" },
     { name = "dagster", specifier = "~=1.12.14" },
     { name = "docker", specifier = "~=7.1.0" },
     { name = "fabric", specifier = "~=3.2.2" },
@@ -137,7 +137,7 @@ dev = [
 requires-dist = [
     { name = "bag3d-common", editable = "../common" },
     { name = "certifi", specifier = ">=2026.1.4" },
-    { name = "cjlib", path = "../../docker/vendor/cjlib-0.2.0-py3-none-any.whl" },
+    { name = "cjlib", path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" },
     { name = "dagster", specifier = "~=1.12.14" },
     { name = "dagster-postgres", specifier = "~=0.28.14" },
     { name = "fabric", specifier = "~=3.2" },
@@ -371,13 +371,13 @@ wheels = [
 
 [[package]]
 name = "cjindex"
-version = "0.2.0"
-source = { path = "../../docker/vendor/cjindex-0.2.0-py3-none-any.whl" }
+version = "0.3.0"
+source = { path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" }
 dependencies = [
     { name = "cjlib" },
 ]
 wheels = [
-    { filename = "cjindex-0.2.0-py3-none-any.whl", hash = "sha256:cd65a696cca5379e763955221401eebe4d84bbd396f5fa87b110c978e0d5ffce" },
+    { filename = "cjindex-0.3.0-py3-none-any.whl", hash = "sha256:6520c6ee6235d5a920079d6f57627b8ad8006563b0f0bf78394ed02b298cf550" },
 ]
 
 [package.metadata]
@@ -385,10 +385,10 @@ requires-dist = [{ name = "cjlib" }]
 
 [[package]]
 name = "cjlib"
-version = "0.2.0"
-source = { path = "../../docker/vendor/cjlib-0.2.0-py3-none-any.whl" }
+version = "0.3.0"
+source = { path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" }
 wheels = [
-    { filename = "cjlib-0.2.0-py3-none-any.whl", hash = "sha256:45da5f39b41df274a01ac735be859235a5b5b60e18d86bb047457ba60dd76c9a" },
+    { filename = "cjlib-0.3.0-py3-none-any.whl", hash = "sha256:bed8b434cdb0dbfc7929cee77f74eadcba7cbfdf460812cfaa44a0749258a65c" },
 ]
 
 [[package]]
