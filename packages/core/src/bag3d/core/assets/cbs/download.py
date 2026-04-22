@@ -190,6 +190,7 @@ def extract_cbs_buurtkaart(
         "GeoPackage": str(gpkg_path),
         "Size [Mb]": round(gpkg_path.stat().st_size / 1e6, 2),
     }
+    logger.info(f"Downloaded CBS Wijk- en buurtkaart: {gpkg_path.name} ({metadata['Size [Mb]']} Mb)")
     return Output(gpkg_path, metadata=metadata)
 
 
@@ -207,13 +208,11 @@ def extract_cbs_address_mapping(
     Source: https://www.cbs.nl/nl-nl/maatwerk/2024/35/buurt-wijk-en-gemeente-2024-voor-postcode-huisnummer
     Source: https://www.cbs.nl/nl-nl/maatwerk/2025/38/buurt-wijk-en-gemeente-2025-voor-postcode-huisnummer
     """
-    cbs_dir = file_store.create_subdir("cbs")
-    zip_path = cbs_dir / f"cbs_address_mapping_{config.year}.zip"
+    extract_dir = file_store.create_subdir(f"cbs/address_mapping_{config.year}")
+    zip_path = extract_dir / f"cbs_address_mapping_{config.year}.zip"
 
     download_file(config.url, zip_path, chunk_size=1024 * 1024)
     
-    # Extract to year-specific subdirectory to avoid conflicts
-    extract_dir = cbs_dir / f"address_mapping_{config.year}"
     unzip(zip_path, extract_dir)
 
     # Find the extracted CSV in the year-specific directory
@@ -223,6 +222,7 @@ def extract_cbs_address_mapping(
             f"No CSV file found in {extract_dir} after extracting {zip_path.name}"
         )
     csv_path = csv_files[0]
+    logger.info(f"Extracted address mapping CSV: {csv_path.name}")
 
     metadata = {
         "CSV": str(csv_path),
