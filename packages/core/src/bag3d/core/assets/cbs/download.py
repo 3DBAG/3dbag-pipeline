@@ -211,13 +211,16 @@ def extract_cbs_address_mapping(
     zip_path = cbs_dir / f"cbs_address_mapping_{config.year}.zip"
 
     download_file(config.url, zip_path, chunk_size=1024 * 1024)
-    unzip(zip_path, cbs_dir)
+    
+    # Extract to year-specific subdirectory to avoid conflicts
+    extract_dir = cbs_dir / f"address_mapping_{config.year}"
+    unzip(zip_path, extract_dir)
 
-    # Find the extracted CSV
-    csv_files = list(cbs_dir.glob("*.csv"))
+    # Find the extracted CSV in the year-specific directory
+    csv_files = list(extract_dir.glob("*.csv"))
     if not csv_files:
         raise FileNotFoundError(
-            f"No CSV file found in {cbs_dir} after extracting {zip_path.name}"
+            f"No CSV file found in {extract_dir} after extracting {zip_path.name}"
         )
     csv_path = csv_files[0]
 
