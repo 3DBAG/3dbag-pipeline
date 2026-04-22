@@ -205,7 +205,7 @@ def extract_cbs_address_mapping(
 
     Source: https://www.cbs.nl/nl-nl/maatwerk/2023/35/buurt-wijk-en-gemeente-2023-voor-postcode-huisnummer
     Source: https://www.cbs.nl/nl-nl/maatwerk/2024/35/buurt-wijk-en-gemeente-2024-voor-postcode-huisnummer
-    Source:https://www.cbs.nl/nl-nl/maatwerk/2025/38/buurt-wijk-en-gemeente-2025-voor-postcode-huisnummer
+    Source: https://www.cbs.nl/nl-nl/maatwerk/2025/38/buurt-wijk-en-gemeente-2025-voor-postcode-huisnummer
     """
     cbs_dir = file_store.create_subdir("cbs")
     zip_path = cbs_dir / f"cbs_address_mapping_{config.year}.zip"

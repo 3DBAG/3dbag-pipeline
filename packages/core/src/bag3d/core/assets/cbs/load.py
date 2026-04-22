@@ -8,7 +8,7 @@ import csv
 import io
 from pathlib import Path
 
-from dagster import asset, Output, get_dagster_logger
+from dagster import asset, Output, get_dagster_logger, AutomationCondition
 from psycopg import connect
 from psycopg.sql import SQL, Identifier, Literal
 
@@ -59,7 +59,9 @@ def _load_csv_to_postgres(
                         copy.write(line)
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
+)
 def cbs_key_figures(
     computation_db: DatabaseResource,
     extract_cbs_key_figures,
@@ -102,7 +104,9 @@ def cbs_key_figures(
     return Output(tables, metadata=metadata)
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
+)
 def cbs_buurten(
     computation_db: DatabaseResource,
     gdal: GDALResource,
@@ -167,7 +171,9 @@ def cbs_buurten(
     return Output(new_table, metadata=metadata)
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
+)
 def cbs_address_mapping(
     computation_db: DatabaseResource,
     extract_cbs_address_mapping,
