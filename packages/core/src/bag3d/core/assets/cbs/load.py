@@ -5,7 +5,6 @@ into the 'cbs' schema in PostgreSQL.
 """
 
 import csv
-import io
 from pathlib import Path
 
 from dagster import asset, Output, get_dagster_logger, AutomationCondition
@@ -176,6 +175,7 @@ def cbs_buurten(
 )
 def cbs_address_mapping(
     computation_db: DatabaseResource,
+    gdal: GDALResource,
     extract_cbs_address_mapping,
 ) -> Output[PostgresTableIdentifier]:
     """CBS postcode-to-neighbourhood mapping loaded into PostgreSQL.
@@ -185,69 +185,67 @@ def cbs_address_mapping(
     """
     create_schema(computation_db, CBS_SCHEMA, logger=logger)
 
-    # Determine the year from the config by inspecting the filename
-    # The extract asset names files as cbs_address_mapping_{year}.zip
-    # but the CSV inside has a different name. We parse the parent dir.
-    # For robustness, derive year from the CSV content or use a fixed approach.
-    # We use the table name suffix from the download config year.
-    # Since we can't access config here, we embed the year in the filename
-    # during download. For now, use a generic table name.
     table_name = "cbs_address_mapping"
-    new_table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
-    drop_table(computation_db, new_table, logger=logger)
+    staging_table = PostgresTableIdentifier(CBS_SCHEMA, f"{table_name}_staging")
+    final_table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
+    
+    # Drop both tables
+    drop_table(computation_db, staging_table, logger=logger)
+    drop_table(computation_db, final_table, logger=logger)
 
-    # Read and transform the CSV
-    rows: list[dict[str, str]] = []
-    with open(extract_cbs_address_mapping, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter=",")
-        for row in reader:
-            transformed: dict[str, str] = {}
-            for key, value in row.items():
-                # Rename columns to standard names
-                if key == "PC6":
-                    transformed["Postcode"] = value
-                elif key.startswith("Gemeente"):
-                    transformed["Gemeente"] = "GM" + value.zfill(4)
-                elif key.startswith("Wijk"):
-                    transformed["Wijk"] = "WK" + value.zfill(6)
-                elif key.startswith("Buurt"):
-                    transformed["Buurt"] = "BU" + value.zfill(8)
-                elif key == "Huisnummer":
-                    transformed["Huisnummer"] = value
-                else:
-                    transformed[key] = value
-            rows.append(transformed)
+    # Import CSV with ogr2ogr to staging table
+    cmd = " ".join(
+        [
+            "{exe}",
+            "--config PG_USE_COPY=YES",
+            "-overwrite",
+            "-nln {new_table}",
+            "-lco UNLOGGED=ON",
+            '-f PostgreSQL PG:"{dsn}"',
+            '"{local_path}"',
+        ]
+    )
 
-    if not rows:
-        raise ValueError("No rows found in CBS address mapping CSV")
+    result = gdal.runner.run(
+        cmd,
+        exe_name="ogr2ogr",
+        kwargs={
+            "new_table": staging_table,
+            "dsn": computation_db.connection.dsn,
+        },
+        local_path=extract_cbs_address_mapping,
+        logger=logger,
+    )
 
-    # Create table
-    columns = list(rows[0].keys())
-    columns_sql = ", ".join(f'"{col}" TEXT' for col in columns)
+    if not result.success:
+        raise RuntimeError(f"ogr2ogr failed loading address mapping CSV: {result.stderr}")
+
+    # Transform and create final table with proper column names and prefixed codes
     conn = computation_db.connection
-    conn.send_query(SQL("CREATE TABLE {} ({})").format(new_table.id, SQL(columns_sql)))
-
-    # Insert rows using COPY via a string buffer
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=columns, quoting=csv.QUOTE_ALL)
-    writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
-    buf.seek(0)
-
-    copy_q = SQL(
-        "COPY {} FROM STDIN WITH (FORMAT csv, HEADER true, QUOTE '\"')"
-    ).format(new_table.id)
-    with connect(conn.dsn) as pg_conn:
-        with pg_conn.cursor() as cur:
-            with cur.copy(copy_q.as_string(pg_conn)) as copy:
-                for line in buf:
-                    copy.write(line)
+    transform_sql = SQL("""
+        CREATE TABLE {final_table} AS
+        SELECT 
+            "PC6" AS "Postcode",
+            'GM' || LPAD("Gemeente2023", 4, '0') AS "Gemeente",
+            'WK' || LPAD("Wijk2023", 6, '0') AS "Wijk", 
+            'BU' || LPAD("Buurt2023", 8, '0') AS "Buurt",
+            "Huisnummer"
+        FROM {staging_table}
+        WHERE "PC6" IS NOT NULL AND "PC6" != ''
+    """).format(
+        final_table=final_table.id,
+        staging_table=staging_table.id
+    )
+    
+    conn.send_query(transform_sql)
+    
+    # Drop staging table
+    drop_table(computation_db, staging_table, logger=logger)
 
     # Add table comment
     conn.send_query(
         SQL("COMMENT ON TABLE {} IS {}").format(
-            new_table.id,
+            final_table.id,
             Literal(
                 "CBS postcode-to-neighbourhood mapping. "
                 "Source: https://www.cbs.nl/nl-nl/maatwerk/2023/35/"
@@ -256,5 +254,5 @@ def cbs_address_mapping(
         )
     )
 
-    metadata = postgrestable_metadata(computation_db, new_table)
-    return Output(new_table, metadata=metadata)
+    metadata = postgrestable_metadata(computation_db, final_table)
+    return Output(final_table, metadata=metadata)
