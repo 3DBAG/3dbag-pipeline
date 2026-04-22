@@ -62,7 +62,7 @@ def _load_csv_to_postgres(
 @asset(op_tags={"compute_kind": "sql"})
 def cbs_key_figures(
     computation_db: DatabaseResource,
-    extract_cbs_key_figures: dict[str, Path],
+    extract_cbs_key_figures,
 ) -> Output[list[PostgresTableIdentifier]]:
     """CBS key figures (Kerncijfers wijken en buurten) loaded into PostgreSQL.
 
@@ -106,7 +106,7 @@ def cbs_key_figures(
 def cbs_buurten(
     computation_db: DatabaseResource,
     gdal: GDALResource,
-    extract_cbs_buurtkaart: Path,
+    extract_cbs_buurtkaart,
 ) -> Output[PostgresTableIdentifier]:
     """CBS neighbourhood boundaries (buurten) loaded from GeoPackage into PostgreSQL.
 
@@ -170,7 +170,7 @@ def cbs_buurten(
 @asset(op_tags={"compute_kind": "sql"})
 def cbs_address_mapping(
     computation_db: DatabaseResource,
-    extract_cbs_address_mapping: Path,
+    extract_cbs_address_mapping,
 ) -> Output[PostgresTableIdentifier]:
     """CBS postcode-to-neighbourhood mapping loaded into PostgreSQL.
 
