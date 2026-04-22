@@ -15,6 +15,7 @@ from dagster import (
     Config,
     Output,
     get_dagster_logger,
+    AutomationCondition,
 )
 from pydantic import Field
 
@@ -120,7 +121,7 @@ def _records_to_csv(records: list[dict], output_path: Path) -> None:
             writer.writerow(cleaned)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def extract_cbs_key_figures(
     config: CbsKeyFiguresConfig,
     file_store: FileStoreResource,
@@ -151,7 +152,7 @@ def extract_cbs_key_figures(
     return Output(result, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def extract_cbs_buurtkaart(
     config: CbsBuurtkaartConfig,
     file_store: FileStoreResource,
@@ -190,11 +191,11 @@ def extract_cbs_buurtkaart(
         "GeoPackage": str(gpkg_path),
         "Size [Mb]": round(gpkg_path.stat().st_size / 1e6, 2),
     }
-    logger.info(f"Downloaded CBS Wijk- en buurtkaart: {gpkg_path.name} ({metadata['Size [Mb]']} Mb)")
+    logger.debug(f"Downloaded CBS Wijk- en buurtkaart: {gpkg_path.name} ({metadata['Size [Mb]']} Mb)")
     return Output(gpkg_path, metadata=metadata)
 
 
-@asset
+@asset(automation_condition=AutomationCondition.eager())
 def extract_cbs_address_mapping(
     config: CbsAddressMappingConfig,
     file_store: FileStoreResource,
