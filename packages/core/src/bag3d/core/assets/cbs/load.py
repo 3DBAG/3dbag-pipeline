@@ -9,6 +9,7 @@ import io
 from pathlib import Path
 
 from dagster import asset, Output, get_dagster_logger
+from psycopg import connect
 from psycopg.sql import SQL, Identifier, Literal
 
 from bag3d.common.resources.database import DatabaseResource
@@ -50,11 +51,12 @@ def _load_csv_to_postgres(
     copy_q = SQL(
         "COPY {} FROM STDIN WITH (FORMAT csv, HEADER true, QUOTE '\"')"
     ).format(table.id)
-    with conn.conn.cursor() as cur:
-        with open(csv_path, "r", encoding="utf-8") as f:
-            with cur.copy(copy_q.as_string(conn.conn)) as copy:
-                for line in f:
-                    copy.write(line)
+    with connect(conn.dsn) as pg_conn:
+        with pg_conn.cursor() as cur:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                with cur.copy(copy_q.as_string(pg_conn)) as copy:
+                    for line in f:
+                        copy.write(line)
 
 
 @asset(op_tags={"compute_kind": "sql"})
@@ -230,10 +232,11 @@ def cbs_address_mapping(
     copy_q = SQL(
         "COPY {} FROM STDIN WITH (FORMAT csv, HEADER true, QUOTE '\"')"
     ).format(new_table.id)
-    with conn.conn.cursor() as cur:
-        with cur.copy(copy_q.as_string(conn.conn)) as copy:
-            for line in buf:
-                copy.write(line)
+    with connect(conn.dsn) as pg_conn:
+        with pg_conn.cursor() as cur:
+            with cur.copy(copy_q.as_string(pg_conn)) as copy:
+                for line in buf:
+                    copy.write(line)
 
     # Add table comment
     conn.send_query(
