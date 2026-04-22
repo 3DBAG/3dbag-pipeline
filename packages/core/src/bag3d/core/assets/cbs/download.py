@@ -29,7 +29,7 @@ class CbsKeyFiguresConfig(Config):
     """Configuration for CBS key figures download."""
 
     table_ids: dict[str, str] = Field(
-        default={"2021": "85039NED", "2023": "85618NED"},
+        default={"2025": "86165NED", "2024": "85984NED"},
         description="Mapping of year to CBS OData table identifier. "
         "See https://opendata.cbs.nl for available tables.",
     )
@@ -73,33 +73,25 @@ def _clean_cell(cell: object) -> str:
     return cell
 
 
-def _fetch_cbs_odata(api_url: str) -> list[dict]:
-    """Fetch all records from a CBS OData API endpoint with pagination.
+def _fetch_cbs_odata(target_url: str) -> list[dict]:
+    """Fetch all records from OData API.
 
     Args:
-        api_url: Base URL of the TypedDataSet endpoint
-            (e.g. https://opendata.cbs.nl/ODataAPI/odata/85618NED/TypedDataSet).
+        target_url: Base URL of the TypedDataSet endpoint
+            (e.g. https://opendata.cbs.nl/ODataFeed/odata/85618NED/TypedDataSet).
 
     Returns:
         List of all records as dicts.
     """
-    page_size = 9000
-    skip = 0
-    all_entries: list[dict] = []
-
-    while True:
-        target = f"{api_url}?$top={page_size}&$skip={skip}"
-        logger.info(f"Fetching CBS data from {target}")
-        response = requests.get(target, timeout=120)
+    target_url = target_url + "?$format=json"
+    records: list[dict] = []
+    while target_url:
+        response = requests.get(target_url, timeout=120)
         response.raise_for_status()
-        data = response.json()["value"]
-        if not data:
-            break
-        all_entries.extend(data)
-        skip += page_size
-
-    logger.info(f"Fetched {len(all_entries)} total records from {api_url}")
-    return all_entries
+        payload = response.json()
+        records.extend(payload.get("value", []))
+        target_url = payload.get("@odata.nextLink") or payload.get("odata.nextLink")
+    return records
 
 
 def _records_to_csv(records: list[dict], output_path: Path) -> None:
@@ -146,7 +138,7 @@ def extract_cbs_key_figures(
     metadata: dict = {}
 
     for year, table_id in config.table_ids.items():
-        api_url = f"https://opendata.cbs.nl/ODataAPI/odata/{table_id}/TypedDataSet"
+        api_url = f"https://opendata.cbs.nl/ODataFeed/odata/{table_id}/TypedDataSet"
         records = _fetch_cbs_odata(api_url)
 
         csv_path = cbs_dir / f"cbs_key_figures_{year}.csv"
@@ -212,6 +204,8 @@ def extract_cbs_address_mapping(
     to its corresponding gemeente, wijk, and buurt codes.
 
     Source: https://www.cbs.nl/nl-nl/maatwerk/2023/35/buurt-wijk-en-gemeente-2023-voor-postcode-huisnummer
+    Source: https://www.cbs.nl/nl-nl/maatwerk/2024/35/buurt-wijk-en-gemeente-2024-voor-postcode-huisnummer
+    Source:https://www.cbs.nl/nl-nl/maatwerk/2025/38/buurt-wijk-en-gemeente-2025-voor-postcode-huisnummer
     """
     cbs_dir = file_store.create_subdir("cbs")
     zip_path = cbs_dir / f"cbs_address_mapping_{config.year}.zip"
