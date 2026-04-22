@@ -131,15 +131,15 @@ WHERE ${external_features}.identificatie = subquery.identificatie;
 DROP TABLE IF EXISTS cbs_data_per_neighbourhood;
 CREATE TEMP TABLE cbs_data_per_neighbourhood AS(
 SELECT  ckfdn."WijkenEnBuurten"
-       ,cb.wkb_geometry                       AS geometrie
+       ,cb.geom                               AS geometrie
        ,ckfdn."PercentageMeergezinswoning_38" AS cbs_percent_multihousehold_2023
        ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2_2023
        ,ckfdn2."GIHandelEnHoreca_94"          AS cbs_dist_to_horeca_2021
-FROM floors_estimation.cbs_key_figures_districts_neighbourhoods_2023 ckfdn
-JOIN floors_estimation.cbs_key_figures_districts_neighbourhoods_2021 ckfdn2
+FROM ${cbs_key_figures_2023} ckfdn
+JOIN ${cbs_key_figures_2021} ckfdn2
 ON ckfdn."WijkenEnBuurten" = ckfdn2."WijkenEnBuurten"
-JOIN floors_estimation.cbs_buurten cb
-ON cb.bu_code = ckfdn."WijkenEnBuurten"
+JOIN ${cbs_buurten} cb
+ON cb.buurtcode = ckfdn."WijkenEnBuurten"
 WHERE ckfdn."SoortRegio_2" = 'Buurt' ); 
 
 

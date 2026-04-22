@@ -222,7 +222,19 @@ def external_features(
     create_schema(computation_db, SCHEMA, logger)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
-    query = load_sql(query_params={"external_features": external_features_table})
+    cbs_schema = "cbs"
+    query = load_sql(
+        query_params={
+            "external_features": external_features_table,
+            "cbs_key_figures_2023": PostgresTableIdentifier(
+                cbs_schema, "cbs_key_figures_districts_neighbourhoods_2023"
+            ),
+            "cbs_key_figures_2021": PostgresTableIdentifier(
+                cbs_schema, "cbs_key_figures_districts_neighbourhoods_2021"
+            ),
+            "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
+        }
+    )
     metadata = postgrestable_from_query(
         computation_db, query, external_features_table, logger
     )
