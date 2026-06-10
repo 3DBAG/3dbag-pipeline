@@ -119,8 +119,7 @@
       "jobs": [
         { "job": "ahn3", "code_location": "core" },
         { "job": "ahn4", "code_location": "core" },
-        { "job": "ahn5", "code_location": "core" },
-        { "job": "ahn6", "code_location": "core" }
+        { "job": "ahn5", "code_location": "core" }
       ]
     },
     {
