@@ -3,7 +3,7 @@
 The pipeline uses four source datasets:
 
 - **BAG** — downloaded by the `source_input` job
-- **AHN** — downloaded by the `ahn3`, `ahn4`, and `ahn5` jobs (one per AHN version, partitioned by tile)
+- **AHN** — downloaded by the `ahn3`, `ahn4`, `ahn5`, and `ahn6` jobs (one per AHN version, partitioned by tile)
 - **BGT** ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/imgeo/)) — downloaded by the `bgt` job
 - **TOP10NL** ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/top10nl/20190708)) — downloaded by the `source_input` job
 
@@ -42,7 +42,7 @@ The `oorspronkelijkbouwjaar` is not an indicator of a change in the geometry.
 
 The [National Height Model of the Netherlands (AHN)](https://www.ahn.nl/) is the openly available elevation data set of the Netherlands. This is acquired through airborne laser scanning (LiDAR), with an average point density of 8 points per square meter for the current version.
 
-For the 3DBAG we use a smart combination of AHN3, AHN4 and AHN5. AHN3 was acquired between 2014 and 2019, AHN4 between 2020 and 2022, and AHN5's collection started in 2023 and is expected to be completed in 2025. [Here](https://www.ahn.nl/historie) you can find the collection dates for each region in the Netherlands. Be aware that if a building was constructed or changed on a later date than AHN was collected in that area, it can happen that this building has not been captured in the pointcloud and, subsequently, is not correctly reconstructed or even present in the 3DBAG.
+For the 3DBAG we use a smart combination of AHN3, AHN4, AHN5 and AHN6. AHN3 was acquired between 2014 and 2019, AHN4 between 2020 and 2022, and AHN5 between 2023 and 2025, while AHN6 started being acquire in 2025. [Here](https://www.ahn.nl/historie) you can find the collection dates for each region in the Netherlands. **Be aware that if a building was constructed or changed on a later date than AHN was collected in that area, it can happen that this building has not been captured in the pointcloud and, subsequently, is not correctly reconstructed or even present in the 3DBAG.**
 
 For the latest versions of the 3DBAG we use both AHN3 and AHN4 but also recently AHN5 when available. This is to guarantee the best possible 3D reconstruction for each building. If a building has no mutation since the acquisition of AHN3, we pick the pointcloud with the best point coverage. This reduces the odds that a building contains small errors due to large no data gaps in the point cloud.
 

@@ -9,7 +9,7 @@ The `core` package consists of several jobs that need to be executed in a certai
 
 1. **`bgt`** — Load the latest BGT Pand layer.
 2. **`ahn_tile_index`** — Download the AHN tile index (bladwijzer) and checksum files, and create the metadata tables for AHN 3, 4 and 5. Must be run before the AHN download jobs.
-3. **`ahn3`** / **`ahn4`** / **`ahn5`** — Download the LAZ files and record metadata for each AHN version. These jobs are partitioned by tile and can be run independently. The `ahn_checksum_sensor` automates triggering these jobs when PDOK updates the upstream checksum files.
+3. **`ahn3`** / **`ahn4`** / **`ahn5`**  / **`ahn6`** — Download the LAZ files and record metadata for each AHN version. These jobs are partitioned by tile and can be run independently. The `ahn_checksum_sensor` automates triggering these jobs when PDOK updates the upstream checksum files.
 4. **`ahn_metadata_index`** — Create indices on the AHN metadata tables. Run after all AHN tile downloads are complete.
 5. **`source_input`** — Download and stage BAG and TOP10NL source data, then prepare the input for reconstruction (tiling, intermediary processing).
 6. **`nl_reconstruct`** — Run the crop and reconstruct steps for the Netherlands (partitioned by tile).
