@@ -113,13 +113,14 @@
     },
     {
       "name": "ahn",
-      "display_name": "ahn downloads (ahn3/4/5)",
+      "display_name": "ahn downloads (ahn3/4/5/6)",
       "allow_partial_failure": true,
       "partition_asset": ["ahn", "laz_files_ahn3"],
       "jobs": [
         { "job": "ahn3", "code_location": "core" },
         { "job": "ahn4", "code_location": "core" },
-        { "job": "ahn5", "code_location": "core" }
+        { "job": "ahn5", "code_location": "core" },
+        { "job": "ahn6", "code_location": "core" }
       ]
     },
     {
