@@ -601,7 +601,6 @@ def _make_copc_asset(version: int):
 
     @asset(
         name=f"laz_files_ahn{version}_km",
-        key_prefix=["ahn"],
         partitions_def=partition_definition_km,
         pool="laz_download",
     )
