@@ -152,6 +152,7 @@ def metadata_ahn5_index(
     create_indices_metadata_table(computation_db, metadata_table_ahn5)
     return metadata_table_ahn5
 
+
 def create_indices_metadata_table(
     computation_db: DatabaseResource, metadata_table: PostgresTableIdentifier
 ):

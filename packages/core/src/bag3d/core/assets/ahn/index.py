@@ -90,5 +90,3 @@ def lasindex_ahn5(
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
     run_lasindex(config, lastools, laz_files_ahn5)
-
-
