@@ -19,11 +19,13 @@ from bag3d.core.assets.ahn.download import (
     laz_files_ahn3,
     laz_files_ahn4,
     laz_files_ahn5,
+    laz_files_ahn6,
     md5_ahn3,
     md5_ahn4,
     sha256_ahn5,
+    sha256_ahn6,
 )
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
+from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 from bag3d.core.sensors import ahn_checksum_sensor
 
 
@@ -32,6 +34,7 @@ MOCK_AHN_INDEX = {
         "AHN3_LAZ": "https://example.com/C_01CZ1.LAZ",
         "AHN4_LAZ": "https://example.com/C_01CZ1.LAZ",
         "AHN5_LAZ": "https://example.com/2023_C_01CZ1.LAZ",
+        "AHN6_LAZ": "https://example.com/2024_C_01CZ1.LAZ",
         "geometry": {"type": "Polygon", "coordinates": []},
     }
 }
@@ -56,6 +59,7 @@ MOCK_AHN_INDEX_RESPONSE = {
                 "AHN3 puntenwolk": "https://example.com/C_01CZ1.LAZ",
                 "AHN4 puntenwolk": "https://example.com/C_01CZ1.LAZ",
                 "AHN5 puntenwolk": "https://example.com/2023_C_01CZ1.LAZ",
+                "AHN6 puntenwolk": "https://example.com/2024_C_01CZ1.LAZ",
             },
             "geometry": {"type": "Polygon", "coordinates": []},
         }
@@ -103,8 +107,8 @@ def test_download_ahn_index_geometry_mocked():
 
 @pytest.mark.parametrize(
     "ahn_version",
-    (3, 4, 5),
-    ids=("ahn3", "ahn4", "ahn5"),
+    (3, 4, 5, 6),
+    ids=("ahn3", "ahn4", "ahn5", "ahn6"),
 )
 def test_get_checksums(ahn_version):
     payload = (
@@ -126,11 +130,13 @@ def test_checksums_for_ahn():
             MOCK_AHN34_RESPONSE,
             MOCK_AHN34_RESPONSE,
             '{"features": [{"properties": {"file": "https://example.com/2023_C_01CZ1.LAZ", "sha256": "abc"}}]}',
+            '{"features": [{"properties": {"file": "https://example.com/2024_C_01CZ1.LAZ", "sha256": "def"}}]}',
         ],
     ):
         assert md5_ahn3() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
         assert md5_ahn4() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
         assert sha256_ahn5() == {"2023_C_01CZ1.LAZ": "abc"}
+        assert sha256_ahn6() == {"2024_C_01CZ1.LAZ": "def"}
 
 
 def _mock_laz_download(tmp_path, filename: str) -> LAZDownload:
@@ -201,6 +207,24 @@ def test_laz_files_ahn5(resources_ahn, sha256_ahn5_fix, tile_index_ahn_fix, tmp_
     assert res.value.url is not None
 
 
+def test_laz_files_ahn6(resources_ahn, sha256_ahn6_fix, tile_index_ahn_fix, tmp_path):
+    config = LazFilesConfig(force_download=False, check_hash=False)
+    with patch(
+        "bag3d.core.assets.ahn.download.download_ahn_laz",
+        return_value=_mock_laz_download(tmp_path, "2024_C_01CZ1.LAZ"),
+    ):
+        with build_asset_context_for(laz_files_ahn6, partition_key="01cz1") as context:
+            res = laz_files_ahn6(
+                context,
+                config,
+                resources_ahn["file_store"],
+                sha256_ahn6_fix,
+                tile_index_ahn_fix,
+            )
+    assert isinstance(res, Output)
+    assert res.value.url is not None
+
+
 def test_laz_files_ahn3_retries_after_checksum_failure(
     resources_ahn, md5_ahn3_fix, tile_index_ahn_fix, tmp_path
 ):
@@ -249,7 +273,7 @@ def test_laz_files_ahn3_retries_after_checksum_failure(
 
 
 def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
-    defs = dg.Definitions(jobs=[job_ahn3, job_ahn4, job_ahn5])
+    defs = dg.Definitions(jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6])
     sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
     initial_cursor = '{"ahn3": {"C_01CZ1.LAZ": "aaa111"}}'
 
@@ -269,6 +293,7 @@ def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
                     AssetKey(["ahn", "md5_ahn3"]),
                     AssetKey(["ahn", "md5_ahn4"]),
                     AssetKey(["ahn", "sha256_ahn5"]),
+                    AssetKey(["ahn", "sha256_ahn6"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,

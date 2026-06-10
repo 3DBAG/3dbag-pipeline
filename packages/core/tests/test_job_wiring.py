@@ -6,6 +6,7 @@ from bag3d.core.jobs import (
     job_ahn3,
     job_ahn4,
     job_ahn5,
+    job_ahn6,
     job_ahn_metadata_index,
     job_ahn_tile_index,
     job_bgt,
@@ -21,6 +22,7 @@ JOB_DEFS = [
     job_ahn3,
     job_ahn4,
     job_ahn5,
+    job_ahn6,
     job_ahn_metadata_index,
     job_reconstruct,
     job_reconstruct_debug,
@@ -33,7 +35,7 @@ def test_all_jobs_resolvable():
 
 
 def test_partitioned_jobs_have_partition_defs():
-    for job_name in ("ahn3", "ahn4", "ahn5"):
+    for job_name in ("ahn3", "ahn4", "ahn5", "ahn6"):
         assert defs.get_job_def(job_name).partitions_def is not None
 
 
