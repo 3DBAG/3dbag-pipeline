@@ -175,8 +175,6 @@ def test_ahn_metadata_tables_requested_after_cron_tick(instance_ahn_materialized
     assert KEY_METADATA_TABLE_AHN3 in requested
     assert KEY_METADATA_TABLE_AHN4 in requested
     assert KEY_METADATA_TABLE_AHN5 in requested
-    assert KEY_METADATA_TABLE_AHN6 in requested
-
 
 # ---------------------------------------------------------------------------
 # Part 2: Sensor tests
@@ -188,13 +186,11 @@ TILE_INDEX = {
         "AHN3_LAZ": "https://example.com/C_01CZ1.LAZ",
         "AHN4_LAZ": "https://example.com/C_01CZ1.LAZ",
         "AHN5_LAZ": "https://example.com/C_01CZ1_AHN5.LAZ",
-        "AHN6_LAZ": "https://example.com/C_01CZ1_AHN6.LAZ",
     },
     "50cn2": {
         "AHN3_LAZ": "https://example.com/C_50CN2.LAZ",
         "AHN4_LAZ": "https://example.com/C_50CN2.LAZ",
         "AHN5_LAZ": "https://example.com/C_50CN2_AHN5.LAZ",
-        "AHN6_LAZ": "https://example.com/C_50CN2_AHN6.LAZ",
     },
 }
 
@@ -223,7 +219,6 @@ def test_sensor_skips_when_no_materializations():
                 dg.AssetKey(["ahn", "md5_ahn3"]),
                 dg.AssetKey(["ahn", "md5_ahn4"]),
                 dg.AssetKey(["ahn", "sha256_ahn5"]),
-                dg.AssetKey(["ahn", "sha256_ahn6"]),
             ],
             instance=inst,
             definitions=SENSOR_DEFS,
@@ -258,7 +253,6 @@ def test_sensor_establishes_baseline_on_first_run():
                     dg.AssetKey(["ahn", "md5_ahn3"]),
                     dg.AssetKey(["ahn", "md5_ahn4"]),
                     dg.AssetKey(["ahn", "sha256_ahn5"]),
-                    dg.AssetKey(["ahn", "sha256_ahn6"]),
                 ],
                 instance=inst,
                 definitions=SENSOR_DEFS,
@@ -286,7 +280,6 @@ def test_sensor_skips_when_checksums_unchanged():
                     dg.AssetKey(["ahn", "md5_ahn3"]),
                     dg.AssetKey(["ahn", "md5_ahn4"]),
                     dg.AssetKey(["ahn", "sha256_ahn5"]),
-                    dg.AssetKey(["ahn", "sha256_ahn6"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
@@ -319,7 +312,6 @@ def test_sensor_triggers_only_changed_partitions():
                     dg.AssetKey(["ahn", "md5_ahn3"]),
                     dg.AssetKey(["ahn", "md5_ahn4"]),
                     dg.AssetKey(["ahn", "sha256_ahn5"]),
-                    dg.AssetKey(["ahn", "sha256_ahn6"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
@@ -355,7 +347,6 @@ def test_sensor_triggers_multiple_versions_independently():
                     dg.AssetKey(["ahn", "md5_ahn3"]),
                     dg.AssetKey(["ahn", "md5_ahn4"]),
                     dg.AssetKey(["ahn", "sha256_ahn5"]),
-                    dg.AssetKey(["ahn", "sha256_ahn6"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
