@@ -3,7 +3,7 @@
 Part 1: Automation condition tests
     Verify that the on_cron() conditions on AHN root assets fire at the right time.
     - md5_ahn3, md5_ahn4, sha256_ahn5, tile_index_ahn: 0 0 1 * * (midnight on 1st)
-    - metadata_table_ahn3/4/5/6: 0 0 9 * * (midnight on 9th)
+    - metadata_table_ahn3/4/5: 0 0 9 * * (midnight on 9th)
 
 Part 2: Sensor tests
     Verify the checksum sensor logic:
