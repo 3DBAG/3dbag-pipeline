@@ -3,7 +3,7 @@
 The pipeline uses four source datasets:
 
 - **BAG** — downloaded by the `source_input` job
-- **AHN** — downloaded by the `ahn3`, `ahn4`, `ahn5`, and `ahn6` jobs (one per AHN version, partitioned by tile)
+- **AHN** — downloaded by the `ahn3`, `ahn4`, and `ahn5` jobs (one per AHN version, partitioned by tile)
 - **BGT** ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/imgeo/)) — downloaded by the `bgt` job
 - **TOP10NL** ([xsd](https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd)|[Code Lists](https://register.geostandaarden.nl/waardelijst/top10nl/20190708)) — downloaded by the `source_input` job
 

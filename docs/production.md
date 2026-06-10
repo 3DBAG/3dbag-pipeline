@@ -15,7 +15,7 @@ The `core` package consists of several jobs that need to be executed in a certai
 6. **`nl_reconstruct`** — Run the crop and reconstruct steps for the Netherlands (partitioned by tile).
 7. **`nl_export`** — Run the tyler export and 3D Tiles steps. Use **`nl_export_after_floors`** instead if the *floors_estimation* package has been run first — it includes the GeoPackage and 3D Tiles outputs.
 8. **`nl_deploy`** — Deploy the Netherlands data to the production servers.
-9.  **`nl_release`** — Perform the final steps for the 3DBAG release (publish data and webservices).
+9. **`nl_release`** — Perform the final steps for the 3DBAG release (publish data and webservices).
 
 For debugging reconstruction, **`nl_reconstruct_debug`** runs the same steps as `nl_reconstruct` with additional debug output.
 
