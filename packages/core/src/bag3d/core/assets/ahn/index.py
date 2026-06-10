@@ -90,3 +90,19 @@ def lasindex_ahn5(
     See https://lastools.osgeo.org/download/lasindex_README.txt.
     """
     run_lasindex(config, lastools, laz_files_ahn5)
+
+
+@asset(
+    partitions_def=partition_definition_ahn,
+    pool="ahn",
+)
+def lasindex_ahn6(
+    config: LasIndexConfig,
+    lastools: LASToolsResource,
+    laz_files_ahn6: LAZDownload,
+) -> None:
+    """Append a spatial index to the AHN6 LAZ file, using LASTools's `lasindex`.
+
+    See https://lastools.osgeo.org/download/lasindex_README.txt.
+    """
+    run_lasindex(config, lastools, laz_files_ahn6)

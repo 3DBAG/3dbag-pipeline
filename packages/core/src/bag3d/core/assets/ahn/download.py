@@ -31,6 +31,7 @@ logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
+    6: None,
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
     4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
@@ -156,6 +157,12 @@ def md5_ahn4() -> dict[str, str]:
 def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
+def sha256_ahn6() -> dict[str, str]:
+    """Download the SHA256 sums for the AHN6 LAZ files, provided by AHN."""
+    return get_checksums(URL_LAZ_SHA, ahn_version=6)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
@@ -361,6 +368,69 @@ def laz_files_ahn5(
                 )
             second_validation = lazdownload.validate(
                 sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+            )
+            if not second_validation:
+                logger.warning(format_laz_log(fpath, "Checksum failed"))
+        else:
+            logger.debug(format_laz_log(fpath, "Validation OK"))
+
+    return Output(lazdownload, metadata=lazdownload.asdict())
+
+
+@asset(
+    partitions_def=partition_definition_ahn,
+    pool="laz_download",
+)
+def laz_files_ahn6(
+    context: AssetExecutionContext,
+    config: LazFilesConfig,
+    pointcloud_store: FileStoreResource,
+    sha256_ahn6,
+    tile_index_ahn,
+) -> Output[LAZDownload]:
+    """AHN6 LAZ files as they are downloaded from PDOK.
+
+    The download links are retrieved from the AHN tile index service (blaadindex).
+    Only downloads a file if it does not exist locally.
+    """
+    tile_id = context.partition_key
+    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
+    url_laz = tile_index_ahn[tile_id]["AHN6_LAZ"]
+    fpath = laz_dir / url_laz.split("/")[-1]
+    verify_ssl = False
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=urllib3.exceptions.InsecureRequestWarning
+        )
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url_laz,
+            verify_ssl=verify_ssl,
+            force_download=config.force_download,
+        )
+    lazdownload.compute_sha(HashChunkwise("md5"))
+    if config.check_hash:
+        first_validation = lazdownload.validate(
+            sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+        )
+        if not first_validation:
+            logger.info(
+                format_laz_log(
+                    fpath, "First validation failed. Removing and retrying..."
+                )
+            )
+            fpath.unlink()
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url_laz,
+                    verify_ssl=verify_ssl,
+                )
+            second_validation = lazdownload.validate(
+                sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))

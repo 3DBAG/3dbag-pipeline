@@ -54,7 +54,7 @@ def invert_geometry_coordinates(geometry):
 def download_ahn_index(
     with_geom: bool = False,
 ) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
-    """Downloads the AHN 3/4/5 tile index.
+    """Downloads the AHN 3/4/5/6 tile index.
     Args:
         with_geom: If False, request only the AHN tile ids. Else also request the
             tile boundaries as geojson.
@@ -100,6 +100,7 @@ def download_ahn_index(
                     "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
                     "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
                     "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
+                    "AHN6_LAZ": f["properties"]["AHN6 puntenwolk"],
                     "geometry": invert_geometry_coordinates(f["geometry"]),
                 }
         else:
