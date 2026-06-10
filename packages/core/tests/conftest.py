@@ -68,20 +68,12 @@ def sha256_ahn5_fix():
 
 
 @pytest.fixture(scope="session")
-def sha256_ahn6_fix():
-    yield {
-        "2024_C_01CZ1.LAZ": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611"
-    }
-
-
-@pytest.fixture(scope="session")
 def tile_index_ahn_fix():
     yield {
         "01cz1": {
             "AHN3_LAZ": "https://basisdata.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
             "AHN4_LAZ": "https://basisdata.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
-            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ//2023_C_01CZ1.LAZ",
-            "AHN6_LAZ": "https://basisdata.nl/hwh-ahn/AHN6/01_LAZ//2024_C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [
@@ -148,14 +140,6 @@ def mock_asset_metadata_ahn5_index():
 
 
 @pytest.fixture(scope="session")
-def mock_asset_metadata_ahn6_index():
-    return AssetSpec(
-        key=AssetKey(["ahn", "metadata_ahn6_index"]),
-        metadata={"dagster/io_manager_key": "mock_asset_io_manager"},
-    )
-
-
-@pytest.fixture(scope="session")
 def mock_asset_values():
     """Values to be returned by the mock IO manager for each asset key."""
     return {
@@ -167,7 +151,6 @@ def mock_asset_values():
         "ahn/metadata_ahn3_index": PostgresTableIdentifier("ahn", "metadata_ahn3"),
         "ahn/metadata_ahn4_index": PostgresTableIdentifier("ahn", "metadata_ahn4"),
         "ahn/metadata_ahn5_index": PostgresTableIdentifier("ahn", "metadata_ahn5"),
-        "ahn/metadata_ahn6_index": PostgresTableIdentifier("ahn", "metadata_ahn6"),
     }
 
 

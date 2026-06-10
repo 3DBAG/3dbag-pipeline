@@ -3,9 +3,11 @@ import time
 import random
 import warnings
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Union, Optional
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
+import urllib.request
+import urllib.error
 
 import urllib3
 
@@ -25,6 +27,7 @@ from bag3d.core.assets.ahn.core import (
     format_laz_log,
     download_ahn_index,
     partition_definition_ahn,
+    partition_definition_km,
 )
 
 logger = get_dagster_logger("ahn.download")
@@ -157,13 +160,6 @@ def md5_ahn4() -> dict[str, str]:
 def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
-
-
-@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn6() -> dict[str, str]:
-    """Download the SHA256 sums for the AHN6 LAZ files, provided by AHN."""
-    return get_checksums(URL_LAZ_SHA, ahn_version=6)
-
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
@@ -377,69 +373,6 @@ def laz_files_ahn5(
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
-@asset(
-    partitions_def=partition_definition_ahn,
-    pool="laz_download",
-)
-def laz_files_ahn6(
-    context: AssetExecutionContext,
-    config: LazFilesConfig,
-    pointcloud_store: FileStoreResource,
-    sha256_ahn6,
-    tile_index_ahn,
-) -> Output[LAZDownload]:
-    """AHN6 LAZ files as they are downloaded from PDOK.
-
-    The download links are retrieved from the AHN tile index service (blaadindex).
-    Only downloads a file if it does not exist locally.
-    """
-    tile_id = context.partition_key
-    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
-    url_laz = tile_index_ahn[tile_id]["AHN6_LAZ"]
-    fpath = laz_dir / url_laz.split("/")[-1]
-    verify_ssl = False
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", category=urllib3.exceptions.InsecureRequestWarning
-        )
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url_laz,
-            verify_ssl=verify_ssl,
-            force_download=config.force_download,
-        )
-    lazdownload.compute_sha(HashChunkwise("md5"))
-    if config.check_hash:
-        first_validation = lazdownload.validate(
-            sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
-        )
-        if not first_validation:
-            logger.info(
-                format_laz_log(
-                    fpath, "First validation failed. Removing and retrying..."
-                )
-            )
-            fpath.unlink()
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
-                )
-                lazdownload = download_ahn_laz(
-                    fpath=fpath,
-                    url_laz=url_laz,
-                    verify_ssl=verify_ssl,
-                )
-            second_validation = lazdownload.validate(
-                sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
-            )
-            if not second_validation:
-                logger.warning(format_laz_log(fpath, "Checksum failed"))
-        else:
-            logger.debug(format_laz_log(fpath, "Validation OK"))
-
-    return Output(lazdownload, metadata=lazdownload.asdict())
-
-
 def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
@@ -602,3 +535,106 @@ def match_sha(
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
         return False
+
+
+# ---------------------------------------------------------------------------
+# KM (1×1 km) grid COPC download assets
+# URL templates derived from:
+#   https://basisdata.nl/hwh-ahn/AUX/bladwijzer/index.html
+# ---------------------------------------------------------------------------
+
+BASE_URL = "https://basisdata.nl/hwh-ahn"
+
+COPC_URL_TEMPLATES: dict[int, list[str]] = {
+    3: [
+        f"{BASE_URL}/AHN3_KM/01_LAZ/AHN3_C_{{tile}}.COPC.LAZ",
+    ],
+    4: [
+        f"{BASE_URL}/AHN4_KM/01_LAZ/AHN4_C_{{tile}}.COPC.LAZ",
+    ],
+    5: [
+        f"{BASE_URL}/AHN5_KM/01_LAZ/AHN5_C_{{tile}}.COPC.LAZ",
+    ],
+    6: [
+        f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.COPC.LAZ",
+        f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.LAZ",
+    ],
+}
+
+
+def probe_copc_url(url: str) -> Optional[int]:
+    """Check if a COPC/LAZ URL exists via HEAD request.
+
+    Returns:
+        Content-Length in bytes if 200, None otherwise.
+    """
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status == 200:
+                content_length = resp.headers.get("Content-Length")
+                return int(content_length) if content_length else 0
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+        pass
+    return None
+
+
+class CopcFilesConfig(Config):
+    force_download: bool = False
+
+
+def resolve_copc_url(version: int, tile_id: str) -> Optional[str]:
+    """Find the first working COPC/LAZ URL for a given AHN version and tile.
+
+    Tries each URL template in order. Returns the first URL that responds
+    with HTTP 200, or None if no pattern works.
+    """
+    for template in COPC_URL_TEMPLATES[version]:
+        url = template.format(tile=tile_id)
+        if probe_copc_url(url) is not None:
+            return url
+    return None
+
+
+def _make_copc_asset(version: int):
+    """Factory to create COPC download assets for a given AHN version."""
+
+    @asset(
+        name=f"laz_files_ahn{version}_km",
+        key_prefix=["ahn"],
+        partitions_def=partition_definition_km,
+        pool="laz_download",
+    )
+    def _asset(
+        context: AssetExecutionContext,
+        config: CopcFilesConfig,
+        pointcloud_store: FileStoreResource,
+    ) -> Output[LAZDownload]:
+        tile_id = context.partition_key
+        url = resolve_copc_url(version, tile_id)
+        if url is None:
+            raise Failure(f"No COPC/LAZ URL found for AHN{version} tile {tile_id}")
+
+        laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/COPC")
+        fpath = laz_dir / url.split("/")[-1]
+        verify_ssl = False
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=urllib3.exceptions.InsecureRequestWarning
+            )
+            lazdownload = download_ahn_laz(
+                fpath=fpath,
+                url_laz=url,
+                verify_ssl=verify_ssl,
+                force_download=config.force_download,
+            )
+
+        return Output(lazdownload, metadata=lazdownload.asdict())
+
+    return _asset
+
+
+laz_files_ahn3_km = _make_copc_asset(3)
+laz_files_ahn4_km = _make_copc_asset(4)
+laz_files_ahn5_km = _make_copc_asset(5)
+laz_files_ahn6_km = _make_copc_asset(6)

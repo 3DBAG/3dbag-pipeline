@@ -2,7 +2,7 @@
 
 Part 1: Automation condition tests
     Verify that the on_cron() conditions on AHN root assets fire at the right time.
-    - md5_ahn3, md5_ahn4, sha256_ahn5, sha256_ahn6, tile_index_ahn: 0 0 1 * * (midnight on 1st)
+    - md5_ahn3, md5_ahn4, sha256_ahn5, tile_index_ahn: 0 0 1 * * (midnight on 1st)
     - metadata_table_ahn3/4/5/6: 0 0 9 * * (midnight on 9th)
 
 Part 2: Sensor tests
@@ -20,7 +20,7 @@ import dagster as dg
 import pytest
 
 from bag3d.core.asset_groups import ahn_assets
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
+from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
 from bag3d.core.sensors import ahn_checksum_sensor, _build_filename_to_tile_id
 
 utc = datetime.timezone.utc
@@ -44,7 +44,7 @@ DEFS = dg.Definitions(assets=ahn_assets, resources=MOCK_RESOURCES)
 # Separate Definitions with jobs for the sensor context (sensors require job definitions)
 SENSOR_DEFS = dg.Definitions(
     assets=ahn_assets,
-    jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6],
+    jobs=[job_ahn3, job_ahn4, job_ahn5],
     resources=MOCK_RESOURCES,
 )
 
@@ -59,24 +59,20 @@ AFTER_CRON_9TH = datetime.datetime(2026, 2, 9, 0, 1, tzinfo=utc)
 KEY_MD5_AHN3 = dg.AssetKey(["ahn", "md5_ahn3"])
 KEY_MD5_AHN4 = dg.AssetKey(["ahn", "md5_ahn4"])
 KEY_SHA256_AHN5 = dg.AssetKey(["ahn", "sha256_ahn5"])
-KEY_SHA256_AHN6 = dg.AssetKey(["ahn", "sha256_ahn6"])
 KEY_TILE_INDEX_AHN = dg.AssetKey(["ahn", "tile_index_ahn"])
 KEY_METADATA_TABLE_AHN3 = dg.AssetKey(["ahn", "metadata_table_ahn3"])
 KEY_METADATA_TABLE_AHN4 = dg.AssetKey(["ahn", "metadata_table_ahn4"])
 KEY_METADATA_TABLE_AHN5 = dg.AssetKey(["ahn", "metadata_table_ahn5"])
-KEY_METADATA_TABLE_AHN6 = dg.AssetKey(["ahn", "metadata_table_ahn6"])
 
 # All unpartitioned AHN root keys (for pre-materialization baseline)
 ALL_AHN_UNPARTITIONED_KEYS = [
     KEY_MD5_AHN3,
     KEY_MD5_AHN4,
     KEY_SHA256_AHN5,
-    KEY_SHA256_AHN6,
     KEY_TILE_INDEX_AHN,
     KEY_METADATA_TABLE_AHN3,
     KEY_METADATA_TABLE_AHN4,
     KEY_METADATA_TABLE_AHN5,
-    KEY_METADATA_TABLE_AHN6,
 ]
 
 
@@ -139,7 +135,6 @@ def test_ahn_checksum_roots_not_requested_before_tick(instance):
     assert KEY_MD5_AHN3 not in requested
     assert KEY_MD5_AHN4 not in requested
     assert KEY_SHA256_AHN5 not in requested
-    assert KEY_SHA256_AHN6 not in requested
     assert KEY_TILE_INDEX_AHN not in requested
 
 
@@ -160,7 +155,6 @@ def test_ahn_checksum_roots_requested_after_tick(instance_ahn_materialized):
     assert KEY_MD5_AHN3 in requested
     assert KEY_MD5_AHN4 in requested
     assert KEY_SHA256_AHN5 in requested
-    assert KEY_SHA256_AHN6 in requested
     assert KEY_TILE_INDEX_AHN in requested
 
 

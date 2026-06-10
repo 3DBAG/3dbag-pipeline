@@ -10,17 +10,15 @@ job_bgt = define_asset_job(
 job_ahn_tile_index = define_asset_job(
     name="ahn_tile_index",
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
-    "create the tables for storing the metadata for AHN 3, 4, 5 and 6, so that "
+    "create the tables for storing the metadata for AHN 3, 4, and 5, so that "
     "the AHN jobs can be run.",
     selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
     | AssetSelection.assets(["ahn", "md5_ahn3"])
     | AssetSelection.assets(["ahn", "md5_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
-    | AssetSelection.assets(["ahn", "sha256_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn5"])
-    | AssetSelection.assets(["ahn", "metadata_table_ahn6"]),
 )
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
@@ -51,15 +49,36 @@ job_ahn5 = define_asset_job(
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
 )
 
-job_ahn6 = define_asset_job(
-    name="ahn6",
-    description="Make sure that the available AHN 6 LAZ files are present on disk, "
-    "and their metadata is recorded.",
-    selection=AssetSelection.assets(["ahn", "laz_files_ahn6"])
-    | AssetSelection.assets(["ahn", "metadata_ahn6"])
-    | AssetSelection.assets(["ahn", "lasindex_ahn6"]),
+
+
+
+# ---------------------------------------------------------------------------
+# KM (1×1 km) grid download jobs
+# ---------------------------------------------------------------------------
+
+job_ahn3_km = define_asset_job(
+    name="ahn3_km",
+    description="Download AHN 3 COPC pointclouds using the 1×1 km tile grid.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn3_km"]),
 )
 
+job_ahn4_km = define_asset_job(
+    name="ahn4_km",
+    description="Download AHN 4 COPC pointclouds using the 1×1 km tile grid.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn4_km"]),
+)
+
+job_ahn5_km = define_asset_job(
+    name="ahn5_km",
+    description="Download AHN 5 COPC pointclouds using the 1×1 km tile grid.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn5_km"]),
+)
+
+job_ahn6_km = define_asset_job(
+    name="ahn6_km",
+    description="Download AHN 6 COPC pointclouds using the 1×1 km tile grid.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn6_km"]),
+)
 
 job_ahn_metadata_index = define_asset_job(
     name="ahn_metadata_index",
@@ -67,7 +86,6 @@ job_ahn_metadata_index = define_asset_job(
     selection=AssetSelection.assets(["ahn", "metadata_ahn3_index"])
     | AssetSelection.assets(["ahn", "metadata_ahn4_index"])
     | AssetSelection.assets(["ahn", "metadata_ahn5_index"])
-    | AssetSelection.assets(["ahn", "metadata_ahn6_index"]),
 )
 
 

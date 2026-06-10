@@ -15,7 +15,7 @@ from dagster import SupersessionWarning
 
 from bag3d.core.assets.ahn.core import download_ahn_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
+from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
 
 
 class _AhnVersionConfig(TypedDict):
@@ -40,12 +40,7 @@ _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
         "job_name": "ahn5",
         "asset_key": AssetKey(["ahn", "sha256_ahn5"]),
         "url_key": "AHN5_LAZ",
-    },
-    6: {
-        "job_name": "ahn6",
-        "asset_key": AssetKey(["ahn", "sha256_ahn6"]),
-        "url_key": "AHN6_LAZ",
-    },
+    }
 }
 
 
@@ -69,7 +64,7 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
     """Factory that returns the AHN checksum sensor with the given default status.
 
     The sensor watches for new materializations of the checksum assets (md5_ahn3,
-    md5_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
+    md5_ahn4, sha256_ahn5). When triggered, it downloads the tile
     index to build a filename to tile_id mapping, reads the checksums, compares
     against previously stored checksums in the cursor, and triggers partition runs
     only for tiles whose checksum has changed.
@@ -94,9 +89,8 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 AssetKey(["ahn", "md5_ahn3"]),
                 AssetKey(["ahn", "md5_ahn4"]),
                 AssetKey(["ahn", "sha256_ahn5"]),
-                AssetKey(["ahn", "sha256_ahn6"]),
             ],
-            jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6],
+            jobs=[job_ahn3, job_ahn4, job_ahn5],
             default_status=default_status,
             name="ahn_checksum_sensor",
         )

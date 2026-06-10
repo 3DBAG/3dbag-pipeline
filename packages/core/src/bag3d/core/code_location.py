@@ -22,10 +22,13 @@ from bag3d.core.jobs import (
     job_ahn3,
     job_ahn4,
     job_ahn5,
-    job_ahn6,
     job_ahn_metadata_index,
     job_reconstruct,
     job_reconstruct_debug,
+    job_ahn3_km,
+    job_ahn4_km,
+    job_ahn5_km,
+    job_ahn6_km,
 )
 
 all_assets = [
@@ -42,10 +45,13 @@ all_jobs = [
     job_ahn3,
     job_ahn4,
     job_ahn5,
-    job_ahn6,
     job_ahn_metadata_index,
     job_reconstruct,
     job_reconstruct_debug,
+    job_ahn3_km,
+    job_ahn4_km,
+    job_ahn5_km,
+    job_ahn6_km,
 ]
 
 sensor_status = (

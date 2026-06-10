@@ -51,12 +51,6 @@ def metadata_table_ahn5(computation_db: DatabaseResource) -> PostgresTableIdenti
     return metadata_table_ahn(computation_db, ahn_version=5)
 
 
-@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def metadata_table_ahn6(computation_db: DatabaseResource) -> PostgresTableIdentifier:
-    """A metadata table for the AHN6, including the tile boundaries, tile IDs etc."""
-    return metadata_table_ahn(computation_db, ahn_version=6)
-
-
 @asset(partitions_def=partition_definition_ahn, pool="ahn")
 def metadata_ahn3(
     context: AssetExecutionContext,
@@ -129,30 +123,6 @@ def metadata_ahn5(
     )
 
 
-@asset(partitions_def=partition_definition_ahn, pool="ahn")
-def metadata_ahn6(
-    context: AssetExecutionContext,
-    config: MetadataConfig,
-    laz_files_ahn6,
-    metadata_table_ahn6,
-    tile_index_ahn,
-    computation_db: DatabaseResource,
-    pdal: PDALResource,
-) -> Output[None]:
-    """Metadata of the AHN6 LAZ file, retrieved from the PDOK tile index and
-    computed with 'pdal info'.
-    The metadata is loaded into the metadata database table."""
-    return compute_load_metadata(
-        context.partition_key,
-        config,
-        laz_files_ahn6,
-        metadata_table_ahn6,
-        tile_index_ahn,
-        computation_db,
-        pdal,
-    )
-
-
 @asset(deps=["metadata_ahn3"])
 def metadata_ahn3_index(
     computation_db: DatabaseResource,
@@ -181,17 +151,6 @@ def metadata_ahn5_index(
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(computation_db, metadata_table_ahn5)
     return metadata_table_ahn5
-
-
-@asset(deps=["metadata_ahn6"])
-def metadata_ahn6_index(
-    computation_db: DatabaseResource,
-    metadata_table_ahn6: PostgresTableIdentifier,
-):
-    """Create indices on the AHN6 metadata table."""
-    create_indices_metadata_table(computation_db, metadata_table_ahn6)
-    return metadata_table_ahn6
-
 
 def create_indices_metadata_table(
     computation_db: DatabaseResource, metadata_table: PostgresTableIdentifier

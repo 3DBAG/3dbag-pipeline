@@ -3,11 +3,12 @@ from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
-from bag3d.core import AHN_TILE_IDS
+from bag3d.core import AHN_TILE_IDS, KM_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
 partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
+partition_definition_km = StaticPartitionsDefinition(sorted(list(KM_TILE_IDS)))
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
@@ -100,7 +101,6 @@ def download_ahn_index(
                     "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
                     "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
                     "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
-                    "AHN6_LAZ": f["properties"]["AHN6 puntenwolk"],
                     "geometry": invert_geometry_coordinates(f["geometry"]),
                 }
         else:
