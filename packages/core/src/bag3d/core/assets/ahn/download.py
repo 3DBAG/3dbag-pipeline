@@ -161,6 +161,7 @@ def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
+
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
     """The AHN tile index, including the tile geometry and the file download links."""
@@ -610,25 +611,48 @@ def _make_copc_asset(version: int):
         pointcloud_store: FileStoreResource,
     ) -> Output[LAZDownload]:
         tile_id = context.partition_key
-        url = resolve_copc_url(version, tile_id)
-        if url is None:
-            raise Failure(f"No COPC/LAZ URL found for AHN{version} tile {tile_id}")
-
+        templates = COPC_URL_TEMPLATES[version]
         laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/COPC")
-        fpath = laz_dir / url.split("/")[-1]
-        verify_ssl = False
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", category=urllib3.exceptions.InsecureRequestWarning
-            )
-            lazdownload = download_ahn_laz(
-                fpath=fpath,
-                url_laz=url,
-                verify_ssl=verify_ssl,
-                force_download=config.force_download,
-            )
 
-        return Output(lazdownload, metadata=lazdownload.asdict())
+        last_error = None
+        for template in templates:
+            url = template.format(tile=tile_id)
+            fpath = laz_dir / url.split("/")[-1]
+            if fpath.is_file() and not config.force_download:
+                logger.debug(format_laz_log(fpath, "Already downloaded"))
+                size = round(fpath.stat().st_size / 1e6, 2)
+                lazdownload = LAZDownload(
+                    url=url,
+                    path=fpath,
+                    success=True,
+                    hash_name=None,
+                    hash_hexdigest=None,
+                    new=False,
+                    size=size,
+                )
+                return Output(lazdownload, metadata=lazdownload.asdict())
+
+            verify_ssl = False
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                try:
+                    lazdownload = download_ahn_laz(
+                        fpath=fpath,
+                        url_laz=url,
+                        verify_ssl=verify_ssl,
+                        force_download=config.force_download,
+                    )
+                    return Output(lazdownload, metadata=lazdownload.asdict())
+                except Failure:
+                    last_error = f"Download failed for {url}"
+                    continue
+
+        raise Failure(
+            f"No COPC/LAZ URL found for AHN{version} tile {tile_id}. "
+            f"Last error: {last_error}"
+        )
 
     return _asset
 
