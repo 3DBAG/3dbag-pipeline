@@ -637,6 +637,9 @@ def _make_copc_asset(version: int):
 
     Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
     Tiles within a batch are downloaded in parallel using a thread pool.
+
+    The partition succeeds if at least one tile is downloaded or already on disk.
+    Individual tile failures are logged as warnings and do not fail the batch.
     """
 
     @asset(
@@ -656,11 +659,15 @@ def _make_copc_asset(version: int):
 
         templates = COPC_URL_TEMPLATES[version]
         laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/COPC")
+        total = len(tiles)
 
         results: dict[str, dict] = {}
         downloaded = 0
         skipped = 0
         failed = 0
+        completed = 0
+
+        logger.info(f"Batch {batch_id} (AHN{version}): starting {total} tiles")
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {
@@ -676,23 +683,34 @@ def _make_copc_asset(version: int):
             }
             for future in as_completed(futures):
                 tile_id = futures[future]
+                completed += 1
                 try:
                     tid, url, size, is_new = future.result()
                     results[tile_id] = {"url": url, "size_mb": size, "new": is_new}
                     if is_new:
                         downloaded += 1
+                        logger.info(
+                            f"  [{completed}/{total}] {tile_id}: downloaded ({size:.1f} MB)"
+                        )
                     else:
                         skipped += 1
+                        logger.debug(
+                            f"  [{completed}/{total}] {tile_id}: already on disk"
+                        )
                 except Failure as exc:
-                    logger.warning(str(exc))
+                    logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
                     results[tile_id] = {"error": str(exc)}
                     failed += 1
 
-        total = len(tiles)
+        if downloaded + skipped == 0:
+            raise Failure(
+                f"Batch {batch_id}: all {total} tiles failed. No COPC files on disk."
+            )
+
         logger.info(
-            f"Batch {batch_id} (AHN{version}): "
-            f"{total} tiles, {downloaded} downloaded, "
-            f"{skipped} skipped, {failed} failed"
+            f"Batch {batch_id} (AHN{version}): done — "
+            f"{downloaded} downloaded, {skipped} skipped, {failed} failed "
+            f"of {total} tiles"
         )
 
         return Output(
