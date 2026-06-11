@@ -10,6 +10,29 @@ logger = get_dagster_logger("ahn")
 partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
 partition_definition_km = StaticPartitionsDefinition(sorted(list(KM_TILE_IDS)))
 
+BATCH_KM = 10
+
+_batch_ids = sorted(
+    {
+        f"{(int(t.split('_')[0]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}_"
+        f"{(int(t.split('_')[1]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}"
+        for t in KM_TILE_IDS
+    }
+)
+partition_definition_km_batches = StaticPartitionsDefinition(_batch_ids)
+
+
+def tiles_in_batch(batch_id: str) -> list[str]:
+    """Return all 1×1 km tile IDs within a 10×10 km batch block."""
+    bx = int(batch_id.split("_")[0])
+    by = int(batch_id.split("_")[1])
+    return [
+        f"{x:06d}_{y:06d}"
+        for x in range(bx, bx + BATCH_KM * 1000, 1000)
+        for y in range(by, by + BATCH_KM * 1000, 1000)
+        if f"{x:06d}_{y:06d}" in KM_TILE_IDS
+    ]
+
 
 def format_laz_log(fpath: Path, msg: str) -> str:
     """Formats a message as <file path>.....<msg>"""

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 import urllib.request
 import urllib.error
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import urllib3
 
 from dagster import (
@@ -27,7 +29,8 @@ from bag3d.core.assets.ahn.core import (
     format_laz_log,
     download_ahn_index,
     partition_definition_ahn,
-    partition_definition_km,
+    partition_definition_km_batches,
+    tiles_in_batch,
 )
 
 logger = get_dagster_logger("ahn.download")
@@ -597,61 +600,117 @@ def resolve_copc_url(version: int, tile_id: str) -> Optional[str]:
     return None
 
 
+def _download_one_tile(
+    tile_id: str,
+    version: int,
+    templates: list[str],
+    laz_dir: Path,
+    force_download: bool,
+) -> tuple[str, str, float, bool]:
+    """Download a single COPC/LAZ tile. Returns (tile_id, url, size_mb, new)."""
+    last_error = None
+    for template in templates:
+        url = template.format(tile=tile_id)
+        fpath = laz_dir / url.split("/")[-1]
+        if fpath.is_file() and not force_download:
+            size = round(fpath.stat().st_size / 1e6, 2)
+            return tile_id, url, size, False
+
+        verify_ssl = False
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=urllib3.exceptions.InsecureRequestWarning
+            )
+            try:
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url,
+                    verify_ssl=verify_ssl,
+                    force_download=force_download,
+                )
+                return tile_id, lazdownload.url, lazdownload.size, lazdownload.new
+            except Failure:
+                last_error = str(url)
+                continue
+
+    raise Failure(
+        f"AHN{version} tile {tile_id}: download failed "
+        f"(tried {len(templates)} URLs, last: {last_error})"
+    )
+
+
 def _make_copc_asset(version: int):
-    """Factory to create COPC download assets for a given AHN version."""
+    """Factory to create batched COPC download assets for a given AHN version.
+
+    Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
+    Tiles within a batch are downloaded in parallel using a thread pool.
+    """
 
     @asset(
         name=f"laz_files_ahn{version}_km",
-        partitions_def=partition_definition_km,
+        partitions_def=partition_definition_km_batches,
         pool="laz_download",
     )
     def _asset(
         context: AssetExecutionContext,
         config: CopcFilesConfig,
         pointcloud_store: FileStoreResource,
-    ) -> Output[LAZDownload]:
-        tile_id = context.partition_key
+    ) -> Output[dict]:
+        batch_id = context.partition_key
+        tiles = tiles_in_batch(batch_id)
+        if not tiles:
+            return Output({}, metadata={"batch": batch_id, "tiles": 0})
+
         templates = COPC_URL_TEMPLATES[version]
         laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/COPC")
 
-        last_error = None
-        for template in templates:
-            url = template.format(tile=tile_id)
-            fpath = laz_dir / url.split("/")[-1]
-            if fpath.is_file() and not config.force_download:
-                logger.debug(format_laz_log(fpath, "Already downloaded"))
-                size = round(fpath.stat().st_size / 1e6, 2)
-                lazdownload = LAZDownload(
-                    url=url,
-                    path=fpath,
-                    success=True,
-                    hash_name=None,
-                    hash_hexdigest=None,
-                    new=False,
-                    size=size,
-                )
-                return Output(lazdownload, metadata=lazdownload.asdict())
+        results: dict[str, dict] = {}
+        downloaded = 0
+        skipped = 0
+        failed = 0
 
-            verify_ssl = False
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
-                )
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(
+                    _download_one_tile,
+                    tile_id,
+                    version,
+                    templates,
+                    laz_dir,
+                    config.force_download,
+                ): tile_id
+                for tile_id in tiles
+            }
+            for future in as_completed(futures):
+                tile_id = futures[future]
                 try:
-                    lazdownload = download_ahn_laz(
-                        fpath=fpath,
-                        url_laz=url,
-                        verify_ssl=verify_ssl,
-                        force_download=config.force_download,
-                    )
-                    return Output(lazdownload, metadata=lazdownload.asdict())
-                except Failure:
-                    last_error = f"Download failed for {url}"
-                    continue
+                    tid, url, size, is_new = future.result()
+                    results[tile_id] = {"url": url, "size_mb": size, "new": is_new}
+                    if is_new:
+                        downloaded += 1
+                    else:
+                        skipped += 1
+                except Failure as exc:
+                    logger.warning(str(exc))
+                    results[tile_id] = {"error": str(exc)}
+                    failed += 1
 
-        raise Failure(
-            f"No COPC/LAZ URL found for AHN{version} tile {tile_id}. "
-            f"Last error: {last_error}"
+        total = len(tiles)
+        logger.info(
+            f"Batch {batch_id} (AHN{version}): "
+            f"{total} tiles, {downloaded} downloaded, "
+            f"{skipped} skipped, {failed} failed"
+        )
+
+        return Output(
+            results,
+            metadata={
+                "batch": batch_id,
+                "tiles": total,
+                "downloaded": downloaded,
+                "skipped": skipped,
+                "failed": failed,
+            },
         )
 
     return _asset
