@@ -550,18 +550,11 @@ def match_sha(
 BASE_URL = "https://basisdata.nl/hwh-ahn"
 
 COPC_URL_TEMPLATES: dict[int, list[str]] = {
-    3: [
-        f"{BASE_URL}/AHN3_KM/01_LAZ/AHN3_C_{{tile}}.COPC.LAZ",
-    ],
-    4: [
-        f"{BASE_URL}/AHN4_KM/01_LAZ/AHN4_C_{{tile}}.COPC.LAZ",
-    ],
-    5: [
-        f"{BASE_URL}/AHN5_KM/01_LAZ/AHN5_C_{{tile}}.COPC.LAZ",
-    ],
     6: [
         f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.COPC.LAZ",
+        f"{BASE_URL}/AHN6_KM/01_LAZ/AHN6_C_{{tile}}.COPC.LAZ",
         f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.LAZ",
+        f"{BASE_URL}/AHN6/01_LAZ/AHN6_C_{{tile}}.LAZ",
     ],
 }
 
@@ -716,7 +709,4 @@ def _make_copc_asset(version: int):
     return _asset
 
 
-laz_files_ahn3_km = _make_copc_asset(3)
-laz_files_ahn4_km = _make_copc_asset(4)
-laz_files_ahn5_km = _make_copc_asset(5)
 laz_files_ahn6_km = _make_copc_asset(6)

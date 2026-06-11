@@ -56,24 +56,6 @@ job_ahn5 = define_asset_job(
 # KM (1×1 km) grid download jobs
 # ---------------------------------------------------------------------------
 
-job_ahn3_km = define_asset_job(
-    name="ahn3_km",
-    description="Download AHN 3 COPC pointclouds using the 1×1 km tile grid.",
-    selection=AssetSelection.assets(["ahn", "laz_files_ahn3_km"]),
-)
-
-job_ahn4_km = define_asset_job(
-    name="ahn4_km",
-    description="Download AHN 4 COPC pointclouds using the 1×1 km tile grid.",
-    selection=AssetSelection.assets(["ahn", "laz_files_ahn4_km"]),
-)
-
-job_ahn5_km = define_asset_job(
-    name="ahn5_km",
-    description="Download AHN 5 COPC pointclouds using the 1×1 km tile grid.",
-    selection=AssetSelection.assets(["ahn", "laz_files_ahn5_km"]),
-)
-
 job_ahn6_km = define_asset_job(
     name="ahn6_km",
     description="Download AHN 6 COPC pointclouds using the 1×1 km tile grid.",

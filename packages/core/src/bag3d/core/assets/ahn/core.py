@@ -3,12 +3,11 @@ from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
-from bag3d.core import AHN_TILE_IDS, KM_TILE_IDS
+from bag3d.core import AHN_TILE_IDS, AHN6_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
 partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
-partition_definition_km = StaticPartitionsDefinition(sorted(list(KM_TILE_IDS)))
 
 BATCH_KM = 10
 
@@ -16,10 +15,16 @@ _batch_ids = sorted(
     {
         f"{(int(t.split('_')[0]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}_"
         f"{(int(t.split('_')[1]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}"
-        for t in KM_TILE_IDS
+        for t in AHN6_TILE_IDS
     }
 )
 partition_definition_km_batches = StaticPartitionsDefinition(_batch_ids)
+
+AHN6_API_URL = (
+    "https://api.ellipsis-drive.com/v3/ogc/features/"
+    "0820faae-5240-499b-8486-cf406433cf71/collections/"
+    "6aec07f5-f7eb-4f51-b6f7-aee45e5767bd/items"
+)
 
 
 def tiles_in_batch(batch_id: str) -> list[str]:
@@ -30,7 +35,7 @@ def tiles_in_batch(batch_id: str) -> list[str]:
         f"{x:06d}_{y:06d}"
         for x in range(bx, bx + BATCH_KM * 1000, 1000)
         for y in range(by, by + BATCH_KM * 1000, 1000)
-        if f"{x:06d}_{y:06d}" in KM_TILE_IDS
+        if f"{x:06d}_{y:06d}" in AHN6_TILE_IDS
     ]
 
 
@@ -45,6 +50,42 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
         logger.warning(
             "Received AHN tile list has diverged from the one used, list must be updated"
             f"Difference: {feature_set ^ AHN_TILE_IDS}"
+        )
+
+
+def validate_ahn6_tile_ids() -> None:
+    """Fetch live AHN6 tile IDs from the OGC Features API and compare against AHN6_TILE_IDS.
+
+    Logs a warning if the tile list has diverged (new tiles added or removed).
+    """
+    try:
+        tile_ids = set()
+        url = f"{AHN6_API_URL}?limit=2000"
+        while url:
+            resp = requests.get(url, timeout=60)
+            data = resp.json()
+            for f in data["features"]:
+                name = f["properties"]["AHN"]
+                laz = f["properties"].get("Puntenwolk")
+                if laz:
+                    tile_ids.add(name)
+            returned = data.get("numberReturned", 0)
+            if returned < 2000:
+                break
+            url = None
+            for link in data.get("links", []):
+                if link.get("rel") == "next":
+                    url = link["href"]
+                    break
+    except Exception as exc:
+        logger.warning(f"Failed to validate AHN6 tile IDs: {exc}")
+        return
+
+    if len(tile_ids ^ AHN6_TILE_IDS) > 0:
+        logger.warning(
+            "AHN6 tile list has diverged from the one in __init__.py. "
+            f"New: {tile_ids - AHN6_TILE_IDS}, "
+            f"Removed: {AHN6_TILE_IDS - tile_ids}"
         )
 
 
