@@ -658,7 +658,7 @@ def _make_copc_asset(version: int):
             return Output({}, metadata={"batch": batch_id, "tiles": 0})
 
         templates = COPC_URL_TEMPLATES[version]
-        laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/COPC")
+        laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/LAZ")
         total = len(tiles)
 
         results: dict[str, dict] = {}
