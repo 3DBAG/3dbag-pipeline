@@ -458,7 +458,7 @@ def download_ahn_laz(
     file_size = 0.0
     is_new = False
     if not fpath.is_file():
-        logger.info(format_laz_log(fpath, "Not found. Downloading..."))
+        logger.info(format_laz_log(fpath, "Not found locally. Downloading..."))
         file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
             file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
         )
