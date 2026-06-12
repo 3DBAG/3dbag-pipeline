@@ -178,3 +178,27 @@ def download_ahn_index(
                 }
 
     return features
+
+
+def ahn6_tile_geometry(tile_id: str) -> dict:
+    """Return a GeoJSON Polygon for a 1×1 km AHN6 tile.
+
+    Tile IDs are ``"XXXXXX_YYYYYY"`` (RD coordinates in metres).
+    The polygon covers the 1×1 km cell.
+    """
+    x_min = int(tile_id.split("_")[0])
+    y_min = int(tile_id.split("_")[1])
+    x_max = x_min + 1000
+    y_max = y_min + 1000
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [x_min, y_min],
+                [x_max, y_min],
+                [x_max, y_max],
+                [x_min, y_max],
+                [x_min, y_min],
+            ]
+        ],
+    }

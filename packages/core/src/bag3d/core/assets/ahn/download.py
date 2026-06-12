@@ -744,4 +744,4 @@ def _make_copc_asset(version: int):
     return _asset
 
 
-laz_files_ahn6_km = _make_copc_asset(6)
+laz_files_ahn6 = _make_copc_asset(6)

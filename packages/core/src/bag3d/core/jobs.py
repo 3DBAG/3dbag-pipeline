@@ -50,17 +50,14 @@ job_ahn5 = define_asset_job(
 )
 
 
-
-
-# ---------------------------------------------------------------------------
-# KM (1×1 km) grid download jobs
-# ---------------------------------------------------------------------------
-
-job_ahn6_km = define_asset_job(
-    name="ahn6_km",
-    description="Download AHN 6 COPC pointclouds using the 1×1 km tile grid.",
-    selection=AssetSelection.assets(["ahn", "laz_files_ahn6_km"]),
+job_ahn6 = define_asset_job(
+    name="ahn6",
+    description="Make sure that the available AHN 6 COPC.LAZ files in 1x1 km grid "
+    "tiles are present on disk, and their metadata is recorded.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn6"])
+    | AssetSelection.assets(["ahn", "metadata_ahn6"])
 )
+
 
 job_ahn_metadata_index = define_asset_job(
     name="ahn_metadata_index",
@@ -68,6 +65,7 @@ job_ahn_metadata_index = define_asset_job(
     selection=AssetSelection.assets(["ahn", "metadata_ahn3_index"])
     | AssetSelection.assets(["ahn", "metadata_ahn4_index"])
     | AssetSelection.assets(["ahn", "metadata_ahn5_index"])
+    | AssetSelection.assets(["ahn", "metadata_ahn6_index"])
 )
 
 

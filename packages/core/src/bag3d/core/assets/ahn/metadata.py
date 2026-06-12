@@ -18,9 +18,15 @@ from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
-from bag3d.core.assets.ahn.core import partition_definition_ahn
+from bag3d.core.assets.ahn.core import (
+    partition_definition_ahn,
+    partition_definition_km_batches,
+    tiles_in_batch,
+    ahn6_tile_geometry,
+)
 
 
 class MetadataConfig(Config):
@@ -49,6 +55,12 @@ def metadata_table_ahn4(computation_db: DatabaseResource) -> PostgresTableIdenti
 def metadata_table_ahn5(computation_db: DatabaseResource) -> PostgresTableIdentifier:
     """A metadata table for the AHN5, including the tile boundaries, tile IDs etc."""
     return metadata_table_ahn(computation_db, ahn_version=5)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
+def metadata_table_ahn6(computation_db: DatabaseResource) -> PostgresTableIdentifier:
+    """A metadata table for AHN6 COPC/LAZ point clouds."""
+    return metadata_table_ahn(computation_db, ahn_version=6)
 
 
 @asset(partitions_def=partition_definition_ahn, pool="ahn")
@@ -123,6 +135,94 @@ def metadata_ahn5(
     )
 
 
+@asset(partitions_def=partition_definition_km_batches, pool="ahn")
+def metadata_ahn6(
+    context: AssetExecutionContext,
+    config: MetadataConfig,
+    pointcloud_store: FileStoreResource,
+    metadata_table_ahn6: PostgresTableIdentifier,
+    computation_db: DatabaseResource,
+    pdal: PDALResource,
+) -> Output[dict]:
+    """Batched metadata extraction for AHN6 COPC/LAZ point clouds.
+
+    Each partition processes a 10×10 km block. For every 1×1 km tile in the
+    block that has a file on disk, PDAL info is extracted and loaded into the
+    metadata table together with the tile boundary geometry.
+    """
+    batch_id = context.partition_key
+    tiles = tiles_in_batch(batch_id)
+    if not tiles:
+        return Output({"batch": batch_id, "processed": 0, "total": 0})
+
+    logger = get_dagster_logger()
+    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
+    conn = computation_db.connection
+    metadata_table = metadata_table_ahn6.id
+    total = len(tiles)
+    processed = 0
+    failed = 0
+    skipped = 0
+
+    for tile_id in tiles:
+        matches = list(laz_dir.glob(f"*{tile_id}*"))
+        if not matches:
+            failed += 1
+            logger.warning(f"AHN6 tile {tile_id}: no file found on disk")
+            continue
+
+        fpath = matches[0]
+
+        try:
+            _, out_info = pdal_info(
+                pdal.runner, file_path=fpath, with_all=config.all
+            )
+        except Exception:
+            logger.warning(f"AHN6 tile {tile_id}: PDAL info failed for {fpath}")
+            failed += 1
+            continue
+
+        set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
+        boundary = ahn6_tile_geometry(tile_id)
+
+        conn.send_query(
+            SQL("DELETE FROM {table} WHERE tile_id = {tile_id}").format(
+                table=metadata_table, tile_id=Literal(tile_id)
+            )
+        )
+        conn.send_query(
+            SQL("""
+                INSERT INTO {table}(
+                    tile_id, insert_time, pdal_info, boundary
+                )
+                VALUES (
+                    {tile_id}, {insert_time}, {pdal_info},
+                    ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
+                );
+            """).format(
+                table=metadata_table,
+                tile_id=Literal(tile_id),
+                insert_time=Literal(
+                    datetime.now(tz=pytz.timezone("Europe/Amsterdam"))
+                ),
+                pdal_info=Jsonb(out_info),
+                boundary=Literal(json.dumps(boundary)),
+            )
+        )
+        processed += 1
+
+    return Output(
+        {"batch": batch_id, "processed": processed, "failed": failed, "skipped": skipped, "total": total},
+        metadata={
+            "batch": batch_id,
+            "tiles": total,
+            "processed": processed,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
+
+
 @asset(deps=["metadata_ahn3"])
 def metadata_ahn3_index(
     computation_db: DatabaseResource,
@@ -152,6 +252,15 @@ def metadata_ahn5_index(
     create_indices_metadata_table(computation_db, metadata_table_ahn5)
     return metadata_table_ahn5
 
+@asset(deps=["metadata_ahn6"])
+def metadata_ahn6_index(
+    computation_db: DatabaseResource,
+    metadata_table_ahn6: PostgresTableIdentifier,
+):
+    """Create indices on the AHN6 metadata table."""
+    create_indices_metadata_table(computation_db, metadata_table_ahn6)
+    return metadata_table_ahn6
+
 
 def create_indices_metadata_table(
     computation_db: DatabaseResource, metadata_table: PostgresTableIdentifier
@@ -178,7 +287,7 @@ def create_indices_metadata_table(
 
 
 def compute_load_metadata(
-    partition_key: str,
+    tile_id: str,
     config: MetadataConfig,
     laz_files_ahn,
     metadata_table_ahn,
@@ -190,7 +299,7 @@ def compute_load_metadata(
     computed with 'pdal info'. The metadata is loaded into the metadata database table.
 
     Args:
-        partition_key:
+        tile_id (str): The ID of the tile.
         config (MetadataConfig): Asset configuration.
         laz_files_ahn (LAZDownload): The LAZ file download result, produced by the
             `laz_files_ahn*` asset.
@@ -204,7 +313,6 @@ def compute_load_metadata(
         None
     """
     logger = get_dagster_logger()
-    tile_id = partition_key
     conn = computation_db.connection
     if not laz_files_ahn.new:
         if not config.force:
