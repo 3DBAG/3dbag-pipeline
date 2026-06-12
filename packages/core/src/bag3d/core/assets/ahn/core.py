@@ -3,11 +3,20 @@ from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
-from bag3d.core import AHN_TILE_IDS, AHN6_TILE_IDS
+from bag3d.core import AHN_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
 partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
+
+
+def _load_ahn6_tile_ids() -> set[str]:
+    """Load AHN6 tile IDs from the text file shipped with the package."""
+    tile_file = Path(__file__).parent.parent.parent / "ahn6_tiles.txt"
+    return {line.strip() for line in tile_file.read_text().splitlines() if line.strip()}
+
+
+AHN6_TILE_IDS = _load_ahn6_tile_ids()
 
 BATCH_KM = 10
 
