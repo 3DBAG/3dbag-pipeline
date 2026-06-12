@@ -407,6 +407,18 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     return checksums
 
 
+def _head_check(url: str) -> Optional[int]:
+    """Quick HEAD check. Returns HTTP status code, or None on network error."""
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return None
+
+
 def download_ahn_laz(
     fpath: Path,
     url_laz: str | None = None,
@@ -436,6 +448,12 @@ def download_ahn_laz(
     else:
         assert url_base is not None, "Either url_laz or url_base must be provided"
         url = "/".join([url_base, fpath.name])
+
+    http_status = _head_check(url)
+    if http_status in (403, 404):
+        raise Failure(
+            format_laz_log(fpath, f"URL returned HTTP {http_status} (not retrying)")
+        )
 
     success = False
     file_size = 0.0
