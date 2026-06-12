@@ -170,6 +170,11 @@ def download_ahn_index(
                 }
         else:
             for f in returned_features:
-                features[f["properties"]["AHN"].lower()] = None
+                features[f["properties"]["AHN"].lower()] = {
+                    "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
+                    "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
+                    "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
+                    "geometry": None,
+                }
 
     return features
