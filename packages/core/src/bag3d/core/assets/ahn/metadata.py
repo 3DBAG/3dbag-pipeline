@@ -174,9 +174,7 @@ def metadata_ahn6(
         fpath = matches[0]
 
         try:
-            _, out_info = pdal_info(
-                pdal.runner, file_path=fpath, with_all=config.all
-            )
+            _, out_info = pdal_info(pdal.runner, file_path=fpath, with_all=config.all)
         except Exception:
             logger.warning(f"AHN6 tile {tile_id}: PDAL info failed for {fpath}")
             failed += 1
@@ -202,9 +200,7 @@ def metadata_ahn6(
             """).format(
                 table=metadata_table,
                 tile_id=Literal(tile_id),
-                insert_time=Literal(
-                    datetime.now(tz=pytz.timezone("Europe/Amsterdam"))
-                ),
+                insert_time=Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
                 pdal_info=Jsonb(out_info),
                 boundary=Literal(json.dumps(boundary)),
             )
@@ -212,7 +208,13 @@ def metadata_ahn6(
         processed += 1
 
     return Output(
-        {"batch": batch_id, "processed": processed, "failed": failed, "skipped": skipped, "total": total},
+        {
+            "batch": batch_id,
+            "processed": processed,
+            "failed": failed,
+            "skipped": skipped,
+            "total": total,
+        },
         metadata={
             "batch": batch_id,
             "tiles": total,
@@ -251,6 +253,7 @@ def metadata_ahn5_index(
     """Create indices on the AHN5 metadata table."""
     create_indices_metadata_table(computation_db, metadata_table_ahn5)
     return metadata_table_ahn5
+
 
 @asset(deps=["metadata_ahn6"])
 def metadata_ahn6_index(

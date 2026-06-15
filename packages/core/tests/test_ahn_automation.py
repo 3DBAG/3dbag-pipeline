@@ -176,6 +176,7 @@ def test_ahn_metadata_tables_requested_after_cron_tick(instance_ahn_materialized
     assert KEY_METADATA_TABLE_AHN4 in requested
     assert KEY_METADATA_TABLE_AHN5 in requested
 
+
 # ---------------------------------------------------------------------------
 # Part 2: Sensor tests
 # ---------------------------------------------------------------------------

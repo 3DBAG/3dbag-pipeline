@@ -40,7 +40,7 @@ _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
         "job_name": "ahn5",
         "asset_key": AssetKey(["ahn", "sha256_ahn5"]),
         "url_key": "AHN5_LAZ",
-    }
+    },
 }
 
 
