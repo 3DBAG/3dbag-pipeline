@@ -216,7 +216,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn3,
+    md5_ahn3: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -282,7 +282,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn4,
+    md5_ahn4: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -351,7 +351,7 @@ def laz_files_ahn5(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn5,
+    sha256_ahn5: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -418,8 +418,8 @@ def laz_files_ahn6(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn6: dict[str, dict[str, str]],
-    tile_index_ahn6: Optional[dict[str, dict[str, Any]]] = None,
+    sha256_ahn6: dict[str, str],
+    tile_index_ahn6: dict[str, dict[str, Any]],
 ) -> Output[BatchDownload]:
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
 
