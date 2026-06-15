@@ -21,10 +21,9 @@ _batch_ids = sorted(
 )
 partition_definition_km_batches = StaticPartitionsDefinition(_batch_ids)
 
-AHN6_API_URL = (
-    "https://api.ellipsis-drive.com/v3/ogc/features/"
-    "0820faae-5240-499b-8486-cf406433cf71/collections/"
-    "6aec07f5-f7eb-4f51-b6f7-aee45e5767bd/items"
+AHN6_INDEX_URL = (
+    "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/"
+    "AHN6_KM_PC_COPC.json"
 )
 
 
@@ -54,39 +53,18 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
         )
 
 
-def validate_ahn6_tile_ids() -> None:
-    """Fetch live AHN6 tile IDs from the OGC Features API and compare against AHN6_TILE_IDS.
+def validate_new_ahn6_tile_ids(index: dict) -> None:
+    """Validate tile IDs from the AHN6 index against AHN6_TILE_IDS.
 
-    Logs a warning if the tile list has diverged (new tiles added or removed).
+    Logs a warning if the index has diverged from the expected tile list.
     """
-    try:
-        tile_ids = set()
-        url = f"{AHN6_API_URL}?limit=2000"
-        while url:
-            resp = requests.get(url, timeout=60)
-            data = resp.json()
-            for f in data["features"]:
-                name = f["properties"]["AHN"]
-                laz = f["properties"].get("Puntenwolk")
-                if laz:
-                    tile_ids.add(name)
-            returned = data.get("numberReturned", 0)
-            if returned < 2000:
-                break
-            url = None
-            for link in data.get("links", []):
-                if link.get("rel") == "next":
-                    url = link["href"]
-                    break
-    except Exception as exc:
-        logger.warning(f"Failed to validate AHN6 tile IDs: {exc}")
-        return
-
-    if len(tile_ids ^ AHN6_TILE_IDS) > 0:
+    feature_set = set(index.keys())
+    diff = feature_set ^ AHN6_TILE_IDS
+    if len(diff) > 0:
         logger.warning(
-            "AHN6 tile list has diverged from the one in __init__.py. "
-            f"New: {tile_ids - AHN6_TILE_IDS}, "
-            f"Removed: {AHN6_TILE_IDS - tile_ids}"
+            "AHN6 tile list has diverged from AHN6_TILE_IDS. "
+            f"New in index: {feature_set - AHN6_TILE_IDS}, "
+            f"Removed: {AHN6_TILE_IDS - feature_set}"
         )
 
 
@@ -180,25 +158,44 @@ def download_ahn_index(
     return features
 
 
-def ahn6_tile_geometry(tile_id: str) -> dict:
-    """Return a GeoJSON Polygon for a 1×1 km AHN6 tile.
+def download_ahn6_index(
+    with_geom: bool = False,
+) -> Dict[str, Optional[Dict[str, Optional[str]]]]:
+    """Download the AHN6 KM COPC tile index with checksums.
 
-    Tile IDs are ``"XXXXXX_YYYYYY"`` (RD coordinates in metres).
-    The polygon covers the 1×1 km cell.
+    Fetches the GeoJSON from AHN6_INDEX_URL and extracts each feature's
+    file URL and SHA256 checksum. Returns a dict keyed by tile ID.
     """
-    x_min = int(tile_id.split("_")[0])
-    y_min = int(tile_id.split("_")[1])
-    x_max = x_min + 1000
-    y_max = y_min + 1000
-    return {
-        "type": "Polygon",
-        "coordinates": [
-            [
-                [x_min, y_min],
-                [x_max, y_min],
-                [x_max, y_max],
-                [x_min, y_max],
-                [x_min, y_min],
-            ]
-        ],
-    }
+    logger.info(f"Downloading AHN6 tile index from {AHN6_INDEX_URL}")
+    try:
+        resp = requests.get(AHN6_INDEX_URL, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        logger.error(f"Failed to download AHN6 index: {exc}")
+        return {}
+
+    features = {}
+    for f in data.get("features", []):
+        props = f.get("properties", {})
+        file_url = props.get("file", "")
+        if not file_url:
+            logger.warning(f"Skipping feature with missing file URL: {file_url}")
+            continue
+        filename = file_url.split("/")[-1]
+        name = filename.replace(".COPC.LAZ", "").replace(".LAZ", "")
+        parts = name.split("_C_")
+        if len(parts) != 2:
+            logger.warning(
+                f"Skipping feature with unrecognized file name format: {file_url}"
+            )
+            continue
+
+        tile_id = parts[1]
+        features[tile_id] = {
+            "url": file_url,
+            "geometry": f.get("geometry") if with_geom else None,
+        }
+
+    logger.info(f"AHN6 index: {len(features)} tiles with checksums")
+    return features

@@ -18,16 +18,14 @@ from pydantic import Field
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
     partition_definition_km_batches,
     tiles_in_batch,
-    ahn6_tile_geometry,
 )
-
+from bag3d.core.assets.ahn.download import BatchDownload
 
 class MetadataConfig(Config):
     """Configuration for AHN metadata assets."""
@@ -139,8 +137,9 @@ def metadata_ahn5(
 def metadata_ahn6(
     context: AssetExecutionContext,
     config: MetadataConfig,
-    pointcloud_store: FileStoreResource,
+    laz_files_ahn6: BatchDownload,
     metadata_table_ahn6: PostgresTableIdentifier,
+    tile_index_ahn6: dict,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[dict]:
@@ -156,7 +155,6 @@ def metadata_ahn6(
         return Output({"batch": batch_id, "processed": 0, "total": 0})
 
     logger = get_dagster_logger()
-    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
     conn = computation_db.connection
     metadata_table = metadata_table_ahn6.id
     total = len(tiles)
@@ -164,14 +162,20 @@ def metadata_ahn6(
     failed = 0
     skipped = 0
 
-    for tile_id in tiles:
-        matches = list(laz_dir.glob(f"*{tile_id}*"))
-        if not matches:
+    set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
+    insert_time = Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam")))
+
+    for tile_id, laz_download in laz_files_ahn6.tiles.items():
+        if not laz_download.success:
             failed += 1
-            logger.warning(f"AHN6 tile {tile_id}: no file found on disk")
+            logger.warning(f"AHN6 tile {tile_id}: download was not successful")
             continue
 
-        fpath = matches[0]
+        fpath = laz_download.path
+        if not fpath.is_file():
+            failed += 1
+            logger.warning(f"AHN6 tile {tile_id}: file not found on disk — {fpath}")
+            continue
 
         try:
             _, out_info = pdal_info(pdal.runner, file_path=fpath, with_all=config.all)
@@ -180,8 +184,7 @@ def metadata_ahn6(
             failed += 1
             continue
 
-        set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
-        boundary = ahn6_tile_geometry(tile_id)
+        boundary = tile_index_ahn6[tile_id]["geometry"]
 
         conn.send_query(
             SQL("DELETE FROM {table} WHERE tile_id = {tile_id}").format(
@@ -200,27 +203,25 @@ def metadata_ahn6(
             """).format(
                 table=metadata_table,
                 tile_id=Literal(tile_id),
-                insert_time=Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
+                insert_time=insert_time,
                 pdal_info=Jsonb(out_info),
                 boundary=Literal(json.dumps(boundary)),
             )
         )
         processed += 1
 
+    logger.info(
+        f"Batch {batch_id}: {processed} processed, "
+        f"{failed} failed, {skipped} skipped of {total} tiles"
+    )
+
     return Output(
-        {
-            "batch": batch_id,
-            "processed": processed,
-            "failed": failed,
-            "skipped": skipped,
-            "total": total,
-        },
+        {"batch": batch_id, "processed": processed, "total": total},
         metadata={
             "batch": batch_id,
-            "tiles": total,
             "processed": processed,
             "failed": failed,
-            "skipped": skipped,
+            "total": total,
         },
     )
 

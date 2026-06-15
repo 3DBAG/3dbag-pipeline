@@ -13,12 +13,15 @@ job_ahn_tile_index = define_asset_job(
     "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
     "the AHN jobs can be run.",
     selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
     | AssetSelection.assets(["ahn", "md5_ahn3"])
     | AssetSelection.assets(["ahn", "md5_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
+    | AssetSelection.assets(["ahn", "sha256_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
-    | AssetSelection.assets(["ahn", "metadata_table_ahn5"]),
+    | AssetSelection.assets(["ahn", "metadata_table_ahn5"])
+    | AssetSelection.assets(["ahn", "metadata_table_ahn6"]),
 )
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344

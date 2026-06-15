@@ -13,9 +13,9 @@ from dagster import (
 )
 from dagster import SupersessionWarning
 
-from bag3d.core.assets.ahn.core import download_ahn_index
+from bag3d.core.assets.ahn.core import download_ahn_index, download_ahn6_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
+from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
 
 class _AhnVersionConfig(TypedDict):
@@ -41,6 +41,11 @@ _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
         "asset_key": AssetKey(["ahn", "sha256_ahn5"]),
         "url_key": "AHN5_LAZ",
     },
+    6: {
+        "job_name": "ahn6_km",
+        "asset_key": AssetKey(["ahn", "sha256_ahn6"]),
+        "url_key": "AHN6_LAZ",
+    },
 }
 
 
@@ -64,7 +69,7 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
     """Factory that returns the AHN checksum sensor with the given default status.
 
     The sensor watches for new materializations of the checksum assets (md5_ahn3,
-    md5_ahn4, sha256_ahn5). When triggered, it downloads the tile
+    md5_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
     index to build a filename to tile_id mapping, reads the checksums, compares
     against previously stored checksums in the cursor, and triggers partition runs
     only for tiles whose checksum has changed.
@@ -89,14 +94,14 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 AssetKey(["ahn", "md5_ahn3"]),
                 AssetKey(["ahn", "md5_ahn4"]),
                 AssetKey(["ahn", "sha256_ahn5"]),
+                AssetKey(["ahn", "sha256_ahn6"]),
             ],
-            jobs=[job_ahn3, job_ahn4, job_ahn5],
+            jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6],
             default_status=default_status,
             name="ahn_checksum_sensor",
         )
         def _sensor(context: MultiAssetSensorEvaluationContext):
             """Detect AHN LAZ file changes by comparing checksums against stored state."""
-            # Check which checksum assets have new materializations
             events = context.latest_materialization_records_by_key()
             updated_versions = [
                 version
@@ -107,9 +112,6 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
             if not updated_versions:
                 return SkipReason("No new checksum materializations")
 
-            # Load tile index for filename→tile_id mapping (no geometry needed)
-            tile_index = download_ahn_index(with_geom=False)
-
             previous = json.loads(context.cursor) if context.cursor else {}
             current = dict(previous)  # preserve checksums for un-updated versions
             run_requests = []
@@ -118,15 +120,21 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 cfg = _AHN_VERSIONS[version]
                 key = f"ahn{version}"
 
+                if version == 6:
+                    tile_index = download_ahn6_index(with_geom=False)
+                else:
+                    # Load tile index for filename→tile_id mapping (no geometry needed)
+                    tile_index = download_ahn_index(with_geom=False)
+
+                if tile_index is None:
+                    context.log.warning("Failed to download AHN tile index")
+                    continue
                 try:
                     checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
                 except Exception:
                     context.log.warning(f"Failed to read checksums for AHN{version}")
                     continue
 
-                if tile_index is None:
-                    context.log.warning("Failed to download AHN tile index")
-                    continue
                 filename_to_tile = _build_filename_to_tile_id(
                     tile_index, cfg["url_key"]
                 )

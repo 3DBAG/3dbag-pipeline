@@ -28,6 +28,7 @@ from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     format_laz_log,
     download_ahn_index,
+    download_ahn6_index,
     partition_definition_ahn,
     partition_definition_km_batches,
     tiles_in_batch,
@@ -37,6 +38,7 @@ logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
+    6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
     4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
@@ -146,6 +148,25 @@ class LAZDownload:
         return match
 
 
+@dataclass
+class BatchDownload:
+    """Result of a batched AHN6 COPC download.
+
+    Args:
+        batch_id: The 10×10 km batch partition key (e.g. ``"150000_460000"``).
+        tiles: Dictionary of individual tile download results {tile_id: LAZDownload}.
+    """
+
+    batch_id: str
+    tiles: dict[str, LAZDownload]
+
+    def asdict(self) -> dict:
+        return {
+            "batch_id": self.batch_id,
+            "tiles": {tile_id: t.asdict() for tile_id, t in self.tiles.items()},
+        }
+
+
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def md5_ahn3() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
@@ -165,9 +186,21 @@ def sha256_ahn5() -> dict[str, str]:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
+def sha256_ahn6() -> dict[str, dict[str, str]]:
+    """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
+    return get_checksums(URL_LAZ_SHA, ahn_version=6)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
     """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
+def tile_index_ahn6() -> dict[str, dict[str, Any] | None] | None:
+    """The AHN6 tile index, including the tile geometry and the file download links."""
+    return download_ahn6_index(with_geom=True)
 
 
 class LazFilesConfig(Config):
@@ -376,6 +409,128 @@ def laz_files_ahn5(
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
+@asset(
+    name="laz_files_ahn6",
+    partitions_def=partition_definition_km_batches,
+    pool="laz_download",
+)
+def laz_files_ahn6(
+    context: AssetExecutionContext,
+    config: LazFilesConfig,
+    pointcloud_store: FileStoreResource,
+    sha256_ahn6: dict[str, dict[str, str]],
+    tile_index_ahn6: Optional[dict[str, dict[str, Any]]] = None,
+) -> Output[BatchDownload]:
+    """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
+
+    Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
+    Tiles within a batch are downloaded in parallel using a thread pool.
+
+    The partition succeeds if at least one tile is downloaded or already on disk.
+    Individual tile failures are logged as warnings and do not fail the batch.
+    """
+    batch_id = context.partition_key
+    tiles = tiles_in_batch(batch_id)
+    if not tiles:
+        return Output(
+            BatchDownload(batch_id=batch_id, tiles={}),
+            metadata={"batch": batch_id, "tiles": 0},
+        )
+
+    tile_lookup: dict[str, tuple[str, Optional[str]]] = {}
+
+    if tile_index_ahn6 is not None:
+        for tile_id in tiles:
+            idx_entry = tile_index_ahn6.get(tile_id)
+            if idx_entry is None:
+                continue
+            url = idx_entry.get("url")
+            if url is None:
+                continue
+            filename = url.split("/")[-1]
+            sha_entry = sha256_ahn6.get(filename, {})
+            checksum = sha_entry.get("sha256")
+            tile_lookup[tile_id] = (url, checksum)
+    else:
+        for filename, entry in sha256_ahn6.items():
+            name = filename.replace(".COPC.LAZ", "").replace(".LAZ", "")
+            parts = name.split("_C_")
+            if len(parts) == 2 and parts[1] in tiles:
+                tile_lookup[parts[1]] = (entry["url"], entry.get("sha256"))
+
+    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/COPC")
+    total = len(tiles)
+
+    batch_tiles: dict[str, LAZDownload] = {}
+    downloaded = 0
+    skipped = 0
+    failed = 0
+    completed = 0
+
+    logger.info(f"Batch {batch_id}: starting {total} tiles")
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {}
+        for tile_id in tiles:
+            entry = tile_lookup.get(tile_id)
+            if entry is None:
+                logger.warning(f"  tile {tile_id}: not found in checksum index")
+                failed += 1
+                completed += 1
+                continue
+            url, checksum = entry
+            futures[
+                executor.submit(
+                    _download_one_tile,
+                    url,
+                    laz_dir,
+                    config.force_download,
+                    checksum,
+                )
+            ] = tile_id
+
+        for future in as_completed(futures):
+            tile_id = futures[future]
+            completed += 1
+            try:
+                lazdownload = future.result()
+                batch_tiles[tile_id] = lazdownload
+                if lazdownload.new:
+                    downloaded += 1
+                    logger.info(
+                        f"  [{completed}/{total}] {tile_id}: "
+                        f"downloaded ({lazdownload.size:.1f} MB)"
+                    )
+                else:
+                    skipped += 1
+                    logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
+            except Failure as exc:
+                logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
+                failed += 1
+
+    if downloaded + skipped == 0:
+        raise Failure(
+            f"Batch {batch_id}: all {total} tiles failed. No COPC files on disk."
+        )
+
+    logger.info(
+        f"Batch {batch_id}: done — "
+        f"{downloaded} downloaded, {skipped} skipped, {failed} failed "
+        f"of {total} tiles"
+    )
+
+    return Output(
+        BatchDownload(batch_id=batch_id, tiles=batch_tiles),
+        metadata={
+            "batch": batch_id,
+            "tiles": total,
+            "downloaded": downloaded,
+            "skipped": skipped,
+            "failed": failed,
+        },
+    )
+
+
 def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
@@ -392,7 +547,7 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    if ahn_version == 5:
+    if ahn_version in (5, 6):
         # We have a GeoJSON FeatureCollection
         for feature in json.loads(_hashes)["features"]:
             if properties := feature.get("properties"):
@@ -558,190 +713,45 @@ def match_sha(
         return False
 
 
-# ---------------------------------------------------------------------------
-# KM (1×1 km) grid COPC download assets
-# URL templates derived from:
-#   https://basisdata.nl/hwh-ahn/AUX/bladwijzer/index.html
-# ---------------------------------------------------------------------------
-
-BASE_URL = "https://basisdata.nl/hwh-ahn"
-
-COPC_URL_TEMPLATES: dict[int, list[str]] = {
-    6: [
-        f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.COPC.LAZ",
-        f"{BASE_URL}/AHN6_KM/01_LAZ/AHN6_C_{{tile}}.COPC.LAZ",
-        f"{BASE_URL}/AHN6/01_LAZ/AHN6_2025_C_{{tile}}.LAZ",
-        f"{BASE_URL}/AHN6/01_LAZ/AHN6_C_{{tile}}.LAZ",
-    ],
-}
-
-
-def probe_copc_url(url: str) -> Optional[int]:
-    """Check if a COPC/LAZ URL exists via HEAD request.
-
-    Returns:
-        Content-Length in bytes if 200, None otherwise.
-    """
-    try:
-        req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status == 200:
-                content_length = resp.headers.get("Content-Length")
-                return int(content_length) if content_length else 0
-    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
-        pass
-    return None
-
-
-class CopcFilesConfig(Config):
-    force_download: bool = False
-
-
-def resolve_copc_url(version: int, tile_id: str) -> Optional[str]:
-    """Find the first working COPC/LAZ URL for a given AHN version and tile.
-
-    Tries each URL template in order. Returns the first URL that responds
-    with HTTP 200, or None if no pattern works.
-    """
-    for template in COPC_URL_TEMPLATES[version]:
-        url = template.format(tile=tile_id)
-        if probe_copc_url(url) is not None:
-            return url
-    return None
-
-
 def _download_one_tile(
-    tile_id: str,
-    version: int,
-    templates: list[str],
+    url: str,
     laz_dir: Path,
     force_download: bool,
-) -> tuple[str, str, float, bool]:
-    """Download a single COPC/LAZ tile. Returns (tile_id, url, size_mb, new)."""
-    last_error = None
-    for template in templates:
-        url = template.format(tile=tile_id)
-        fpath = laz_dir / url.split("/")[-1]
-        if fpath.is_file() and not force_download:
-            size = round(fpath.stat().st_size / 1e6, 2)
-            return tile_id, url, size, False
-
-        verify_ssl = False
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", category=urllib3.exceptions.InsecureRequestWarning
-            )
-            try:
-                lazdownload = download_ahn_laz(
-                    fpath=fpath,
-                    url_laz=url,
-                    verify_ssl=verify_ssl,
-                    force_download=force_download,
-                )
-                return tile_id, lazdownload.url, lazdownload.size, lazdownload.new
-            except Failure:
-                last_error = str(url)
-                continue
-
-    raise Failure(
-        f"AHN{version} tile {tile_id}: download failed "
-        f"(tried {len(templates)} URLs, last: {last_error})"
-    )
-
-
-def _make_copc_asset(version: int):
-    """Factory to create batched COPC download assets for a given AHN version.
-
-    Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
-    Tiles within a batch are downloaded in parallel using a thread pool.
-
-    The partition succeeds if at least one tile is downloaded or already on disk.
-    Individual tile failures are logged as warnings and do not fail the batch.
-    """
-
-    @asset(
-        name=f"laz_files_ahn{version}_km",
-        partitions_def=partition_definition_km_batches,
-        pool="laz_download",
-    )
-    def _asset(
-        context: AssetExecutionContext,
-        config: CopcFilesConfig,
-        pointcloud_store: FileStoreResource,
-    ) -> Output[dict]:
-        batch_id = context.partition_key
-        tiles = tiles_in_batch(batch_id)
-        if not tiles:
-            return Output({}, metadata={"batch": batch_id, "tiles": 0})
-
-        templates = COPC_URL_TEMPLATES[version]
-        laz_dir = pointcloud_store.create_subdir(f"AHN{version}/as_downloaded/LAZ")
-        total = len(tiles)
-
-        results: dict[str, dict] = {}
-        downloaded = 0
-        skipped = 0
-        failed = 0
-        completed = 0
-
-        logger.info(f"Batch {batch_id} (AHN{version}): starting {total} tiles")
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {
-                executor.submit(
-                    _download_one_tile,
-                    tile_id,
-                    version,
-                    templates,
-                    laz_dir,
-                    config.force_download,
-                ): tile_id
-                for tile_id in tiles
-            }
-            for future in as_completed(futures):
-                tile_id = futures[future]
-                completed += 1
-                try:
-                    tid, url, size, is_new = future.result()
-                    results[tile_id] = {"url": url, "size_mb": size, "new": is_new}
-                    if is_new:
-                        downloaded += 1
-                        logger.info(
-                            f"  [{completed}/{total}] {tile_id}: downloaded ({size:.1f} MB)"
-                        )
-                    else:
-                        skipped += 1
-                        logger.debug(
-                            f"  [{completed}/{total}] {tile_id}: already on disk"
-                        )
-                except Failure as exc:
-                    logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
-                    results[tile_id] = {"error": str(exc)}
-                    failed += 1
-
-        if downloaded + skipped == 0:
-            raise Failure(
-                f"Batch {batch_id}: all {total} tiles failed. No COPC files on disk."
-            )
-
-        logger.info(
-            f"Batch {batch_id} (AHN{version}): done — "
-            f"{downloaded} downloaded, {skipped} skipped, {failed} failed "
-            f"of {total} tiles"
+    checksum: Optional[str] = None,
+) -> LAZDownload:
+    """Download a single COPC/LAZ tile."""
+    fpath = laz_dir / url.split("/")[-1]
+    if fpath.is_file() and not force_download:
+        size = round(fpath.stat().st_size / 1e6, 2)
+        return LAZDownload(
+            url=url,
+            path=fpath,
+            success=True,
+            hash_name=None,
+            hash_hexdigest=None,
+            new=False,
+            size=size,
         )
 
-        return Output(
-            results,
-            metadata={
-                "batch": batch_id,
-                "tiles": total,
-                "downloaded": downloaded,
-                "skipped": skipped,
-                "failed": failed,
-            },
+    verify_ssl = False
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=urllib3.exceptions.InsecureRequestWarning
+        )
+        lazdownload = download_ahn_laz(
+            fpath=fpath,
+            url_laz=url,
+            verify_ssl=verify_ssl,
+            force_download=force_download,
         )
 
-    return _asset
+    if checksum and lazdownload.new:
+        computed = HashChunkwise("sha256").compute(fpath).hexdigest()
+        if computed != checksum:
+            logger.warning(
+                format_laz_log(fpath, f"SHA256 mismatch (expected {checksum[:12]}...)")
+            )
+            fpath.unlink()
+            raise Failure(format_laz_log(fpath, "SHA256 mismatch after download"))
 
-
-laz_files_ahn6 = _make_copc_asset(6)
+    return lazdownload
