@@ -186,7 +186,7 @@ def sha256_ahn5() -> dict[str, str]:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn6() -> dict[str, dict[str, str]]:
+def sha256_ahn6() -> dict[str, str]:
     """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=6)
 
