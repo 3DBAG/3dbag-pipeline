@@ -83,8 +83,8 @@
       "description": "Point cloud tiling and indexing"
     },
     "pdal": {
-      "version": "2.8.4",
-      "url": "https://github.com/PDAL/PDAL/releases/download/2.8.4/PDAL-2.8.4-src.tar.gz",
+      "version": "2.10.1",
+      "url": "https://github.com/PDAL/PDAL/releases/download/2.10.1/PDAL-2.10.1-src.tar.gz",
       "type": "source",
       "display_name": "PDAL",
       "repository": "https://pdal.io",
