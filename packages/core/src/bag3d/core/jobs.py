@@ -24,7 +24,7 @@ job_ahn_tile_index = define_asset_job(
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
 job_ahn3 = define_asset_job(
     name="ahn3",
-    description="Make sure that the available AHN 3 LAZ files are present on disk, "
+    description="Make sure that the available AHN3 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_ahn3"])
@@ -33,7 +33,7 @@ job_ahn3 = define_asset_job(
 
 job_ahn4 = define_asset_job(
     name="ahn4",
-    description="Make sure that the available AHN 4 LAZ files are present on disk, "
+    description="Make sure that the available AHN4 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_ahn4"])
@@ -42,7 +42,7 @@ job_ahn4 = define_asset_job(
 
 job_ahn5 = define_asset_job(
     name="ahn5",
-    description="Make sure that the available AHN 5 LAZ files are present on disk, "
+    description="Make sure that the available AHN5 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
@@ -52,7 +52,7 @@ job_ahn5 = define_asset_job(
 
 job_ahn6 = define_asset_job(
     name="ahn6",
-    description="Make sure that the available AHN 6 COPC.LAZ files in 1x1 km grid "
+    description="Make sure that the available AHN6 COPC.LAZ files in 1x1 km grid "
     "tiles are present on disk, and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_ahn6"]),
