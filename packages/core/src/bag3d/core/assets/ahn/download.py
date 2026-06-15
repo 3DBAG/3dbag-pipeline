@@ -461,7 +461,7 @@ def laz_files_ahn6(
                 else:
                     tile_lookup[parts[1]] = (entry, None)
 
-    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/COPC")
+    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
     total = len(tiles)
 
     batch_tiles: dict[str, LAZDownload] = {}
