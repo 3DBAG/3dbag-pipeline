@@ -448,15 +448,18 @@ def laz_files_ahn6(
             if url is None:
                 continue
             filename = url.split("/")[-1]
-            sha_entry = sha256_ahn6.get(filename, {})
-            checksum = sha_entry.get("sha256")
+            checksum = sha256_ahn6.get(filename)
+
             tile_lookup[tile_id] = (url, checksum)
     else:
         for filename, entry in sha256_ahn6.items():
             name = filename.replace(".COPC.LAZ", "").replace(".LAZ", "")
             parts = name.split("_C_")
             if len(parts) == 2 and parts[1] in tiles:
-                tile_lookup[parts[1]] = (entry["url"], entry.get("sha256"))
+                if isinstance(entry, dict):
+                    tile_lookup[parts[1]] = (entry["url"], entry.get("sha256"))
+                else:
+                    tile_lookup[parts[1]] = (entry, None)
 
     laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/COPC")
     total = len(tiles)
