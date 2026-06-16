@@ -171,22 +171,22 @@ def create_roofer_config(
 
     [[pointclouds]]
     name = "ahn3"
-    quality = 2
+    quality = 3
     source = {ahn3_files}
 
     [[pointclouds]]
     name = "ahn4"
-    quality = 1
+    quality = 2
     source = {ahn4_files}
 
     [[pointclouds]]
     name = "ahn5"
-    quality = 0
+    quality = 1
     source = {ahn5_files}
 
     [[pointclouds]]
     name = "ahn6"
-    quality = 3
+    quality = 0
     source = {ahn6_files}
 
     [output-attributes]
