@@ -25,7 +25,7 @@ from bag3d.core.assets.ahn.core import (
     partition_definition_km_batches,
     tiles_in_batch,
 )
-from bag3d.core.assets.ahn.download import BatchDownload
+from bag3d.core.assets.ahn.download import BatchLAZDownload
 
 class MetadataConfig(Config):
     """Configuration for AHN metadata assets."""
@@ -137,7 +137,7 @@ def metadata_ahn5(
 def metadata_ahn6(
     context: AssetExecutionContext,
     config: MetadataConfig,
-    laz_files_ahn6: BatchDownload,
+    laz_files_ahn6: BatchLAZDownload,
     metadata_table_ahn6: PostgresTableIdentifier,
     tile_index_ahn6: dict,
     computation_db: DatabaseResource,

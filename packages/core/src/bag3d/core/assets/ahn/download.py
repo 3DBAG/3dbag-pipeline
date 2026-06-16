@@ -149,7 +149,7 @@ class LAZDownload:
 
 
 @dataclass
-class BatchDownload:
+class BatchLAZDownload:
     """Result of a batched AHN6 COPC download.
 
     Args:
@@ -420,7 +420,7 @@ def laz_files_ahn6(
     pointcloud_store: FileStoreResource,
     sha256_ahn6: dict[str, str],
     tile_index_ahn6: dict[str, dict[str, Any]],
-) -> Output[BatchDownload]:
+) -> Output[BatchLAZDownload]:
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
 
     Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
@@ -433,7 +433,7 @@ def laz_files_ahn6(
     tiles = tiles_in_batch(batch_id)
     if not tiles:
         return Output(
-            BatchDownload(batch_id=batch_id, tiles={}),
+            BatchLAZDownload(batch_id=batch_id, tiles={}),
             metadata={"batch": batch_id, "tiles": 0},
         )
 
@@ -523,7 +523,7 @@ def laz_files_ahn6(
     )
 
     return Output(
-        BatchDownload(batch_id=batch_id, tiles=batch_tiles),
+        BatchLAZDownload(batch_id=batch_id, tiles=batch_tiles),
         metadata={
             "batch": batch_id,
             "tiles": total,
