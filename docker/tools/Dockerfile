@@ -79,6 +79,7 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-pdal \
     --build-val3dity \
     --build-cjio \
+    --build-proj \
     --jobs $JOBS \
     --clean
 
@@ -132,7 +133,7 @@ ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 ARG ROOFER_VERSION=develop
 
 COPY --from=3dgi/roofer:${ROOFER_VERSION} /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --from=3dgi/roofer:${ROOFER_VERSION} /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+# COPY --from=3dgi/roofer:${ROOFER_VERSION} /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
 COPY --from=3dgi/roofer:${ROOFER_VERSION} /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 
 # We only need this until we replace the old geoflow with roofer
