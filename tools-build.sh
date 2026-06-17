@@ -26,7 +26,7 @@ build_cjio=false
 
 geos_version="${GEOS_VERSION:-3.12.1}"
 geotiff_version="${GEOTIFF_VERSION:-1.7.3}"
-proj_version="${PROJ_VERSION:-9.4.0}"
+proj_version="${PROJ_VERSION:-9.8.1}"
 lastools_version="${LASTOOLS_VERSION:-2.0.4}"
 gdal_version="${GDAL_VERSION:-3.8.5}"
 pdal_version="${PDAL_VERSION:-2.10.1}"
