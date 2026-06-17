@@ -22,7 +22,7 @@ ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 ARG GDAL_VERSION=3.8.5
-ARG PROJ_VERSION=9.4.0
+ARG PROJ_VERSION=9.8.1
 ARG GEOS_VERSION=3.12.1
 ARG GEOTIFF_VERSION=1.7.3
 ARG LASTOOLS_VERSION=2.0.4
@@ -140,7 +140,7 @@ ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 
 COPY --from=roofer_ext_image /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --from=roofer_ext_image /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+#COPY --from=roofer_ext_image /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
 COPY --from=roofer_ext_image /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 
 # We only need this until we replace the old geoflow with roofer
