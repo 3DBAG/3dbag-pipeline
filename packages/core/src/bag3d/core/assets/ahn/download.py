@@ -30,7 +30,7 @@ from bag3d.core.assets.ahn.core import (
     download_ahn_index,
     download_ahn6_index,
     partition_definition_ahn,
-    partition_definition_ahn6_batches,
+    partition_definition_km_batches,
     tiles_in_batch,
 )
 
@@ -411,7 +411,7 @@ def laz_files_ahn5(
 
 @asset(
     name="laz_files_ahn6",
-    partitions_def=partition_definition_ahn6_batches,
+    partitions_def=partition_definition_km_batches,
     pool="laz_download",
 )
 def laz_files_ahn6(
@@ -439,27 +439,18 @@ def laz_files_ahn6(
 
     tile_lookup: dict[str, tuple[str, Optional[str]]] = {}
 
-    if tile_index_ahn6 is not None:
-        for tile_id in tiles:
-            idx_entry = tile_index_ahn6.get(tile_id)
-            if idx_entry is None:
-                continue
-            url = idx_entry.get("url")
-            if url is None:
-                continue
-            filename = url.split("/")[-1]
-            checksum = sha256_ahn6.get(filename)
 
-            tile_lookup[tile_id] = (url, checksum)
-    else:
-        for filename, entry in sha256_ahn6.items():
-            name = filename.replace(".COPC.LAZ", "").replace(".LAZ", "")
-            parts = name.split("_C_")
-            if len(parts) == 2 and parts[1] in tiles:
-                if isinstance(entry, dict):
-                    tile_lookup[parts[1]] = (entry["url"], entry.get("sha256"))
-                else:
-                    tile_lookup[parts[1]] = (entry, None)
+    for tile_id in tiles:
+        idx_entry = tile_index_ahn6.get(tile_id)
+        if idx_entry is None:
+            continue
+        url = idx_entry.get("url")
+        if url is None:
+            continue
+        filename = url.split("/")[-1]
+        checksum = sha256_ahn6.get(filename)
+
+        tile_lookup[tile_id] = (url, checksum)
 
     laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
     total = len(tiles)
@@ -472,7 +463,7 @@ def laz_files_ahn6(
 
     logger.info(f"Batch {batch_id}: starting {total} tiles")
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {}
         for tile_id in tiles:
             entry = tile_lookup.get(tile_id)
