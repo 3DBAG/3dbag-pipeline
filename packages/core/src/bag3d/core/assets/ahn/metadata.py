@@ -61,7 +61,7 @@ def metadata_table_ahn6(computation_db: DatabaseResource) -> PostgresTableIdenti
     return metadata_table_ahn(computation_db, ahn_version=6)
 
 
-@asset(partitions_def=partition_definition_ahn, pool="ahn")
+@asset(partitions_def=partition_definition_ahn, pool="ahn_metadata")
 def metadata_ahn3(
     context: AssetExecutionContext,
     config: MetadataConfig,
@@ -85,7 +85,7 @@ def metadata_ahn3(
     )
 
 
-@asset(partitions_def=partition_definition_ahn, pool="ahn")
+@asset(partitions_def=partition_definition_ahn, pool="ahn_metadata")
 def metadata_ahn4(
     context: AssetExecutionContext,
     config: MetadataConfig,
@@ -109,7 +109,7 @@ def metadata_ahn4(
     )
 
 
-@asset(partitions_def=partition_definition_ahn, pool="ahn")
+@asset(partitions_def=partition_definition_ahn, pool="ahn_metadata")
 def metadata_ahn5(
     context: AssetExecutionContext,
     config: MetadataConfig,
@@ -133,7 +133,7 @@ def metadata_ahn5(
     )
 
 
-@asset(partitions_def=partition_definition_ahn6_batches, pool="ahn")
+@asset(partitions_def=partition_definition_ahn6_batches, pool="ahn_metadata")
 def metadata_ahn6(
     context: AssetExecutionContext,
     config: MetadataConfig,

@@ -349,7 +349,7 @@ Only 1 tyler asset runs at a time
 Current pool assignments (limits configured in deployment `.env` files):
 
 - `pool="laz_download"` - AHN LAZ file downloads (prevents network/disk saturation)
-- `pool="ahn"` - AHN metadata and indexing operations
+- `pool="ahn_metadata"` - AHN metadata and indexing operations
 - `pool="roofer"` - 3D reconstruction (memory/CPU intensive)
 - `pool="tyler"` - Multiple tiling assets share this pool
 - `pool="compression"` - Archive compression operations
