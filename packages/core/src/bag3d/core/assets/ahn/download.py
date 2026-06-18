@@ -30,7 +30,7 @@ from bag3d.core.assets.ahn.core import (
     download_ahn_index,
     download_ahn6_index,
     partition_definition_ahn,
-    partition_definition_km_batches,
+    partition_definition_ahn6_batches,
     tiles_in_batch,
 )
 
@@ -411,7 +411,7 @@ def laz_files_ahn5(
 
 @asset(
     name="laz_files_ahn6",
-    partitions_def=partition_definition_km_batches,
+    partitions_def=partition_definition_ahn6_batches,
     pool="laz_download",
 )
 def laz_files_ahn6(
