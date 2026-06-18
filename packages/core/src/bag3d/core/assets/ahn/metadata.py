@@ -27,6 +27,7 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload
 
+
 class MetadataConfig(Config):
     """Configuration for AHN metadata assets."""
 
