@@ -37,6 +37,11 @@ concurrency:
     max_concurrent_runs: 8
   pools:
     default_limit: 1
+    ahn_metadata: 4
+    
+run_monitoring:
+  enabled: true
+  free_slots_after_run_end_seconds: 300
 
 telemetry:
   enabled: false
