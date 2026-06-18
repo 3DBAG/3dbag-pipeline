@@ -19,7 +19,7 @@ _batch_ids = sorted(
         for t in AHN6_TILE_IDS
     }
 )
-partition_definition_km_batches = StaticPartitionsDefinition(_batch_ids)
+partition_definition_ahn6_batches = StaticPartitionsDefinition(_batch_ids)
 
 AHN6_INDEX_URL = (
     "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/"

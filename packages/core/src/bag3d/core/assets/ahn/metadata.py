@@ -22,7 +22,7 @@ from bag3d.common.utils.geodata import pdal_info
 from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
-    partition_definition_km_batches,
+    partition_definition_ahn6_batches,
     tiles_in_batch,
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload
@@ -133,7 +133,7 @@ def metadata_ahn5(
     )
 
 
-@asset(partitions_def=partition_definition_km_batches, pool="ahn")
+@asset(partitions_def=partition_definition_ahn6_batches, pool="ahn")
 def metadata_ahn6(
     context: AssetExecutionContext,
     config: MetadataConfig,
