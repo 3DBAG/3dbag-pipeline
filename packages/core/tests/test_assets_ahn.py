@@ -104,7 +104,7 @@ def test_download_ahn_index_geometry_mocked():
 @pytest.mark.parametrize(
     "ahn_version",
     (3, 4, 5, 6),
-    ids=("ahn3", "ahn4", "ahn5"),
+    ids=("ahn3", "ahn4", "ahn5", "ahn6"),
 )
 def test_get_checksums(ahn_version):
     payload = (
