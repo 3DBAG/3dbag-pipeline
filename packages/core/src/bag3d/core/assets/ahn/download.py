@@ -439,7 +439,6 @@ def laz_files_ahn6(
 
     tile_lookup: dict[str, tuple[str, Optional[str]]] = {}
 
-
     for tile_id in tiles:
         idx_entry = tile_index_ahn6.get(tile_id)
         if idx_entry is None:
