@@ -79,7 +79,14 @@ def test_download_ahn_index_mocked():
     ):
         tile_ids = download_ahn_index()
 
-    assert tile_ids == {"01cz1": None}
+    assert tile_ids == {
+        "01cz1": {
+            "AHN3_LAZ": "https://example.com/C_01CZ1.LAZ",
+            "AHN4_LAZ": "https://example.com/C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://example.com/2023_C_01CZ1.LAZ",
+            "geometry": None,
+        }
+    }
 
 
 def test_download_ahn_index_geometry_mocked():
