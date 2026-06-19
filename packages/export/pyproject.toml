@@ -38,6 +38,7 @@ dev = [
     "pytest~=9.0.2",
     "dagster-webserver",
     "pyright>=1.1",
+    "starlette>=1.1.0",  # CVE-2026-48818: SSRF/NTLM credential theft via UNC paths in StaticFiles
 ]
 
 [tool.ruff]
