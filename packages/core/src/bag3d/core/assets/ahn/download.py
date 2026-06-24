@@ -592,9 +592,14 @@ def download_ahn_laz(
 
     if url_laz is not None:
         url = url_laz
-    else:
-        assert url_base is not None, "Either url_laz or url_base must be provided"
+    elif url_base is not None:
         url = "/".join([url_base, fpath.name])
+    else:
+        raise Failure(
+            format_laz_log(
+                fpath, "No URL provided (both url_laz and url_base are None)"
+            )
+        )
 
     http_status = _head_check(url)
     if http_status in (403, 404):
