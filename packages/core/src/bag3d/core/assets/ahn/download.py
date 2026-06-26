@@ -479,6 +479,7 @@ def laz_files_ahn6(
                     laz_dir,
                     config.force_download,
                     checksum,
+                    config.check_hash,
                 )
             ] = tile_id
 
@@ -716,20 +717,33 @@ def _download_one_tile(
     laz_dir: Path,
     force_download: bool,
     checksum: Optional[str] = None,
+    check_hash: bool = True,
 ) -> LAZDownload:
     """Download a single COPC/LAZ tile."""
     fpath = laz_dir / url.split("/")[-1]
+    sha_func = HashChunkwise("sha256")
+
     if fpath.is_file() and not force_download:
         size = round(fpath.stat().st_size / 1e6, 2)
-        return LAZDownload(
-            url=url,
-            path=fpath,
-            success=True,
-            hash_name=None,
-            hash_hexdigest=None,
-            new=False,
-            size=size,
-        )
+        computed = sha_func.compute(fpath).hexdigest()
+
+        if check_hash and checksum and computed != checksum:
+            logger.warning(
+                format_laz_log(
+                    fpath, f"SHA256 mismatch (expected {checksum[:12]}...), re-downloading"
+                )
+            )
+            fpath.unlink()
+        else:
+            return LAZDownload(
+                url=url,
+                path=fpath,
+                success=True,
+                hash_name="sha256",
+                hash_hexdigest=computed,
+                new=False,
+                size=size,
+            )
 
     verify_ssl = False
     with warnings.catch_warnings():
@@ -743,8 +757,8 @@ def _download_one_tile(
             force_download=force_download,
         )
 
-    if checksum and lazdownload.new:
-        computed = HashChunkwise("sha256").compute(fpath).hexdigest()
+    if check_hash and checksum and lazdownload.new:
+        computed = sha_func.compute(fpath).hexdigest()
         if computed != checksum:
             logger.warning(
                 format_laz_log(fpath, f"SHA256 mismatch (expected {checksum[:12]}...)")
@@ -752,4 +766,5 @@ def _download_one_tile(
             fpath.unlink()
             raise Failure(format_laz_log(fpath, "SHA256 mismatch after download"))
 
+    lazdownload.compute_sha(sha_func)
     return lazdownload
