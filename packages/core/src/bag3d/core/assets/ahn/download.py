@@ -9,8 +9,6 @@ from dataclasses import dataclass
 import urllib.request
 import urllib.error
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import urllib3
 
 from dagster import (
@@ -462,45 +460,32 @@ def laz_files_ahn6(
 
     logger.info(f"Batch {batch_id}: starting {total} tiles")
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = {}
-        for tile_id in tiles:
-            entry = tile_lookup.get(tile_id)
-            if entry is None:
-                logger.warning(f"  tile {tile_id}: not found in checksum index")
-                failed += 1
-                completed += 1
-                continue
-            url, checksum = entry
-            futures[
-                executor.submit(
-                    _download_one_tile,
-                    url,
-                    laz_dir,
-                    config.force_download,
-                    checksum,
-                    config.check_hash,
-                )
-            ] = tile_id
-
-        for future in as_completed(futures):
-            tile_id = futures[future]
+    for tile_id in tiles:
+        entry = tile_lookup.get(tile_id)
+        if entry is None:
+            logger.warning(f"  tile {tile_id}: not found in checksum index")
+            failed += 1
             completed += 1
-            try:
-                lazdownload = future.result()
-                batch_tiles[tile_id] = lazdownload
-                if lazdownload.new:
-                    downloaded += 1
-                    logger.info(
-                        f"  [{completed}/{total}] {tile_id}: "
-                        f"downloaded ({lazdownload.size:.1f} MB)"
-                    )
-                else:
-                    skipped += 1
-                    logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
-            except Failure as exc:
-                logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
-                failed += 1
+            continue
+        url, checksum = entry
+        completed += 1
+        try:
+            lazdownload = _download_one_tile(
+                url, laz_dir, config.force_download, checksum, config.check_hash
+            )
+            batch_tiles[tile_id] = lazdownload
+            if lazdownload.new:
+                downloaded += 1
+                logger.info(
+                    f"  [{completed}/{total}] {tile_id}: "
+                    f"downloaded ({lazdownload.size:.1f} MB)"
+                )
+            else:
+                skipped += 1
+                logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
+        except Failure as exc:
+            logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
+            failed += 1
 
     if downloaded + skipped == 0:
         raise Failure(
