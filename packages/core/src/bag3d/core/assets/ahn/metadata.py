@@ -195,15 +195,20 @@ def metadata_ahn6(
         conn.send_query(
             SQL("""
                 INSERT INTO {table}(
-                    tile_id, insert_time, pdal_info, boundary
+                    tile_id, hash, insert_time, pdal_info, boundary
                 )
                 VALUES (
-                    {tile_id}, {insert_time}, {pdal_info},
+                    {tile_id}, {hash}, {insert_time}, {pdal_info},
                     ST_SetSRID(ST_GeomFromGeoJSON({boundary}), 28992)
                 );
             """).format(
                 table=metadata_table,
                 tile_id=Literal(tile_id),
+                hash=Literal(
+                    f"{laz_download.hash_name}:{laz_download.hash_hexdigest}"
+                    if laz_download.hash_name and laz_download.hash_hexdigest
+                    else None
+                ),
                 insert_time=insert_time,
                 pdal_info=Jsonb(out_info),
                 boundary=Literal(json.dumps(boundary)),

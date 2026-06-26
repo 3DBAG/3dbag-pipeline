@@ -30,6 +30,9 @@ dependencies = [
     "fabric~=3.2.2",
 ]
 
+[tool.uv]
+constraint-dependencies = ["mako>=1.3.12"]
+
 [dependency-groups]
 dev = [
     "coverage~=7.13.4",

@@ -9,8 +9,6 @@ from dataclasses import dataclass
 import urllib.request
 import urllib.error
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import urllib3
 
 from dagster import (
@@ -424,7 +422,8 @@ def laz_files_ahn6(
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
 
     Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
-    Tiles within a batch are downloaded in parallel using a thread pool.
+    Every tile within the batch follows the same download-and-validate process
+    used for other AHN versions.
 
     The partition succeeds if at least one tile is downloaded or already on disk.
     Individual tile failures are logged as warnings and do not fail the batch.
@@ -437,20 +436,6 @@ def laz_files_ahn6(
             metadata={"batch": batch_id, "tiles": 0},
         )
 
-    tile_lookup: dict[str, tuple[str, Optional[str]]] = {}
-
-    for tile_id in tiles:
-        idx_entry = tile_index_ahn6.get(tile_id)
-        if idx_entry is None:
-            continue
-        url = idx_entry.get("url")
-        if url is None:
-            continue
-        filename = url.split("/")[-1]
-        checksum = sha256_ahn6.get(filename)
-
-        tile_lookup[tile_id] = (url, checksum)
-
     laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
     total = len(tiles)
 
@@ -462,44 +447,72 @@ def laz_files_ahn6(
 
     logger.info(f"Batch {batch_id}: starting {total} tiles")
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = {}
-        for tile_id in tiles:
-            entry = tile_lookup.get(tile_id)
-            if entry is None:
-                logger.warning(f"  tile {tile_id}: not found in checksum index")
-                failed += 1
-                completed += 1
-                continue
-            url, checksum = entry
-            futures[
-                executor.submit(
-                    _download_one_tile,
-                    url,
-                    laz_dir,
-                    config.force_download,
-                    checksum,
-                )
-            ] = tile_id
-
-        for future in as_completed(futures):
-            tile_id = futures[future]
+    for tile_id in tiles:
+        idx_entry = tile_index_ahn6.get(tile_id)
+        if idx_entry is None or idx_entry.get("url") is None:
+            logger.warning(f"  tile {tile_id}: not found in tile index")
+            failed += 1
             completed += 1
-            try:
-                lazdownload = future.result()
-                batch_tiles[tile_id] = lazdownload
-                if lazdownload.new:
-                    downloaded += 1
+            continue
+        url = idx_entry["url"]
+        fpath = laz_dir / url.split("/")[-1]
+        completed += 1
+        try:
+            verify_ssl = False
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url,
+                    verify_ssl=verify_ssl,
+                    force_download=config.force_download,
+                )
+            lazdownload.compute_sha(HashChunkwise("sha256"))
+            if config.check_hash:
+                first_validation = lazdownload.validate(
+                    sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                )
+                if not first_validation:
                     logger.info(
-                        f"  [{completed}/{total}] {tile_id}: "
-                        f"downloaded ({lazdownload.size:.1f} MB)"
+                        format_laz_log(
+                            fpath,
+                            "First validation failed. Removing and retrying...",
+                        )
                     )
+                    fpath.unlink()
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            category=urllib3.exceptions.InsecureRequestWarning,
+                        )
+                        lazdownload = download_ahn_laz(
+                            fpath=fpath,
+                            url_laz=url,
+                            verify_ssl=verify_ssl,
+                        )
+                    second_validation = lazdownload.validate(
+                        sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                    )
+                    if not second_validation:
+                        logger.warning(format_laz_log(fpath, "Checksum failed"))
                 else:
-                    skipped += 1
-                    logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
-            except Failure as exc:
-                logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
-                failed += 1
+                    logger.debug(format_laz_log(fpath, "Validation OK"))
+
+            batch_tiles[tile_id] = lazdownload
+            if lazdownload.new:
+                downloaded += 1
+                logger.info(
+                    f"  [{completed}/{total}] {tile_id}: "
+                    f"downloaded ({lazdownload.size:.1f} MB)"
+                )
+            else:
+                skipped += 1
+                logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
+        except Failure as exc:
+            logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
+            failed += 1
 
     if downloaded + skipped == 0:
         raise Failure(
@@ -709,47 +722,3 @@ def match_sha(
     else:  # pragma: no cover
         logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
         return False
-
-
-def _download_one_tile(
-    url: str,
-    laz_dir: Path,
-    force_download: bool,
-    checksum: Optional[str] = None,
-) -> LAZDownload:
-    """Download a single COPC/LAZ tile."""
-    fpath = laz_dir / url.split("/")[-1]
-    if fpath.is_file() and not force_download:
-        size = round(fpath.stat().st_size / 1e6, 2)
-        return LAZDownload(
-            url=url,
-            path=fpath,
-            success=True,
-            hash_name=None,
-            hash_hexdigest=None,
-            new=False,
-            size=size,
-        )
-
-    verify_ssl = False
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", category=urllib3.exceptions.InsecureRequestWarning
-        )
-        lazdownload = download_ahn_laz(
-            fpath=fpath,
-            url_laz=url,
-            verify_ssl=verify_ssl,
-            force_download=force_download,
-        )
-
-    if checksum and lazdownload.new:
-        computed = HashChunkwise("sha256").compute(fpath).hexdigest()
-        if computed != checksum:
-            logger.warning(
-                format_laz_log(fpath, f"SHA256 mismatch (expected {checksum[:12]}...)")
-            )
-            fpath.unlink()
-            raise Failure(format_laz_log(fpath, "SHA256 mismatch after download"))
-
-    return lazdownload

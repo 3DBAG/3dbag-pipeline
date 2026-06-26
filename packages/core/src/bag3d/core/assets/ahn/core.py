@@ -197,5 +197,6 @@ def download_ahn6_index(
             "geometry": f.get("geometry") if with_geom else None,
         }
 
+    validate_new_ahn6_tile_ids(features)
     logger.info(f"AHN6 index: {len(features)} tiles with checksums")
     return features

@@ -13,7 +13,7 @@ from dagster import (
 )
 from dagster import SupersessionWarning
 
-from bag3d.core.assets.ahn.core import download_ahn_index, download_ahn6_index
+from bag3d.core.assets.ahn.core import download_ahn_index, download_ahn6_index, BATCH_KM
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
@@ -44,7 +44,7 @@ _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
     6: {
         "job_name": "ahn6",
         "asset_key": AssetKey(["ahn", "sha256_ahn6"]),
-        "url_key": "AHN6_LAZ",
+        "url_key": "url",
     },
 }
 
@@ -149,6 +149,9 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                     continue
 
                 # Find tiles whose checksum changed (new or updated)
+                # For AHN6, multiple 1×1 km tiles map to the same 10×10 km
+                # batch partition — deduplicate to avoid redundant runs.
+                emitted_batches: set[str] = set()
                 for filename, new_hash in checksums.items():
                     old_hash = prev_checksums.get(filename)
                     if old_hash != new_hash:
@@ -158,11 +161,25 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                                 f"AHN{version}: no tile_id mapping for {filename}"
                             )
                             continue
+
+                        if version == 6:
+                            x, y = map(int, tile_id.split("_"))
+                            bx = (x // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+                            by = (y // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+                            partition_key = f"{bx:06d}_{by:06d}"
+                            if partition_key in emitted_batches:
+                                continue
+                            emitted_batches.add(partition_key)
+                            run_key = f"ahn{version}-{partition_key}-{new_hash[:8]}"
+                        else:
+                            partition_key = tile_id
+                            run_key = f"ahn{version}-{tile_id}-{new_hash[:8]}"
+
                         run_requests.append(
                             RunRequest(
-                                run_key=f"ahn{version}-{tile_id}-{new_hash[:8]}",
+                                run_key=run_key,
                                 job_name=cfg["job_name"],
-                                partition_key=tile_id,
+                                partition_key=partition_key,
                             )
                         )
 
