@@ -730,7 +730,8 @@ def _download_one_tile(
         if check_hash and checksum and computed != checksum:
             logger.warning(
                 format_laz_log(
-                    fpath, f"SHA256 mismatch (expected {checksum[:12]}...), re-downloading"
+                    fpath,
+                    f"SHA256 mismatch (expected {checksum[:12]}...), re-downloading",
                 )
             )
             fpath.unlink()
