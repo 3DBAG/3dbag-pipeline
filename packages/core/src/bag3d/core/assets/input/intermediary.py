@@ -187,3 +187,32 @@ def bag_building_type(
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bgt_pandactueelbestaand": AssetIn(key_prefix="bgt"),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_bgt_join(
+    bag_pandactueelbestaand,
+    bgt_pandactueelbestaand,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    """Spatial join of BAG Pand and BGT Pand, aggregating BGT polygon geometries per
+    BAG building identification."""
+    create_schema(computation_db, "bag", logger=logger)
+    new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bgt_join")
+    query = load_sql(
+        query_params={
+            "bag_pand": bag_pandactueelbestaand,
+            "bgt_pand": bgt_pandactueelbestaand,
+            "new_table": new_table,
+        }
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    return Output(new_table, metadata=metadata)
