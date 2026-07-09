@@ -1,1 +1,2 @@
 recursive-include src/bag3d/core/sqlfiles *.sql
+recursive-include src/bag3d/core/assets/ahn *.json
