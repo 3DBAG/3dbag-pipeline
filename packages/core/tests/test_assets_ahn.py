@@ -79,7 +79,14 @@ def test_download_ahn_index_mocked():
     ):
         tile_ids = download_ahn_index()
 
-    assert tile_ids == {"01cz1": None}
+    assert tile_ids == {
+        "01cz1": {
+            "AHN3_LAZ": "https://example.com/C_01CZ1.LAZ",
+            "AHN4_LAZ": "https://example.com/C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://example.com/2023_C_01CZ1.LAZ",
+            "geometry": None,
+        }
+    }
 
 
 def test_download_ahn_index_geometry_mocked():
@@ -103,8 +110,8 @@ def test_download_ahn_index_geometry_mocked():
 
 @pytest.mark.parametrize(
     "ahn_version",
-    (3, 4, 5),
-    ids=("ahn3", "ahn4", "ahn5"),
+    (3, 4, 5, 6),
+    ids=("ahn3", "ahn4", "ahn5", "ahn6"),
 )
 def test_get_checksums(ahn_version):
     payload = (
@@ -126,6 +133,7 @@ def test_checksums_for_ahn():
             MOCK_AHN34_RESPONSE,
             MOCK_AHN34_RESPONSE,
             '{"features": [{"properties": {"file": "https://example.com/2023_C_01CZ1.LAZ", "sha256": "abc"}}]}',
+            '{"features": [{"properties": {"file": "https://example.com/2024_C_01CZ1.LAZ", "sha256": "def"}}]}',
         ],
     ):
         assert md5_ahn3() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}

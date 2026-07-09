@@ -123,6 +123,15 @@
       ]
     },
     {
+      "name": "ahn6",
+      "display_name": "ahn6 download",
+      "allow_partial_failure": true,
+      "partition_asset": ["ahn", "laz_files_ahn6"],
+      "jobs": [
+        { "job": "ahn6", "code_location": "core" }
+      ]
+    },
+    {
       "name": "ahn_metadata_index",
       "display_name": "ahn_metadata_index",
       "allow_partial_failure": false,
