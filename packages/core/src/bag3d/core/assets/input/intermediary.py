@@ -236,7 +236,7 @@ def bag_pand_filtered(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pand_filtered": AssetIn(key_prefix=INTERMEDIARY),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
