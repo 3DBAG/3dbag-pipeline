@@ -11,4 +11,4 @@ WHERE NOT (
      AND st_area(bbj.bgt_geometrie) / st_area(bbj.bag_geometrie) < 0.1
      AND st_area(bag.geometrie) > 1000)
     )
-);
+;
