@@ -224,21 +224,30 @@ def cbs_address_mapping(
 
     # Transform and create final table with proper column names and prefixed codes
     year = config.year
+    col_pc6 = Identifier("pc6")
+    col_huisnummer = Identifier("huisnummer")
+    col_gemeente = Identifier(f"gemeente{year}")
+    col_wijk = Identifier(f"wijk{year}")
+    col_buurt = Identifier(f"buurt{year}")
     conn = computation_db.connection
     transform_sql = SQL("""
         CREATE TABLE {final_table} AS
         SELECT 
-            pc6 AS "Postcode",
-            'GM' || LPAD(gemeente{year}, 4, '0') AS "Gemeente",
-            'WK' || LPAD(wijk{year}, 6, '0') AS "Wijk", 
-            'BU' || LPAD(buurt{year}, 8, '0') AS "Buurt",
-            huisnummer AS "Huisnummer"
+            {col_pc6} AS "Postcode",
+            'GM' || LPAD({col_gemeente}, 4, '0') AS "Gemeente",
+            'WK' || LPAD({col_wijk}, 6, '0') AS "Wijk", 
+            'BU' || LPAD({col_buurt}, 8, '0') AS "Buurt",
+            {col_huisnummer} AS "Huisnummer"
         FROM {staging_table}
-        WHERE pc6 IS NOT NULL AND pc6 != ''
+        WHERE {col_pc6} IS NOT NULL AND {col_pc6} != ''
     """).format(
         final_table=final_table.id,
         staging_table=staging_table.id,
-        year=year,
+        col_pc6=col_pc6,
+        col_huisnummer=col_huisnummer,
+        col_gemeente=col_gemeente,
+        col_wijk=col_wijk,
+        col_buurt=col_buurt,
     )
     
     conn.send_query(transform_sql)
