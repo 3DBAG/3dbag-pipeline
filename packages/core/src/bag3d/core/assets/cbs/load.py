@@ -19,6 +19,7 @@ from bag3d.common.utils.database import (
     postgrestable_metadata,
 )
 from bag3d.common.types import PostgresTableIdentifier
+from bag3d.core.assets.cbs.download import CbsAddressMappingConfig
 
 logger = get_dagster_logger("cbs.load")
 
@@ -174,6 +175,7 @@ def cbs_buurten(
     op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
 )
 def cbs_address_mapping(
+    config: CbsAddressMappingConfig,
     computation_db: DatabaseResource,
     gdal: GDALResource,
     extract_cbs_address_mapping,
@@ -221,20 +223,22 @@ def cbs_address_mapping(
         raise RuntimeError(f"ogr2ogr failed loading address mapping CSV: {result.stderr}")
 
     # Transform and create final table with proper column names and prefixed codes
+    year = config.year
     conn = computation_db.connection
     transform_sql = SQL("""
         CREATE TABLE {final_table} AS
         SELECT 
             "PC6" AS "Postcode",
-            'GM' || LPAD("Gemeente2023", 4, '0') AS "Gemeente",
-            'WK' || LPAD("Wijk2023", 6, '0') AS "Wijk", 
-            'BU' || LPAD("Buurt2023", 8, '0') AS "Buurt",
+            'GM' || LPAD("Gemeente{year}", 4, '0') AS "Gemeente",
+            'WK' || LPAD("Wijk{year}", 6, '0') AS "Wijk", 
+            'BU' || LPAD("Buurt{year}", 8, '0') AS "Buurt",
             "Huisnummer"
         FROM {staging_table}
         WHERE "PC6" IS NOT NULL AND "PC6" != ''
     """).format(
         final_table=final_table.id,
-        staging_table=staging_table.id
+        staging_table=staging_table.id,
+        year=year,
     )
     
     conn.send_query(transform_sql)
@@ -247,9 +251,9 @@ def cbs_address_mapping(
         SQL("COMMENT ON TABLE {} IS {}").format(
             final_table.id,
             Literal(
-                "CBS postcode-to-neighbourhood mapping. "
-                "Source: https://www.cbs.nl/nl-nl/maatwerk/2023/35/"
-                "buurt-wijk-en-gemeente-2023-voor-postcode-huisnummer"
+                f"CBS postcode-to-neighbourhood mapping ({year}). "
+                f"Source: https://www.cbs.nl/nl-nl/maatwerk/{year}/35/"
+                f"buurt-wijk-en-gemeente-{year}-voor-postcode-huisnummer"
             ),
         )
     )
