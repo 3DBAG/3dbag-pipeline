@@ -7,6 +7,12 @@ job_bgt = define_asset_job(
     selection=AssetSelection.groups("bgt"),
 )
 
+job_cbs = define_asset_job(
+    name="cbs",
+    description="Download and load CBS data (key figures, buurtkaart, address mapping).",
+    selection=AssetSelection.groups("cbs"),
+)
+
 job_ahn_tile_index = define_asset_job(
     name="ahn_tile_index",
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
