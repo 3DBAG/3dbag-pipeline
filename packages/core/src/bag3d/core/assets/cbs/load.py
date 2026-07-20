@@ -228,13 +228,13 @@ def cbs_address_mapping(
     transform_sql = SQL("""
         CREATE TABLE {final_table} AS
         SELECT 
-            "PC6" AS "Postcode",
-            'GM' || LPAD("Gemeente{year}", 4, '0') AS "Gemeente",
-            'WK' || LPAD("Wijk{year}", 6, '0') AS "Wijk", 
-            'BU' || LPAD("Buurt{year}", 8, '0') AS "Buurt",
-            "Huisnummer"
+            pc6 AS "Postcode",
+            'GM' || LPAD(gemeente{year}, 4, '0') AS "Gemeente",
+            'WK' || LPAD(wijk{year}, 6, '0') AS "Wijk", 
+            'BU' || LPAD(buurt{year}, 8, '0') AS "Buurt",
+            huisnummer AS "Huisnummer"
         FROM {staging_table}
-        WHERE "PC6" IS NOT NULL AND "PC6" != ''
+        WHERE pc6 IS NOT NULL AND pc6 != ''
     """).format(
         final_table=final_table.id,
         staging_table=staging_table.id,
