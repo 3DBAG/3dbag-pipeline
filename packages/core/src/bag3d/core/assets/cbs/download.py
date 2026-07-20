@@ -216,11 +216,12 @@ def extract_cbs_address_mapping(
     
     unzip(zip_path, extract_dir)
 
-    # Find the extracted CSV in the year-specific directory
-    csv_files = list(extract_dir.glob("*.csv"))
+    # Find the postcode-to-neighbourhood mapping CSV (starts with 'pc6hnr')
+    csv_files = list(extract_dir.glob("pc6hnr*.csv"))
     if not csv_files:
         raise FileNotFoundError(
-            f"No CSV file found in {extract_dir} after extracting {zip_path.name}"
+            f"No postcode mapping CSV (pc6hnr*.csv) found in {extract_dir}"
+            f" after extracting {zip_path.name}"
         )
     csv_path = csv_files[0]
     logger.info(f"Extracted address mapping CSV: {csv_path.name}")
