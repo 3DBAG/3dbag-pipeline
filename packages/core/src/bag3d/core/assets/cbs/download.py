@@ -30,7 +30,7 @@ class CbsKeyFiguresConfig(Config):
     """Configuration for CBS key figures download."""
 
     table_ids: dict[str, str] = Field(
-        default={"2025": "86165NED", "2024": "85984NED"},
+        default={"2025": "86165NED"},
         description="Mapping of year to CBS OData table identifier. "
         "See https://opendata.cbs.nl for available tables.",
     )
@@ -53,11 +53,11 @@ class CbsAddressMappingConfig(Config):
     """Configuration for CBS address-to-neighbourhood mapping download."""
 
     year: str = Field(
-        default="2023",
+        default="2025",
         description="Year for naming the output table.",
     )
     url: str = Field(
-        default="https://www.cbs.nl/-/media/_excel/2023/35/2023-cbs-pc6huisnr20230801_buurt.zip",
+        default="https://download.cbs.nl/postcode/2025-cbs-pc6huisnr20250801_buurt.zip",
         description="Full download URL for the CBS address mapping ZIP.",
     )
 
