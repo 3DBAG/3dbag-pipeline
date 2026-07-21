@@ -217,12 +217,13 @@ def external_features(
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Creates the `floors_estimation.building_features_external` table.
-    In contains features from CBS, ESRI and BAG."""
-    logger.info("Extracting external features, from CBS, ESRI and BAG.")
+    In contains features from CBS, BAG and our own building type feature."""
+    logger.info("Extracting external features, from CBS and BAG.")
     create_schema(computation_db, SCHEMA, logger)
     table_name = "building_features_external"
     external_features_table = PostgresTableIdentifier(SCHEMA, table_name)
     cbs_schema = "cbs"
+    reconstructed_schema = "reconstruction_input"
     query = load_sql(
         query_params={
             "external_features": external_features_table,
@@ -230,6 +231,7 @@ def external_features(
                 cbs_schema, "cbs_key_figures_districts_neighbourhoods"
             ),
             "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
+            "building_type": PostgresTableIdentifier(reconstructed_schema, "woningtype"),
         }
     )
     metadata = postgrestable_from_query(

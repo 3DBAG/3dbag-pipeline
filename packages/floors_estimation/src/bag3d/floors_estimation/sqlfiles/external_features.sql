@@ -23,7 +23,7 @@ CREATE TEMP table verblijfsobject_features AS (
     p.pandid
 );
 
--- extract features from cbs, ESRI, and BAG for all buildings
+-- extract features from cbs, and BAG for all buildings
 DROP TABLE IF EXISTS ${external_features};
 CREATE TABLE ${external_features} AS (
 SELECT  p.identificatie
@@ -164,5 +164,5 @@ SET buildingtype =
 		             WHEN ebt.woningtypering = 'tussenwoning/geschakeld' THEN 4
 		             ELSE 5 
 				 END 
-FROM floors_estimation.esri_building_type ebt 
+FROM ${building_type} ebt 
 WHERE concat('NL.IMBAG.Pand.',ebt.identificatie)  = ${external_features}.identificatie;
