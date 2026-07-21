@@ -226,11 +226,8 @@ def external_features(
     query = load_sql(
         query_params={
             "external_features": external_features_table,
-            "cbs_key_figures_2024": PostgresTableIdentifier(
-                cbs_schema, "cbs_key_figures_districts_neighbourhoods_2024"
-            ),
-            "cbs_key_figures_2025": PostgresTableIdentifier(
-                cbs_schema, "cbs_key_figures_districts_neighbourhoods_2025"
+            "cbs_key_figures": PostgresTableIdentifier(
+                cbs_schema, "cbs_key_figures_districts_neighbourhoods"
             ),
             "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
         }
