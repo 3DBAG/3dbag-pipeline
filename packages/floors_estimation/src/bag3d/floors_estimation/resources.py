@@ -8,8 +8,3 @@ class ModelStoreResource(ConfigurableResource):
 
     model_path: str
 
-
-class TrainingDataResource(ConfigurableResource):
-    """A resource for the directory containing training data files."""
-
-    data_dir: str
