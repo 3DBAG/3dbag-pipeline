@@ -132,21 +132,19 @@ DROP TABLE IF EXISTS cbs_data_per_neighbourhood;
 CREATE TEMP TABLE cbs_data_per_neighbourhood AS(
 SELECT  ckfdn."WijkenEnBuurten"
        ,cb.geom                               AS geometrie
-       ,ckfdn."PercentageMeergezinswoning_38" AS cbs_percent_multihousehold_2023
-       ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2_2023
-       ,ckfdn2."GIHandelEnHoreca_94"          AS cbs_dist_to_horeca_2021
-FROM ${cbs_key_figures_2024} ckfdn
-JOIN ${cbs_key_figures_2025} ckfdn2
-ON ckfdn."WijkenEnBuurten" = ckfdn2."WijkenEnBuurten"
+       ,ckfdn."PercentageMeergezinswoning_45" AS cbs_percent_multihousehold
+       ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2
+       ,ckfdn."GIHandelEnHoreca_98"          AS cbs_dist_to_horeca
+FROM ${cbs_key_figures} ckfdn
 JOIN ${cbs_buurten} cb
 ON cb.buurtcode = ckfdn."WijkenEnBuurten"
 WHERE ckfdn."SoortRegio_2" = 'Buurt' ); 
 
 
 UPDATE ${external_features}
-SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold_2023,
-cbs_pop_per_km2 = cdpn.cbs_pop_per_km2_2023,
-cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca_2021
+SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold,
+cbs_pop_per_km2 = cdpn.cbs_pop_per_km2,
+cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca
 FROM  cbs_data_per_neighbourhood cdpn
 WHERE st_intersects(${external_features}.geometrie, cdpn.geometrie);
 
