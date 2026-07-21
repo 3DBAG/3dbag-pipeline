@@ -77,6 +77,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "metadata_ahn3_index": AssetIn(key_prefix="ahn"),
         "metadata_ahn4_index": AssetIn(key_prefix="ahn"),
         "metadata_ahn5_index": AssetIn(key_prefix="ahn"),
+        "metadata_ahn6_index": AssetIn(key_prefix="ahn"),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -97,6 +98,7 @@ def reconstructed_building_models(
     metadata_ahn3_index,
     metadata_ahn4_index,
     metadata_ahn5_index,
+    metadata_ahn6_index,
 ) -> None:
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
@@ -113,6 +115,7 @@ def reconstructed_building_models(
         metadata_ahn3=metadata_ahn3_index,
         metadata_ahn4=metadata_ahn4_index,
         metadata_ahn5=metadata_ahn5_index,
+        metadata_ahn6=metadata_ahn6_index,
     )
 
     logger.info(f"{roofer_toml=}")
@@ -147,6 +150,7 @@ def create_roofer_config(
     metadata_ahn3,
     metadata_ahn4,
     metadata_ahn5,
+    metadata_ahn6,
 ):
     toml_template = """
     polygon-source = "{footprint_file}"
@@ -167,18 +171,23 @@ def create_roofer_config(
 
     [[pointclouds]]
     name = "ahn3"
-    quality = 2
+    quality = 3
     source = {ahn3_files}
 
     [[pointclouds]]
     name = "ahn4"
-    quality = 1
+    quality = 2
     source = {ahn4_files}
 
     [[pointclouds]]
     name = "ahn5"
-    quality = 0
+    quality = 1
     source = {ahn5_files}
+
+    [[pointclouds]]
+    name = "ahn6"
+    quality = 0
+    source = {ahn6_files}
 
     [output-attributes]
     success = ""
@@ -240,6 +249,8 @@ def create_roofer_config(
     query_params_ahn4["metadata_ahn"] = metadata_ahn4
     query_params_ahn5 = deepcopy(query_params)
     query_params_ahn5["metadata_ahn"] = metadata_ahn5
+    query_params_ahn6 = deepcopy(query_params)
+    query_params_ahn6["metadata_ahn"] = metadata_ahn6
     laz_files_ahn3 = [
         r["filename"]  # type: ignore[index]
         for r in computation_db.connection.get_dict(
@@ -258,6 +269,13 @@ def create_roofer_config(
         for r in computation_db.connection.get_dict(
             query_laz_tiles,
             query_params=query_params_ahn5,
+        )
+    ]
+    laz_files_ahn6 = [
+        r["filename"]  # type: ignore[index]
+        for r in computation_db.connection.get_dict(
+            query_laz_tiles,
+            query_params=query_params_ahn6,
         )
     ]
 
@@ -287,6 +305,7 @@ def create_roofer_config(
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,
+        ahn6_files=laz_files_ahn6,
         output_path=output_dir,
         nl_transform_scale=nl_transform.scale,
         nl_transform_translate=nl_transform.translate,

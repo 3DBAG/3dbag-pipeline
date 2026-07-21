@@ -3,11 +3,40 @@ from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
-from bag3d.core import AHN_TILE_IDS
+from bag3d.core.assets.ahn import AHN_TILE_IDS, AHN6_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
 partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
+
+
+BATCH_KM = 10
+
+_batch_ids = sorted(
+    {
+        f"{(int(t.split('_')[0]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}_"
+        f"{(int(t.split('_')[1]) // (BATCH_KM * 1000)) * (BATCH_KM * 1000):06d}"
+        for t in AHN6_TILE_IDS
+    }
+)
+partition_definition_ahn6_batches = StaticPartitionsDefinition(_batch_ids)
+
+AHN6_INDEX_URL = (
+    "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/"
+    "AHN6_KM_PC_COPC.json"
+)
+
+
+def tiles_in_batch(batch_id: str) -> list[str]:
+    """Return all 1×1 km tile IDs within a 10×10 km batch block."""
+    bx = int(batch_id.split("_")[0])
+    by = int(batch_id.split("_")[1])
+    return [
+        f"{x:06d}_{y:06d}"
+        for x in range(bx, bx + BATCH_KM * 1000, 1000)
+        for y in range(by, by + BATCH_KM * 1000, 1000)
+        if f"{x:06d}_{y:06d}" in AHN6_TILE_IDS
+    ]
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
@@ -21,6 +50,21 @@ def validate_new_ahn_tile_ids(features: dict) -> None:
         logger.warning(
             "Received AHN tile list has diverged from the one used, list must be updated"
             f"Difference: {feature_set ^ AHN_TILE_IDS}"
+        )
+
+
+def validate_new_ahn6_tile_ids(index: dict) -> None:
+    """Validate tile IDs from the AHN6 index against AHN6_TILE_IDS.
+
+    Logs a warning if the index has diverged from the expected tile list.
+    """
+    feature_set = set(index.keys())
+    diff = feature_set ^ AHN6_TILE_IDS
+    if len(diff) > 0:
+        logger.warning(
+            "AHN6 tile list has diverged from AHN6_TILE_IDS. "
+            f"New in index: {feature_set - AHN6_TILE_IDS}, "
+            f"Removed: {AHN6_TILE_IDS - feature_set}"
         )
 
 
@@ -104,6 +148,55 @@ def download_ahn_index(
                 }
         else:
             for f in returned_features:
-                features[f["properties"]["AHN"].lower()] = None
+                features[f["properties"]["AHN"].lower()] = {
+                    "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
+                    "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
+                    "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
+                    "geometry": None,
+                }
 
+    return features
+
+
+def download_ahn6_index(
+    with_geom: bool = False,
+) -> Dict[str, Optional[Dict[str, Optional[str]]]]:
+    """Download the AHN6 KM COPC tile index with checksums.
+
+    Fetches the GeoJSON from AHN6_INDEX_URL and extracts each feature's
+    file URL and SHA256 checksum. Returns a dict keyed by tile ID.
+    """
+    logger.info(f"Downloading AHN6 tile index from {AHN6_INDEX_URL}")
+    try:
+        resp = requests.get(AHN6_INDEX_URL, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        logger.error(f"Failed to download AHN6 index: {exc}")
+        return {}
+
+    features = {}
+    for f in data.get("features", []):
+        props = f.get("properties", {})
+        file_url = props.get("file", "")
+        if not file_url:
+            logger.warning(f"Skipping feature with missing file URL: {file_url}")
+            continue
+        filename = file_url.split("/")[-1]
+        name = filename.replace(".COPC.LAZ", "").replace(".LAZ", "")
+        parts = name.split("_C_")
+        if len(parts) != 2:
+            logger.warning(
+                f"Skipping feature with unrecognized file name format: {file_url}"
+            )
+            continue
+
+        tile_id = parts[1]
+        features[tile_id] = {
+            "url": file_url,
+            "geometry": f.get("geometry") if with_geom else None,
+        }
+
+    validate_new_ahn6_tile_ids(features)
+    logger.info(f"AHN6 index: {len(features)} tiles with checksums")
     return features

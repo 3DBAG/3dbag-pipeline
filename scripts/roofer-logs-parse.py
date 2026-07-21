@@ -30,7 +30,7 @@ parser.add_argument("-o", "--output", required=True, type=Path)
 ROOFER_SUCCESS_QUERY = """
 query FilteredRunsQuery {
   runsOrError(
-    filter: { statuses: [SUCCESS] pipelineName: "nl_reconstruct_debug" }
+    filter: { statuses: [SUCCESS] pipelineName: "reconstruct_debug" }
   ) {
     __typename
     ... on Runs {
@@ -71,8 +71,8 @@ if __name__ == "__main__":
 
     # "/opt/dagster/dagster_home/storage/0dbb1fa5-6dbf-454a-aed0-d94ec8d34fc0/compute_logs/ecsdmnmy.err"
     #
-    # record = "2024-11-29 10:26:25 +0000 - dagster - INFO - nl_reconstruct_debug - 0dbb1fa5-6dbf-454a-aed0-d94ec8d34fc0 - reconstructed_building_models_nl - [2024-11-29 10:26:21.441] [stdout] [debug] [reconstructor t] /data/3DBAG/crop_reconstruct/6/240/8/objects/NL.IMBAG.Pand.1709100000243562/reconstruct/NL.IMBAG.Pand.1709100000243562.city.jsonl ((ArrangementOptimiser, 0),(ArrangementBuilder, 0),(SegmentRasteriser, 6),(LineRegulariser, 0),(PlaneIntersector, 0),(extrude, 2),(LineDetector, 0),(AlphaShaper_ground, 1),(PlaneDetector_ground, 2),(AlphaShaper, 0),(PlaneDetector, 1),)"
-    # record = "2024-11-29 10:26:25 +0000 - dagster - INFO - nl_reconstruct_debug - 0dbb1fa5-6dbf-454a-aed0-d94ec8d34fc0 - reconstructed_building_models_nl - [2024-11-29 10:26:21.429] [stdout] [debug] [reconstructor] finish: /data/3DBAG/crop_reconstruct/6/240/8/objects/NL.IMBAG.Pand.1709100000244547/reconstruct/NL.IMBAG.Pand.1709100000244547.city.jsonl"
+    # record = "2024-11-29 10:26:25 +0000 - dagster - INFO - reconstruct_debug - 0dbb1fa5-6dbf-454a-aed0-d94ec8d34fc0 - reconstructed_building_models_nl - [2024-11-29 10:26:21.441] [stdout] [debug] [reconstructor t] /data/3DBAG/crop_reconstruct/6/240/8/objects/NL.IMBAG.Pand.1709100000243562/reconstruct/NL.IMBAG.Pand.1709100000243562.city.jsonl ((ArrangementOptimiser, 0),(ArrangementBuilder, 0),(SegmentRasteriser, 6),(LineRegulariser, 0),(PlaneIntersector, 0),(extrude, 2),(LineDetector, 0),(AlphaShaper_ground, 1),(PlaneDetector_ground, 2),(AlphaShaper, 0),(PlaneDetector, 1),)"
+    # record = "2024-11-29 10:26:25 +0000 - dagster - INFO - reconstruct_debug - 0dbb1fa5-6dbf-454a-aed0-d94ec8d34fc0 - reconstructed_building_models_nl - [2024-11-29 10:26:21.429] [stdout] [debug] [reconstructor] finish: /data/3DBAG/crop_reconstruct/6/240/8/objects/NL.IMBAG.Pand.1709100000244547/reconstruct/NL.IMBAG.Pand.1709100000244547.city.jsonl"
 
     records = []
     re_pat = re.compile(r"(?<=\[reconstructor t\]) (/.*?\.\S*) (.*)")

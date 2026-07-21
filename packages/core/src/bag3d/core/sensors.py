@@ -13,9 +13,9 @@ from dagster import (
 )
 from dagster import SupersessionWarning
 
-from bag3d.core.assets.ahn.core import download_ahn_index
+from bag3d.core.assets.ahn.core import download_ahn_index, download_ahn6_index, BATCH_KM
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
+from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
 
 class _AhnVersionConfig(TypedDict):
@@ -41,6 +41,11 @@ _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
         "asset_key": AssetKey(["ahn", "sha256_ahn5"]),
         "url_key": "AHN5_LAZ",
     },
+    6: {
+        "job_name": "ahn6",
+        "asset_key": AssetKey(["ahn", "sha256_ahn6"]),
+        "url_key": "url",
+    },
 }
 
 
@@ -64,10 +69,10 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
     """Factory that returns the AHN checksum sensor with the given default status.
 
     The sensor watches for new materializations of the checksum assets (md5_ahn3,
-    md5_ahn4, sha256_ahn5). When triggered, it downloads the tile index to build
-    a filename→tile_id mapping, reads the checksums, compares against previously
-    stored checksums in the cursor, and triggers partition runs only for tiles
-    whose checksum has changed.
+    md5_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
+    index to build a filename to tile_id mapping, reads the checksums, compares
+    against previously stored checksums in the cursor, and triggers partition runs
+    only for tiles whose checksum has changed.
 
     On first run (no cursor), it establishes a baseline without triggering any runs.
     """
@@ -89,14 +94,14 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 AssetKey(["ahn", "md5_ahn3"]),
                 AssetKey(["ahn", "md5_ahn4"]),
                 AssetKey(["ahn", "sha256_ahn5"]),
+                AssetKey(["ahn", "sha256_ahn6"]),
             ],
-            jobs=[job_ahn3, job_ahn4, job_ahn5],
+            jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6],
             default_status=default_status,
             name="ahn_checksum_sensor",
         )
         def _sensor(context: MultiAssetSensorEvaluationContext):
             """Detect AHN LAZ file changes by comparing checksums against stored state."""
-            # Check which checksum assets have new materializations
             events = context.latest_materialization_records_by_key()
             updated_versions = [
                 version
@@ -107,9 +112,6 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
             if not updated_versions:
                 return SkipReason("No new checksum materializations")
 
-            # Load tile index for filename→tile_id mapping (no geometry needed)
-            tile_index = download_ahn_index(with_geom=False)
-
             previous = json.loads(context.cursor) if context.cursor else {}
             current = dict(previous)  # preserve checksums for un-updated versions
             run_requests = []
@@ -118,15 +120,21 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 cfg = _AHN_VERSIONS[version]
                 key = f"ahn{version}"
 
+                if version == 6:
+                    tile_index = download_ahn6_index(with_geom=False)
+                else:
+                    # Load tile index for filename→tile_id mapping (no geometry needed)
+                    tile_index = download_ahn_index(with_geom=False)
+
+                if tile_index is None:
+                    context.log.warning("Failed to download AHN tile index")
+                    continue
                 try:
                     checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
                 except Exception:
                     context.log.warning(f"Failed to read checksums for AHN{version}")
                     continue
 
-                if tile_index is None:
-                    context.log.warning("Failed to download AHN tile index")
-                    continue
                 filename_to_tile = _build_filename_to_tile_id(
                     tile_index, cfg["url_key"]
                 )
@@ -141,6 +149,9 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                     continue
 
                 # Find tiles whose checksum changed (new or updated)
+                # For AHN6, multiple 1×1 km tiles map to the same 10×10 km
+                # batch partition — deduplicate to avoid redundant runs.
+                emitted_batches: set[str] = set()
                 for filename, new_hash in checksums.items():
                     old_hash = prev_checksums.get(filename)
                     if old_hash != new_hash:
@@ -150,11 +161,25 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                                 f"AHN{version}: no tile_id mapping for {filename}"
                             )
                             continue
+
+                        if version == 6:
+                            x, y = map(int, tile_id.split("_"))
+                            bx = (x // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+                            by = (y // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+                            partition_key = f"{bx:06d}_{by:06d}"
+                            if partition_key in emitted_batches:
+                                continue
+                            emitted_batches.add(partition_key)
+                            run_key = f"ahn{version}-{partition_key}-{new_hash[:8]}"
+                        else:
+                            partition_key = tile_id
+                            run_key = f"ahn{version}-{tile_id}-{new_hash[:8]}"
+
                         run_requests.append(
                             RunRequest(
-                                run_key=f"ahn{version}-{tile_id}-{new_hash[:8]}",
+                                run_key=run_key,
                                 job_name=cfg["job_name"],
-                                partition_key=tile_id,
+                                partition_key=partition_key,
                             )
                         )
 

@@ -73,7 +73,7 @@ def tile_index_ahn_fix():
         "01cz1": {
             "AHN3_LAZ": "https://basisdata.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
             "AHN4_LAZ": "https://basisdata.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
-            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ//2023_C_01CZ1.LAZ",
+            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [
