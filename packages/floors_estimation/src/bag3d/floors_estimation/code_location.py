@@ -7,7 +7,7 @@ from bag3d.floors_estimation.resources import ModelStoreResource
 from dagster import Definitions, load_assets_from_modules
 
 all_assets = load_assets_from_modules(
-    modules=(floors_estimation),
+    modules=(floors_estimation,),
     key_prefix="floors_estimation",
     group_name="floors_estimation",
 )
@@ -23,9 +23,7 @@ else:
     raise RuntimeError(
         f"Invalid DAGSTER_DEPLOYMENT {dagster_deployment}, cannot configure dagster environment"
     )
-resource_defs.update(
-    {"model_store": model_store,}
-)
+resource_defs.update({"model_store": model_store})
 
 
 defs = Definitions(
