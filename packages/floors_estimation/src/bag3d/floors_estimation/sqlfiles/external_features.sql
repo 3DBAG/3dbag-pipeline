@@ -147,7 +147,7 @@ UPDATE ${external_features}
 SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold_2023,
 cbs_pop_per_km2 = cdpn.cbs_pop_per_km2_2023,
 cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca_2021
-FROM  cdpn
+FROM  cbs_data_per_neighbourhood cdpn
 WHERE st_intersects(${external_features}.geometrie, cdpn.geometrie);
 
 -- twee-onder-een-kap : 0
