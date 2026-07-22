@@ -9,6 +9,7 @@ from bag3d.core.jobs import (
     job_ahn_metadata_index,
     job_ahn_tile_index,
     job_bgt,
+    job_cbs,
     job_reconstruct,
     job_reconstruct_debug,
     job_source_input,
@@ -16,6 +17,7 @@ from bag3d.core.jobs import (
 
 JOB_DEFS = [
     job_bgt,
+    job_cbs,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
