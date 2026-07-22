@@ -49,19 +49,6 @@ class CbsBuurtkaartConfig(Config):
     )
 
 
-class CbsAddressMappingConfig(Config):
-    """Configuration for CBS address-to-neighbourhood mapping download."""
-
-    year: str = Field(
-        default="2025",
-        description="Year for naming the output table.",
-    )
-    url: str = Field(
-        default="https://download.cbs.nl/postcode/2025-cbs-pc6huisnr20250801_buurt.zip",
-        description="Full download URL for the CBS address mapping ZIP.",
-    )
-
-
 def _clean_cell(cell: object) -> str:
     """Remove special characters from CBS data cell contents.
 

@@ -19,7 +19,6 @@ from bag3d.common.utils.database import (
     postgrestable_metadata,
 )
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.core.assets.cbs.download import CbsAddressMappingConfig
 
 logger = get_dagster_logger("cbs.load")
 
