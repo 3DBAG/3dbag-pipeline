@@ -118,8 +118,8 @@ class TestExtractCbsKeyFigures:
             result = extract_cbs_key_figures(context, config, file_store)
 
         csv_path = cbs_dir / "cbs_key_figures_2025.csv"
-        assert result.metadata["File [2025]"].value == str(csv_path)
-        assert result.metadata["Records [2025]"].value == 1
+        assert result.metadata["File [2025]"].value == str(csv_path)  # type: ignore[reportAttributeAccessIssue]
+        assert result.metadata["Records [2025]"].value == 1  # type: ignore[reportAttributeAccessIssue]
         assert csv_path.exists()
 
 
@@ -151,7 +151,7 @@ class TestExtractCbsBuurtkaart:
                 context, CbsBuurtkaartConfig(year="2025", version="v1"), file_store
             )
 
-        assert result.metadata["GeoPackage"].value == str(fallback)
+        assert result.metadata["GeoPackage"].value == str(fallback)  # type: ignore[reportAttributeAccessIssue]
 
     def test_raises_when_no_gpkg_found(self, tmp_path, monkeypatch):
         cbs_dir = tmp_path / "cbs"
@@ -209,8 +209,8 @@ class TestLoadCsvToPostgres:
 
         create_call = mock_conn.send_query.call_args_list[0][0][0]
         sql_str = str(create_call)
-        assert '"ID" TEXT' in sql_str
-        assert '"Name" TEXT' in sql_str
+        assert "Identifier('ID'" in sql_str
+        assert "Identifier('Name'" in sql_str
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ class TestCbsKeyFigures:
         calls = [str(c[0][0]) for c in mock_conn.send_query.call_args_list]
         sql_str = " ".join(calls)
         assert "key_figures_districts_neighbourhoods" in sql_str
-        assert '"ID" TEXT' in sql_str
+        assert "Identifier('ID'" in sql_str
 
 
 # ---------------------------------------------------------------------------
@@ -270,4 +270,4 @@ class TestCbsBuurten:
         assert "buurten" in cmd
         assert "{exe}" in cmd
         assert "{dsn}" in cmd
-        assert result.metadata
+        assert result.metadata  # type: ignore[reportAttributeAccessIssue]

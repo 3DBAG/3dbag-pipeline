@@ -42,8 +42,8 @@ def _load_csv_to_postgres(
         headers = next(reader)
 
     # Create table with all TEXT columns
-    columns_sql = ", ".join(f'"{col}" TEXT' for col in headers)
-    create_q = SQL("CREATE TABLE {} ({})").format(table.id, SQL(columns_sql))
+    col_idents = SQL(", ").join(Identifier(col) + SQL(" TEXT") for col in headers)
+    create_q = SQL("CREATE TABLE {} ({})").format(table.id, col_idents)
     conn.send_query(create_q)
 
     # COPY data from CSV
@@ -53,7 +53,7 @@ def _load_csv_to_postgres(
     with connect(conn.dsn) as pg_conn:
         with pg_conn.cursor() as cur:
             with open(csv_path, "r", encoding="utf-8") as f:
-                with cur.copy(copy_q.as_string(pg_conn)) as copy:
+                with cur.copy(copy_q.as_string(pg_conn)) as copy:  # type: ignore[arg-type]
                     for line in f:
                         copy.write(line)
 
