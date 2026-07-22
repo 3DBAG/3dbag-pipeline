@@ -69,14 +69,14 @@ def cbs_key_figures(
     """CBS key figures (Kerncijfers wijken en buurten) loaded into PostgreSQL.
 
     Creates one table in the 'cbs' schema, e.g.
-    cbs.cbs_key_figures_districts_neighbourhoods.
+    cbs.key_figures_districts_neighbourhoods.
     """
     create_schema(computation_db, CBS_SCHEMA, logger=logger)
     tables: list[PostgresTableIdentifier] = []
     metadata: dict = {}
 
     for year, csv_path in extract_cbs_key_figures.items():
-        table_name = f"cbs_key_figures_districts_neighbourhoods"
+        table_name = f"key_figures_districts_neighbourhoods"
         new_table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
         drop_table(computation_db, new_table, logger=logger)
 

@@ -228,7 +228,7 @@ def external_features(
         query_params={
             "external_features": external_features_table,
             "cbs_key_figures": PostgresTableIdentifier(
-                cbs_schema, "cbs_key_figures_districts_neighbourhoods"
+                cbs_schema, "key_figures_districts_neighbourhoods"
             ),
             "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
             "building_type": PostgresTableIdentifier(reconstructed_schema, "woningtype"),
