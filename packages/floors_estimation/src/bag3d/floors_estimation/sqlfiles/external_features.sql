@@ -132,9 +132,9 @@ DROP TABLE IF EXISTS cbs_data_per_neighbourhood;
 CREATE TEMP TABLE cbs_data_per_neighbourhood AS(
 SELECT  ckfdn."WijkenEnBuurten"
        ,cb.geom                               AS geometrie
-       ,ckfdn."PercentageMeergezinswoning_45" AS cbs_percent_multihousehold
-       ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2
-       ,ckfdn."GIHandelEnHoreca_98"          AS cbs_dist_to_horeca
+       ,NULLIF(ckfdn."PercentageMeergezinswoning_45", '')::int AS cbs_percent_multihousehold
+       ,NULLIF(ckfdn."Bevolkingsdichtheid_34", '')::int        AS cbs_pop_per_km2
+       ,NULLIF(ckfdn."GIHandelEnHoreca_98", '')::int          AS cbs_dist_to_horeca
 FROM ${cbs_key_figures} ckfdn
 JOIN ${cbs_buurten} cb
 ON cb.buurtcode = ckfdn."WijkenEnBuurten"
@@ -165,4 +165,4 @@ SET buildingtype =
 		             ELSE 5 
 				 END 
 FROM ${building_type} ebt 
-WHERE concat('NL.IMBAG.Pand.',ebt.identificatie)  = ${external_features}.identificatie;
+WHERE ebt.identificatie = ${external_features}.identificatie;
