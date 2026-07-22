@@ -231,7 +231,9 @@ def external_features(
                 cbs_schema, "key_figures_districts_neighbourhoods"
             ),
             "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
-            "building_type": PostgresTableIdentifier(reconstructed_schema, "woningtype"),
+            "building_type": PostgresTableIdentifier(
+                reconstructed_schema, "woningtype"
+            ),
         }
     )
     metadata = postgrestable_from_query(

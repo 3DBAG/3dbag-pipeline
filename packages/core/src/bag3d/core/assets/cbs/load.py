@@ -75,7 +75,7 @@ def cbs_key_figures(
     metadata: dict = {}
 
     for year, csv_path in extract_cbs_key_figures.items():
-        table_name = f"key_figures_districts_neighbourhoods"
+        table_name = "key_figures_districts_neighbourhoods"
         new_table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
         drop_table(computation_db, new_table, logger=logger)
 
