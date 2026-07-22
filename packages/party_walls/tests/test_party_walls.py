@@ -23,20 +23,10 @@ def _make_feature_file(path, pand_id: str) -> None:
             pand_id: {
                 "type": "Building",
                 "attributes": {},
-                "geometry": [
-                    {
-                        "type": "MultiSurface",
-                        "lod": "2.2",
-                        "boundaries": [[[0, 1, 2]]],
-                        "semantics": {
-                            "surfaces": [{"type": "GroundSurface"}],
-                            "values": [0],
-                        },
-                    }
-                ],
+                "geometry": [],
             }
         },
-        "vertices": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+        "vertices": [],
     }
     path.write_text(json.dumps(content))
 
@@ -117,7 +107,10 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
     adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
 
+    shared_walls_calls = []
+
     def fake_shared_walls(target, adjacent):
+        shared_walls_calls.append((target, adjacent))
         return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
 
     def fake_write_cityjsonfeature(raw_feature, result, output_path):
@@ -165,14 +158,18 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         tmp_path / "stages" / "party_walls" / tile_id / f"{target_id}.city.jsonl",
         tmp_path / "stages" / "party_walls" / tile_id / f"{adjacent_id}.city.jsonl",
     ]
+    # shared_walls call count cannot be asserted via a local list with ProcessPoolExecutor
+    # (worker mutations are not visible in the parent process); correctness is verified
+    # via output file content below.
 
-    # The real shared_walls runs in a ProcessPoolExecutor (monkeypatch doesn't
-    # propagate to spawned processes), so computed values reflect the simple
-    # non-touching fixture geometry — no shared walls, no wall surfaces.
     target_output = json.loads(output_paths[0].read_text())
     assert (
         target_output["CityObjects"][target_id]["attributes"]["b3_opp_scheidingsmuur"]
-        == 0.0
+        == 12.5
+    )
+    assert (
+        target_output["CityObjects"][target_id]["attributes"]["b3_opp_buitenmuur"]
+        == 8.0
     )
     mock_db.connection.get_dict.assert_called_once()
 

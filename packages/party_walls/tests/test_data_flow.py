@@ -28,20 +28,10 @@ def _make_feature_file(path: Path, pand_id: str) -> None:
             pand_id: {
                 "type": "Building",
                 "attributes": {},
-                "geometry": [
-                    {
-                        "type": "MultiSurface",
-                        "lod": "2.2",
-                        "boundaries": [[[0, 1, 2]]],
-                        "semantics": {
-                            "surfaces": [{"type": "GroundSurface"}],
-                            "values": [0],
-                        },
-                    }
-                ],
+                "geometry": [],
             }
         },
-        "vertices": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+        "vertices": [],
     }
     path.write_text(json.dumps(content))
 
@@ -78,7 +68,10 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         assert "stages/reconstruction" in str(index[pand_id])
 
     # Step 2: building_surfaces consumes the index and writes to party_walls stage
+    shared_walls_calls: list[tuple] = []
+
     def fake_shared_walls(target: object, adjacent: object) -> dict:
+        shared_walls_calls.append((target, adjacent))
         return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
 
     def fake_write_cityjsonfeature(raw_feature, result, output_path):
@@ -123,16 +116,14 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
     assert party_walls_dir.is_dir()
     assert len(cast(list, output_paths)) == 2
 
-    # The real shared_walls runs in a ProcessPoolExecutor (monkeypatch doesn't
-    # propagate to spawned processes), so computed values reflect the simple
-    # non-touching fixture geometry — no shared walls.
     for pand_id in (target_id, adjacent_id):
         output_file = party_walls_dir / f"{pand_id}.city.jsonl"
         assert output_file.exists(), f"Missing output for {pand_id}"
 
         feature = json.loads(output_file.read_text())
         attrs = feature["CityObjects"][pand_id]["attributes"]
-        assert attrs["b3_opp_scheidingsmuur"] == 0.0
+        assert attrs["b3_opp_scheidingsmuur"] == 12.5
+        assert attrs["b3_opp_buitenmuur"] == 8.0
 
     # shared_walls was called for both buildings (verified via output file content above;
     # call-count cannot be asserted directly with ProcessPoolExecutor since worker
