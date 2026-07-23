@@ -3,9 +3,9 @@ DROP TABLE IF EXISTS ${new_table} CASCADE;
 CREATE TABLE ${new_table} AS
 WITH isect AS (SELECT bag1.fid
                     , ST_Intersection(bag1.geometrie, bag2.geometrie) isection
-               FROM ${bag_cleaned} bag1
+               FROM ${bag_pandactueelbestaand} bag1
                         JOIN
-                    ${bag_cleaned} bag2
+                    ${bag_pandactueelbestaand} bag2
                     ON ST_Intersects(bag1.geometrie, bag2.geometrie)
                WHERE bag1.fid != bag2.fid)
    , dissolve AS (SELECT fid
@@ -19,4 +19,4 @@ SELECT d.fid
            ELSE overlap_area
     END AS b3_bag_bag_overlap
 FROM dissolve d
-         JOIN ${bag_cleaned} b ON d.fid = b.fid;
+         JOIN ${bag_pandactueelbestaand} b ON d.fid = b.fid;

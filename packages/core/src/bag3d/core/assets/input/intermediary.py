@@ -36,7 +36,7 @@ def bag_kas_warenhuis(
     )
     query = load_sql(
         query_params={
-            "bag_cleaned": bag_pandactueelbestaand,
+            "bag_pandactueelbestaand": bag_pandactueelbestaand,
             "top10nl_gebouw": top10nl_gebouw,
             "new_table": new_table,
         }
@@ -64,7 +64,7 @@ def bag_bag_overlap(
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_bag_overlap")
     query = load_sql(
-        query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
+        query_params={"bag_pandactueelbestaand": bag_pandactueelbestaand, "new_table": new_table}
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(

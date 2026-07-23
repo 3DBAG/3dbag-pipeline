@@ -38,7 +38,7 @@ def reconstruction_input(
     )
     query = load_sql(
         query_params={
-            "bag_cleaned": bag_pandactueelbestaand,
+            "bag_pandactueelbestaand": bag_pandactueelbestaand,
             "bag_kas_warenhuis": bag_kas_warenhuis,
             "bag_bag_overlap": bag_bag_overlap,
             "new_table": new_table,
