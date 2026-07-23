@@ -232,7 +232,7 @@ def external_features(
             ),
             "cbs_buurten": PostgresTableIdentifier(cbs_schema, "buurten"),
             "building_type": PostgresTableIdentifier(
-                reconstructed_schema, "woningtype"
+                reconstructed_schema, "woningtypen"
             ),
         }
     )
