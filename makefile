@@ -153,9 +153,9 @@ lint:
 	echo "Manifest version check"; \
 	python3 scripts/check_manifest_versions.py; \
 	echo "Format check"; \
-	uv tool run ruff format --check ./packages; \
+	uv run ruff format --check ./packages; \
 	echo "Syntax and style"; \
-	uv tool run ruff check ./packages; \
+	uv run ruff check ./packages; \
 	FAILED=0; \
 	echo "Type check: common"; \
 	uv --project packages/common run pyright packages/common || FAILED=1; \
@@ -170,8 +170,8 @@ lint:
 	exit $$FAILED
 
 lint_fix:
-	uv tool run ruff format ./packages
-	uv tool run ruff check --fix ./packages
+	uv run ruff format ./packages
+	uv run ruff check --fix ./packages
 
 local_install_uv:
 	curl -LsSf https://astral.sh/uv/install.sh | sh
