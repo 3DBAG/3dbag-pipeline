@@ -1,14 +1,13 @@
-from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL
-
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
     create_schema,
     drop_table,
     load_sql,
     postgrestable_from_query,
 )
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources.database import DatabaseResource
+from dagster import AssetIn, AutomationCondition, Output, asset, get_dagster_logger
+from psycopg.sql import SQL
 
 INTERMEDIARY = "intermediary"
 RECONSTRUCTION_INPUT_SCHEMA = "reconstruction_input"
@@ -64,7 +63,10 @@ def bag_bag_overlap(
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_bag_overlap")
     query = load_sql(
-        query_params={"bag_pandactueelbestaand": bag_pandactueelbestaand, "new_table": new_table}
+        query_params={
+            "bag_pandactueelbestaand": bag_pandactueelbestaand,
+            "new_table": new_table,
+        }
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
@@ -199,6 +201,7 @@ def bag_bgt_join(
     key_prefix=INTERMEDIARY,
     ins={
         "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_bag_overlap": AssetIn(key_prefix=INTERMEDIARY),
         "bag_bgt_join": AssetIn(key_prefix=INTERMEDIARY),
     },
     op_tags={"compute_kind": "sql"},
@@ -207,13 +210,19 @@ def bag_bgt_join(
 def bag_pand_filtered(
     bag_pandactueelbestaand,
     bag_bgt_join,
+    bag_bag_overlap,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     """Filtered BAG Pand table with problematic polygons removed.
+    Creates 2 tables in the reconstruction_input schema:
+    - bag_pand_filtered: BAG polygons that pass the filtering criteria
+    - bag_pand_removed: BAG polygons that are removed due to filtering criteria
 
     Removes:
     - BAG polygons with area > 1000 m2 that have no matching BGT geometry
     - BAG polygons where the BGT geometry area is less than 10% of the BAG geometry area
+    - BAG polygons which have a high percentage of overlap with other BAG polygons (overlap > 10% of BAG polygon area)
+
     """
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(
@@ -223,7 +232,11 @@ def bag_pand_filtered(
         query_params={
             "bag_pand": bag_pandactueelbestaand,
             "bag_bgt_join": bag_bgt_join,
+            "bag_bag_overlap": bag_bag_overlap,
             "new_table": new_table,
+            "bag_pand_removed": PostgresTableIdentifier(
+                RECONSTRUCTION_INPUT_SCHEMA, "bag_pand_removed"
+            ),
         }
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
