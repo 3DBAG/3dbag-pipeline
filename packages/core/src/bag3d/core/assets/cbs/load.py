@@ -21,21 +21,11 @@ logger = get_dagster_logger("cbs.load")
 
 CBS_SCHEMA = "cbs"
 
-PG_TYPE_MAP = {
-    int: "INTEGER",
-    float: "DOUBLE PRECISION",
-    str: "TEXT",
-    type(None): "TEXT",
+PG_TYPE_SQL: dict[type, SQL] = {
+    int: SQL("INTEGER"),
+    float: SQL("DOUBLE PRECISION"),
+    str: SQL("TEXT"),
 }
-
-
-def _infer_pg_type(records: list[dict], col: str) -> str:
-    """Infer PostgreSQL type from the first non-None value in a column."""
-    for record in records:
-        val = record.get(col)
-        if val is not None:
-            return PG_TYPE_MAP.get(type(val), "TEXT")
-    return "TEXT"
 
 
 def _load_records_to_postgres(
@@ -54,8 +44,15 @@ def _load_records_to_postgres(
     conn = computation_db.connection
     headers = list(records[0].keys())
 
+    def _col_type(col: str) -> SQL:
+        for record in records:
+            val = record.get(col)
+            if val is not None:
+                return PG_TYPE_SQL.get(type(val), SQL("TEXT"))
+        return SQL("TEXT")
+
     col_idents = SQL(", ").join(
-        Identifier(col) + SQL(f" {_infer_pg_type(records, col)}") for col in headers
+        Identifier(col) + SQL(" ") + _col_type(col) for col in headers
     )
     create_q = SQL("CREATE TABLE {} ({})").format(table.id, col_idents)
     conn.send_query(create_q)

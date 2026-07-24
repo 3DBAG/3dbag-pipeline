@@ -17,7 +17,6 @@ from bag3d.core.assets.cbs.download import (
     extract_cbs_key_figures,
 )
 from bag3d.core.assets.cbs.load import (
-    _infer_pg_type,
     _load_records_to_postgres,
     cbs_buurten,
     cbs_key_figures,
@@ -165,23 +164,8 @@ class TestExtractCbsBuurtkaart:
 
 
 # ---------------------------------------------------------------------------
-# _infer_pg_type & _load_records_to_postgres
+# _load_records_to_postgres
 # ---------------------------------------------------------------------------
-class TestInferPgType:
-    @pytest.mark.parametrize(
-        "records, col, expected",
-        [
-            ([{"v": 1}, {"v": 2}], "v", "INTEGER"),
-            ([{"v": 1.5}, {"v": 2.0}], "v", "DOUBLE PRECISION"),
-            ([{"v": "hello"}], "v", "TEXT"),
-            ([{"v": None}, {"v": 1}], "v", "INTEGER"),
-            ([{"v": None}], "v", "TEXT"),
-        ],
-    )
-    def test_infer_pg_type(self, records, col, expected):
-        assert _infer_pg_type(records, col) == expected
-
-
 class TestLoadRecordsToPostgres:
     def test_creates_table_with_inferred_types(self, monkeypatch):
         records = [{"ID": 1, "Name": "test"}]
