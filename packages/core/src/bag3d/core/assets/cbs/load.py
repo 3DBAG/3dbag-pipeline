@@ -3,7 +3,6 @@
 Loads CBS key figures and buurtkaart GeoPackage into the 'cbs' schema.
 """
 
-from pathlib import Path
 
 from dagster import asset, Output, get_dagster_logger, AutomationCondition
 from psycopg import connect
@@ -23,7 +22,12 @@ logger = get_dagster_logger("cbs.load")
 
 CBS_SCHEMA = "cbs"
 
-PG_TYPE_MAP = {int: "INTEGER", float: "DOUBLE PRECISION", str: "TEXT", type(None): "TEXT"}
+PG_TYPE_MAP = {
+    int: "INTEGER",
+    float: "DOUBLE PRECISION",
+    str: "TEXT",
+    type(None): "TEXT",
+}
 
 
 def _infer_pg_type(records: list[dict], col: str) -> str:
@@ -52,8 +56,7 @@ def _load_records_to_postgres(
     headers = list(records[0].keys())
 
     col_idents = SQL(", ").join(
-        Identifier(col) + SQL(f" {_infer_pg_type(records, col)}")
-        for col in headers
+        Identifier(col) + SQL(f" {_infer_pg_type(records, col)}") for col in headers
     )
     create_q = SQL("CREATE TABLE {} ({})").format(table.id, col_idents)
     conn.send_query(create_q)

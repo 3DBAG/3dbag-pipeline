@@ -53,8 +53,12 @@ class TestRecordsToCsv:
     def test_writes_csv_with_cleaned_values(self, tmp_path):
         records = [
             {
-                "ID": "0", "Region": "NL", "Type": "Land", "Code": "NL00",
-                "Population": "100", "Density": "---",
+                "ID": "0",
+                "Region": "NL",
+                "Type": "Land",
+                "Code": "NL00",
+                "Population": "100",
+                "Density": "---",
             },
         ]
         result = _clean_records(records)
