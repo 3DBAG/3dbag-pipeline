@@ -5,7 +5,6 @@ CBS Wijk- en buurtkaart (neighbourhood boundary geometries) as GeoPackage,
 and CBS address-to-neighbourhood mapping as CSV.
 """
 
-import csv
 import re
 from pathlib import Path
 
@@ -49,16 +48,19 @@ class CbsBuurtkaartConfig(Config):
     )
 
 
-def _clean_cell(cell: object) -> str:
+def _clean_cell(cell: object) -> str | int | float | None:
     """Remove special characters from CBS data cell contents.
 
     Strips whitespace, replaces cells containing only non-alphanumeric characters
-    or 'None' with an empty string (to be treated as NULL/NaN downstream).
+    or 'None' with None (treated as NULL downstream). Preserves original
+    numeric types from the OData JSON response.
     """
-    cell = str(cell).strip()
-    if re.match(r"^[_\W]+$", cell) or cell == "None":
-        return ""
-    return cell
+    if cell is None:
+        return None
+    cell_str = str(cell).strip()
+    if re.match(r"^[_\W]+$", cell_str) or cell_str == "None":
+        return None
+    return cell if isinstance(cell, (int, float)) else cell_str
 
 
 def _fetch_cbs_odata(target_url: str) -> list[dict]:
@@ -82,59 +84,51 @@ def _fetch_cbs_odata(target_url: str) -> list[dict]:
     return records
 
 
-def _records_to_csv(records: list[dict], output_path: Path) -> None:
-    """Write a list of dicts to a CSV file, cleaning cell values.
+def _clean_records(records: list[dict]) -> list[dict]:
+    """Clean CBS OData records, returning dicts with proper Python types.
 
     The first 4 columns (ID + region identifiers) are kept as-is.
-    Remaining columns have their values cleaned and empty strings written
-    for special/missing values.
+    Remaining columns have their values cleaned — special values ('---', 'None')
+    become None, numeric values keep their Python type from the JSON response.
     """
     if not records:
-        raise ValueError("No records to write")
+        raise ValueError("No records to clean")
 
-    fieldnames = list(records[0].keys())
-
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-        writer.writeheader()
-        for record in records:
-            cleaned = {}
-            for i, (key, value) in enumerate(record.items()):
-                if i < 4:
-                    # Keep ID and region identifier columns as-is
-                    cleaned[key] = str(value).strip() if value is not None else ""
-                else:
-                    cleaned[key] = _clean_cell(value)
-            writer.writerow(cleaned)
+    cleaned: list[dict] = []
+    for record in records:
+        row: dict[str, object] = {}
+        for i, (key, value) in enumerate(record.items()):
+            if i < 4:
+                # Keep ID and region identifier columns as-is
+                row[key] = str(value).strip() if value is not None else None
+            else:
+                row[key] = _clean_cell(value)
+        cleaned.append(row)
+    return cleaned
 
 
 @asset(automation_condition=AutomationCondition.eager())
 def extract_cbs_key_figures(
     config: CbsKeyFiguresConfig,
     file_store: FileStoreResource,
-) -> Output[dict[str, Path]]:
+) -> Output[dict[str, list[dict]]]:
     """Download CBS key figures (Kerncijfers wijken en buurten) from the OData API.
 
-    Fetches data for each configured year and saves as CSV files in the file store.
-    The CBS OData API provides neighbourhood-level statistics including population
-    density, housing types, and distances to amenities.
+    Fetches data for each configured year and returns cleaned records with
+    proper Python types preserved from the JSON response (int, float, str, None).
 
     API documentation: https://opendata.cbs.nl
     """
-    cbs_dir = file_store.create_subdir("cbs")
-    result: dict[str, Path] = {}
+    result: dict[str, list[dict]] = {}
     metadata: dict = {}
 
     for year, table_id in config.table_ids.items():
         api_url = f"https://opendata.cbs.nl/ODataFeed/odata/{table_id}/TypedDataSet"
         records = _fetch_cbs_odata(api_url)
+        cleaned = _clean_records(records)
 
-        csv_path = cbs_dir / f"cbs_key_figures_{year}.csv"
-        _records_to_csv(records, csv_path)
-
-        result[year] = csv_path
-        metadata[f"Records [{year}]"] = len(records)
-        metadata[f"File [{year}]"] = str(csv_path)
+        result[year] = cleaned
+        metadata[f"Records [{year}]"] = len(cleaned)
 
     return Output(result, metadata=metadata)
 

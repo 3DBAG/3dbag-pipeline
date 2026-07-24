@@ -1,6 +1,5 @@
 """Tests for CBS download and load assets."""
 
-import csv
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,13 +11,14 @@ from bag3d.core.assets.cbs.download import (
     CbsBuurtkaartConfig,
     CbsKeyFiguresConfig,
     _clean_cell,
+    _clean_records,
     _fetch_cbs_odata,
-    _records_to_csv,
     extract_cbs_buurtkaart,
     extract_cbs_key_figures,
 )
 from bag3d.core.assets.cbs.load import (
-    _load_csv_to_postgres,
+    _infer_pg_type,
+    _load_records_to_postgres,
     cbs_buurten,
     cbs_key_figures,
 )
@@ -33,12 +33,13 @@ class TestCleanCell:
         [
             ("  123  ", "123"),
             ("Normal", "Normal"),
-            ("None", ""),
-            ("---", ""),
-            ("___", ""),
+            ("None", None),
+            ("---", None),
+            ("___", None),
             ("", ""),
-            (42, "42"),
-            (3.14, "3.14"),
+            (42, 42),
+            (3.14, 3.14),
+            (None, None),
         ],
     )
     def test_clean_cell(self, value, expected):
@@ -52,28 +53,18 @@ class TestRecordsToCsv:
     def test_writes_csv_with_cleaned_values(self, tmp_path):
         records = [
             {
-                "ID": "0",
-                "Region": "NL",
-                "Type": "Land",
-                "Code": "NL00",
-                "Population": "100",
-                "Density": "---",
+                "ID": "0", "Region": "NL", "Type": "Land", "Code": "NL00",
+                "Population": "100", "Density": "---",
             },
         ]
-        output = tmp_path / "test.csv"
-        _records_to_csv(records, output)
+        result = _clean_records(records)
+        assert result[0]["ID"] == "0"
+        assert result[0]["Population"] == "100"
+        assert result[0]["Density"] is None
 
-        with open(output) as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-        assert len(rows) == 1
-        assert rows[0]["ID"] == "0"
-        assert rows[0]["Population"] == "100"
-        assert rows[0]["Density"] == ""
-
-    def test_raises_on_empty_records(self, tmp_path):
+    def test_raises_on_empty_records(self):
         with pytest.raises(ValueError, match="No records"):
-            _records_to_csv([], tmp_path / "empty.csv")
+            _clean_records([])
 
 
 # ---------------------------------------------------------------------------
@@ -99,28 +90,21 @@ class TestFetchCbsOdata:
 # extract_cbs_key_figures
 # ---------------------------------------------------------------------------
 class TestExtractCbsKeyFigures:
-    def test_saves_csv_per_year(self, tmp_path, monkeypatch):
-        cbs_dir = tmp_path / "cbs"
-        cbs_dir.mkdir(parents=True)
-        file_store = MagicMock()
-        file_store.create_subdir.return_value = cbs_dir
-
+    def test_returns_cleaned_records(self, monkeypatch):
         mock_records = [
-            {"ID": "0", "Region": "NL", "Type": "Buurt", "Code": "BU00", "Pop": "100"}
+            {"ID": 0, "Region": "NL", "Type": "Buurt", "Code": "BU00", "Pop": 100}
         ]
         monkeypatch.setattr(
             "bag3d.core.assets.cbs.download._fetch_cbs_odata",
             lambda url: mock_records,
         )
 
+        file_store = MagicMock()
         config = CbsKeyFiguresConfig(table_ids={"2025": "86165NED"})
         with build_asset_context() as context:
             result = extract_cbs_key_figures(context, config, file_store)
 
-        csv_path = cbs_dir / "cbs_key_figures_2025.csv"
-        assert result.metadata["File [2025]"].value == str(csv_path)  # type: ignore[reportAttributeAccessIssue]
         assert result.metadata["Records [2025]"].value == 1  # type: ignore[reportAttributeAccessIssue]
-        assert csv_path.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -177,24 +161,31 @@ class TestExtractCbsBuurtkaart:
 
 
 # ---------------------------------------------------------------------------
-# _load_csv_to_postgres
+# _infer_pg_type & _load_records_to_postgres
 # ---------------------------------------------------------------------------
-class TestLoadCsvToPostgres:
-    def test_creates_table_with_text_columns(self, tmp_path, monkeypatch):
-        csv_path = tmp_path / "test.csv"
-        csv_path.write_text('"ID","Name"\n"1","test"\n')
+class TestInferPgType:
+    @pytest.mark.parametrize(
+        "records, col, expected",
+        [
+            ([{"v": 1}, {"v": 2}], "v", "INTEGER"),
+            ([{"v": 1.5}, {"v": 2.0}], "v", "DOUBLE PRECISION"),
+            ([{"v": "hello"}], "v", "TEXT"),
+            ([{"v": None}, {"v": 1}], "v", "INTEGER"),
+            ([{"v": None}], "v", "TEXT"),
+        ],
+    )
+    def test_infer_pg_type(self, records, col, expected):
+        assert _infer_pg_type(records, col) == expected
+
+
+class TestLoadRecordsToPostgres:
+    def test_creates_table_with_inferred_types(self, monkeypatch):
+        records = [{"ID": 1, "Name": "test"}]
 
         mock_conn = MagicMock()
         mock_conn.dsn = "host=localhost dbname=test"
         mock_db = MagicMock()
         mock_db.connection = mock_conn
-
-        # The COPY step requires a real psycopg connection — patch the
-        # connect call to raise after the CREATE TABLE is verified instead.
-        original = _load_csv_to_postgres
-
-        def patched_load_csv(computation_db, csv_path, table):
-            original(computation_db, csv_path, table)
 
         monkeypatch.setattr(
             "bag3d.core.assets.cbs.load.connect",
@@ -203,23 +194,25 @@ class TestLoadCsvToPostgres:
 
         table = PostgresTableIdentifier("cbs", "test_table")
         try:
-            _load_csv_to_postgres(mock_db, csv_path, table)
+            _load_records_to_postgres(mock_db, records, table)
         except RuntimeError:
             pass
 
         create_call = mock_conn.send_query.call_args_list[0][0][0]
         sql_str = str(create_call)
         assert "Identifier('ID'" in sql_str
+        assert "INTEGER" in sql_str
         assert "Identifier('Name'" in sql_str
+        assert "TEXT" in sql_str
 
 
 # ---------------------------------------------------------------------------
 # cbs_key_figures
 # ---------------------------------------------------------------------------
 class TestCbsKeyFigures:
-    def test_adds_primary_key_and_comment(self, tmp_path, monkeypatch):
-        csv_path = tmp_path / "test.csv"
-        csv_path.write_text('"ID","Region"\n"1","NL"\n')
+    def test_adds_primary_key_and_comment(self, monkeypatch):
+        records = [{"ID": 1, "Region": "NL"}]
+
         mock_conn = MagicMock()
         mock_conn.dsn = "host=localhost dbname=test"
         mock_db = MagicMock()
@@ -227,20 +220,20 @@ class TestCbsKeyFigures:
 
         monkeypatch.setattr(
             "bag3d.core.assets.cbs.load.connect",
-            lambda dsn: (_ for _ in ()).throw(RuntimeError("stop after COPY")),
+            lambda dsn: (_ for _ in ()).throw(RuntimeError("stop after INSERT")),
         )
 
         with build_asset_context() as context:
             try:
-                cbs_key_figures(context, mock_db, {"2025": csv_path})
+                cbs_key_figures(context, mock_db, {"2025": records})
             except RuntimeError:
                 pass
 
-        # CREATE TABLE and DROP TABLE should have been sent before COPY
         calls = [str(c[0][0]) for c in mock_conn.send_query.call_args_list]
         sql_str = " ".join(calls)
         assert "key_figures_districts_neighbourhoods" in sql_str
         assert "Identifier('ID'" in sql_str
+        assert "INTEGER" in sql_str
 
 
 # ---------------------------------------------------------------------------
