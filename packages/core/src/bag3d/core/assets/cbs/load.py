@@ -3,7 +3,6 @@
 Loads CBS key figures and buurtkaart GeoPackage into the 'cbs' schema.
 """
 
-
 from dagster import asset, Output, get_dagster_logger, AutomationCondition
 from psycopg import connect
 from psycopg.sql import SQL, Identifier, Literal
