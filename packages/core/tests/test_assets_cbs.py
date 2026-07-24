@@ -99,12 +99,12 @@ class TestExtractCbsKeyFigures:
             lambda url: mock_records,
         )
 
-        file_store = MagicMock()
-        config = CbsKeyFiguresConfig(table_ids={"2025": "86165NED"})
+        config = CbsKeyFiguresConfig(year="2025", table_id="86165NED")
         with build_asset_context() as context:
-            result = extract_cbs_key_figures(context, config, file_store)
+            result = extract_cbs_key_figures(context, config)
 
-        assert result.metadata["Records [2025]"].value == 1  # type: ignore[reportAttributeAccessIssue]
+        assert result.metadata["Records"].value == 1  # type: ignore[reportAttributeAccessIssue]
+        assert result.metadata["Year"].value == "2025"  # type: ignore[reportAttributeAccessIssue]
 
 
 # ---------------------------------------------------------------------------
@@ -223,9 +223,10 @@ class TestCbsKeyFigures:
             lambda dsn: (_ for _ in ()).throw(RuntimeError("stop after INSERT")),
         )
 
+        config = CbsKeyFiguresConfig(year="2025", table_id="86165NED")
         with build_asset_context() as context:
             try:
-                cbs_key_figures(context, mock_db, {"2025": records})
+                cbs_key_figures(context, config, mock_db, records)
             except RuntimeError:
                 pass
 

@@ -28,9 +28,13 @@ logger = get_dagster_logger("cbs.download")
 class CbsKeyFiguresConfig(Config):
     """Configuration for CBS key figures download."""
 
-    table_ids: dict[str, str] = Field(
-        default={"2025": "86165NED"},
-        description="Mapping of year to CBS OData table identifier. "
+    year: str = Field(
+        default="2025",
+        description="Year of the key figures dataset.",
+    )
+    table_id: str = Field(
+        default="86165NED",
+        description="CBS OData table identifier. "
         "See https://opendata.cbs.nl for available tables.",
     )
 
@@ -110,27 +114,23 @@ def _clean_records(records: list[dict]) -> list[dict]:
 @asset(automation_condition=AutomationCondition.eager())
 def extract_cbs_key_figures(
     config: CbsKeyFiguresConfig,
-    file_store: FileStoreResource,
-) -> Output[dict[str, list[dict]]]:
+) -> Output[list[dict]]:
     """Download CBS key figures (Kerncijfers wijken en buurten) from the OData API.
 
-    Fetches data for each configured year and returns cleaned records with
+    Fetches data for the configured year and returns cleaned records with
     proper Python types preserved from the JSON response (int, float, str, None).
 
     API documentation: https://opendata.cbs.nl
     """
-    result: dict[str, list[dict]] = {}
-    metadata: dict = {}
+    api_url = f"https://opendata.cbs.nl/ODataFeed/odata/{config.table_id}/TypedDataSet"
+    records = _fetch_cbs_odata(api_url)
+    cleaned = _clean_records(records)
 
-    for year, table_id in config.table_ids.items():
-        api_url = f"https://opendata.cbs.nl/ODataFeed/odata/{table_id}/TypedDataSet"
-        records = _fetch_cbs_odata(api_url)
-        cleaned = _clean_records(records)
-
-        result[year] = cleaned
-        metadata[f"Records [{year}]"] = len(cleaned)
-
-    return Output(result, metadata=metadata)
+    metadata = {
+        "Records": len(cleaned),
+        "Year": config.year,
+    }
+    return Output(cleaned, metadata=metadata)
 
 
 @asset(automation_condition=AutomationCondition.eager())

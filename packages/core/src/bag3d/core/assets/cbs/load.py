@@ -17,6 +17,7 @@ from bag3d.common.utils.database import (
     postgrestable_metadata,
 )
 from bag3d.common.types import PostgresTableIdentifier
+from bag3d.core.assets.cbs.download import CbsKeyFiguresConfig
 
 logger = get_dagster_logger("cbs.load")
 
@@ -76,43 +77,37 @@ def _load_records_to_postgres(
     op_tags={"compute_kind": "sql"}, automation_condition=AutomationCondition.eager()
 )
 def cbs_key_figures(
+    config: CbsKeyFiguresConfig,
     computation_db: DatabaseResource,
     extract_cbs_key_figures,
-) -> Output[list[PostgresTableIdentifier]]:
+) -> Output[PostgresTableIdentifier]:
     """CBS key figures (Kerncijfers wijken en buurten) loaded into PostgreSQL.
 
     Column types are inferred from the OData JSON response — integers remain
     INTEGER, floats become DOUBLE PRECISION, strings become TEXT.
     """
     create_schema(computation_db, CBS_SCHEMA, logger=logger)
-    tables: list[PostgresTableIdentifier] = []
-    metadata: dict = {}
+    table_name = "key_figures_districts_neighbourhoods"
+    table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
+    drop_table(computation_db, table, logger=logger)
 
-    for year, records in extract_cbs_key_figures.items():
-        table_name = "key_figures_districts_neighbourhoods"
-        new_table = PostgresTableIdentifier(CBS_SCHEMA, table_name)
-        drop_table(computation_db, new_table, logger=logger)
+    _load_records_to_postgres(computation_db, extract_cbs_key_figures, table)
 
-        _load_records_to_postgres(computation_db, records, new_table)
-
-        computation_db.connection.send_query(
-            SQL('ALTER TABLE {} ADD PRIMARY KEY ("ID")').format(new_table.id)
+    computation_db.connection.send_query(
+        SQL('ALTER TABLE {} ADD PRIMARY KEY ("ID")').format(table.id)
+    )
+    computation_db.connection.send_query(
+        SQL("COMMENT ON TABLE {} IS {}").format(
+            table.id,
+            Literal(
+                f"CBS Key figures for districts and neighbourhoods {config.year}. "
+                f"Source: https://opendata.cbs.nl"
+            ),
         )
-        computation_db.connection.send_query(
-            SQL("COMMENT ON TABLE {} IS {}").format(
-                new_table.id,
-                Literal(
-                    f"CBS Key figures for districts and neighbourhoods {year}. "
-                    f"Source: https://opendata.cbs.nl"
-                ),
-            )
-        )
+    )
 
-        tbl_metadata = postgrestable_metadata(computation_db, new_table)
-        metadata.update({f"{k} [{year}]": v for k, v in tbl_metadata.items()})
-        tables.append(new_table)
-
-    return Output(tables, metadata=metadata)
+    metadata = postgrestable_metadata(computation_db, table)
+    return Output(table, metadata=metadata)
 
 
 @asset(
