@@ -212,7 +212,13 @@ def bag3d_features(
     return Output(bag3d_features_table, metadata=metadata)
 
 
-@asset(op_tags={"compute_kind": "sql"})
+@asset(
+    op_tags={"compute_kind": "sql"},
+    deps=[
+        AssetKey(["cbs", "cbs_key_figures"]),
+        AssetKey(["cbs", "cbs_buurten"]),
+    ],
+)
 def external_features(
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
