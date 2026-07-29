@@ -6,17 +6,27 @@ SHELL := /bin/bash
 include docker/.env
 
 export COMPOSE_PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),bag3d-dev)
-export BAG3D_DOCKER_IMAGE_TAG := $(if $(BAG3D_DOCKER_IMAGE_TAG),$(BAG3D_DOCKER_IMAGE_TAG),develop)
+
+define newline
+
+
+endef
+
+MANIFEST_ENV := $(shell python3 scripts/manifest_versions.py env | tr '\n' ';')
+$(eval $(subst ;,$(newline),$(MANIFEST_ENV)))
+export BAG3D_PIPELINE_VERSION BAG3D_TOOLS_IMAGE BAG3D_CORE_IMAGE \
+	BAG3D_FLOORS_ESTIMATION_IMAGE BAG3D_PARTY_WALLS_IMAGE BAG3D_EXPORT_IMAGE \
+	BAG3D_DAGSTER_IMAGE
 
 .PHONY: help \
-	docker_up docker_up_postgres docker_up_nobuild docker_dev docker_build \
+	docker_up docker_up_postgres docker_up_nobuild docker_dev docker_build docker_build_tools \
 	docker_restart docker_restart_containers docker_down docker_down_rm docker_prune_cache \
 	docker_volume_create docker_volume_create_data_postgresql docker_volume_create_data_pipeline \
 	docker_volume_create_dagster_home docker_volume_create_dagster_postgresql \
 	docker_volume_rm docker_volume_recreate \
 	test test_coverage test_report lint lint_fix \
 	local_install_uv local_venv local_dev \
-	set_version
+	sync_versions
 
 help:
 	@echo "3dbag-pipeline - Available targets:"
@@ -27,6 +37,7 @@ help:
 	@echo "  docker_up_nobuild            Start services without rebuilding images"
 	@echo "  docker_dev                   Start services with dev overrides"
 	@echo "  docker_build                 Rebuild all Docker images without cache"
+	@echo "  docker_build_tools           Build the manifest-pinned tools image"
 	@echo "  docker_restart               Stop, recreate volumes, and start fresh"
 	@echo "  docker_restart_containers    Restart running containers (keep volumes)"
 	@echo "  docker_down                  Stop all services"
@@ -46,7 +57,7 @@ help:
 	@echo "  local_install_uv             Install uv package manager"
 	@echo "  local_venv                   Create virtualenvs for all packages"
 	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
-	@echo "  set_version                  Set pipeline version (make set_version VERSION=YYYY.MM.DD)"
+	@echo "  sync_versions                Synchronize package metadata from 3dbag-manifest.json"
 	@echo ""
 
 docker_volume_create_data_postgresql:
@@ -92,6 +103,14 @@ docker_dev:
 
 docker_build:
 	docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose.yaml build --no-cache
+
+docker_build_tools:
+	docker build \
+		$$(python3 scripts/manifest_versions.py build-args | sed 's/^/--build-arg /') \
+		--build-arg VERSION=$$(python3 scripts/manifest_versions.py value tools) \
+		--tag $(BAG3D_TOOLS_IMAGE) \
+		--file docker/tools/Dockerfile \
+		.
 
 docker_restart: docker_down docker_volume_recreate docker_up
 
@@ -151,7 +170,7 @@ test_report:
 lint:
 	@set -e; set -o pipefail; \
 	echo "Manifest version check"; \
-	python3 scripts/check_manifest_versions.py; \
+	python3 scripts/manifest_versions.py check; \
 	echo "Format check"; \
 	uv tool run ruff format --check ./packages; \
 	echo "Syntax and style"; \
@@ -187,9 +206,8 @@ local_venv:
 local_dev:
 	uv run dagster dev -w tests/dagster_home/workspace.yaml
 
-set_version:
-	@if [ -z "$(VERSION)" ]; then echo "Usage: make set_version VERSION=YYYY.MM.DD"; exit 1; fi
-	python3 scripts/set_version.py $(VERSION)
+sync_versions:
+	python3 scripts/manifest_versions.py sync
 
 _copy_vendor_balazs:
 	cp ~/Development/cjlib/ffi/python/dist/*.whl ./docker/vendor/

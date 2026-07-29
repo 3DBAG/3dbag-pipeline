@@ -19,39 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set docker image tag
-        run: echo "DOCKER_TAG=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
       - name: Read tool versions from manifest
         id: manifest
         run: |
-          build_args=$(python3 -c "
-          import json
-          manifest = json.load(open('3dbag-manifest.json'))
-          tools = manifest['tools']
-          mapping = {
-              'uv': 'UV_VERSION',
-              'gdal': 'GDAL_VERSION',
-              'proj': 'PROJ_VERSION',
-              'geos': 'GEOS_VERSION',
-              'geotiff': 'GEOTIFF_VERSION',
-              'lastools': 'LASTOOLS_VERSION',
-              'pdal': 'PDAL_VERSION',
-              'val3dity': 'VAL3DITY_VERSION',
-              'cjio': 'CJIO_VERSION',
-              'tyler': 'TYLER_VERSION',
-              'tyler-multiformat': 'TYLER_MULTIFORMAT_VERSION',
-              'tyler-db': 'TYLER_DB_VERSION',
-              'roofer': 'ROOFER_VERSION',
-              'geoflow-bundle': 'GEOFLOW_BUNDLE_VERSION',
-              'cjval': 'CJVAL_VERSION',
-          }
-          for tool, arg in mapping.items():
-              print(f'{arg}={tools[tool][\"version\"]}')
-          ")
+          python3 scripts/manifest_versions.py validate
           {
             echo 'BUILD_ARGS<<EOF'
-            echo "$build_args"
+            python3 scripts/manifest_versions.py build-args
             echo 'EOF'
+            echo "IMAGE_TAG=$(python3 scripts/manifest_versions.py value tools)"
           } >> $GITHUB_OUTPUT
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -68,9 +44,9 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=${{ env.DOCKER_TAG }}
+            VERSION=${{ steps.manifest.outputs.IMAGE_TAG }}
             ${{ steps.manifest.outputs.BUILD_ARGS }}
           push: true
-          tags: 3dgi/3dbag-pipeline-tools:${{ env.DOCKER_TAG }}
+          tags: 3dgi/3dbag-pipeline-tools:${{ steps.manifest.outputs.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

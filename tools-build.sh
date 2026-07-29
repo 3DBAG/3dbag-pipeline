@@ -24,14 +24,13 @@ build_val3dity=false
 build_cjval=false
 build_cjio=false
 
-geos_version="${GEOS_VERSION:-3.12.1}"
-geotiff_version="${GEOTIFF_VERSION:-1.7.3}"
-proj_version="${PROJ_VERSION:-9.8.1}"
-lastools_version="${LASTOOLS_VERSION:-2.0.4}"
-gdal_version="${GDAL_VERSION:-3.8.5}"
-pdal_version="${PDAL_VERSION:-2.10.1}"
-geoflow_bundle_version="2024.08.09"
-val3dity_version="${VAL3DITY_VERSION:-2.4.0}"
+geos_version="${GEOS_VERSION:?GEOS_VERSION must be set from 3dbag-manifest.json}"
+geotiff_version="${GEOTIFF_VERSION:?GEOTIFF_VERSION must be set from 3dbag-manifest.json}"
+proj_version="${PROJ_VERSION:?PROJ_VERSION must be set from 3dbag-manifest.json}"
+lastools_version="${LASTOOLS_VERSION:?LASTOOLS_VERSION must be set from 3dbag-manifest.json}"
+gdal_version="${GDAL_VERSION:?GDAL_VERSION must be set from 3dbag-manifest.json}"
+pdal_version="${PDAL_VERSION:?PDAL_VERSION must be set from 3dbag-manifest.json}"
+val3dity_version="${VAL3DITY_VERSION:?VAL3DITY_VERSION must be set from 3dbag-manifest.json}"
 
 jobs=8
 root_dir=$PWD

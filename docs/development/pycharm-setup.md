@@ -38,12 +38,7 @@ make docker_dev
 The `docker_dev` target starts all services with `docker/compose.dev.yaml` layered on top of the base compose file. The pipeline containers bind-mount the host source directories, so edits are
 immediately visible inside the containers.
 
-To start only the core service (faster for most development):
-
-```bash
-BAG3D_DOCKER_IMAGE_TAG=develop docker compose -p bag3d-dev \
-    -f docker/compose.yaml -f docker/compose.dev.yaml up -d
-```
+For the default local development stack, run `make docker_dev`.
 
 ### Configure the Docker Compose interpreter in PyCharm
 
@@ -88,15 +83,6 @@ The dev overlay defines compose profiles so you can start only the services you 
 # Start only core + databases + dagster (default, no profile flag needed)
 make docker_dev
 
-# Also start floors-estimation
-BAG3D_DOCKER_IMAGE_TAG=develop docker compose -p bag3d-dev \
-    -f docker/compose.yaml -f docker/compose.dev.yaml --profile floors up -d
-
-# Also start party-walls
-BAG3D_DOCKER_IMAGE_TAG=develop docker compose -p bag3d-dev \
-    -f docker/compose.yaml -f docker/compose.dev.yaml --profile party-walls up -d
-
-# Start everything
-BAG3D_DOCKER_IMAGE_TAG=develop docker compose -p bag3d-dev \
-    -f docker/compose.yaml -f docker/compose.dev.yaml --profile all up -d
+# For direct Compose profile commands, first export the values printed by
+# `python3 scripts/manifest_versions.py env --format shell` in your shell or Compose run configuration.
 ```

@@ -52,7 +52,7 @@ wheels = [
 
 [[package]]
 name = "bag3d-common"
-version = "2025.11.18"
+version = "2026.7.29"
 source = { editable = "../common" }
 dependencies = [
     { name = "bag3d-specs" },
@@ -90,7 +90,7 @@ dev = [
 
 [[package]]
 name = "bag3d-party-walls"
-version = "2025.11.18"
+version = "2026.7.29"
 source = { editable = "." }
 dependencies = [
     { name = "bag3d-common" },

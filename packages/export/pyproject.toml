@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-export"
-version = "2025.11.18"
+version = "2026.07.29"
 description = "Workflow for exporting and deploying the 3D BAG data set"
 readme = "README.md"
 requires-python = ">=3.12"

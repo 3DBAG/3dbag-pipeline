@@ -63,4 +63,6 @@ nav:
     - adr/0001-ahn-checksum-automation-strategy.md
     - adr/0002-independent-package-environments.md
     - adr/0003-building-surfaces-performance.md
+    - adr/0004-cjindex-stage-interface-and-cityjsonseq.md
+    - adr/0005-manifest-owned-versioning.md
   - API Reference: reference/

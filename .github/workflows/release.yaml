@@ -9,11 +9,6 @@ on:
   workflow_dispatch:
     branches:
       - master
-    inputs:
-      version:
-        description: '3dbag-pipeline release version (YYYY.MM.DD)'
-        required: true
-        type: string
 
 jobs:
   release:
@@ -34,23 +29,29 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-      - name: Update version
+      - name: Validate and synchronize manifest version
+        id: manifest
         run: |
-          python3 scripts/set_version.py ${{ github.event.inputs.version }}
-          git add -A
-          git commit -m "bump version -> ${{ github.event.inputs.version }}"
-          git tag "v${{ github.event.inputs.version }}"
-          git push origin master --tags
+          python3 scripts/manifest_versions.py sync
+          python3 scripts/manifest_versions.py check
+          echo "VERSION=$(python3 scripts/manifest_versions.py value pipeline)" >> $GITHUB_OUTPUT
+          if ! git diff --quiet -- pyproject.toml packages; then
+            git add pyproject.toml packages/*/pyproject.toml
+            git commit -m "sync version metadata"
+            git push origin master
+          fi
+          git tag "v$(python3 scripts/manifest_versions.py value pipeline)"
+          git push origin "v$(python3 scripts/manifest_versions.py value pipeline)"
 
       - name: Parse Changelog
         run: |
-          python .github/scripts/parse_changelog.py ${{ github.event.inputs.version }}
+          python .github/scripts/parse_changelog.py ${{ steps.manifest.outputs.VERSION }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: 3DBAG ${{ github.event.inputs.version }}
+          tag_name: v${{ steps.manifest.outputs.VERSION }}
+          name: 3DBAG ${{ steps.manifest.outputs.VERSION }}
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false

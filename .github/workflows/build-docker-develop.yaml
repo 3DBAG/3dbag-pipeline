@@ -3,12 +3,7 @@ name: Build and Publish Docker Images
 on:
   push:
     tags:
-      - '202[2-9].[0-9]+.[0-9]+'
-      - '202[2-9].[0-9]+-pc[0-9]+'
-  pull_request:
-    branches:
-      - "develop"
-    types: [ closed ]
+      - 'v202[2-9].[0-9]+.[0-9]+'
   workflow_dispatch:
 
 jobs:
@@ -16,12 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set docker image tag to 'develop'
-        if: github.ref == 'refs/heads/develop'
-        run: echo "DOCKER_TAG=develop" >> $GITHUB_ENV
-      - name: Set docker image tag to git tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "DOCKER_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Read and verify release version from manifest
+        id: manifest
+        run: |
+          python3 scripts/manifest_versions.py validate
+          version=$(python3 scripts/manifest_versions.py value pipeline)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "Git tag ${GITHUB_REF_NAME} does not match manifest version ${version}" >&2
+            exit 1
+          fi
+          {
+            echo "VERSION=${version}"
+            echo "TOOLS_IMAGE=$(python3 scripts/manifest_versions.py env --format build-args | awk -F= '/^BAG3D_TOOLS_IMAGE=/{print $2}')"
+          } >> $GITHUB_OUTPUT
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -37,9 +39,10 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=${{ env.DOCKER_TAG }}
+            VERSION=${{ steps.manifest.outputs.VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.TOOLS_IMAGE }}
           push: true
-          tags: 3dgi/3dbag-pipeline-core:${{ env.DOCKER_TAG }}
+          tags: 3dgi/3dbag-pipeline-core:${{ steps.manifest.outputs.VERSION }}
       - name: Build and push floors estimation
         uses: docker/build-push-action@v6
         with:
@@ -48,9 +51,10 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=${{ env.DOCKER_TAG }}
+            VERSION=${{ steps.manifest.outputs.VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.TOOLS_IMAGE }}
           push: true
-          tags: 3dgi/3dbag-pipeline-floors-estimation:${{ env.DOCKER_TAG }}
+          tags: 3dgi/3dbag-pipeline-floors-estimation:${{ steps.manifest.outputs.VERSION }}
       - name: Build and push party walls
         uses: docker/build-push-action@v6
         with:
@@ -59,9 +63,22 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=${{ env.DOCKER_TAG }}
+            VERSION=${{ steps.manifest.outputs.VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.TOOLS_IMAGE }}
           push: true
-          tags: 3dgi/3dbag-pipeline-party-walls:${{ env.DOCKER_TAG }}
+          tags: 3dgi/3dbag-pipeline-party-walls:${{ steps.manifest.outputs.VERSION }}
+      - name: Build and push export
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./docker/pipeline/bag3d-export.dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          build-args: |
+            JOBS=2
+            VERSION=${{ steps.manifest.outputs.VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.TOOLS_IMAGE }}
+          push: true
+          tags: 3dgi/3dbag-pipeline-export:${{ steps.manifest.outputs.VERSION }}
       - name: Build and push dagster
         uses: docker/build-push-action@v6
         with:
@@ -70,6 +87,6 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             JOBS=2
-            VERSION=${{ env.DOCKER_TAG }}
+            VERSION=${{ steps.manifest.outputs.VERSION }}
           push: true
-          tags: 3dgi/3dbag-pipeline-dagster:${{ env.DOCKER_TAG }}
+          tags: 3dgi/3dbag-pipeline-dagster:${{ steps.manifest.outputs.VERSION }}

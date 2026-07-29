@@ -13,7 +13,9 @@ The tests that are run on GitHub Actions use this configuration.
 
 ## Docker images
 
-The docker images that are built from the `develop` branch and pushed to DockerHub with a `develop` tag.
+All Docker image versions and external tool-image digests are declared in
+[`3dbag-manifest.json`](../3dbag-manifest.json). The Compose Make targets resolve
+their image references from that file; image-tag overrides are not supported.
 
 [`3dgi/3dbag-pipeline-tools`](https://hub.docker.com/r/3dgi/3dbag-pipeline-tools)
 
@@ -26,7 +28,9 @@ If you need to add a new tool to be used in the pipeline you can one of the foll
 1. If there is a image available for the tool you can make sure it is used when building the `3dbag-pipeline-tools` image by making the necessary modifications in the `docker/tools/Dockerfile` (as it is done for example for tyler)
 2. If no image is available, you should update the `tools-build.sh` and `tools-test.sh` files which are used when building the `3dbag-pipeline-tools` image. You should also modify the command in `docker/tools/Dockerfile` to ensure the new tools are installed.
 
-After you test locally that the image can be build successfully you can merge to `develop`. Then a gh action will triggered and a new `3dbag-pipeline-tools` image with today's date will be pushed to Dockerhub. Once that's done, you can update the tools image version in the workflow images and push those changes.
+To update a Docker-delivered tool, edit its version, repository, and digest in the
+manifest. If the tools image changes, also update `images.tools.version`; CI publishes
+that exact tag. Pipeline release images are all tagged with the top-level manifest version.
 
 
 [`3dgi/3dbag-pipeline-core`](https://hub.docker.com/r/3dgi/3dbag-pipeline-core) 

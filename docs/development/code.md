@@ -60,19 +60,18 @@ The `docker_up` target sets the docker compose project name to `bag3d-dev`.
 #### Running the services
 
 Create run configuration that uses the docker compose file.
-You need to set the `docker/.env` environment variables file and set two environment variables manually.
-These two environment variables are the same that the `makefile` sets, when using the make-based setup:
+Use the `docker/.env` environment variables file. For direct Docker Compose or PyCharm
+configurations, also set the manifest-derived variables printed by:
 
 ```shell
-COMPOSE_PROJECT_NAME=bag3d-dev
-BAG3D_DOCKER_IMAGE_TAG=develop
+eval "$(python3 scripts/manifest_versions.py env --format shell)"
 ```
 
 For example, see the screenshot below. 
 ![](../images/docker_compose_run_config.png)
 
-Start the services by running the configuration from the compose file.
-For example, see the screenshot below. 
+Start the services with `make docker_dev`; it resolves the required image references from
+the manifest before invoking Docker Compose. For example, see the screenshot below.
 ![](../images/docker_compose_start.png)
 
 #### Running tests

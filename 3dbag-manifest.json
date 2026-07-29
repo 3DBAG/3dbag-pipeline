@@ -1,9 +1,23 @@
 {
   "version": "2026.07.29",
+  "images": {
+    "tools": {
+      "repository": "3dgi/3dbag-pipeline-tools",
+      "version": "2026.07.29"
+    },
+    "core": { "repository": "3dgi/3dbag-pipeline-core" },
+    "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },
+    "party-walls": { "repository": "3dgi/3dbag-pipeline-party-walls" },
+    "export": { "repository": "3dgi/3dbag-pipeline-export" },
+    "dagster": { "repository": "3dgi/3dbag-pipeline-dagster" }
+  },
   "tools": {
     "tyler": {
       "version": "1.0.0-alpha1",
-      "url": "docker.io/3dgi/tyler:1.0.0-alpha1",
+      "image": {
+        "repository": "docker.io/3dgi/tyler",
+        "digest": "sha256:260b2a46a81f0a9f78eb29aa1dad4a0467488619a3a57c319b23500cc007df50"
+      },
       "type": "docker",
       "display_name": "tyler",
       "repository": "https://github.com/3DGI/tyler",
@@ -11,7 +25,10 @@
     },
     "tyler-db": {
       "version": "0.3.4-db-alpha5",
-      "url": "docker.io/3dgi/tyler-db:0.3.4-db-alpha5",
+      "image": {
+        "repository": "docker.io/3dgi/tyler-db",
+        "digest": "sha256:2d21cb816b4fa09ebba2fee4e00e981093901ba1a60e2aad6cacbb7ce5029d1e"
+      },
       "type": "docker",
       "display_name": "tyler-db",
       "repository": "https://github.com/3DGI/tyler/tree/postgres-footprints",
@@ -19,7 +36,10 @@
     },
     "roofer": {
       "version": "develop",
-      "url": "docker.io/3dgi/roofer:develop",
+      "image": {
+        "repository": "docker.io/3dgi/roofer",
+        "digest": "sha256:629664023211e08976839427608a21ca8ac780c553549fd28b6903411719185c"
+      },
       "type": "docker",
       "display_name": "roofer",
       "repository": "https://github.com/3DBAG/roofer",
@@ -27,12 +47,18 @@
     },
     "cjval": {
       "version": "0.8.2",
-      "url": "docker.io/tudelft3d/cjval:0.8.2",
+      "image": {
+        "repository": "docker.io/tudelft3d/cjval",
+        "digest": "sha256:038cd61367d670795fa5392c04607c86c6ee2fcebca8c45ecd5c1200ec28fe5f"
+      },
       "type": "docker"
     },
     "uv": {
       "version": "0.12.0",
-      "url": "ghcr.io/astral-sh/uv:0.12.0",
+      "image": {
+        "repository": "ghcr.io/astral-sh/uv",
+        "digest": "sha256:606e70c71c852d03f611b1e56a195d08648507018a7057fab82c4974c4eae105"
+      },
       "type": "docker"
     },
     "gdal": {
