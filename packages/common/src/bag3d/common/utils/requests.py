@@ -73,10 +73,10 @@ def download_file(
                 )
                 return fpath
             headers = {"Range": f"bytes={local_size}-"}
-            logger.info(f"Resuming download at {local_size}/{remote_size} bytes")
+            logger.debug(f"Resuming download at {local_size}/{remote_size} bytes")
         else:
             local_size = 0
-            logger.info(f"Starting download of {remote_size} bytes")
+            logger.debug(f"Starting download of {remote_size} bytes")
 
         with fpath.open("ab") as fd:
             with session.get(
@@ -97,7 +97,7 @@ def download_file(
                     if remote_size:
                         percent = int((bytes_written / remote_size) * 100)
                         if percent > last_logged_percent and percent % 10 == 0:
-                            logger.info(
+                            logger.debug(
                                 f"{percent}% ({bytes_written}/{remote_size} bytes)"
                             )
                             last_logged_percent = percent

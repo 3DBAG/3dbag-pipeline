@@ -13,18 +13,21 @@ job_ahn_tile_index = define_asset_job(
     "create the tables for storing the metadata for AHN 3, 4 and 5, so that "
     "the AHN jobs can be run.",
     selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
     | AssetSelection.assets(["ahn", "md5_ahn3"])
     | AssetSelection.assets(["ahn", "md5_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
+    | AssetSelection.assets(["ahn", "sha256_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
-    | AssetSelection.assets(["ahn", "metadata_table_ahn5"]),
+    | AssetSelection.assets(["ahn", "metadata_table_ahn5"])
+    | AssetSelection.assets(["ahn", "metadata_table_ahn6"]),
 )
 
 # WARNING!!! multi_assets don't have key_prefix, https://github.com/dagster-io/dagster/issues/9344
 job_ahn3 = define_asset_job(
     name="ahn3",
-    description="Make sure that the available AHN 3 LAZ files are present on disk, "
+    description="Make sure that the available AHN3 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_ahn3"])
@@ -33,7 +36,7 @@ job_ahn3 = define_asset_job(
 
 job_ahn4 = define_asset_job(
     name="ahn4",
-    description="Make sure that the available AHN 4 LAZ files are present on disk, "
+    description="Make sure that the available AHN4 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_ahn4"])
@@ -42,11 +45,20 @@ job_ahn4 = define_asset_job(
 
 job_ahn5 = define_asset_job(
     name="ahn5",
-    description="Make sure that the available AHN 5 LAZ files are present on disk, "
+    description="Make sure that the available AHN5 LAZ files are present on disk, "
     "and their metadata is recorded.",
     selection=AssetSelection.assets(["ahn", "laz_files_ahn5"])
     | AssetSelection.assets(["ahn", "metadata_ahn5"])
     | AssetSelection.assets(["ahn", "lasindex_ahn5"]),
+)
+
+
+job_ahn6 = define_asset_job(
+    name="ahn6",
+    description="Make sure that the available AHN6 COPC.LAZ files in 1x1 km grid "
+    "tiles are present on disk, and their metadata is recorded.",
+    selection=AssetSelection.assets(["ahn", "laz_files_ahn6"])
+    | AssetSelection.assets(["ahn", "metadata_ahn6"]),
 )
 
 
@@ -55,7 +67,8 @@ job_ahn_metadata_index = define_asset_job(
     description="Creates indices on the AHN metadata tables",
     selection=AssetSelection.assets(["ahn", "metadata_ahn3_index"])
     | AssetSelection.assets(["ahn", "metadata_ahn4_index"])
-    | AssetSelection.assets(["ahn", "metadata_ahn5_index"]),
+    | AssetSelection.assets(["ahn", "metadata_ahn5_index"])
+    | AssetSelection.assets(["ahn", "metadata_ahn6_index"]),
 )
 
 

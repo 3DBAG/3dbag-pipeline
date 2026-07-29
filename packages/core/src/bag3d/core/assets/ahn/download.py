@@ -3,9 +3,11 @@ import time
 import random
 import warnings
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Union, Optional
 from hashlib import new as hash_new, algorithms_available
 from dataclasses import dataclass
+import urllib.request
+import urllib.error
 
 import urllib3
 
@@ -24,13 +26,17 @@ from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
     format_laz_log,
     download_ahn_index,
+    download_ahn6_index,
     partition_definition_ahn,
+    partition_definition_ahn6_batches,
+    tiles_in_batch,
 )
 
 logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
+    6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
     4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
     3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
@@ -140,6 +146,25 @@ class LAZDownload:
         return match
 
 
+@dataclass
+class BatchLAZDownload:
+    """Result of a batched AHN6 COPC download.
+
+    Args:
+        batch_id: The 10×10 km batch partition key (e.g. ``"150000_460000"``).
+        tiles: Dictionary of individual tile download results {tile_id: LAZDownload}.
+    """
+
+    batch_id: str
+    tiles: dict[str, LAZDownload]
+
+    def asdict(self) -> dict:
+        return {
+            "batch_id": self.batch_id,
+            "tiles": {tile_id: t.asdict() for tile_id, t in self.tiles.items()},
+        }
+
+
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def md5_ahn3() -> dict[str, str]:
     """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
@@ -159,9 +184,21 @@ def sha256_ahn5() -> dict[str, str]:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
+def sha256_ahn6() -> dict[str, str]:
+    """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
+    return get_checksums(URL_LAZ_SHA, ahn_version=6)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
     """The AHN tile index, including the tile geometry and the file download links."""
     return download_ahn_index(with_geom=True)
+
+
+@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
+def tile_index_ahn6() -> dict[str, dict[str, Any] | None] | None:
+    """The AHN6 tile index, including the tile geometry and the file download links."""
+    return download_ahn6_index(with_geom=True)
 
 
 class LazFilesConfig(Config):
@@ -177,7 +214,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn3,
+    md5_ahn3: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -243,7 +280,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn4,
+    md5_ahn4: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -312,7 +349,7 @@ def laz_files_ahn5(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn5,
+    sha256_ahn5: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -370,6 +407,136 @@ def laz_files_ahn5(
     return Output(lazdownload, metadata=lazdownload.asdict())
 
 
+@asset(
+    name="laz_files_ahn6",
+    partitions_def=partition_definition_ahn6_batches,
+    pool="laz_download",
+)
+def laz_files_ahn6(
+    context: AssetExecutionContext,
+    config: LazFilesConfig,
+    pointcloud_store: FileStoreResource,
+    sha256_ahn6: dict[str, str],
+    tile_index_ahn6: dict[str, dict[str, Any]],
+) -> Output[BatchLAZDownload]:
+    """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
+
+    Each partition is a 10x10 km block containing up to 100 1x1 km tiles.
+    Every tile within the batch follows the same download-and-validate process
+    used for other AHN versions.
+
+    The partition succeeds if at least one tile is downloaded or already on disk.
+    Individual tile failures are logged as warnings and do not fail the batch.
+    """
+    batch_id = context.partition_key
+    tiles = tiles_in_batch(batch_id)
+    if not tiles:
+        return Output(
+            BatchLAZDownload(batch_id=batch_id, tiles={}),
+            metadata={"batch": batch_id, "tiles": 0},
+        )
+
+    laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
+    total = len(tiles)
+
+    batch_tiles: dict[str, LAZDownload] = {}
+    downloaded = 0
+    skipped = 0
+    failed = 0
+    completed = 0
+
+    logger.info(f"Batch {batch_id}: starting {total} tiles")
+
+    for tile_id in tiles:
+        idx_entry = tile_index_ahn6.get(tile_id)
+        if idx_entry is None or idx_entry.get("url") is None:
+            logger.warning(f"  tile {tile_id}: not found in tile index")
+            failed += 1
+            completed += 1
+            continue
+        url = idx_entry["url"]
+        fpath = laz_dir / url.split("/")[-1]
+        completed += 1
+        try:
+            verify_ssl = False
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=urllib3.exceptions.InsecureRequestWarning
+                )
+                lazdownload = download_ahn_laz(
+                    fpath=fpath,
+                    url_laz=url,
+                    verify_ssl=verify_ssl,
+                    force_download=config.force_download,
+                )
+            lazdownload.compute_sha(HashChunkwise("sha256"))
+            if config.check_hash:
+                first_validation = lazdownload.validate(
+                    sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                )
+                if not first_validation:
+                    logger.info(
+                        format_laz_log(
+                            fpath,
+                            "First validation failed. Removing and retrying...",
+                        )
+                    )
+                    fpath.unlink()
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            category=urllib3.exceptions.InsecureRequestWarning,
+                        )
+                        lazdownload = download_ahn_laz(
+                            fpath=fpath,
+                            url_laz=url,
+                            verify_ssl=verify_ssl,
+                        )
+                    second_validation = lazdownload.validate(
+                        sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                    )
+                    if not second_validation:
+                        logger.warning(format_laz_log(fpath, "Checksum failed"))
+                else:
+                    logger.debug(format_laz_log(fpath, "Validation OK"))
+
+            batch_tiles[tile_id] = lazdownload
+            if lazdownload.new:
+                downloaded += 1
+                logger.info(
+                    f"  [{completed}/{total}] {tile_id}: "
+                    f"downloaded ({lazdownload.size:.1f} MB)"
+                )
+            else:
+                skipped += 1
+                logger.debug(f"  [{completed}/{total}] {tile_id}: already on disk")
+        except Failure as exc:
+            logger.warning(f"  [{completed}/{total}] {tile_id}: FAILED — {exc}")
+            failed += 1
+
+    if downloaded + skipped == 0:
+        raise Failure(
+            f"Batch {batch_id}: all {total} tiles failed. No COPC files on disk."
+        )
+
+    logger.info(
+        f"Batch {batch_id}: done — "
+        f"{downloaded} downloaded, {skipped} skipped, {failed} failed "
+        f"of {total} tiles"
+    )
+
+    return Output(
+        BatchLAZDownload(batch_id=batch_id, tiles=batch_tiles),
+        metadata={
+            "batch": batch_id,
+            "tiles": total,
+            "downloaded": downloaded,
+            "skipped": skipped,
+            "failed": failed,
+        },
+    )
+
+
 def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
@@ -386,7 +553,7 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    if ahn_version == 5:
+    if ahn_version in (5, 6):
         # We have a GeoJSON FeatureCollection
         for feature in json.loads(_hashes)["features"]:
             if properties := feature.get("properties"):
@@ -398,6 +565,18 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
             sha, file = tile.split()
             checksums[file] = sha
     return checksums
+
+
+def _head_check(url: str) -> Optional[int]:
+    """Quick HEAD check. Returns HTTP status code, or None on network error."""
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return None
 
 
 def download_ahn_laz(
@@ -426,15 +605,26 @@ def download_ahn_laz(
 
     if url_laz is not None:
         url = url_laz
-    else:
-        assert url_base is not None, "Either url_laz or url_base must be provided"
+    elif url_base is not None:
         url = "/".join([url_base, fpath.name])
+    else:
+        raise Failure(
+            format_laz_log(
+                fpath, "No URL provided (both url_laz and url_base are None)"
+            )
+        )
+
+    http_status = _head_check(url)
+    if http_status in (403, 404):
+        raise Failure(
+            format_laz_log(fpath, f"URL returned HTTP {http_status} (not retrying)")
+        )
 
     success = False
     file_size = 0.0
     is_new = False
     if not fpath.is_file():
-        logger.info(format_laz_log(fpath, "Not found. Downloading..."))
+        logger.info(format_laz_log(fpath, "Not found locally. Downloading..."))
         file_size, fpath, is_new, success, url_laz = download_laz(  # type: ignore[assignment]
             file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
         )

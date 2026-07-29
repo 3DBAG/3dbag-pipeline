@@ -141,7 +141,7 @@ def webservice_publication(
     Load the layers for WFS, WMS to the database on the publication server.
     The layers will be loaded into the schema `webservice_dev` and
     will not be published yet by the geoserver. The publication will
-    be done in the `nl_release` job.
+    be done in the `release` job.
     """
     schema = "webservice_dev"
     sql = f"drop schema if exists {schema} cascade; create schema {schema};"

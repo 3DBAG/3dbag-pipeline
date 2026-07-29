@@ -21,11 +21,11 @@ ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
 ARG GDAL_VERSION=3.8.5
-ARG PROJ_VERSION=9.4.0
+ARG PROJ_VERSION=9.8.1
 ARG GEOS_VERSION=3.12.1
 ARG GEOTIFF_VERSION=1.7.3
 ARG LASTOOLS_VERSION=2.0.4
-ARG PDAL_VERSION=2.8.4
+ARG PDAL_VERSION=2.10.1
 ARG VAL3DITY_VERSION=2.4.0
 ARG CJIO_VERSION=0.9.2
 
@@ -88,6 +88,7 @@ RUN bash $BAG3D_PIPELINE_LOCATION/tools-build.sh \
     --build-pdal \
     --build-val3dity \
     --build-cjio \
+    --build-proj \
     --jobs $JOBS \
     --clean
 
@@ -125,10 +126,10 @@ RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     ldconfig
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/master/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createMulti.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/metadata.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/master/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
+    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
     wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature_multi.json
 
 
