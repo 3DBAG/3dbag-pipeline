@@ -23,7 +23,7 @@ CREATE TEMP table verblijfsobject_features AS (
     p.pandid
 );
 
--- extract features from cbs, ESRI, and BAG for all buildings
+-- extract features from cbs, and BAG for all buildings
 DROP TABLE IF EXISTS ${external_features};
 CREATE TABLE ${external_features} AS (
 SELECT  p.identificatie
@@ -131,23 +131,21 @@ WHERE ${external_features}.identificatie = subquery.identificatie;
 DROP TABLE IF EXISTS cbs_data_per_neighbourhood;
 CREATE TEMP TABLE cbs_data_per_neighbourhood AS(
 SELECT  ckfdn."WijkenEnBuurten"
-       ,cb.wkb_geometry                       AS geometrie
-       ,ckfdn."PercentageMeergezinswoning_38" AS cbs_percent_multihousehold_2023
-       ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2_2023
-       ,ckfdn2."GIHandelEnHoreca_94"          AS cbs_dist_to_horeca_2021
-FROM floors_estimation.cbs_key_figures_districts_neighbourhoods_2023 ckfdn
-JOIN floors_estimation.cbs_key_figures_districts_neighbourhoods_2021 ckfdn2
-ON ckfdn."WijkenEnBuurten" = ckfdn2."WijkenEnBuurten"
-JOIN floors_estimation.cbs_buurten cb
-ON cb.bu_code = ckfdn."WijkenEnBuurten"
+       ,cb.geom                               AS geometrie
+       ,ckfdn."PercentageMeergezinswoning_45" AS cbs_percent_multihousehold
+       ,ckfdn."Bevolkingsdichtheid_34"        AS cbs_pop_per_km2
+       ,ckfdn."GIHandelEnHoreca_98"          AS cbs_dist_to_horeca
+FROM ${cbs_key_figures} ckfdn
+JOIN ${cbs_buurten} cb
+ON cb.buurtcode = ckfdn."WijkenEnBuurten"
 WHERE ckfdn."SoortRegio_2" = 'Buurt' ); 
 
 
 UPDATE ${external_features}
-SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold_2023,
-cbs_pop_per_km2 = cdpn.cbs_pop_per_km2_2023,
-cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca_2021
-FROM cbs_data_per_neighbourhood cdpn
+SET cbs_percent_multihousehold = cdpn.cbs_percent_multihousehold,
+cbs_pop_per_km2 = cdpn.cbs_pop_per_km2,
+cbs_dist_to_horeca = cdpn.cbs_dist_to_horeca
+FROM  cbs_data_per_neighbourhood cdpn
 WHERE st_intersects(${external_features}.geometrie, cdpn.geometrie);
 
 -- twee-onder-een-kap : 0
@@ -166,5 +164,5 @@ SET buildingtype =
 		             WHEN ebt.woningtypering = 'tussenwoning/geschakeld' THEN 4
 		             ELSE 5 
 				 END 
-FROM floors_estimation.esri_building_type ebt 
-WHERE concat('NL.IMBAG.Pand.',ebt.identificatie)  = ${external_features}.identificatie;
+FROM ${building_type} ebt 
+WHERE ebt.identificatie = ${external_features}.identificatie;
