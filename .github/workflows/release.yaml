@@ -35,8 +35,8 @@ jobs:
           python3 scripts/manifest_versions.py sync
           python3 scripts/manifest_versions.py check
           echo "VERSION=$(python3 scripts/manifest_versions.py value pipeline)" >> $GITHUB_OUTPUT
-          if ! git diff --quiet -- pyproject.toml packages; then
-            git add pyproject.toml packages/*/pyproject.toml
+          if ! git diff --quiet -- pyproject.toml uv.lock packages; then
+            git add pyproject.toml uv.lock packages/*/pyproject.toml packages/*/uv.lock
             git commit -m "sync version metadata"
             git push origin master
           fi
@@ -61,9 +61,9 @@ jobs:
         with:
           branch: master
           base: develop
-          title: 'Merge release ${{ github.event.inputs.version }} back to develop'
+          title: 'Merge release ${{ steps.manifest.outputs.VERSION }} back to develop'
           body: |
-            This PR merges the changes from release ${{ github.event.inputs.version }} back to the develop branch.
+            This PR merges the changes from release ${{ steps.manifest.outputs.VERSION }} back to the develop branch.
 
             Changes included in this release:
 

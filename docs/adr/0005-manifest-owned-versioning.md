@@ -44,10 +44,11 @@ BAG3D_DOCKER_IMAGE_TAG is no longer supported as an override.
 
 ### CI and release behavior
 
-- The tools-image workflow validates the manifest, passes build-args to Buildx, and publishes the repository/tag in images.tools.
-- The pipeline-image workflow accepts only vYYYY.MM.DD tags, requires the tag to match manifest.version, and publishes core, floors-estimation, party-walls, export, and Dagster images with that
-  version.
-- The release workflow runs sync and check, then creates the matching Git tag and release.
+- The tools-image workflow runs on changes to its build context merged to `develop`, or on manual dispatch. It validates synchronized manifest metadata, passes manifest-derived build arguments to Buildx, and publishes
+  the complete `BAG3D_TOOLS_IMAGE` reference. Release tags do not rebuild the tools image.
+- The pipeline-image workflow accepts only vYYYY.MM.DD tags, requires the tag to match manifest.version, and publishes core, floors-estimation, party-walls, export, and Dagster images using their complete
+  `BAG3D_*_IMAGE` resolver outputs.
+- The release workflow runs sync and check, commits both package metadata and lockfile updates, then creates the matching Git tag and release.
 - make lint runs check, so derived metadata drift fails locally and in CI.
 
 ## Operational procedure
