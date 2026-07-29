@@ -1,4 +1,4 @@
-FROM 3dgi/3dbag-pipeline-tools:2026.06.17 AS develop
+FROM 3dgi/3dbag-pipeline-tools:2026.07.29 AS develop
 ARG VERSION=develop
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 

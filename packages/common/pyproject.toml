@@ -7,7 +7,7 @@ name = "bag3d-common"
 version = "2025.11.18"
 description = "Resources, functions and type definitions that are used by the 3D BAG packages that define the data processing workflows."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Balázs Dukai", email = "balazs.dukai@3dgi.nl" },
     { name = "Ravi Peters", email = "ravi.peters@3dgi.nl" },
@@ -20,10 +20,10 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster~=1.12.14",
-    "certifi==2026.1.4",
-    "docker~=7.1.0",
-    "requests==2.32.5",
+    "dagster~=1.13.15",
+    "certifi==2026.7.22",
+    "docker~=7.2.0",
+    "requests==2.34.2",
     "pgutils",
     "psycopg[binary]~=3.3.2",
     "bag3d-specs",

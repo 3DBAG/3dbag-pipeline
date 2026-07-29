@@ -20,9 +20,9 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster~=1.12.14",
-    "dagster-postgres~=0.28.14",
-    "shapely~=2.0.1",
+    "dagster~=1.13.15",
+    "dagster-postgres~=0.29.15",
+    "shapely~=2.1.2",
     "building-surfaces",
     "bag3d-common",
     "cjlib",
