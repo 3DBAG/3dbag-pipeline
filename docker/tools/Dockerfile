@@ -1,8 +1,10 @@
-ARG UV_IMAGE
-ARG TYLER_IMAGE
-ARG TYLER_DB_IMAGE
-ARG ROOFER_IMAGE
-ARG CJVAL_IMAGE
+# These required image references are injected from 3dbag-manifest.json.
+# `scratch` keeps the Dockerfile valid for static checks when they are omitted.
+ARG UV_IMAGE=scratch
+ARG TYLER_IMAGE=scratch
+ARG TYLER_DB_IMAGE=scratch
+ARG ROOFER_IMAGE=scratch
+ARG CJVAL_IMAGE=scratch
 
 FROM ${UV_IMAGE} AS uv-source
 FROM ${TYLER_IMAGE} AS tyler-source
