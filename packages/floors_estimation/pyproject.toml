@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-floors-estimation"
-version = "2025.11.18"
+version = "2026.07.29"
 description = "Workflow for predicting the number of floors, based on Ellie Roy's thesis."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -22,8 +22,8 @@ urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "bag3d-common",
     "cjlib",
-    "dagster~=1.12.14",
-    "dagster-postgres~=0.28.14",
+    "dagster~=1.13.15",
+    "dagster-postgres~=0.29.15",
     "pandas~=2.2.3",
     "scikit-learn==1.4.0",
     "sklearn-pandas~=2.2.0",

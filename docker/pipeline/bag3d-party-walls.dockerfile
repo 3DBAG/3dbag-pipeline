@@ -1,4 +1,5 @@
-FROM 3dgi/3dbag-pipeline-tools:2026.06.17 AS develop
+ARG TOOLS_IMAGE=scratch
+FROM ${TOOLS_IMAGE} AS develop
 ARG VERSION=develop
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
@@ -9,22 +10,12 @@ LABEL org.opencontainers.image.description="The party_walls workflow package of 
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.licenses="(MIT OR Apache-2.0)"
 
-RUN rm -rf $VIRTUAL_ENV
-RUN uv venv --python 3.12 $VIRTUAL_ENV
-ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
-# Install packages into the virtual environment
-COPY docker/tools/requirements.txt .
-RUN --mount=type=cache,mode=0755,target=/root/.cache/uv uv pip install -r requirements.txt
-RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
-    --mount=target=/var/cache/apt,type=cache,sharing=locked \
-    rm -f /etc/apt/apt.conf.d/docker-clean && \
-    apt-get -y update && \
-    apt-get install -y libgdal-dev && \
-    apt-get -y clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*;
-
 WORKDIR $BAG3D_PIPELINE_LOCATION
 
+ENV UV_PROJECT_ENVIRONMENT=$VIRTUAL_ENV
+ENV BAG3D_MANIFEST_PATH=$BAG3D_PIPELINE_LOCATION/3dbag-manifest.json
+
+COPY ./3dbag-manifest.json $BAG3D_PIPELINE_LOCATION/
 
 # Install only third-party dependencies (layer cached by lock/pyproject content)
 RUN --mount=type=cache,target=/root/.cache/uv \
