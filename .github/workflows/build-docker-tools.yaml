@@ -12,11 +12,42 @@ on:
       - scripts/manifest_versions.py
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: tools-image-publish-develop
+  cancel-in-progress: false
+
 jobs:
-  build:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.publish-check.outputs.should_publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check whether a new tools image is required
+        id: publish-check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REVISION: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "should_publish=$(python3 scripts/manifest_versions.py tools-image-publish-required "$BASE_REVISION")" >> "$GITHUB_OUTPUT"
+
+  build-and-publish:
+    needs: prepare
+    if: needs.prepare.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Read tools image values from manifest
         id: manifest
         run: |
@@ -29,7 +60,7 @@ jobs:
               echo "${name}=${value}"
             done < <(python3 scripts/manifest_versions.py env --format build-args)
             echo "TOOLS_VERSION=$(python3 scripts/manifest_versions.py value tools)"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -38,7 +69,21 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
+      - name: Require an unused tools image tag
+        env:
+          TOOLS_IMAGE_TAG: ${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE_TAG }}
+        run: |
+          error_log=$(mktemp)
+          if docker buildx imagetools inspect "$TOOLS_IMAGE_TAG" > /dev/null 2> "$error_log"; then
+            echo "Refusing to overwrite published tools image tag: $TOOLS_IMAGE_TAG" >&2
+            exit 1
+          fi
+          if ! grep -Eqi 'not found|manifest unknown|name unknown' "$error_log"; then
+            cat "$error_log" >&2
+            exit 1
+          fi
       - name: Build and push tools image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./
@@ -49,6 +94,19 @@ jobs:
             VERSION=${{ steps.manifest.outputs.TOOLS_VERSION }}
             ${{ steps.manifest.outputs.BUILD_ARGS }}
           push: true
-          tags: ${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE }}
+          tags: ${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Record the published tools image digest
+        env:
+          TOOLS_DIGEST: ${{ steps.build.outputs.digest }}
+          TOOLS_VERSION: ${{ steps.manifest.outputs.TOOLS_VERSION }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git pull --rebase origin develop
+          python3 scripts/manifest_versions.py set-tools-image-digest "$TOOLS_DIGEST" --expected-version "$TOOLS_VERSION"
+          python3 scripts/manifest_versions.py check
+          git add 3dbag-manifest.json
+          git commit -m "pin tools image ${TOOLS_VERSION}"
+          git push origin develop

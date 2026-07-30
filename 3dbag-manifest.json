@@ -3,7 +3,8 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.07.29"
+      "version": "2026.07.30.1",
+      "digest": "sha256:055d02c5ea9ed23945e2f96725a1637e0d9fc66c68b78b92148ce953ba8c22c5"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
     "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },

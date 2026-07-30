@@ -14,7 +14,7 @@ endef
 
 MANIFEST_ENV := $(shell python3 scripts/manifest_versions.py env | tr '\n' ';')
 $(eval $(subst ;,$(newline),$(MANIFEST_ENV)))
-export BAG3D_PIPELINE_VERSION BAG3D_TOOLS_IMAGE BAG3D_CORE_IMAGE \
+export BAG3D_PIPELINE_VERSION BAG3D_TOOLS_IMAGE BAG3D_TOOLS_IMAGE_TAG BAG3D_CORE_IMAGE \
 	BAG3D_FLOORS_ESTIMATION_IMAGE BAG3D_PARTY_WALLS_IMAGE BAG3D_EXPORT_IMAGE \
 	BAG3D_DAGSTER_IMAGE
 
@@ -108,7 +108,7 @@ docker_build_tools:
 	docker build \
 		$$(python3 scripts/manifest_versions.py build-args | sed 's/^/--build-arg /') \
 		--build-arg VERSION=$$(python3 scripts/manifest_versions.py value tools) \
-		--tag $(BAG3D_TOOLS_IMAGE) \
+		--tag $(BAG3D_TOOLS_IMAGE_TAG) \
 		--file docker/tools/Dockerfile \
 		.
 

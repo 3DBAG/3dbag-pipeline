@@ -263,10 +263,11 @@ Assets are usually some results of computations, therefore their names are nouns
 Release always happens from the `master` branch, after merging the successful production candidate branch into `master`.
 See the [branches](#branches) section for more information.
 
-1. Update the CHANGELOG.md file with the new version and the changes. It must include the new version number that you are releasing, e.g. `## [2024.10.24]`.
-2. On GitHub, create a new pull request from the current production candidate branch to the `master` branch and merge it.
-3. Manually trigger the release workflow on GitHub Actions. You'll need to input the new version number that you added to the CHANGELOG, e.g. `2024.10.24`. This will create a new release on GitHub and add the contents of the CHANGELOG to the release notes.
-4. The workflow will automatically open a pull request from `master` to `develop` to merge back the changes from the release. This is done to keep the `develop` branch up to date with the latest changes from the `master` branch. You can merge this pull request after the release is done.
+1. If the release needs changed external tools, merge that tools update to `develop` first. It must have a new `images.tools.version`; wait for the tools workflow to publish it and commit its `images.tools.digest`.
+2. Update `3dbag-manifest.json` with the pipeline `version` and update `CHANGELOG.md`. The changelog must include that version, e.g. `## [2024.10.24]`.
+3. Run `make sync_versions` and `python3 scripts/manifest_versions.py check`, then merge the current production candidate branch into `master`.
+4. Manually trigger the release workflow on GitHub Actions. It uses `manifest.version`, creates the matching tag and release, and publishes pipeline images from the digest-pinned tools base image.
+5. The workflow automatically opens a pull request from `master` to `develop` to merge back the release changes. Merge it after the release is complete.
 
 ## Dagster
 

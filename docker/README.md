@@ -28,9 +28,14 @@ If you need to add a new tool to be used in the pipeline you can one of the foll
 1. If there is a image available for the tool you can make sure it is used when building the `3dbag-pipeline-tools` image by making the necessary modifications in the `docker/tools/Dockerfile` (as it is done for example for tyler)
 2. If no image is available, you should update the `tools-build.sh` and `tools-test.sh` files which are used when building the `3dbag-pipeline-tools` image. You should also modify the command in `docker/tools/Dockerfile` to ensure the new tools are installed.
 
-To update a Docker-delivered tool, edit its version, repository, and digest in the
-manifest. If the tools image changes, also update `images.tools.version`; CI publishes
-that exact tag. Pipeline release images are all tagged with the top-level manifest version.
+To change any tools-image input, update the relevant manifest entry and assign a new
+`images.tools.version` (use `YYYY.MM.DD.N` when more than one tools image is released
+on a day). CI rejects a changed tools input without a new version and rejects any tag
+that already exists. It publishes the tag once, then commits the resulting
+`images.tools.digest` to `develop`. Compose and pipeline image builds consume the
+resulting `repository:version@digest` reference; only the publication job uses the
+tag-only reference. Pipeline release images are all tagged with the top-level manifest
+version.
 
 
 [`3dgi/3dbag-pipeline-core`](https://hub.docker.com/r/3dgi/3dbag-pipeline-core) 
