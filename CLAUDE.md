@@ -241,7 +241,6 @@ The `common` package provides reusable resources (all in `packages/common/src/ba
 - **LASToolsResource** - LASTools suite (lasindex, las2las, lasinfo)
 - **ServerTransferResource** - Secure file transfer to the publication server (`publication_server`)
 - **DatabaseResource** (as `publication_db`) - PostgreSQL on the publication server (BAG3D_PUBLICATION_PG_* env vars)
-- **GeoflowResource** - 3D geometry processing
 - **ValidationResource** - Data validation tools
 - **Specs3DBAGResource** - Building specifications from bag3d-specs
 - **ReleaseVersionResource** / **ToolVersionsResource** - Version management

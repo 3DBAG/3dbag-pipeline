@@ -40,7 +40,6 @@ MOCK_RESOURCES = {
     "computation_db": dg.ResourceDefinition.mock_resource(),
     "tyler": dg.ResourceDefinition.mock_resource(),
     "pdal": dg.ResourceDefinition.mock_resource(),
-    "geoflow": dg.ResourceDefinition.mock_resource(),
     "roofer": dg.ResourceDefinition.mock_resource(),
     "version": dg.ResourceDefinition.mock_resource(),
     "specs3dbag": dg.ResourceDefinition.mock_resource(),

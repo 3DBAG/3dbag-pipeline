@@ -29,11 +29,9 @@ logger = get_dagster_logger("export.metadata")
 
 # (manifest_key, resource_key, executable, version_cmd)
 _SOFTWARE_TOOLS = [
-    ("geoflow-bundle", "geoflow", "geof", "--list-plugins --verbose"),
     ("roofer", "roofer", "roofer", None),
     ("tyler", "tyler", "tyler", None),
     ("tyler-db", "tyler", "tyler-db", None),
-    ("tyler-multiformat", "tyler", "tyler-multiformat", None),
     ("gdal", "gdal", "ogr2ogr", None),
     ("pdal", "pdal", "pdal", None),
     ("lastools", "lastools", "lasindex", "-version"),

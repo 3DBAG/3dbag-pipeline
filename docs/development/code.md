@@ -185,13 +185,13 @@ Note that external tools (roofer, tyler, GDAL, PDAL) are not available in this m
 
 The pipeline has the following requirements:
 
-- Python 3.11
+- Python 3.12
 
 - Docker
 
 - [Tyler](https://github.com/3DGI/tyler)
 
-- [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
+- [Roofer](https://github.com/3DBAG/roofer)
 
 - [LAStools](https://github.com/LAStools/LAStools)
 

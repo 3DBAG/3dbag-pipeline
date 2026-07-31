@@ -121,7 +121,6 @@ COPY --from=roofer-source /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
 COPY --from=roofer-source /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
 COPY --from=roofer-source /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 
-# We only need this until we replace the old geoflow with roofer
 FROM roofer AS dagster
 
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
