@@ -16,7 +16,6 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
     TylerResource,
     RooferResource,
-    GeoflowResource,
     ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
@@ -59,7 +58,6 @@ nl_transform = NlTransform()
 tool_versions = ToolVersionsResource(
     exe_tyler=os.getenv("EXE_PATH_TYLER"),
     exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-    exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
     exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_pdal=os.getenv("EXE_PATH_PDAL"),
@@ -92,7 +90,6 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
             "tyler": TylerResource.configure_at_launch(),
-            "geoflow": GeoflowResource.configure_at_launch(),
             "validation": ValidationResource.configure_at_launch(),
             "roofer": RooferResource.configure_at_launch(),
             "version": version,
@@ -134,11 +131,6 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "tyler": TylerResource(
                 exe_tyler=os.getenv("EXE_PATH_TYLER"),
                 exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-                exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
-            ),
-            "geoflow": GeoflowResource(
-                exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
-                flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
             ),
             "validation": ValidationResource(
                 exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),

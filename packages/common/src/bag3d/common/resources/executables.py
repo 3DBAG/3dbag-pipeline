@@ -409,14 +409,12 @@ class LASToolsResource(ConfigurableResource):
 class TylerResource(ConfigurableResource):
     """
     A Tyler Resource can be configured by providing the paths to
-    Tyler executables "tyler", "tyler-db", and "tyler-multiformat"
-    on the local system.
+    Tyler executables "tyler", "tyler-db" on the local system.
 
     Example:
 
         tyler_resource = TylerResource(exe_tyler=os.getenv("EXE_PATH_TYLER"),
-                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"),
-                                       exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"))
+                                       exe_tyler_db=s.getenv("EXE_PATH_TYLER_DB"))
 
     After the resource has been instantiated, tyler (CommandRunner) can
     be acquired with the `runner` property:
@@ -426,17 +424,14 @@ class TylerResource(ConfigurableResource):
 
     exe_tyler: Optional[str] = None
     exe_tyler_db: Optional[str] = None
-    exe_tyler_multiformat: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
         assert self.exe_tyler is not None
         assert self.exe_tyler_db is not None
-        assert self.exe_tyler_multiformat is not None
         return {
             "tyler": self.exe_tyler,
             "tyler-db": self.exe_tyler_db,
-            "tyler-multiformat": self.exe_tyler_multiformat,
         }
 
     @property
@@ -516,40 +511,6 @@ class RooferResource(ConfigurableResource):
             "crop": self.exe_crop,
             "roofer": self.exe_roofer,
         }
-
-    @property
-    def with_docker(self) -> bool:
-        return False
-
-    @property
-    def runner(self) -> CommandRunner:
-        return CommandRunner(exes=self.exes, with_docker=self.with_docker)
-
-
-class GeoflowResource(ConfigurableResource):
-    """
-    A GeoflowResource can be configured by providing the paths to
-    Geoflow `exe_geoflow` executable on the local system
-    and the path to the reconstruction flowchart.
-
-    Example:
-
-        geoflow_resource = GeoflowResource(exe_geoflow = os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
-                                           flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"))
-
-    After the resource has been instantiated, geoflow (CommandRunner) can
-    be acquired with the `runner` property:
-
-        geoflow = geoflow_resource.runner
-    """
-
-    exe_geoflow: Optional[str] = None
-    flowchart: Optional[str] = None
-
-    @property
-    def exes(self) -> Dict[str, str]:
-        assert self.exe_geoflow is not None
-        return {"geof": self.exe_geoflow}
 
     @property
     def with_docker(self) -> bool:

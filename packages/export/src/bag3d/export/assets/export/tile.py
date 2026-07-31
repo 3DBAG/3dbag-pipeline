@@ -12,7 +12,7 @@ from pydantic import Field
 
 from bag3d.common.resources import tool_versions
 from bag3d.common.resources.specs import Specs3DBAGResource
-from bag3d.common.resources.executables import TylerResource, GeoflowResource
+from bag3d.common.resources.executables import TylerResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 
@@ -57,7 +57,7 @@ def generate_tyler_config(
         specs: The 3DBAG specifications
         data_format: Tyler output format (multi, cesium3dtiles)
         locations: The data format locations to generate the config for. Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
-        output_dir: The directory there tyler will write the output
+        export_dir:  The location of the export directory where all exported formats are stored.
     Raises:
         ValueError: With `format=='cesium3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Cesium3dTilesLocation)`.
     """
@@ -129,7 +129,6 @@ def reconstruction_output_tiles_func(
     data_format: TylerOutputFormat,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
-    geoflow: GeoflowResource,
     specs: Specs3DBAGResource,
     tyler: TylerResource,
     **kwargs,
@@ -191,7 +190,6 @@ def reconstruction_output_cityjson(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -205,7 +203,6 @@ def reconstruction_output_cityjson(
         data_format=TylerOutputFormat.CITYJSON,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
@@ -224,7 +221,6 @@ def reconstruction_output_gpkg(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -238,7 +234,6 @@ def reconstruction_output_gpkg(
         data_format=TylerOutputFormat.GPKG,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
@@ -257,7 +252,6 @@ def reconstruction_output_obj(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -271,7 +265,6 @@ def reconstruction_output_obj(
         data_format=TylerOutputFormat.OBJ,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
@@ -290,7 +283,6 @@ def reconstruction_output_3dtiles_lod12(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -304,7 +296,6 @@ def reconstruction_output_3dtiles_lod12(
         data_format=TylerOutputFormat.CESIUM3DTILES,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
@@ -323,7 +314,6 @@ def reconstruction_output_3dtiles_lod13(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -337,7 +327,6 @@ def reconstruction_output_3dtiles_lod13(
         data_format=TylerOutputFormat.CESIUM3DTILES,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
@@ -356,7 +345,6 @@ def reconstruction_output_3dtiles_lod22(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
-    geoflow: GeoflowResource,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
@@ -370,7 +358,6 @@ def reconstruction_output_3dtiles_lod22(
         data_format=TylerOutputFormat.CESIUM3DTILES,
         file_store=file_store,
         version=version,
-        geoflow=geoflow,
         specs=specs,
         tyler=tyler,
         version_3dbag=version_3dbag,
