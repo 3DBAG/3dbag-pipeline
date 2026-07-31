@@ -487,12 +487,11 @@ class ValidationResource(ConfigurableResource):
 class RooferResource(ConfigurableResource):
     """
     A RooferResource can be configured by providing the paths to
-    Roofer `crop` and `roofer` executables on the local system.
+    the `roofer` executable on the local system.
 
     Example:
 
-        roofer_resource = RooferResource(exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
-                                         exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"))
+        roofer_resource = RooferResource(exe_roofer=os.getenv("EXE_PATH_ROOFER"))
 
     After the resource has been instantiated, roofer (CommandRunner) can
     be acquired with the `runner` property:
@@ -500,15 +499,12 @@ class RooferResource(ConfigurableResource):
         roofer = roofer_resource.runner
     """
 
-    exe_crop: Optional[str] = None
     exe_roofer: Optional[str] = None
 
     @property
     def exes(self) -> Dict[str, str]:
-        assert self.exe_crop is not None
         assert self.exe_roofer is not None
         return {
-            "crop": self.exe_crop,
             "roofer": self.exe_roofer,
         }
 

@@ -58,11 +58,10 @@ nl_transform = NlTransform()
 tool_versions = ToolVersionsResource(
     exe_tyler=os.getenv("EXE_PATH_TYLER"),
     exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-    exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+    exe_roofer=os.getenv("EXE_PATH_ROOFER"),
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_pdal=os.getenv("EXE_PATH_PDAL"),
     exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-    exe_geof=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
 )
 
 
@@ -138,8 +137,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_cjio=os.getenv("EXE_PATH_CJIO"),
             ),
             "roofer": RooferResource(
-                exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
-                exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+                exe_roofer=os.getenv("EXE_PATH_ROOFER"),
             ),
             "version": version,
             "specs": specs,
