@@ -1,7 +1,6 @@
 from enum import StrEnum
 
 import json
-import os
 from os import getenv
 from pathlib import Path
 from typing import Union
@@ -25,22 +24,6 @@ class TylerOutputFormat(StrEnum):
     CITYJSON = "cityjson"
     OBJ = "obj"
     TSV = "tsv"
-
-
-def create_sequence_header_file(template_file, output_file, version_3dbag):
-    """Create the CityJSON metadata file."""
-    with open(template_file, "r") as f:
-        header = json.load(f)
-        header["metadata"]["version"] = (
-            version_3dbag  # example version string: "v2023.10.08"
-        )
-        metadata_url = "https://data.3dbag.nl/metadata/{}/metadata.json".format(
-            version_3dbag.replace(".", "")
-        )
-        header["metadata"]["fullMetadataUrl"] = metadata_url
-
-    with open(output_file, "w") as f:
-        json.dump(header, f)
 
 
 def generate_tyler_config(
@@ -141,12 +124,7 @@ def reconstruction_output_tiles_func(
     reconstructed_root_dir = file_store.stage_dir("floors_estimation")
     export_dir = file_store.stage_subdir("export", version.version)
     logger.debug(f"{reconstructed_root_dir=}")
-    version_3dbag: str = kwargs["version_3dbag"]
 
-    sequence_header_file = export_dir / "sequence_header.json"
-    create_sequence_header_file(
-        os.getenv("TYLER_METADATA_JSON"), sequence_header_file, version_3dbag
-    )
     num_threads = kwargs["rayon_num_threads"]
     exe_name = "tyler"
     cli_params, output_dir = generate_tyler_config(
