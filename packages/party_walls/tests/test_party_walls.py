@@ -61,7 +61,12 @@ def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     )
     source_path.parent.mkdir(parents=True, exist_ok=True)
     source_path.write_bytes(
-        b"\n".join([_make_root_bytes(), *[_make_feature_bytes(pand_id) for pand_id in pand_ids]])
+        b"\n".join(
+            [
+                _make_root_bytes(),
+                *[_make_feature_bytes(pand_id) for pand_id in pand_ids],
+            ]
+        )
         + b"\n"
     )
     refs_with_bytes = []

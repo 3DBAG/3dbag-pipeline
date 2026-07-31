@@ -30,7 +30,9 @@ def write_feature_records_as_cityjsonseq(
         for record in items
     ]
     try:
-        payload = cjlib.write_cityjsonseq_auto_transform_bytes(base_root, feature_models)
+        payload = cjlib.write_cityjsonseq_auto_transform_bytes(
+            base_root, feature_models
+        )
     finally:
         base_root.close()
         for model in feature_models:

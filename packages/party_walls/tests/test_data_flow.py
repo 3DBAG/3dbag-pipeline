@@ -78,7 +78,12 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         refs.append(ref)
         feature_map[pand_id] = json.loads(_make_feature_bytes(pand_id))
     source_path.write_bytes(
-        b"\n".join([_make_root_bytes(), *[_make_feature_bytes(pand_id) for pand_id in feature_map]])
+        b"\n".join(
+            [
+                _make_root_bytes(),
+                *[_make_feature_bytes(pand_id) for pand_id in feature_map],
+            ]
+        )
         + b"\n"
     )
 

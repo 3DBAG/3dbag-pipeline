@@ -96,8 +96,10 @@ if "cjlib" not in sys.modules:
         ).encode()
 
     cjlib_module = types.ModuleType("cjlib")
-    cjlib_module.CityModel = CityModel  # type: ignore[attr-defined]
-    cjlib_module.write_cityjsonseq_auto_transform_bytes = (
-        write_cityjsonseq_auto_transform_bytes  # type: ignore[attr-defined]
+    setattr(cjlib_module, "CityModel", CityModel)
+    setattr(
+        cjlib_module,
+        "write_cityjsonseq_auto_transform_bytes",
+        write_cityjsonseq_auto_transform_bytes,
     )
     sys.modules["cjlib"] = cjlib_module
