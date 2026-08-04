@@ -22,8 +22,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=./packages/export/uv.lock,target=$BAG3D_PIPELINE_LOCATION/packages/export/uv.lock \
     --mount=type=bind,source=./packages/export/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/export/pyproject.toml \
     --mount=type=bind,source=./packages/common/pyproject.toml,target=$BAG3D_PIPELINE_LOCATION/packages/common/pyproject.toml \
-    --mount=type=bind,source=./docker/vendor/cjlib-0.3.0-py3-none-any.whl,target=$BAG3D_PIPELINE_LOCATION/docker/vendor/cjlib-0.3.0-py3-none-any.whl \
-    --mount=type=bind,source=./docker/vendor/cjindex-0.3.0-py3-none-any.whl,target=$BAG3D_PIPELINE_LOCATION/docker/vendor/cjindex-0.3.0-py3-none-any.whl \
     uv sync \
     --frozen \
     --all-extras \
@@ -34,7 +32,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY packages/common $BAG3D_PIPELINE_LOCATION/packages/common
 COPY packages/export $BAG3D_PIPELINE_LOCATION/packages/export
-COPY docker/vendor $BAG3D_PIPELINE_LOCATION/docker/vendor
 
 # Install the workflow package and the bag3d-common package in editable mode
 RUN --mount=type=cache,target=/root/.cache/uv \

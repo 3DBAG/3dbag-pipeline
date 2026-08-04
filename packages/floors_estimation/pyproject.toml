@@ -21,7 +21,7 @@ classifiers = [
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "bag3d-common",
-    "cjlib",
+    "cityjson-index==0.11.0",
     "dagster~=1.13.15",
     "dagster-postgres~=0.29.15",
     "pandas~=2.2.3",
@@ -45,8 +45,6 @@ dev = [
 
 [tool.uv.sources]
 bag3d-common = { path = "../common", editable = true}
-cjindex = { path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" }
-cjlib = { path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 filterwarnings = [

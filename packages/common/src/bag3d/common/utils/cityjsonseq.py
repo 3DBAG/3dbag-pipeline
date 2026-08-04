@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
-import cjlib
+import cityjson_lib
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,15 +22,15 @@ def write_feature_records_as_cityjsonseq(
     if not items:
         raise ValueError("cannot write CityJSONSeq without any features")
 
-    base_root = cjlib.CityModel.parse_document_bytes(
+    base_root = cityjson_lib.CityModel.parse_document_bytes(
         _read_cityjsonseq_root_bytes(Path(items[0].source_path))
     )
     feature_models = [
-        cjlib.CityModel.parse_feature_bytes(_feature_json_bytes(record.feature))
+        cityjson_lib.CityModel.parse_feature_bytes(_feature_json_bytes(record.feature))
         for record in items
     ]
     try:
-        payload = cjlib.write_cityjsonseq_auto_transform_bytes(
+        payload = cityjson_lib.write_cityjsonseq_auto_transform_bytes(
             base_root, feature_models
         )
     finally:

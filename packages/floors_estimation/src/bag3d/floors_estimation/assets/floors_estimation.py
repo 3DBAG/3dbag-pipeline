@@ -4,7 +4,7 @@ from os import getenv
 from pathlib import Path
 from typing import Any, Dict
 
-import cjindex
+import cityjson_index
 import numpy as np
 import pandas as pd
 from bag3d.common.types import PostgresTableIdentifier
@@ -13,7 +13,12 @@ from bag3d.common.utils.database import (
     load_sql,
     postgrestable_from_query,
 )
-from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+from bag3d.common.resources.cjindex import (
+    CityIndexResource,
+    iter_package_refs,
+    open_ready_index,
+    read_package_feature_json,
+)
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.cityjsonseq import (
@@ -142,23 +147,18 @@ def bag3d_features(
     )
 
     idx = open_ready_index(party_walls_index)
-    total = idx.feature_ref_count()
+    total = idx.feature_bounds_summary().package_count
     logger.info(f"Extracting 3DBAG features for {total} buildings.")
 
-    offset = 0
     chunk_id = 0
     futures_map = {}
 
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
-        while offset < total:
-            refs = idx.feature_ref_page(offset, CHUNK_SIZE)
-            if not refs:
-                break
-
+        for refs in iter_package_refs(idx, CHUNK_SIZE):
             chunk_attrs = []
             for ref in refs:
-                feature_json = idx.read_feature_json(ref)
-                attributes = feature_json["CityObjects"][ref.feature_id]["attributes"]
+                feature_json = read_package_feature_json(idx, ref)
+                attributes = feature_json["CityObjects"][ref.model_id]["attributes"]
                 chunk_attrs.append(attributes)
 
             future = pool.submit(
@@ -171,7 +171,6 @@ def bag3d_features(
             )
             futures_map[future] = chunk_id
             chunk_id += 1
-            offset += len(refs)
 
         for i, future in enumerate(as_completed(futures_map)):
             try:
@@ -179,6 +178,7 @@ def bag3d_features(
             except Exception as e:  # pragma: no cover
                 logger.error(f"Error in chunk {i} raised an exception: {e}")
 
+    idx.close()
     logger.info(f"Processed {chunk_id} chunks.")
     return Output(bag3d_features_table, metadata=metadata)
 
@@ -298,13 +298,14 @@ def predictions_table(
 
 
 def _inject_floors(
-    ref: cjindex.FeatureRef,
+    ref: cityjson_index.PackageRef,
     feature_json: dict[str, Any],
+    source_path: str,
     inferenced_floors: pd.DataFrame,
     party_walls_stage_dir: Path,
 ) -> tuple[str, dict[str, Any]]:
     """Inject b3_bouwlagen into a feature and return (tile_id, modified_feature)."""
-    pand_id = ref.feature_id
+    pand_id = ref.model_id
     attributes = feature_json["CityObjects"][pand_id]["attributes"]
 
     if pand_id in inferenced_floors.index:
@@ -313,7 +314,7 @@ def _inject_floors(
     else:
         attributes["b3_bouwlagen"] = None
 
-    source = Path(ref.source_path)
+    source = Path(source_path)
     try:
         rel = source.relative_to(party_walls_stage_dir)
     except ValueError:
@@ -337,28 +338,25 @@ def save_cjfiles(
     logger.info(f"Saving to {floors_estimation_dir}")
 
     idx = open_ready_index(party_walls_index)
-    total = idx.feature_ref_count()
+    total = idx.feature_bounds_summary().package_count
 
-    # Collect (tile_id, feature_json) pairs; workers only do attribute injection
+    # Resolve provenance in page order and pass it separately to the worker.
     tile_features: dict[str, list[FeatureRecord]] = defaultdict(list)
     with ThreadPoolExecutor(max_workers=config.concurrency) as pool:
         futures = {}
-        offset = 0
-        while offset < total:
-            refs = idx.feature_ref_page(offset, CHUNK_SIZE)
-            if not refs:
-                break
-            for ref in refs:
-                feature_json = idx.read_feature_json(ref)
+        for refs in iter_package_refs(idx, CHUNK_SIZE):
+            paths = idx.package_source_paths(refs)
+            for ref, source_path in zip(refs, paths, strict=True):
+                feature_json = read_package_feature_json(idx, ref)
                 future = pool.submit(
                     _inject_floors,
                     ref,
                     feature_json,
+                    source_path,
                     inferenced_floors,
                     party_walls_stage_dir,
                 )
-                futures[future] = (ref.feature_id, ref.source_path)
-            offset += len(refs)
+                futures[future] = (ref.model_id, source_path)
 
         for future in as_completed(futures):
             try:
@@ -380,6 +378,7 @@ def save_cjfiles(
         write_feature_records_as_cityjsonseq(out_file, features)
         files_written += 1
 
+    idx.close()
     logger.info(
         f"Saved {total} features across {files_written} tiles to {floors_estimation_dir}"
     )

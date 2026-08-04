@@ -4,7 +4,7 @@ from typing import cast
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import cjindex
+import cityjson_index
 from bag3d.common.testing import build_asset_context_for
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
@@ -54,8 +54,11 @@ def _stream_items(path: Path) -> list[dict]:
     ]
 
 
+_SOURCE_PATHS: dict[str, str] = {}
+
+
 def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
-    """Create FeatureRef mocks backed by a tile-level reconstruction source."""
+    """Create PackageRef mocks backed by a tile-level reconstruction source."""
     source_path = (
         tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
     )
@@ -71,8 +74,10 @@ def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     )
     refs_with_bytes = []
     for pand_id in pand_ids:
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(source_path))
+        ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
         refs_with_bytes.append((ref, _make_feature_bytes(pand_id)))
+    _SOURCE_PATHS.clear()
+    _SOURCE_PATHS.update({pand_id: str(source_path) for pand_id in pand_ids})
     return refs_with_bytes
 
 
@@ -80,16 +85,18 @@ def _stub_open_index(refs_with_bytes: list) -> MagicMock:
     """Build a mock OpenedIndex that serves the given (ref, bytes) pairs."""
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = len(refs_with_bytes)
+    mock_idx.feature_bounds_summary.return_value.package_count = len(refs_with_bytes)
 
     refs = [r for r, _ in refs_with_bytes]
-    feature_map = {r.feature_id: json.loads(b) for r, b in refs_with_bytes}
+    feature_map = {r.model_id: json.loads(b) for r, b in refs_with_bytes}
 
-    def feature_ref_page(offset, limit):
-        return refs[offset : offset + limit]
-
-    mock_idx.feature_ref_page.side_effect = feature_ref_page
-    mock_idx.read_feature_json.side_effect = lambda ref: feature_map[ref.feature_id]
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
+    )
+    mock_idx.package_source_paths.side_effect = lambda page: [
+        _SOURCE_PATHS[ref.model_id] for ref in page
+    ]
+    mock_idx.read_package.side_effect = lambda ref: feature_map[ref.model_id]
     mock_idx.get_json.side_effect = lambda fid: feature_map.get(fid)
     return mock_idx
 
@@ -104,8 +111,8 @@ def test_building_surfaces_empty_index(tmp_path):
 
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = 0
-    mock_idx.feature_ref_page.return_value = []
+    mock_idx.feature_bounds_summary.return_value.package_count = 0
+    mock_idx.package_ref_page_after_record_id.return_value = []
 
     with patch(
         "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
@@ -156,10 +163,10 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
         {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    # Workers open their own index via cjindex.OpenedIndex.open(dataset_dir)
-    import cjindex as _cjindex
+    # Workers open their own index via cityjson_index.OpenedIndex.open(dataset_dir)
+    import cityjson_index as _cityjson_index
 
-    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
     with patch(
         "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
@@ -228,9 +235,9 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
         {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    import cjindex as _cjindex
+    import cityjson_index as _cityjson_index
 
-    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
     with patch(
         "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx

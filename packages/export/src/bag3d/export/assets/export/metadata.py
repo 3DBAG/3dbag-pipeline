@@ -16,7 +16,12 @@ from dagster import (
 )
 from psycopg.sql import SQL
 
-from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+from bag3d.common.resources.cjindex import (
+    CityIndexResource,
+    iter_package_refs,
+    open_ready_index,
+    read_package_feature_json,
+)
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import ReleaseVersionResource
@@ -153,20 +158,15 @@ def feature_evaluation(
     cityobjects = {}
 
     idx = open_ready_index(reconstruction_index)
-    total = idx.feature_ref_count()
-    offset = 0
-    while offset < total:
-        refs = idx.feature_ref_page(offset, _PAGE_SIZE)
-        if not refs:
-            break
+    for refs in iter_package_refs(idx, _PAGE_SIZE):
         for ref in refs:
-            reconstructed_buildings.add(ref.feature_id)
-            cityjson = idx.read_feature_json(ref)
+            reconstructed_buildings.add(ref.model_id)
+            cityjson = read_package_feature_json(idx, ref)
             codata = get_info_per_cityobject(
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )
             cityobjects.update(codata)
-        offset += len(refs)
+    idx.close()
 
     logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
     logger.debug(f"len(cityobjects)={len(cityobjects)}")

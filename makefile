@@ -208,7 +208,3 @@ local_dev:
 
 sync_versions:
 	python3 scripts/manifest_versions.py sync
-
-_copy_vendor_balazs:
-	cp ~/Development/cjlib/ffi/python/dist/*.whl ./docker/vendor/
-	cp ~/Development/cjindex/python/dist/*.whl ./docker/vendor/

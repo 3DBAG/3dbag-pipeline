@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import cjindex
+import cityjson_index
 import pandas as pd
 
 from bag3d.common.resources.files import FileStoreResource
@@ -27,8 +27,11 @@ def _make_root() -> dict:
     }
 
 
+_SOURCE_PATHS: dict[str, str] = {}
+
+
 def _make_refs(tmp_path: Path, pand_ids: list[str], tile_id: str) -> list:
-    """Create on-disk party_walls features and return matching mock FeatureRef list."""
+    """Create on-disk party_walls features and return matching mock PackageRef list."""
     tile_leaf = tile_id.split("/")[-1]
     feature_path = (
         tmp_path / "stages" / "party_walls" / tile_id / f"{tile_leaf}.city.jsonl"
@@ -53,9 +56,11 @@ def _make_refs(tmp_path: Path, pand_ids: list[str], tile_id: str) -> list:
             "vertices": [],
         }
         lines.append(json.dumps(feature))
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
+        ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
         refs_with_bytes.append((ref, json.dumps(feature).encode()))
     feature_path.write_text("\n".join(lines))
+    _SOURCE_PATHS.clear()
+    _SOURCE_PATHS.update({pand_id: str(feature_path) for pand_id in pand_ids})
     return refs_with_bytes
 
 
@@ -63,16 +68,17 @@ def _stub_index(refs_with_bytes: list) -> MagicMock:
     """Build a mock OpenedIndex from a list of (ref, bytes) pairs."""
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = len(refs_with_bytes)
+    mock_idx.feature_bounds_summary.return_value.package_count = len(refs_with_bytes)
     refs = [r for r, _ in refs_with_bytes]
-    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+    bytes_map = {r.model_id: b for r, b in refs_with_bytes}
 
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
-        offset : offset + limit
-    ]
-    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
-        bytes_map[ref.feature_id]
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
     )
+    mock_idx.package_source_paths.side_effect = lambda page: [
+        _SOURCE_PATHS[ref.model_id] for ref in page
+    ]
+    mock_idx.read_package.side_effect = lambda ref: json.loads(bytes_map[ref.model_id])
     return mock_idx
 
 

@@ -26,7 +26,6 @@ dependencies = [
     "dagster-postgres~=0.29.15",
     "lxml~=6.1.1",
     "bag3d-common",
-    "cjlib",
     "certifi>=2026.7.22",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "fabric~=3.2",
@@ -51,8 +50,6 @@ dev = [
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }
 bag3d-common = { path = "../common", editable = true }
-cjindex = { path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" }
-cjlib = { path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 filterwarnings = [

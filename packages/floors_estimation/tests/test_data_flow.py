@@ -7,7 +7,7 @@ and that upstream attributes survive enrichment.
 import json
 from unittest.mock import MagicMock, patch
 
-import cjindex
+import cityjson_index
 import pandas as pd
 
 from bag3d.common.resources.cjindex import CityIndexResource
@@ -71,7 +71,7 @@ def test_party_walls_to_floors_estimation(tmp_path):
     refs = []
     bytes_map = {}
     for pand_id in pand_ids:
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(feature_path))
+        ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
         refs.append(ref)
         bytes_map[pand_id] = json.dumps(
             {
@@ -93,13 +93,14 @@ def test_party_walls_to_floors_estimation(tmp_path):
 
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = len(pand_ids)
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
-        offset : offset + limit
-    ]
-    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
-        bytes_map[ref.feature_id]
+    mock_idx.feature_bounds_summary.return_value.package_count = len(pand_ids)
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
     )
+    mock_idx.package_source_paths.side_effect = lambda page: [
+        str(feature_path) for _ in page
+    ]
+    mock_idx.read_package.side_effect = lambda ref: json.loads(bytes_map[ref.model_id])
     mock_idx.get_json.side_effect = lambda fid: (
         json.loads(bytes_map[fid]) if fid in bytes_map else None
     )

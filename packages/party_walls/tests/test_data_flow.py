@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-import cjindex
+import cityjson_index
 from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
@@ -69,12 +69,12 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
 
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = 2
+    mock_idx.feature_bounds_summary.return_value.package_count = 2
 
     refs = []
     feature_map = {}
     for pand_id in (target_id, adjacent_id):
-        ref = cjindex.FeatureRef(feature_id=pand_id, source_path=str(source_path))
+        ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
         refs.append(ref)
         feature_map[pand_id] = json.loads(_make_feature_bytes(pand_id))
     source_path.write_bytes(
@@ -87,15 +87,18 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         + b"\n"
     )
 
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
-        offset : offset + limit
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
+    )
+    mock_idx.package_source_paths.side_effect = lambda page: [
+        str(source_path) for _ in page
     ]
-    mock_idx.read_feature_json.side_effect = lambda ref: feature_map[ref.feature_id]
+    mock_idx.read_package.side_effect = lambda ref: feature_map[ref.model_id]
     mock_idx.get_json.side_effect = lambda fid: feature_map.get(fid)
 
-    import cjindex as _cjindex
+    import cityjson_index as _cityjson_index
 
-    monkeypatch.setattr(_cjindex.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
     def fake_shared_walls(target: object, adjacent: object) -> SimpleNamespace:
         return SimpleNamespace(

@@ -7,7 +7,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, cast
 
-import cjindex
+import cityjson_index
 from dagster import (
     asset,
     AssetKey,
@@ -20,7 +20,12 @@ from pydantic import Field
 from psycopg import sql as pgsql
 from building_surfaces.walls import shared_walls
 
-from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+from bag3d.common.resources.cjindex import (
+    CityIndexResource,
+    open_ready_index,
+    read_package_feature_json,
+    iter_package_refs,
+)
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.cityjsonseq import (
@@ -102,14 +107,14 @@ def _tile_id_from_source_path(
 
 
 _worker_adjacency: dict[str, list[str]] = {}
-_worker_features_index: dict[str, cjindex.FeatureRef] = {}
+_worker_features_index: dict[str, cityjson_index.PackageRef] = {}
 _worker_dataset_dir: str = ""
-_worker_index: cjindex.OpenedIndex | None = None
+_worker_index: cityjson_index.OpenedIndex | None = None
 
 
 def _init_worker(
     adjacency: dict[str, list[str]],
-    features_index: dict[str, cjindex.FeatureRef],
+    features_index: dict[str, cityjson_index.PackageRef],
     dataset_dir: str,
 ) -> None:
     """Initializer for ProcessPoolExecutor workers.
@@ -122,12 +127,12 @@ def _init_worker(
     _worker_adjacency = adjacency
     _worker_features_index = features_index
     _worker_dataset_dir = dataset_dir
-    _worker_index = cjindex.OpenedIndex.open(dataset_dir)
+    _worker_index = cityjson_index.OpenedIndex.open(dataset_dir)
 
 
 def _process_building(
     pand_id: str,
-    ref: cjindex.FeatureRef,
+    ref: cityjson_index.PackageRef,
     tile_id: str,
     profile: bool,
 ) -> BuildingProcessingResult:
@@ -139,7 +144,7 @@ def _process_building(
     assert _worker_index is not None
 
     target_load_start = perf_counter()
-    target_feature = _worker_index.read_feature_json(ref)
+    target_feature = read_package_feature_json(_worker_index, ref)
     target_part_id = _find_building_part_id(target_feature)
     load_target_s = perf_counter() - target_load_start
     if target_part_id is None:
@@ -153,7 +158,7 @@ def _process_building(
         adj_ref = _worker_features_index.get(adj_id)
         if adj_ref is None:
             continue
-        adj_feature = _worker_index.read_feature_json(adj_ref)
+        adj_feature = read_package_feature_json(_worker_index, adj_ref)
         if adj_feature is None:
             continue
         adj_part_id = _find_building_part_id(adj_feature)
@@ -284,23 +289,22 @@ def building_surfaces(
 
     index_load_start = perf_counter()
     idx = open_ready_index(reconstruction_index)
-    total = idx.feature_ref_count()
+    total = idx.feature_bounds_summary().package_count
     if total == 0:
-        logger.warning("No features found in reconstruction index, skipping.")
+        idx.close()
+        logger.warning("No packages found in reconstruction index, skipping.")
         return []
 
     reconstruction_root = file_store.stage_dir("reconstruction")
 
-    # Collect all feature refs
-    features_index: dict[str, cjindex.FeatureRef] = {}
-    offset = 0
-    while offset < total:
-        refs = idx.feature_ref_page(offset, _PAGE_SIZE)
-        if not refs:
-            break
-        for ref in refs:
-            features_index[ref.feature_id] = ref
-        offset += len(refs)
+    # Collect package refs and resolve provenance once per page.
+    features_index: dict[str, cityjson_index.PackageRef] = {}
+    source_paths: dict[str, str] = {}
+    for refs in iter_package_refs(idx, _PAGE_SIZE):
+        paths = idx.package_source_paths(refs)
+        for ref, source_path in zip(refs, paths, strict=True):
+            features_index[ref.model_id] = ref
+            source_paths[ref.model_id] = source_path
     index_load_s = perf_counter() - index_load_start
 
     pand_ids = list(features_index.keys())
@@ -323,11 +327,11 @@ def building_surfaces(
     # Group buildings by tile using the indexed source path, not the per-feature
     # reconstruction file layout.
     tile_grouping_start = perf_counter()
-    tiles_with_buildings: dict[str, list[tuple[str, cjindex.FeatureRef]]] = defaultdict(
-        list
+    tiles_with_buildings: dict[str, list[tuple[str, cityjson_index.PackageRef]]] = (
+        defaultdict(list)
     )
     for pand_id, ref in features_index.items():
-        tile_id = _tile_id_from_source_path(ref.source_path, reconstruction_root)
+        tile_id = _tile_id_from_source_path(source_paths[pand_id], reconstruction_root)
         tiles_with_buildings[tile_id].append((pand_id, ref))
     tile_grouping_s = perf_counter() - tile_grouping_start
 
@@ -354,7 +358,7 @@ def building_surfaces(
                     tile_id,
                     config.profile,
                 )
-                futures[future] = (pand_id, ref.source_path)
+                futures[future] = (pand_id, source_paths[pand_id])
 
         for future in futures:
             pand_id, source_path = futures[future]
@@ -384,6 +388,7 @@ def building_surfaces(
         write_feature_records_as_cityjsonseq(out_file, features)
         files_written.append(out_file)
 
+    idx.close()
     output_dir = file_store.stage_dir("party_walls")
     metadata: dict[str, Any] = {
         "Nr. features": sum(len(v) for v in tile_features.values()),

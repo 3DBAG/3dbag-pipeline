@@ -161,3 +161,17 @@ including fake CityJSON wrappers that should not exist at the pipeline boundary.
 | `packages/floors_estimation/src/bag3d/floors_estimation/assets/floors_estimation.py` | Direct indexed consumption of `party_walls` stage features |
 | `packages/export/src/bag3d/export/assets/export/metadata.py` | Indexed read of reconstruction-stage features for evaluation |
 | `docs/data_flow.md` | Current stage-to-stage description after removing `features_file_index` assets |
+
+
+## Implementation update: CityJSON 0.11
+
+The pipeline now uses the published `cityjson-index==0.11.0` and
+`cityjson-lib==0.11.0` packages (`cityjson_index` and `cityjson_lib` imports).
+Stage consumers page `PackageRef` values with keyset cursors, use
+`feature_bounds_summary().package_count` for totals, and resolve provenance in
+ordered `package_source_paths()` batches. Package reads use
+`OpenedIndex.read_package(ref)` and serialize the returned `CityModel` to a
+CityJSONFeature dictionary before closing the native model. Asset-level indexes
+are closed after use, while worker processes retain one process-local index.
+The `bag3d.common.resources.cjindex` module path remains stable for the
+pipeline resource API.

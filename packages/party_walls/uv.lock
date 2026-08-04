@@ -57,8 +57,8 @@ source = { editable = "../common" }
 dependencies = [
     { name = "bag3d-specs" },
     { name = "certifi" },
-    { name = "cjindex" },
-    { name = "cjlib" },
+    { name = "cityjson-index" },
+    { name = "cityjson-lib" },
     { name = "dagster" },
     { name = "docker" },
     { name = "fabric" },
@@ -71,8 +71,8 @@ dependencies = [
 requires-dist = [
     { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2025.09.03" },
     { name = "certifi", specifier = "==2026.7.22" },
-    { name = "cjindex", path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" },
-    { name = "cjlib", path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" },
+    { name = "cityjson-index", specifier = "==0.11.0" },
+    { name = "cityjson-lib", specifier = "==0.11.0" },
     { name = "dagster", specifier = "~=1.13.15" },
     { name = "docker", specifier = "~=7.2.0" },
     { name = "fabric", specifier = "~=3.2.2" },
@@ -95,7 +95,7 @@ source = { editable = "." }
 dependencies = [
     { name = "bag3d-common" },
     { name = "building-surfaces" },
-    { name = "cjlib" },
+    { name = "cityjson-index" },
     { name = "dagster" },
     { name = "dagster-postgres" },
     { name = "rich" },
@@ -113,7 +113,7 @@ dev = [
 requires-dist = [
     { name = "bag3d-common", editable = "../common" },
     { name = "building-surfaces", git = "https://github.com/3DGI/3dbag-surfaces.git?rev=2026.1012" },
-    { name = "cjlib", path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" },
+    { name = "cityjson-index", specifier = "==0.11.0" },
     { name = "dagster", specifier = "~=1.13.15" },
     { name = "dagster-postgres", specifier = "~=0.29.15" },
     { name = "rich", specifier = "<14" },
@@ -372,25 +372,26 @@ wheels = [
 ]
 
 [[package]]
-name = "cjindex"
-version = "0.3.0"
-source = { path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" }
+name = "cityjson-index"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cjlib" },
+    { name = "cityjson-lib" },
 ]
 wheels = [
-    { filename = "cjindex-0.3.0-py3-none-any.whl", hash = "sha256:6520c6ee6235d5a920079d6f57627b8ad8006563b0f0bf78394ed02b298cf550" },
+    { url = "https://files.pythonhosted.org/packages/d8/51/6b8a6231ddca8c19ab5f79a8c5e27cc10a47cc9ab0a4a5f44a72b795f026/cityjson_index-0.11.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:8867dcfeb9d1659057af5316f9d8a504c11e80e5865420b87b88be702c268045", size = 2797060 },
+    { url = "https://files.pythonhosted.org/packages/47/87/32b7b92ead4b8e6d77ec4bf74988f42f7032954769082b98e94a616219e6/cityjson_index-0.11.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b4670f1ee5180cc9f62551495265436533e995b994b72071a3e61d66c9dba557", size = 3231724 },
+    { url = "https://files.pythonhosted.org/packages/6a/7d/c452cc7c17f64531d35a25e76649fa587dfa00526249ee8441bd5b199a44/cityjson_index-0.11.0-py3-none-win_amd64.whl", hash = "sha256:0476e9dc3d61c5c8af5996b06dd12a52af7510061cd416154a312531c9679c3c", size = 2721956 },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "cjlib" }]
 
 [[package]]
-name = "cjlib"
-version = "0.3.0"
-source = { path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" }
+name = "cityjson-lib"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { filename = "cjlib-0.3.0-py3-none-any.whl", hash = "sha256:bed8b434cdb0dbfc7929cee77f74eadcba7cbfdf460812cfaa44a0749258a65c" },
+    { url = "https://files.pythonhosted.org/packages/ed/59/a1eff442a3d32c5ce45b9ec133760da14bfedef1407473da60355af60ea2/cityjson_lib-0.11.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:70415d1fb7b3e1c21817a981d964da522c61a0f0f9a5582f7e0c7db769773b92", size = 4244436 },
+    { url = "https://files.pythonhosted.org/packages/93/c2/66ef569f4e22fda3e561344c61cd884ccecb1c9859fe622961e88a62aed9/cityjson_lib-0.11.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:f2c017e553c3b4399937951af39fc4d0c533371697f0a37d2dbaa87d89825404", size = 4883643 },
+    { url = "https://files.pythonhosted.org/packages/9b/b7/54f1bc0e0f24bdb745f6af94a6e7a00da55b1b1f5828f196c4647f778617/cityjson_lib-0.11.0-py3-none-win_amd64.whl", hash = "sha256:b1eeb3f830c2bb01d3630f1b15df3a7c6d9c08e008c43ad370f18cb1f2686b59", size = 4019305 },
 ]
 
 [[package]]

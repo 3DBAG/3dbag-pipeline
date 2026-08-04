@@ -28,8 +28,8 @@ dependencies = [
     "psycopg[binary]~=3.3.2",
     "bag3d-specs",
     "fabric~=3.2.2",
-    "cjindex",
-    "cjlib",
+    "cityjson-index==0.11.0",
+    "cityjson-lib==0.11.0",
 ]
 
 [tool.uv]
@@ -48,8 +48,6 @@ dev = [
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }
 bag3d-specs = { git = "https://github.com/3DBAG/3dbag-specs.git", rev = "2025.09.03" }
-cjindex = { path = "../../docker/vendor/cjindex-0.3.0-py3-none-any.whl" }
-cjlib = { path = "../../docker/vendor/cjlib-0.3.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 filterwarnings = [

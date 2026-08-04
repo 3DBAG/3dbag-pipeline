@@ -1,95 +1,90 @@
-"""Dagster resource wrapping the ``cjindex`` Python package.
+"""Dagster resource wrapping the published ``cityjson-index`` package.
 
-``cjindex`` provides a SQLite-backed spatial index over CityJSONFeature files.
-It replaces the expensive directory-walk ``dict[str, Path]`` indexes that
-``party_walls``, ``floors_estimation``, and ``export`` previously used.
+The pipeline keeps this module path for compatibility while exposing the
+package-oriented CityJSON index API used by downstream assets.
 """
 
+from __future__ import annotations
+
+import json
 import os
+from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, Self
 
+import cityjson_index
 from dagster import ConfigurableResource
 
-_CJINDEX_IMPORT_ERROR: ModuleNotFoundError | None = None
 
-try:
-    import cjindex as cjindex
-except ModuleNotFoundError as exc:
-    _CJINDEX_IMPORT_ERROR = exc
-    cjindex = None
-
-
-def _ensure_cjindex_runtime_available() -> None:
-    if _CJINDEX_IMPORT_ERROR is not None:
-        raise RuntimeError(
-            "cjindex is not importable. Install the vendored cjindex wheel in the runtime "
-            "environment before opening a CityIndexResource."
-        ) from _CJINDEX_IMPORT_ERROR
-    if cjindex is None:
-        raise RuntimeError(
-            "cjindex is not importable. Install the vendored cjindex wheel in the runtime "
-            "environment before opening a CityIndexResource."
-        )
-
-    native_module = getattr(cjindex, "_native", None)
-    native_lib = getattr(native_module, "LIB", None)
-    if native_module is not None and native_lib is None:
-        raise RuntimeError(
-            "cjindex imported successfully but its native library is unavailable. "
-            "The vendored wheel only provides the Python wrapper; ensure the runtime also "
-            "ships libcjindex and that cjindex can locate it."
-        )
+def package_ref_page_after_record_id(
+    index: cityjson_index.OpenedIndex,
+    after_record_id: int | None,
+    page_size: int,
+) -> list[cityjson_index.PackageRef]:
+    """Return one keyset page of package refs, ordered by record ID."""
+    return index.package_ref_page_after_record_id(after_record_id, page_size)
 
 
-def open_ready_index(resource: "CityIndexResource") -> Any:
-    """Open the index for *resource* and reindex if the index is stale.
+def iter_package_refs(
+    index: cityjson_index.OpenedIndex, page_size: int
+) -> Iterator[list[cityjson_index.PackageRef]]:
+    """Yield package-ref pages and advance using the page's final record ID."""
+    after_record_id = None
+    while True:
+        refs = package_ref_page_after_record_id(index, after_record_id, page_size)
+        if not refs:
+            return
+        yield refs
+        after_record_id = refs[-1].record_id
 
-    All pipeline consumers should use this helper so that stale SQLite indexes
-    are automatically rebuilt after upstream assets have written new files.
-    """
-    idx = resource.open()
-    if idx.status().needs_reindex:
-        idx.reindex()
-    return idx
+
+def city_model_to_feature_json(model: object) -> dict[str, Any]:
+    """Serialize a native CityJSONFeature model and release it."""
+    if isinstance(model, dict):
+        return model
+    try:
+        return json.loads(model.serialize_feature_bytes())  # type: ignore[attr-defined]
+    finally:
+        model.close()  # type: ignore[attr-defined]
+
+
+def read_package_feature_json(
+    index: cityjson_index.OpenedIndex, ref: cityjson_index.PackageRef
+) -> dict[str, Any]:
+    """Read a package and convert its native model to a CityJSONFeature dict."""
+    return city_model_to_feature_json(index.read_package(ref))
+
+
+def open_ready_index(resource: "CityIndexResource") -> cityjson_index.OpenedIndex:
+    """Open the index and rebuild it when its source dataset is stale."""
+    index = resource.open()
+    if index.status().needs_reindex:
+        index.reindex()
+    return index
 
 
 class CityIndexResource(ConfigurableResource):
-    """Dagster resource that wraps a ``cjindex.OpenedIndex``.
-
-    Args:
-        dataset_dir: Root directory of the stage that contains the
-            CityJSONFeature files to be indexed.
-        index_path_override: Optional explicit path to the SQLite index file.
-            When ``None`` (the default) ``cjindex`` places the index next to
-            *dataset_dir*.
-    """
+    """Dagster resource for a ``cityjson_index.OpenedIndex`` over a stage."""
 
     dataset_dir: str
     index_path_override: str | None = None
 
-    def open(self) -> Any:
-        """Return an opened index for this resource's dataset directory."""
-        _ensure_cjindex_runtime_available()
-        assert cjindex is not None
-        return cjindex.OpenedIndex.open(
-            self.dataset_dir,
-            self.index_path_override,
+    def open(self) -> cityjson_index.OpenedIndex:
+        """Return an opened native index for this resource's dataset."""
+        return cityjson_index.OpenedIndex.open(
+            self.dataset_dir, self.index_path_override
         )
 
     @classmethod
     def from_filestore(
         cls,
-        filestore_root: str | os.PathLike,
+        filestore_root: str | os.PathLike[str],
         stage: str,
         index_path_override: str | None = None,
     ) -> Self:
-        """Convenience constructor that builds ``dataset_dir`` from a filestore root and stage name.
-
-        Example::
-
-            CityIndexResource.from_filestore(
-                os.environ["BAG3D_FILESTORE"], "reconstruction"
-            )
-        """
-        dataset_dir = str(os.path.join(filestore_root, "stages", stage))
-        return cls(dataset_dir=dataset_dir, index_path_override=index_path_override)
+        """Build a resource from a filestore root and stage name."""
+        dataset_dir = Path(filestore_root) / "stages" / stage
+        return cls(
+            dataset_dir=str(dataset_dir),
+            index_path_override=index_path_override,
+        )

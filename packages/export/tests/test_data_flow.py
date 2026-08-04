@@ -83,26 +83,24 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         _make_reconstruction_feature(tmp_path, tile_id, pand_id) for pand_id in pand_ids
     ]
 
-    # Build mock FeatureRef objects backed by the real on-disk files
+    # Build mock PackageRef objects backed by the real on-disk files
     refs_with_bytes = []
     for pand_id, path in zip(pand_ids, paths):
         ref = MagicMock()
-        ref.feature_id = pand_id
+        ref.model_id = pand_id
         ref.source_path = str(path)
         refs_with_bytes.append((ref, path.read_bytes()))
 
     refs = [r for r, _ in refs_with_bytes]
-    bytes_map = {r.feature_id: b for r, b in refs_with_bytes}
+    bytes_map = {r.model_id: b for r, b in refs_with_bytes}
 
     mock_idx = MagicMock()
     mock_idx.status.return_value = MagicMock(needs_reindex=False)
-    mock_idx.feature_ref_count.return_value = len(refs)
-    mock_idx.feature_ref_page.side_effect = lambda offset, limit: refs[
-        offset : offset + limit
-    ]
-    mock_idx.read_feature_json.side_effect = lambda ref: json.loads(
-        bytes_map[ref.feature_id]
+    mock_idx.feature_bounds_summary.return_value.package_count = len(refs)
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
     )
+    mock_idx.read_package.side_effect = lambda ref: json.loads(bytes_map[ref.model_id])
 
     recon_resource = CityIndexResource(
         dataset_dir=str(tmp_path / "stages" / "reconstruction")
