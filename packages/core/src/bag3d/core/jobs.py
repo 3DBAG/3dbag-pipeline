@@ -118,5 +118,9 @@ job_integration_data = define_asset_job(
     | AssetSelection.assets(["cbs", "extract_cbs_key_figures"])
     | AssetSelection.assets(["cbs", "extract_cbs_buurtkaart"])
     | AssetSelection.assets(["ahn", "tile_index_ahn"])
-    | AssetSelection.assets(["ahn", "tile_index_ahn6"]),
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
+    | AssetSelection.assets(["ahn", "md5_ahn3"])
+    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn5"])
+    | AssetSelection.assets(["ahn", "sha256_ahn6"]),
 )

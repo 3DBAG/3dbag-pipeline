@@ -371,7 +371,27 @@ def integration_ahn6(
     )
 
 
-@asset(group_name="integration_data", automation_condition=AutomationCondition.eager())
+@asset(
+    group_name="integration_data",
+    automation_condition=AutomationCondition.eager(),
+    ins={
+        "extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"])),
+        "extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"])),
+        "extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"])),
+        "extract_cbs_key_figures": AssetIn(
+            key=AssetKey(["cbs", "extract_cbs_key_figures"])
+        ),
+        "extract_cbs_buurtkaart": AssetIn(
+            key=AssetKey(["cbs", "extract_cbs_buurtkaart"])
+        ),
+        "tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"])),
+        "tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"])),
+        "md5_ahn3": AssetIn(key=AssetKey(["ahn", "md5_ahn3"])),
+        "md5_ahn4": AssetIn(key=AssetKey(["ahn", "md5_ahn4"])),
+        "sha256_ahn5": AssetIn(key=AssetKey(["ahn", "sha256_ahn5"])),
+        "sha256_ahn6": AssetIn(key=AssetKey(["ahn", "sha256_ahn6"])),
+    },
+)
 def integration_manifest(
     integration_data_store: FileStoreResource,
     integration_bag,
@@ -383,15 +403,72 @@ def integration_manifest(
     integration_ahn4,
     integration_ahn5,
     integration_ahn6,
+    extract_bag,
+    extract_bgt,
+    extract_top10nl,
+    extract_cbs_key_figures,
+    extract_cbs_buurtkaart,
+    tile_index_ahn,
+    tile_index_ahn6,
+    md5_ahn3,
+    md5_ahn4,
+    sha256_ahn5,
+    sha256_ahn6,
 ) -> Path:
+    """Write the complete, versioned snapshot manifest used by fixture mode."""
     root = integration_data_store.path
-    files = sorted(
-        path
-        for path in root.rglob("*")
-        if path.is_file() and path.name != "manifest.json"
-    )
+    files = {}
+    for path in sorted(
+        p for p in root.rglob("*") if p.is_file() and p.name != "manifest.json"
+    ):
+        relative = str(path.relative_to(root))
+        files[relative] = {"size": path.stat().st_size}
+
+    def rel(path):
+        return str(Path(path).relative_to(root))
+
+    bag_dir = Path(integration_bag)
+    if not bag_dir.is_absolute():
+        bag_dir = root / bag_dir
+    bag_value = extract_bag if isinstance(extract_bag, tuple) else (extract_bag, {}, "")
+    sources = {
+        "bag": {
+            "path": rel(bag_dir),
+            "metadata": bag_value[1],
+            "shortdate": bag_value[2],
+        },
+        "bgt": {"path": rel(integration_bgt)},
+        "top10nl": {"path": rel(integration_top10nl)},
+        "cbs_key_figures": {"path": rel(integration_cbs_key_figures)},
+        "cbs_buurtkaart": {"path": rel(integration_cbs_buurtkaart)},
+    }
+    indexes = {"3": tile_index_ahn, "6": tile_index_ahn6}
+    checksums = {"3": md5_ahn3, "4": md5_ahn4, "5": sha256_ahn5, "6": sha256_ahn6}
+    partitions = {}
+    for version in (3, 4, 5):
+        version_dir = root / "pointclouds" / f"AHN{version}"
+        partitions[str(version)] = {}
+        for tile_id, entry in tile_index_ahn.items():
+            url = entry.get(f"AHN{version}_LAZ")
+            if url and (version_dir / Path(url).name).is_file():
+                partitions[str(version)][tile_id] = {
+                    "path": rel(version_dir / Path(url).name),
+                    "url": url,
+                }
+    partitions["6"] = {}
+    for tile_id, entry in tile_index_ahn6.items():
+        url = entry.get("url")
+        if url and (root / "pointclouds" / "AHN6" / Path(url).name).is_file():
+            batch = f"{int(tile_id.split('_')[0]) // 10000 * 10000:06d}_{int(tile_id.split('_')[1]) // 10000 * 10000:06d}"
+            partitions["6"].setdefault(batch, {})[tile_id] = {
+                "path": rel(root / "pointclouds" / "AHN6" / Path(url).name),
+                "url": url,
+            }
     manifest = {
+        "fixture_version": "1",
         "date": date.today().isoformat(),
-        "files": {str(path.relative_to(root)): path.stat().st_size for path in files},
+        "sources": sources,
+        "ahn": {"indexes": indexes, "checksums": checksums, "partitions": partitions},
+        "files": files,
     }
     return _write_json(root / "manifest.json", manifest)
