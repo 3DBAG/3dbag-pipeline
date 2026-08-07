@@ -1,4 +1,4 @@
-from dagster import load_assets_from_package_module
+from dagster import load_assets_from_package_module, load_assets_from_modules
 
 from bag3d.core.assets import (
     ahn,
@@ -50,9 +50,16 @@ reconstruction_assets = load_assets_from_package_module(
     group_name=RECONSTRUCTION,
 )
 
+from bag3d.core.assets import integration_data  # noqa: E402
+
+integration_data_assets = load_assets_from_modules(
+    [integration_data], group_name="integration_data"
+)
+
 all_assets = [
     *bgt_assets,
     *source_assets,
     *input_assets,
     *reconstruction_assets,
+    *integration_data_assets,
 ]

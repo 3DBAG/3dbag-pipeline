@@ -85,6 +85,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
             "pointcloud_store": FileStoreResource.configure_at_launch(),
+            "integration_data_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
@@ -112,6 +113,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                     "BAG3D_POINTCLOUD_DIR",
                     str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
                 ),
+            ),
+            "integration_data_store": FileStoreResource(
+                root_dir=os.getenv(
+                    "BAG3D_INTEGRATION_DATA_DIR",
+                    str(Path(os.environ["BAG3D_FILESTORE"]) / "integration-data"),
+                )
             ),
             "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],
