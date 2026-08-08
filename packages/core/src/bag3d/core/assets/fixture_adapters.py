@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -14,7 +15,7 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload, LAZDownload
 
-FIXTURE_VERSION = "1"
+FIXTURE_VERSION = "2"
 
 
 @dataclass(frozen=True)
@@ -37,10 +38,6 @@ class FixtureManifest:
 
 def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
     files = manifest.get("files")
-    if not isinstance(files, Mapping) or relative not in files:
-        raise ValueError(
-            f"Fixture manifest does not declare required file {relative!r}"
-        )
     path = (root / relative).resolve()
     if path.is_dir():
         for child in path.rglob("*"):
@@ -49,7 +46,7 @@ def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
                     f"Fixture manifest does not declare required file {child.relative_to(root)!s}"
                 )
         return
-    if relative not in files:
+    if not isinstance(files, Mapping) or relative not in files:
         raise ValueError(
             f"Fixture manifest does not declare required file {relative!r}"
         )
@@ -86,6 +83,13 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         raise ValueError(
             f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected {FIXTURE_VERSION!r}"
         )
+    aoi = manifest.get("aoi")
+    expected_aoi = {"wkt", "minx", "miny", "maxx", "maxy"}
+    if not isinstance(aoi, Mapping) or not expected_aoi.issubset(aoi):
+        raise ValueError("Integration-data manifest is missing AOI metadata")
+    clipping = manifest.get("clipping")
+    if not isinstance(clipping, Mapping) or clipping.get("vectors") != "gdal" or clipping.get("pointclouds") != "las2las_keep_xy":
+        raise ValueError("Integration-data manifest has unsupported clipping metadata")
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):
@@ -124,6 +128,14 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
             if not isinstance(entry, Mapping) or not isinstance(entry.get("path"), str):
                 raise ValueError(f"Invalid AHN{version} partition entry")
             _verify(root, manifest, entry["path"])
+    files = manifest.get("files")
+    if not isinstance(files, Mapping):
+        raise ValueError("Integration-data manifest is missing files")
+    actual = {str(path.relative_to(root)) for path in root.rglob("*") if path.is_file() and path.name != "manifest.json"}
+    if actual != set(files):
+        raise ValueError("Integration-data manifest file list does not match snapshot")
+    for relative in actual:
+        _verify(root, manifest, relative)
     for name, source in sources.items():
         if not isinstance(source, Mapping) or not isinstance(source.get("path"), str):
             raise ValueError(
@@ -221,7 +233,7 @@ def fixture_sha256_ahn6(integration_data_store: FileStoreResource):
     return _checks(integration_data_store, 6)
 
 
-def _laz(store, version, tile):
+def _laz(store, version, tile, pointcloud_store):
     m = _m(store)
     entries = m.value["ahn"]["partitions"].get(str(version), {})
     entry = entries.get(tile)
@@ -236,23 +248,25 @@ def _laz(store, version, tile):
         )
     if not isinstance(entry, Mapping) or not isinstance(entry.get("path"), str):
         raise ValueError(f"Fixture AHN{version} partition is missing tile {tile}")
-    path = m.path(entry["path"])
-    return LAZDownload(
-        str(entry.get("url", path.name)),
-        path,
-        True,
-        entry.get("hash_name"),
-        entry.get("hash_hexdigest"),
-        False,
-        path.stat().st_size / 1e6,
-    )
+    source = m.path(entry["path"])
+    destination = Path(pointcloud_store.root_dir) / "integration-fixture" / f"AHN{version}" / source.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.is_file() or destination.stat().st_size != source.stat().st_size:
+        shutil.copy2(source, destination)
+    digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+    expected = entry.get("sha256")
+    if expected and digest != expected:
+        raise ValueError(f"Fixture AHN{version} checksum does not match manifest: {source}")
+    return LAZDownload(str(entry.get("url", source.name)), destination, True, "sha256", digest, False, destination.stat().st_size / 1e6)
 
 
 def _adapter(version):
     def adapter(
-        context: AssetExecutionContext, integration_data_store: FileStoreResource
+        context: AssetExecutionContext,
+        integration_data_store: FileStoreResource,
+        pointcloud_store: FileStoreResource,
     ):
-        value = _laz(integration_data_store, version, context.partition_key)
+        value = _laz(integration_data_store, version, context.partition_key, pointcloud_store)
         return Output(value, metadata=value.asdict())
 
     return adapter
@@ -285,12 +299,14 @@ fixture_laz_files_ahn5 = asset(
     partitions_def=partition_definition_ahn6_batches,
 )
 def fixture_laz_files_ahn6(
-    context: AssetExecutionContext, integration_data_store: FileStoreResource
+    context: AssetExecutionContext,
+    integration_data_store: FileStoreResource,
+    pointcloud_store: FileStoreResource,
 ):
     m = _m(integration_data_store)
     entries = m.value["ahn"]["partitions"].get("6", {}).get(context.partition_key, {})
     tiles = {
-        tile: _laz(integration_data_store, 6, tile)
+        tile: _laz(integration_data_store, 6, tile, pointcloud_store)
         for tile in tiles_in_batch(context.partition_key)
         if tile in entries
     }

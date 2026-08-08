@@ -23,3 +23,8 @@ services:
     environment:
       BAG3D_INPUT_MODE: integration_data
       BAG3D_INTEGRATION_DATA_DIR: /data/volume/integration-data
+    volumes:
+      - type: bind
+        source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
+        target: /data/volume/integration-data
+        read_only: true
