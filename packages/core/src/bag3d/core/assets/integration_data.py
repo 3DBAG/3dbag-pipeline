@@ -266,7 +266,7 @@ def integration_cbs_buurtkaart(
     target = integration_data_store.path / "cbs" / "buurtkaart.gpkg"
     target.parent.mkdir(parents=True, exist_ok=True)
     result = gdal.runner.run(
-        "{exe} -f GPKG -clipsrc '{aoi}' '{local_path}' '{output}'",
+        "{exe} -f GPKG -clipsrc '{aoi}' '{output}' '{local_path}'",
         exe_name="ogr2ogr",
         kwargs={"aoi": AOI_WKT, "output": target},
         local_path=Path(extract_cbs_buurtkaart),
