@@ -6,13 +6,14 @@ import re
 import shutil
 import sqlite3
 import tempfile
-import xml.etree.ElementTree as ET
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
+from lxml import etree
 from pydantic import Field
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
@@ -25,6 +26,12 @@ AHN6_AOI_TILE_ALLOWLIST = [
     "122000_486000", "123000_485000", "123000_486000",
 ]
 _NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
+_EXTENT = re.compile(r"Extent(?:\s+[^:]+)?:\s*\(([-+0-9.eE]+),\s*([-+0-9.eE]+)\)\s*-\s*\(([-+0-9.eE]+),\s*([-+0-9.eE]+)\)")
+_LAS_BOUND = re.compile(r"^\s*(min|max) x y z:\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)", re.MULTILINE | re.IGNORECASE)
+_STAND_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?stand(?:\s|>)")
+_POS_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?pos(?:\s|>)")
+_AOI_COORDINATE = re.compile(rb"(?:^|\s)(?:12[12]\d{4}|123[0-3]\d{3})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)")
+BUFFER_METRES = 10.0
 
 
 class IntegrationDataConfig(Config):
@@ -75,34 +82,87 @@ def ahn6_tiles_for_aoi(tile_index: Mapping[str, Mapping[str, Any]], geofilter: s
     return overlapping_tile_ids(tile_index, geofilter, allowlist)
 
 
-def _xml_bbox(data: bytes) -> tuple[float, float, float, float] | None:
-    values = [float(value) for value in _NUMBER.findall(data.decode("utf-8", errors="ignore"))]
-    pairs = [(x, y) for x, y in zip(values[0::2], values[1::2]) if 0 < x < 300000 and 0 < y < 700000]
-    if not pairs:
-        return None
-    return min(x for x, _ in pairs), min(y for _, y in pairs), max(x for x, _ in pairs), max(y for _, y in pairs)
-
-
 def _filter_bag_xml(data: bytes, aoi: tuple[float, float, float, float]) -> bytes | None:
-    try:
-        root = ET.fromstring(data)
-    except ET.ParseError:
-        bbox = _xml_bbox(data)
-        return data if bbox is None or _bbox_intersects(bbox, aoi) else None
-    children = list(root)
-    if not children:
-        bbox = _xml_bbox(data)
-        return data if bbox is None or _bbox_intersects(bbox, aoi) else None
-    removed = 0
-    for child in children:
-        bbox = _xml_bbox(ET.tostring(child, encoding="utf-8"))
-        if bbox is not None and not _bbox_intersects(bbox, aoi):
-            root.remove(child)
-            removed += 1
-    if removed == len(children):
+    if aoi == _aoi_bbox(AOI_WKT) and not _AOI_COORDINATE.search(data):
         return None
-    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    if not _STAND_TAG.search(data) and not _POS_TAG.search(data):
+        return data
+    try:
+        root = etree.fromstring(data)
+    except etree.XMLSyntaxError as exc:
+        raise ValueError("BAG XML is not well formed") from exc
+    stands = list(root.iter("{*}stand"))
+    buffered_aoi = (aoi[0] - BUFFER_METRES, aoi[1] - BUFFER_METRES, aoi[2] + BUFFER_METRES, aoi[3] + BUFFER_METRES)
+    if not stands:
+        features = [child for child in root if list(child.iter("{*}pos"))]
+        if not features:
+            return data
+        for feature in features:
+            coordinates = []
+            for pos in feature.iter("{*}pos"):
+                values = [float(value) for value in _NUMBER.findall(pos.text or "")]
+                dimension = int(pos.get("srsDimension", "3"))
+                if dimension < 2 or len(values) % dimension:
+                    coordinates = []
+                    break
+                coordinates.extend((values[index], values[index + 1]) for index in range(0, len(values), dimension))
+            if not coordinates:
+                root.remove(feature)
+                continue
+            bbox = (min(x for x, _ in coordinates), min(y for _, y in coordinates), max(x for x, _ in coordinates), max(y for _, y in coordinates))
+            if not _bbox_intersects(bbox, aoi) or not (buffered_aoi[0] <= bbox[0] and buffered_aoi[1] <= bbox[1] and bbox[2] <= buffered_aoi[2] and bbox[3] <= buffered_aoi[3]):
+                root.remove(feature)
+        return etree.tostring(root, encoding="UTF-8", xml_declaration=True) if any(root.iter("{*}pos")) else None
+    for stand in stands:
+        coordinates: list[tuple[float, float]] = []
+        valid_geometry = True
+        for pos_list in stand.iter("{*}posList"):
+            values = [float(value) for value in _NUMBER.findall(pos_list.text or "")]
+            dimension_value = pos_list.get("srsDimension")
+            if dimension_value is None:
+                dimension = 3 if len(values) % 3 == 0 else 2
+            else:
+                try:
+                    dimension = int(dimension_value)
+                except ValueError:
+                    valid_geometry = False
+                    break
+            if dimension < 2 or len(values) % dimension:
+                valid_geometry = False
+                break
+            coordinates.extend((values[index], values[index + 1]) for index in range(0, len(values), dimension))
+        if not valid_geometry:
+            parent = stand.getparent()
+            if parent is not None:
+                parent.remove(stand)
+            continue
+        if not coordinates:
+            parent = stand.getparent()
+            if parent is not None:
+                parent.remove(stand)
+            continue
+        bbox = (min(x for x, _ in coordinates), min(y for _, y in coordinates), max(x for x, _ in coordinates), max(y for _, y in coordinates))
+        if not _bbox_intersects(bbox, aoi) or not (buffered_aoi[0] <= bbox[0] and buffered_aoi[1] <= bbox[1] and bbox[2] <= buffered_aoi[2] and bbox[3] <= buffered_aoi[3]):
+            parent = stand.getparent()
+            if parent is not None:
+                parent.remove(stand)
+    if not any(root.iter("{*}stand")):
+        return None
+    return etree.tostring(root, encoding="UTF-8", xml_declaration=True)
 
+
+def _filter_bag_member(data: bytes, aoi: tuple[float, float, float, float], filename: str) -> bytes | None:
+    if filename.lower().endswith(".zip"):
+        output = BytesIO()
+        with ZipFile(BytesIO(data)) as source_zip, ZipFile(output, "w", ZIP_DEFLATED) as target_zip:
+            for info in source_zip.infolist():
+                member = _filter_bag_member(source_zip.read(info), aoi, info.filename)
+                if member is not None:
+                    target_zip.writestr(info, member)
+        return output.getvalue() if output.tell() else None
+    if filename.lower().endswith((".xml", ".gml")) and data.strip():
+        return _filter_bag_xml(data, aoi)
+    return data
 
 def filter_bag_extract(source: Path, destination: Path, geofilter: str = AOI_WKT) -> Path:
     aoi = _aoi_bbox(geofilter)
@@ -112,14 +172,14 @@ def filter_bag_extract(source: Path, destination: Path, geofilter: str = AOI_WKT
         if source_file.suffix.lower() != ".zip":
             shutil.copy2(source_file, target)
             continue
+        if re.search(r"(?:NUM|OPR|RELATIE)", source_file.name.upper()):
+            shutil.copy2(source_file, target)
+            continue
         with ZipFile(source_file) as source_zip, ZipFile(target, "w", ZIP_DEFLATED) as target_zip:
             for info in source_zip.infolist():
-                data = source_zip.read(info)
-                if info.filename.lower().endswith((".xml", ".gml")):
-                    data = _filter_bag_xml(data, aoi)
-                    if data is None:
-                        continue
-                target_zip.writestr(info, data)
+                data = _filter_bag_member(source_zip.read(info), aoi, info.filename)
+                if data is not None:
+                    target_zip.writestr(info, data)
     return destination
 
 
@@ -187,7 +247,7 @@ def integration_bag(config: IntegrationDataConfig, integration_data_store: FileS
 
 @asset(group_name="integration_data", ins={"extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"]))}, automation_condition=AutomationCondition.eager())
 def integration_bgt(config: IntegrationDataConfig, integration_data_store: FileStoreResource, extract_bgt, gdal: GDALResource) -> Path:
-    return _clip_gml_archive(Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip", ("bgt_pand.gml", "bgt_pand.gml"), "bgt_pand.gml", config.geofilter, gdal)
+    return _clip_gml_archive(Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip", ("bgt_pand.gml",), "bgt_pand.gml", config.geofilter, gdal)
 
 
 @asset(group_name="integration_data", ins={"extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"]))}, automation_condition=AutomationCondition.eager())
@@ -254,9 +314,108 @@ def integration_ahn6(config: IntegrationDataConfig, integration_data_store: File
     return _download_ahn_tiles(tile_index_ahn6, 6, integration_data_store.path / "pointclouds", config.geofilter, lastools, config.ahn6_allowlist)
 
 
+def _command_has_gdal_error(result: Any) -> bool:
+    return result.returncode != 0 or bool(re.search(r"(?im)^\s*(?:error|fatal|critical)\b", result.stdout + result.stderr))
+
+
+def _ogrinfo_extents(gdal_runner: Any, path: Path, require_extent: bool = True) -> list[tuple[float, float, float, float]]:
+    result = gdal_runner.run("{exe} -so -al '{local_path}'", exe_name="ogrinfo", local_path=path)
+    if _command_has_gdal_error(result):
+        raise RuntimeError(f"ogrinfo failed for {path}: {result.stderr or result.stdout}")
+    extents = [tuple(float(value) for value in match) for match in _EXTENT.findall(result.stdout)]
+    if not extents and require_extent:
+        raise RuntimeError(f"ogrinfo returned no extent for {path}")
+    return extents
+
+
+def _ogrinfo_xml(gdal_runner: Any, data: bytes, suffix: str, require_extent: bool = True) -> list[tuple[float, float, float, float]]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = Path(temp_dir) / Path(suffix).name
+        path.write_bytes(data)
+        return _ogrinfo_extents(gdal_runner, path, require_extent)
+
+
+def _nested_bag_xml(data: bytes, prefix: str = "") -> Iterable[tuple[str, bytes]]:
+    with ZipFile(BytesIO(data)) as archive:
+        for info in archive.infolist():
+            member = archive.read(info)
+            name = f"{prefix}!{info.filename}" if prefix else info.filename
+            if info.filename.lower().endswith(".zip"):
+                yield from _nested_bag_xml(member, name)
+            elif info.filename.lower().endswith((".xml", ".gml")) and member.strip():
+                yield name, member
+
+
+def _is_spatial_bag_xml(data: bytes) -> bool:
+    return bool(_STAND_TAG.search(data) or _POS_TAG.search(data))
+
+
+def _buffered_extent(aoi: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    return (aoi[0] - BUFFER_METRES, aoi[1] - BUFFER_METRES, aoi[2] + BUFFER_METRES, aoi[3] + BUFFER_METRES)
+
+
+def _validate_extent(extent: tuple[float, float, float, float], allowed: tuple[float, float, float, float], label: str) -> None:
+    if not (allowed[0] <= extent[0] and allowed[1] <= extent[1] and extent[2] <= allowed[2] and extent[3] <= allowed[3]):
+        raise ValueError(f"Extent for {label} is outside the AOI plus {BUFFER_METRES:g} m: {extent}")
+
+
+def _validate_outputs(root: Path, bag: Path, bgt: Path, top10nl: Path, cbs: Path, ahn_roots: Iterable[Path], aoi: tuple[float, float, float, float], gdal: GDALResource, lastools: LASToolsResource) -> dict[str, Any]:
+    allowed = _buffered_extent(aoi)
+    gdal_runner = gdal.runner
+    vector_extents: dict[str, list[list[float]]] = {}
+    for archive in sorted(bag.rglob("*.zip")):
+        for name, data in _nested_bag_xml(archive.read_bytes(), str(archive.relative_to(root))):
+            if not _is_spatial_bag_xml(data):
+                continue
+            extents = [_validate_and_return(extent, allowed, f"{archive.name}!{name}") for extent in _ogrinfo_xml(gdal_runner, data, name, require_extent=False)]
+            vector_extents[f"{archive.name}!{name}"] = [list(extent) for extent in extents]
+    for path in sorted(bag.rglob("*")):
+        if path.is_file() and path.suffix.lower() in {".xml", ".gml"} and path.stat().st_size:
+            data = path.read_bytes()
+            if not _is_spatial_bag_xml(data):
+                continue
+            extents = [_validate_and_return(extent, allowed, str(path.relative_to(root))) for extent in _ogrinfo_extents(gdal_runner, path)]
+            vector_extents[str(path.relative_to(root))] = [list(extent) for extent in extents]
+
+    for archive, layer_names in ((bgt, ("bgt_pand.gml",)), (top10nl, ("top10nl_gebouw.gml",))):
+        member = _archive_layer(archive, layer_names)
+        with ZipFile(archive) as source_zip:
+            data = source_zip.read(member)
+        extents = [_validate_and_return(extent, allowed, f"{archive}!{member}") for extent in _ogrinfo_xml(gdal_runner, data, member)]
+        vector_extents[str(archive.relative_to(root))] = [list(extent) for extent in extents]
+
+    extents = [_validate_and_return(extent, allowed, str(cbs)) for extent in _ogrinfo_extents(gdal_runner, cbs)]
+    vector_extents[str(cbs.relative_to(root))] = [list(extent) for extent in extents]
+
+    pointcloud_extents: dict[str, list[float]] = {}
+    lastools_runner = lastools.runner
+    for pointcloud_root in ahn_roots:
+        for path in sorted(pointcloud_root.rglob("*")):
+            if path.suffix.lower() not in {".las", ".laz"}:
+                continue
+            result = lastools_runner.run("{exe} -i '{local_path}'", exe_name="lasinfo", local_path=path)
+            if result.returncode != 0 or bool(re.search(r"(?im)^\s*(?:error|fatal|critical)\b", result.stdout + result.stderr)):
+                raise RuntimeError(f"lasinfo failed for {path}: {result.stderr or result.stdout}")
+            las_output = result.stdout + result.stderr
+            bounds = {kind: (float(x), float(y)) for kind, x, y in _LAS_BOUND.findall(las_output)}
+            if set(bounds) != {"min", "max"}:
+                raise RuntimeError(f"lasinfo returned no complete XY bounds for {path}")
+            extent = (bounds["min"][0], bounds["min"][1], bounds["max"][0], bounds["max"][1])
+            _validate_extent(extent, allowed, str(path.relative_to(root)))
+            pointcloud_extents[str(path.relative_to(root))] = list(extent)
+    return {"buffer_metres": BUFFER_METRES, "extents": {"vectors": vector_extents, "pointclouds": pointcloud_extents}}
+
+
+def _validate_and_return(extent: tuple[float, float, float, float], allowed: tuple[float, float, float, float], label: str) -> tuple[float, float, float, float]:
+    _validate_extent(extent, allowed, label)
+    return extent
+
+
 @asset(group_name="integration_data", automation_condition=AutomationCondition.eager(), ins={"extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"])), "extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"])), "extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"])), "extract_cbs_key_figures": AssetIn(key=AssetKey(["cbs", "extract_cbs_key_figures"])), "extract_cbs_buurtkaart": AssetIn(key=AssetKey(["cbs", "extract_cbs_buurtkaart"])), "tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"])), "tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"])), "md5_ahn3": AssetIn(key=AssetKey(["ahn", "md5_ahn3"])), "md5_ahn4": AssetIn(key=AssetKey(["ahn", "md5_ahn4"])), "sha256_ahn5": AssetIn(key=AssetKey(["ahn", "sha256_ahn5"])), "sha256_ahn6": AssetIn(key=AssetKey(["ahn", "sha256_ahn6"]))})
-def integration_manifest(integration_data_store: FileStoreResource, integration_bag, integration_bgt, integration_top10nl, integration_cbs_key_figures, integration_cbs_buurtkaart, integration_ahn3, integration_ahn4, integration_ahn5, integration_ahn6, extract_bag, extract_bgt, extract_top10nl, extract_cbs_key_figures, extract_cbs_buurtkaart, tile_index_ahn, tile_index_ahn6, md5_ahn3, md5_ahn4, sha256_ahn5, sha256_ahn6) -> Path:
+def integration_manifest(integration_data_store: FileStoreResource, integration_bag, integration_bgt, integration_top10nl, integration_cbs_key_figures, integration_cbs_buurtkaart, integration_ahn3, integration_ahn4, integration_ahn5, integration_ahn6, extract_bag, extract_bgt, extract_top10nl, extract_cbs_key_figures, extract_cbs_buurtkaart, tile_index_ahn, tile_index_ahn6, md5_ahn3, md5_ahn4, sha256_ahn5, sha256_ahn6, gdal: GDALResource, lastools: LASToolsResource) -> Path:
     root = integration_data_store.path
+    aoi = _aoi_bbox(AOI_WKT)
+    validation = _validate_outputs(root, Path(integration_bag), Path(integration_bgt), Path(integration_top10nl), Path(integration_cbs_buurtkaart), (Path(integration_ahn3), Path(integration_ahn4), Path(integration_ahn5), Path(integration_ahn6)), aoi, gdal, lastools)
     files: dict[str, dict[str, Any]] = {}
     for path in sorted(path for path in root.rglob("*") if path.is_file() and path.name != "manifest.json"):
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -278,5 +437,5 @@ def integration_manifest(integration_data_store: FileStoreResource, integration_
             x, y = (int(value) for value in tile_id.split("_"))
             batch = f"{x // 10000 * 10000:06d}_{y // 10000 * 10000:06d}"
             partitions["6"].setdefault(batch, {})[tile_id] = {"path": rel(path), "url": entry["url"], "size": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-    manifest = {"fixture_version": "2", "date": date.today().isoformat(), "aoi": {"wkt": AOI_WKT, "minx": 121967, "miny": 485750, "maxx": 123354, "maxy": 486550}, "clipping": {"vectors": "gdal", "pointclouds": "las2las_keep_xy"}, "sources": sources, "ahn": {"indexes": {"3": tile_index_ahn, "6": tile_index_ahn6}, "checksums": {"3": md5_ahn3, "4": md5_ahn4, "5": sha256_ahn5, "6": sha256_ahn6}, "partitions": partitions}, "files": files}
+    manifest = {"fixture_version": "2", "date": date.today().isoformat(), "aoi": {"wkt": AOI_WKT, "minx": aoi[0], "miny": aoi[1], "maxx": aoi[2], "maxy": aoi[3]}, "clipping": {"vectors": "gdal", "pointclouds": "las2las_keep_xy"}, "validation": validation, "sources": sources, "ahn": {"indexes": {"3": tile_index_ahn, "6": tile_index_ahn6}, "checksums": {"3": md5_ahn3, "4": md5_ahn4, "5": sha256_ahn5, "6": sha256_ahn6}, "partitions": partitions}, "files": files}
     return _write_json(root / "manifest.json", manifest)

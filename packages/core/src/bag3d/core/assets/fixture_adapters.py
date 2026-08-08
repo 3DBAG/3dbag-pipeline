@@ -90,6 +90,24 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     clipping = manifest.get("clipping")
     if not isinstance(clipping, Mapping) or clipping.get("vectors") != "gdal" or clipping.get("pointclouds") != "las2las_keep_xy":
         raise ValueError("Integration-data manifest has unsupported clipping metadata")
+    validation = manifest.get("validation")
+    if not isinstance(validation, Mapping) or validation.get("buffer_metres") != 10.0:
+        raise ValueError("Integration-data manifest is missing 10 m validation metadata")
+    extents = validation.get("extents")
+    if not isinstance(extents, Mapping) or not isinstance(extents.get("vectors"), Mapping) or not isinstance(extents.get("pointclouds"), Mapping):
+        raise ValueError("Integration-data manifest is missing computed extents")
+    bounds = (float(aoi["minx"]) - 10.0, float(aoi["miny"]) - 10.0, float(aoi["maxx"]) + 10.0, float(aoi["maxy"]) + 10.0)
+    for category in ("vectors", "pointclouds"):
+        for name, values in extents[category].items():
+            if not isinstance(name, str) or not isinstance(values, list):
+                raise ValueError("Invalid computed extent metadata")
+            values_to_check = values if category == "vectors" else [values]
+            for extent in values_to_check:
+                if not isinstance(extent, list) or len(extent) != 4:
+                    raise ValueError(f"Invalid computed extent metadata for {name}")
+                extent_values = tuple(float(value) for value in extent)
+                if not (bounds[0] <= extent_values[0] and bounds[1] <= extent_values[1] and extent_values[2] <= bounds[2] and extent_values[3] <= bounds[3]):
+                    raise ValueError(f"Computed extent for {name} exceeds the AOI plus 10 m")
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):
@@ -253,6 +271,10 @@ def _laz(store, version, tile, pointcloud_store):
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.is_file() or destination.stat().st_size != source.stat().st_size:
         shutil.copy2(source, destination)
+    source_lax = source.with_suffix(".lax")
+    destination_lax = destination.with_suffix(".lax")
+    if source_lax.is_file() and (not destination_lax.is_file() or destination_lax.stat().st_size != source_lax.stat().st_size):
+        shutil.copy2(source_lax, destination_lax)
     digest = hashlib.sha256(destination.read_bytes()).hexdigest()
     expected = entry.get("sha256")
     if expected and digest != expected:
