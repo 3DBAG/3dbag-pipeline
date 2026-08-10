@@ -175,11 +175,27 @@ def _path(m, name):
     return m.path(_src(m, name)["path"])
 
 
+def _writable_fixture_copy(
+    file_store: FileStoreResource, source: Path, relative: str
+) -> Path:
+    destination = Path(file_store.root_dir) / "fixture-inputs" / relative
+    if source.is_dir():
+        shutil.rmtree(destination, ignore_errors=True)
+        shutil.copytree(source, destination)
+    else:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+    return destination
+
+
 @asset(name="extract_bag", key_prefix="bag", group_name="bag")
-def fixture_extract_bag(integration_data_store: FileStoreResource):
+def fixture_extract_bag(
+    integration_data_store: FileStoreResource, file_store: FileStoreResource
+):
     m = _m(integration_data_store)
     s = _src(m, "bag")
-    return Output((_path(m, "bag"), dict(s["metadata"]), str(s["shortdate"])))
+    extract = _writable_fixture_copy(file_store, _path(m, "bag"), "bag")
+    return Output((extract, dict(s["metadata"]), str(s["shortdate"])))
 
 
 @asset(name="extract_bgt", key_prefix="bgt", group_name="bgt")
