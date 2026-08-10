@@ -20,8 +20,8 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster~=1.12.14",
-    "dagster-postgres~=0.28.14",
+    "dagster>=1.13.1",
+    "dagster-postgres>=0.28.22",
     "shapely~=2.0.1",
     "building-surfaces",
     "bag3d-common",
@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [tool.uv]
-constraint-dependencies = ["mako>=1.3.12", "urllib3>=2.7.0", "pillow>=12.3.0", "cryptography>=50.0.0", "requests>=2.33.0", "idna>=3.15", "paramiko>=5.0.0", "pygments>=2.20.0"]
+constraint-dependencies = ["mako>=1.3.12", "urllib3>=2.7.0", "pillow>=12.3.0", "cryptography>=50.0.0", "requests>=2.33.0", "idna>=3.15", "paramiko>=5.0.0", "pygments>=2.20.0", "dagster>=1.13.1"]
 
 [dependency-groups]
 dev = [

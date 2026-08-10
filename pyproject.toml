@@ -20,15 +20,15 @@ lint = [
     "pyright>=1.1",
 ]
 dev = [
-    "dagster~=1.12.14",
-    "dagster-webserver~=1.12.14",
+    "dagster>=1.13.1",
+    "dagster-webserver>=1.13.1",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "starlette>=1.1.0",
 ]
 
 [tool.uv]
 default-groups = ["dev", "docs", "lint"]
-constraint-dependencies = ["mako>=1.3.12", "urllib3>=2.7.0", "pymdown-extensions>=11.0.1", "requests>=2.33.0", "idna>=3.15", "pygments>=2.20.0"]
+constraint-dependencies = ["mako>=1.3.12", "urllib3>=2.7.0", "pymdown-extensions>=11.0.1", "requests>=2.33.0", "idna>=3.15", "pygments>=2.20.0", "dagster>=1.13.1"]
 
 [tool.ruff]
 include = ["packages/*/pyproject.toml", "scripts/*/*.py"]
