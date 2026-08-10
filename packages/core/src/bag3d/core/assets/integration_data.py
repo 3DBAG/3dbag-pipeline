@@ -30,7 +30,7 @@ _EXTENT = re.compile(r"Extent(?:\s+[^:]+)?:\s*\(([-+0-9.eE]+),\s*([-+0-9.eE]+)\)
 _LAS_BOUND = re.compile(r"^\s*(min|max) x y z:\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)", re.MULTILINE | re.IGNORECASE)
 _STAND_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?stand(?:\s|>)")
 _POS_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?pos(?:\s|>)")
-_AOI_COORDINATE = re.compile(rb"(?:^|\s)(?:12[12]\d{3}|123[0-3]\d{2})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)")
+_AOI_COORDINATE = re.compile(rb"(?:^|\s|>)(?:12[12]\d{3}|123[0-3]\d{2})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)")
 BUFFER_METRES = 10.0
 
 
@@ -54,7 +54,7 @@ def _aoi_bbox(wkt: str) -> tuple[float, float, float, float]:
 
 
 def _bbox_intersects(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
-    return max(a[0], b[0]) < min(a[2], b[2]) and max(a[1], b[1]) < min(a[3], b[3])
+    return max(a[0], b[0]) <= min(a[2], b[2]) and max(a[1], b[1]) <= min(a[3], b[3])
 
 
 def _geometry_bbox(geometry: Mapping[str, Any]) -> tuple[float, float, float, float]:
@@ -116,9 +116,9 @@ def _filter_bag_xml(data: bytes, aoi: tuple[float, float, float, float]) -> byte
     for stand in stands:
         coordinates: list[tuple[float, float]] = []
         valid_geometry = True
-        for pos_list in stand.iter("{*}posList"):
-            values = [float(value) for value in _NUMBER.findall(pos_list.text or "")]
-            dimension_value = pos_list.get("srsDimension")
+        for position in stand.iter("{*}posList", "{*}pos"):
+            values = [float(value) for value in _NUMBER.findall(position.text or "")]
+            dimension_value = position.get("srsDimension")
             if dimension_value is None:
                 dimension = 3 if len(values) % 3 == 0 else 2
             else:
@@ -258,7 +258,7 @@ def integration_top10nl(config: IntegrationDataConfig, integration_data_store: F
 @asset(group_name="integration_data", ins={"extract_cbs_key_figures": AssetIn(key=AssetKey(["cbs", "extract_cbs_key_figures"])), "clipped_buurtkaart": AssetIn(key=AssetKey(["integration_cbs_buurtkaart"]))}, automation_condition=AutomationCondition.eager())
 def integration_cbs_key_figures(config: IntegrationDataConfig, integration_data_store: FileStoreResource, extract_cbs_key_figures, clipped_buurtkaart) -> Path:
     codes = _codes_from_clipped_buurtkaart(Path(clipped_buurtkaart))
-    records = [record for record in extract_cbs_key_figures if any(str(record.get(key, "")).strip() in codes for key in ("Codering", "Code", "code", "BU_CODE", "RegioS"))]
+    records = [record for record in extract_cbs_key_figures if any(str(record.get(key, "")).strip() in codes for key in ("WijkenEnBuurten", "Codering", "Code", "code", "BU_CODE", "RegioS"))]
     return _write_json(integration_data_store.path / "cbs" / "key_figures.json", records)
 
 
