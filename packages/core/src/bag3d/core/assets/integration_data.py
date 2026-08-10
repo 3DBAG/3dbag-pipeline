@@ -30,7 +30,7 @@ _EXTENT = re.compile(r"Extent(?:\s+[^:]+)?:\s*\(([-+0-9.eE]+),\s*([-+0-9.eE]+)\)
 _LAS_BOUND = re.compile(r"^\s*(min|max) x y z:\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)", re.MULTILINE | re.IGNORECASE)
 _STAND_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?stand(?:\s|>)")
 _POS_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?pos(?:\s|>)")
-_AOI_COORDINATE = re.compile(rb"(?:^|\s)(?:12[12]\d{4}|123[0-3]\d{3})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)")
+_AOI_COORDINATE = re.compile(rb"(?:^|\s)(?:12[12]\d{3}|123[0-3]\d{2})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)")
 BUFFER_METRES = 10.0
 
 
