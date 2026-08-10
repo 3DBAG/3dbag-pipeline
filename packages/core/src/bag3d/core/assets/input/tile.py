@@ -8,6 +8,7 @@ from dagster import (
     AutomationCondition,
 )
 from pgutils import PostgresConnection
+from psycopg import connect
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL, Identifier, Literal
 
@@ -42,6 +43,26 @@ def reconstruction_input_tiles(
     conn.send_query(
         SQL("CREATE SCHEMA IF NOT EXISTS {}").format(Identifier(output_schema))
     )
+
+    with connect(conn.dsn) as database:
+        row_count = database.execute(
+            SQL("SELECT COUNT(*) FROM {}").format(reconstruction_input.id)
+        ).fetchone()[0]
+    if row_count == 0:
+        tiles = Identifier(output_schema, "tiles")
+        index = Identifier(output_schema, "index")
+        conn.send_query(SQL("DROP TABLE IF EXISTS {}, {} CASCADE").format(index, tiles))
+        conn.send_query(
+            SQL("CREATE TABLE {} (tile_id TEXT, boundary geometry(Polygon, 28992))")
+            .format(tiles)
+        )
+        conn.send_query(
+            SQL("CREATE TABLE {} (fid BIGINT, tile_id TEXT)").format(index)
+        )
+        return (
+            Output(PostgresTableIdentifier(output_schema, "tiles"), output_name="tiles"),
+            Output(PostgresTableIdentifier(output_schema, "index"), output_name="index"),
+        )
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
     uri = conn.dsn.replace("sslmode=allow", "").strip()
