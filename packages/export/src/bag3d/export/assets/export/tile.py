@@ -6,7 +6,15 @@ from pathlib import Path
 from typing import Union
 
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
-from dagster import AssetKey, asset, Config, get_dagster_logger
+from dagster import (
+    AssetKey,
+    AssetOut,
+    Config,
+    Output,
+    asset,
+    get_dagster_logger,
+    multi_asset,
+)
 from pydantic import Field
 
 from bag3d.common.resources import tool_versions
@@ -81,7 +89,7 @@ def generate_tyler_config(
         cli_params.extend(
             [
                 f"--output={output_dir}",
-                "--grid-export",
+                "--debug-dump-grid",
                 "--gpkg-split-lod",
                 "--gpkg-include-semantics",
                 "--gpkg-include-hierarchy",
@@ -192,7 +200,11 @@ def reconstruction_output_cityjson(
     )
 
 
-@asset(
+@multi_asset(
+    outs={
+        "reconstruction_output_gpkg": AssetOut(),
+        "quadtree": AssetOut(),
+    },
     deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
@@ -204,13 +216,13 @@ def reconstruction_output_gpkg(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-) -> Path:
+) -> tuple[Output[Path], Output[Path]]:
     """Tiles for distribution in GPKG format.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
-    return reconstruction_output_tiles_func(
+    export_dir = reconstruction_output_tiles_func(
         data_format=TylerOutputFormat.GPKG,
         file_store=file_store,
         version=version,
@@ -220,6 +232,13 @@ def reconstruction_output_gpkg(
         rayon_num_threads=config.concurrency,
         locations=tuple(),
         verbose=config.verbose,
+    )
+    quadtree = export_dir.joinpath("quadtree.tsv")
+    if not quadtree.is_file():
+        raise FileNotFoundError(f"Tyler did not create {quadtree}")
+    return (
+        Output(export_dir, output_name="reconstruction_output_gpkg"),
+        Output(quadtree, output_name="quadtree"),
     )
 
 

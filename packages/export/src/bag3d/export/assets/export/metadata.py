@@ -7,6 +7,7 @@ from uuid import uuid1
 from copy import deepcopy
 
 from dagster import (
+    AssetIn,
     AssetKey,
     Output,
     asset,
@@ -201,10 +202,11 @@ def feature_evaluation(
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
+    ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
+    deps={AssetKey(("export", "reconstruction_output_gpkg"))},
 )
 def export_index(
-    file_store: FileStoreResource, version: ReleaseVersionResource
+    file_store: FileStoreResource, version: ReleaseVersionResource, quadtree: Path
 ) -> Path:
     """Index of the distribution tiles.
 
@@ -215,13 +217,12 @@ def export_index(
     path_export_dir = file_store.stage_subdir("export", version.version)
     path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
-    path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
 
     with path_export_index.open("w") as fw:
         fieldnames = ["tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
-        export_results_gen = check_export_results(path_quadtree_tsv, path_tiles_dir)
+        export_results_gen = check_export_results(quadtree, path_tiles_dir)
         csvwriter.writerows(dict(export_result) for export_result in export_results_gen)
     return path_export_index
 

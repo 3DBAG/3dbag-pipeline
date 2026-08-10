@@ -15,6 +15,7 @@ from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.export.assets.export import metadata as metadata_module
+from bag3d.export.assets.export.tile import TylerConfig, reconstruction_output_gpkg
 from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.archive import compressed_tiles, CompressionConfig
 
@@ -228,7 +229,9 @@ def test_export_index_reads_quadtree(tmp_path):
     for tid in tile_ids:
         _make_tile_files(tiles_dir, tid)
 
-    result_path = cast(Path, export_index(file_store, version))
+    result_path = cast(
+        Path, export_index(file_store, version, export_dir / "quadtree.tsv")
+    )
 
     assert result_path.exists()
     assert result_path.name == "export_index.csv"
@@ -299,3 +302,37 @@ def test_compressed_tiles(tmp_path):
     assert not gpkg_file.exists()
     assert not obj_file.exists()
     assert not mtl_file.exists()
+
+
+def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
+    """The mocked Tyler runner produces both the export directory and quadtree asset."""
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
+    )
+
+    runner = MagicMock()
+
+    def run(command, *, exe_name, cwd, logger):
+        assert exe_name == "tyler"
+        assert "--debug-dump-grid" in command
+        (Path(cwd) / "quadtree.tsv").write_text("id\tlevel\tnr_items\tleaf\twkt\n")
+
+    runner.run.side_effect = run
+    tyler = SimpleNamespace(runner=runner)
+
+    outputs = reconstruction_output_gpkg(
+        TylerConfig(concurrency=1),
+        metadata_path,
+        tyler,
+        file_store,
+        version,
+        MagicMock(),
+    )
+
+    gpkg_output, quadtree_output = outputs
+    assert gpkg_output.value == tmp_path / "stages" / "export" / VERSION
+    assert quadtree_output.value == gpkg_output.value / "quadtree.tsv"
+    assert quadtree_output.value.is_file()

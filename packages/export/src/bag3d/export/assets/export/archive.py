@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
-from dagster import asset, Output, AssetKey, Config, get_dagster_logger
+from dagster import AssetIn, asset, Output, AssetKey, Config, get_dagster_logger
 from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
@@ -18,10 +18,14 @@ logger = get_dagster_logger()
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
+    ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
+    deps={AssetKey(("export", "reconstruction_output_gpkg"))},
 )
 def geopackage(
-    file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
+    file_store: FileStoreResource,
+    gdal: GDALResource,
+    version: ReleaseVersionResource,
+    quadtree: Path,
 ) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = file_store.stage_subdir("export", version.version)
@@ -31,7 +35,7 @@ def geopackage(
     # Remove existing
     path_nl.unlink(missing_ok=True)
 
-    with path_export_dir.joinpath("quadtree.tsv").open("r") as fo:
+    with quadtree.open("r") as fo:
         csvreader = csv.reader(fo, delimiter="\t")
         # skip header, which is [id, level, nr_items, leaf, wkt]
         next(csvreader)
