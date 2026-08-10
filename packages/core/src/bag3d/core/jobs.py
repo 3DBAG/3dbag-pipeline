@@ -106,3 +106,21 @@ job_reconstruct_debug = define_asset_job(
         ["reconstruction", "reconstructed_building_models"]
     ),
 )
+
+
+job_integration_data = define_asset_job(
+    name="integration_data",
+    description="Refresh the AOI-specific native-format integration-data fixtures.",
+    selection=AssetSelection.groups("integration_data")
+    | AssetSelection.assets(["bag", "extract_bag"])
+    | AssetSelection.assets(["bgt", "extract_bgt"])
+    | AssetSelection.assets(["top10nl", "extract_top10nl"])
+    | AssetSelection.assets(["cbs", "extract_cbs_key_figures"])
+    | AssetSelection.assets(["cbs", "extract_cbs_buurtkaart"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
+    | AssetSelection.assets(["ahn", "md5_ahn3"])
+    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn5"])
+    | AssetSelection.assets(["ahn", "sha256_ahn6"]),
+)

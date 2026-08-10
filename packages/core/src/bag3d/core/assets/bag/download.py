@@ -2,6 +2,7 @@ from datetime import datetime
 from logging import Logger
 from typing import Tuple, Optional
 from copy import deepcopy
+import zipfile
 
 from dagster import (
     asset,
@@ -13,6 +14,7 @@ from dagster import (
 )
 from pydantic import Field
 from lxml import objectify  # type: ignore[attr-defined]
+from psycopg.sql import SQL, Identifier
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
@@ -28,6 +30,48 @@ from bag3d.common.utils.database import (
 from bag3d.common.types import PostgresTableIdentifier, Path
 
 logger = get_dagster_logger("bag.download")
+
+
+_EMPTY_BAG_COLUMNS = {
+    "pand": (
+        ("ogc_fid", "BIGINT"), ("oorspronkelijkbouwjaar", "INTEGER"),
+        ("identificatie", "TEXT"), ("status", "TEXT"), ("geconstateerd", "TEXT"),
+        ("documentdatum", "DATE"), ("documentnummer", "TEXT"),
+        ("voorkomenidentificatie", "TEXT"), ("begingeldigheid", "TIMESTAMPTZ"),
+        ("eindgeldigheid", "TIMESTAMPTZ"), ("tijdstipregistratie", "TIMESTAMPTZ"),
+        ("eindregistratie", "TIMESTAMPTZ"), ("tijdstipinactief", "TIMESTAMPTZ"),
+        ("tijdstipregistratielv", "TIMESTAMPTZ"),
+        ("tijdstipeindregistratielv", "TIMESTAMPTZ"),
+        ("tijdstipinactieflv", "TIMESTAMPTZ"),
+        ("tijdstipnietbaglv", "TIMESTAMPTZ"),
+        ("wkb_geometry", "geometry(Polygon, 28992)"),
+    ),
+    "verblijfsobject": (
+        ("ogc_fid", "BIGINT"), ("gebruiksdoel", "TEXT[]"), ("oppervlakte", "INTEGER"),
+        ("hoofdadresnummeraanduidingref", "TEXT[]"),
+        ("nevenadresnummeraanduidingref", "TEXT[]"), ("pandref", "TEXT[]"),
+        ("identificatie", "TEXT"), ("status", "TEXT"), ("geconstateerd", "TEXT"),
+        ("documentdatum", "DATE"), ("documentnummer", "TEXT"),
+        ("voorkomenidentificatie", "TEXT"), ("begingeldigheid", "TIMESTAMPTZ"),
+        ("eindgeldigheid", "TIMESTAMPTZ"), ("tijdstipregistratie", "TIMESTAMPTZ"),
+        ("eindregistratie", "TIMESTAMPTZ"), ("tijdstipinactief", "TIMESTAMPTZ"),
+        ("tijdstipregistratielv", "TIMESTAMPTZ"),
+        ("tijdstipeindregistratielv", "TIMESTAMPTZ"),
+        ("tijdstipinactieflv", "TIMESTAMPTZ"),
+        ("tijdstipnietbaglv", "TIMESTAMPTZ"),
+        ("wkb_geometry", "geometry(Polygon, 28992)"),
+    ),
+}
+
+
+def _create_empty_bag_layer(computation_db, table, layer):
+    definition = SQL(", ").join(
+        Identifier(name) + SQL(f" {sql_type}")
+        for name, sql_type in _EMPTY_BAG_COLUMNS[layer]
+    )
+    computation_db.connection.send_query(
+        SQL("CREATE TABLE {} ({})").format(table.id, definition)
+    )
 
 
 class BagDownloadConfig(Config):
@@ -300,6 +344,13 @@ def load_bag_layer(
         "woonplaats": "wpl",
     }
     layer_id = layername_map[layer.lower()].upper()
+    layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
+    if layer_zip.is_file() and zipfile.is_zipfile(layer_zip):
+        with zipfile.ZipFile(layer_zip) as archive:
+            if not archive.namelist():
+                logger.info("BAG layer archive is empty; creating an empty table")
+                _create_empty_bag_layer(computation_db, new_table, layer.lower())
+                return True
     kwargs = {
         "layer_dir": layer_id,
         "shortdate": shortdate,

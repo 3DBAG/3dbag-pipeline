@@ -39,6 +39,12 @@ def _load_records_to_postgres(
     per column. Data is inserted via psycopg executemany.
     """
     if not records:
+        conn = computation_db.connection
+        conn.send_query(
+            SQL("CREATE TABLE {} ({})").format(
+                table.id, Identifier("ID") + SQL(" TEXT")
+            )
+        )
         return
 
     conn = computation_db.connection
