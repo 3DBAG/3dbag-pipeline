@@ -85,7 +85,7 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = "~=7.13.4" },
     { name = "pyright", specifier = ">=1.1" },
-    { name = "pytest", specifier = "~=9.0.2" },
+    { name = "pytest", specifier = ">=9.0.3" },
 ]
 
 [[package]]
@@ -124,7 +124,7 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = "~=7.13.4" },
     { name = "pyright", specifier = ">=1.1" },
-    { name = "pytest", specifier = "~=9.0.2" },
+    { name = "pytest", specifier = ">=9.0.3" },
 ]
 
 [[package]]
