@@ -88,10 +88,9 @@ def _tile_id_from_source_path(
 ) -> str:
     """Derive the output tile id from an indexed feature source path.
 
-    The reconstruction layout can change from per-feature CityJSONFeature files
-    to tile-level NDJSON, so this helper only relies on the path segments under
-    the stage root. For the current layout that yields ``z/x/y``; for a tile
-    NDJSON file under the same directory tree it yields the same tile id.
+    Roofer writes tile-level CityJSONSeq data, but the indexed source path
+    remains an implementation detail. This helper relies only on the path
+    segments under the stage root, yielding the stable ``z/x/y`` tile id.
     """
     source = Path(source_path)
     try:

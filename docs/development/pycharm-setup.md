@@ -40,6 +40,12 @@ immediately visible inside the containers.
 
 For the default local development stack, run `make docker_dev`.
 
+To run against the read-only integration-data snapshot, add
+`docker/compose.integration-data.yaml` as a third Compose configuration file and set
+`BAG3D_INTEGRATION_DATA_HOST_DIR` to the host snapshot directory. The overlay sets
+`BAG3D_INPUT_MODE=integration_data`; the snapshot is mounted in the containers at
+`/data/volume/integration-data`.
+
 ### Configure the Docker Compose interpreter in PyCharm
 
 1. Go to **Settings → Project → Python Interpreter → Add Interpreter → On Docker Compose**.

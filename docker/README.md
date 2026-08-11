@@ -97,6 +97,27 @@ make docker_down_rm
 
 Rebuild the images, volumes and restart the services.
 
-```shell
+~~~shell
 make docker_restart
-```
+~~~
+
+## Running with integration fixtures
+
+The branch provides an opt-in integration-data mode that runs against a validated,
+read-only snapshot instead of downloading source datasets. The snapshot is generated
+by the `integration_data` job and consumed by fixture adapter assets.
+
+Set `BAG3D_INTEGRATION_DATA_HOST_DIR` to the directory containing the snapshot, then
+start the stack with the integration overlay:
+
+~~~shell
+export BAG3D_INTEGRATION_DATA_HOST_DIR=/path/to/integration-data
+docker compose \
+  -f docker/compose.yaml \
+  -f docker/compose.integration-data.yaml up -d
+~~~
+
+The overlay sets `BAG3D_INPUT_MODE=integration_data` and mounts the snapshot at
+`/data/volume/integration-data` as read-only. The Dagster schedule
+`integration_data_monthly` is installed but stopped by default; enable it only when
+the snapshot should be refreshed.

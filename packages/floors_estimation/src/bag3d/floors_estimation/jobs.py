@@ -3,7 +3,7 @@ from dagster import AssetSelection, define_asset_job
 job_floors_estimation = define_asset_job(
     name="floors_estimation",
     description="""Estimate the number of floors per building and write the
-    results back to the CityJSONFeatures.""",
+    enriched features back to strict CityJSONSeq files.""",
     selection=AssetSelection.assets(["floors_estimation", "external_features"])
     | AssetSelection.assets(["floors_estimation", "bag3d_features"])
     | AssetSelection.assets(["floors_estimation", "all_features"])

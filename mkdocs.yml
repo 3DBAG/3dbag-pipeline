@@ -54,6 +54,8 @@ nav:
   - Development: development/
   - Deployment: deployment/
   - Production: production.md
+  - Plans:
+    - plans/native-dagster-orchestration.md
   - Packages:
     - common: index_common.md
     - core: index_core.md

@@ -215,7 +215,8 @@ def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
     basename.parent.mkdir(parents=True, exist_ok=True)
     (basename.with_suffix(".city.json")).write_text("{}")
     (basename.with_suffix(".gpkg")).write_bytes(b"")
-    (basename.with_suffix(".obj")).write_text("")
+    for suffix in ("-lod12.obj", "-lod13.obj", "-lod22.obj"):
+        (basename.with_name(f"{basename.name}{suffix}")).write_text("")
 
 
 def test_export_index_reads_quadtree(tmp_path):

@@ -1,28 +1,28 @@
 # Data flow
 
-The main pipeline stages pass data through the file system via **stage directories** (`stages/<stage_name>/`), each enriching the per-building CityJSON feature files before the final export.
+The main pipeline stages pass data through the file system via **stage directories** (`stages/<stage_name>/`). Reconstruction, party-wall, and floor-estimation stages exchange tile-level CityJSONSeq files; individual features are discovered through a `cityjson-index` SQLite index.
 
 ## Stage directory pipeline
 
 ```
-stages/reconstruction/{tile_id}/objects/{pand_id}/reconstruct/{pand_id}.city.jsonl
+stages/reconstruction/{z}/{x}/{y}/<tile>.city.jsonl
         |
         |  party_walls.building_surfaces (opens/refreshes the cityjson-index index; pages PackageRefs with keyset cursors; reads package CityModels and DB: bag_adjacency)
         v
-stages/party_walls/{tile_id}/{pand_id}.city.jsonl          <-- adds shared_walls geometry
+stages/party_walls/{tile_id}/{tile_leaf}.city.jsonl          <-- adds shared_walls geometry
         |
         |  floors_estimation.bag3d_features       (opens/refreshes the cityjson-index index; pages PackageRefs with keyset cursors; extracts attributes into DB table)
         |  floors_estimation.save_cjfiles         (opens/refreshes the cityjson-index index; pages PackageRefs with keyset cursors; merges floor predictions back into files)
         v
-stages/floors_estimation/{tile_id}/{pand_id}.city.jsonl    <-- adds b3_bouwlagen attribute
+stages/floors_estimation/{tile_id}/{tile_leaf}.city.jsonl    <-- adds b3_bouwlagen attribute
         |
         |  4x tyler export assets (multi, 3dtiles lod12/13/22)
         v
 stages/export/{version}/
-    +-- t/{tile_id}.<suffix>  (.city.json, .gpkg, .obj, .mtl)  <-- tyler-multiformat
-    +-- ogc3dtiles/lod{12,13,22}/                        <-- tyler
-    +-- debug/quadtree.tsv                                  <-- tyler output
-    +-- sequence_header.json                                <-- generated before tyler
+    +-- t/{tile_id}.<suffix>  (.city.json, .gpkg, .obj, .mtl)
+    +-- ogc3dtiles/lod{12,13,22}/                        <-- Tyler
+    +-- debug/quadtree.tsv                               <-- merged Tyler output
+    +-- sequence_header.json                             <-- generated before Tyler
         |
         |  archive, compression, validation assets
         v
@@ -39,15 +39,15 @@ stages/export/{version}/
 
 ### Reconstruction
 
-The `reconstructed_building_models_nl` asset (partitioned by tile) runs roofer to produce per-building `.city.jsonl` files in a `z/x/y/objects/{pand_id}/reconstruct/` hierarchy under `stages/reconstruction/`.
+The `reconstructed_building_models_nl` asset (partitioned by tile) runs Roofer and writes tile-level CityJSONSeq data below `stages/reconstruction/{z}/{x}/{y}/`. The index exposes individual package references without requiring consumers to know the source file layout.
 
 ### Party walls
 
-`building_surfaces` opens (or refreshes) a `cityjson-index` SQLite index over `stages/reconstruction/` directly. Stage handoff is still file-based; only **feature discovery** is backed by the index instead of directory walking. `building_surfaces` pages over `PackageRef` objects from the index, queries the `bag_adjacency` database table to determine adjacent buildings, and computes shared walls per building via multiprocessing. Each worker opens its own index instance. `bag_adjacency` stores one row per directed pair `(identificatie, adjacent_identificatie)` for BAG polygons within 0.1 units, excluding self-pairs. Output files are written flat per tile to `stages/party_walls/{tile_id}/`.
+`building_surfaces` opens (or refreshes) a `cityjson-index` SQLite index over `stages/reconstruction/` directly. Stage handoff remains file-based, while feature discovery and reads use paged `PackageRef` objects. The asset queries the `bag_adjacency` database table, computes shared walls per building via multiprocessing, and writes one strict CityJSONSeq file per tile to `stages/party_walls/{tile_id}/`. Each worker opens its own index instance.
 
 ### Floors estimation
 
-`bag3d_features` and `save_cjfiles` each open (or refresh) a `cityjson-index` index over `stages/party_walls/` directly. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. `bag3d_features` and `save_cjfiles` page over `PackageRef` objects from the index instead of consuming a `{id: path}` dict. Finally `save_cjfiles` reads package CityModels from the party_walls `.city.jsonl` files via the index and resolves source paths in page batches and writes enriched copies with the `b3_bouwlagen` (floor count) attribute to `stages/floors_estimation/`.
+`bag3d_features` and `save_cjfiles` each open (or refresh) a `cityjson-index` index over `stages/party_walls/` directly. The ML sub-chain (`bag3d_features` -> `external_features` -> `all_features` -> `preprocessed_features` -> `inferenced_floors` -> `predictions_table`) operates in the database and pandas. Both assets page over `PackageRef` objects instead of consuming a `{id: path}` mapping. `save_cjfiles` reads package CityModels from the CityJSONSeq files, merges `b3_bouwlagen`, and writes strict CityJSONSeq output to `stages/floors_estimation/`.
 
 ### Export
 
@@ -65,17 +65,14 @@ The `floors_estimation` workflow uses PostgreSQL as an intermediate store: `bag3
 stages/
 +-- reconstruction/
 |   +-- {z}/{x}/{y}/
-|       +-- objects/
-|       |   +-- {pand_id}/
-|       |       +-- reconstruct/
-|       |           +-- {pand_id}.city.jsonl
+|       +-- {tile}.city.jsonl
 |       +-- roofer.toml
 +-- party_walls/
 |   +-- {tile_id}/
-|       +-- {pand_id}.city.jsonl
+|       +-- {tile_leaf}.city.jsonl
 +-- floors_estimation/
 |   +-- {tile_id}/
-|       +-- {pand_id}.city.jsonl
+|       +-- {tile_leaf}.city.jsonl
 +-- export/
     +-- {version}/
         +-- t/
