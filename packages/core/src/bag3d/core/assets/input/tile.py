@@ -45,9 +45,12 @@ def reconstruction_input_tiles(
     )
 
     with connect(conn.dsn) as database:
-        row_count = database.execute(
+        row = database.execute(
             SQL("SELECT COUNT(*) FROM {}").format(reconstruction_input.id)
-        ).fetchone()[0]
+        ).fetchone()
+    if row is None:
+        raise RuntimeError("Could not read reconstruction input row count")
+    row_count = row[0]
     if row_count == 0:
         tiles = Identifier(output_schema, "tiles")
         index = Identifier(output_schema, "index")

@@ -337,8 +337,10 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         version,
         MagicMock(),
     )
+    assert isinstance(gpkg_output, Path)
 
     quadtree_output = merged_quadtree(gpkg_output)
+    assert isinstance(quadtree_output, Path)
     assert gpkg_output == tmp_path / "stages" / "export" / VERSION
     assert quadtree_output == gpkg_output / "debug" / "quadtree.tsv"
     assert quadtree_output.is_file()

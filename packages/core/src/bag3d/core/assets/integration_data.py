@@ -13,7 +13,7 @@ from typing import Any, Iterable, Mapping
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
-from lxml import etree
+from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
@@ -619,10 +619,9 @@ def _ogrinfo_extents(
         raise RuntimeError(
             f"ogrinfo failed for {path}: {result.stderr or result.stdout}"
         )
-    extents = [
-        tuple(float(value) for value in match)
-        for match in _EXTENT.findall(result.stdout)
-    ]
+    extents: list[tuple[float, float, float, float]] = []
+    for min_x, min_y, max_x, max_y in _EXTENT.findall(result.stdout):
+        extents.append((float(min_x), float(min_y), float(max_x), float(max_y)))
     if not extents and require_extent:
         raise RuntimeError(f"ogrinfo returned no extent for {path}")
     return extents

@@ -40,6 +40,8 @@ def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
     files = manifest.get("files")
     path = (root / relative).resolve()
     if path.is_dir():
+        if not isinstance(files, Mapping):
+            raise ValueError("Fixture manifest must contain a file mapping")
         for child in path.rglob("*"):
             if child.is_file() and str(child.relative_to(root)) not in files:
                 raise ValueError(

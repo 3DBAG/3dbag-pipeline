@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import Logger
-from typing import Tuple, Optional
+from typing import LiteralString, Optional, Tuple
 from copy import deepcopy
 import zipfile
 
@@ -32,7 +32,7 @@ from bag3d.common.types import PostgresTableIdentifier, Path
 logger = get_dagster_logger("bag.download")
 
 
-_EMPTY_BAG_COLUMNS = {
+_EMPTY_BAG_COLUMNS: dict[str, tuple[tuple[LiteralString, LiteralString], ...]] = {
     "pand": (
         ("ogc_fid", "BIGINT"),
         ("oorspronkelijkbouwjaar", "INTEGER"),

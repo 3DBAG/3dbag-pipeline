@@ -59,9 +59,19 @@ integration_data_assets = load_assets_from_modules(
 )
 
 if getenv("BAG3D_INPUT_MODE", "").lower() == "integration_data":
-    fixture_keys = {asset.key for asset in fixture_assets}
-    bgt_assets = [asset for asset in bgt_assets if asset.key not in fixture_keys]
-    source_assets = [asset for asset in source_assets if asset.key not in fixture_keys]
+    fixture_keys = {
+        asset_key
+        for asset in fixture_assets
+        if (asset_key := getattr(asset, "key", None)) is not None
+    }
+    bgt_assets = [
+        asset for asset in bgt_assets if getattr(asset, "key", None) not in fixture_keys
+    ]
+    source_assets = [
+        asset
+        for asset in source_assets
+        if getattr(asset, "key", None) not in fixture_keys
+    ]
     source_assets.extend(fixture_assets)
 
 all_assets = [
