@@ -210,14 +210,12 @@ def _make_quadtree_tsv(path: Path, tile_ids: list[str]) -> None:
 
 
 def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
-    """Create placeholder tile files (.city.json, .gpkg, .obj)."""
-    tile_dir = tiles_dir / tile_id
-    tile_dir.mkdir(parents=True, exist_ok=True)
-    lid = tile_id.replace("/", "-")
-    (tile_dir / f"{lid}.city.json").write_text("{}")
-    (tile_dir / f"{lid}.gpkg").write_bytes(b"")
-    for suffix in ["-lod12.obj", "-lod13.obj", "-lod22.obj"]:
-        (tile_dir / f"{lid}{suffix}").write_text("")
+    """Create placeholder Tyler tile files."""
+    basename = tiles_dir / tile_id
+    basename.parent.mkdir(parents=True, exist_ok=True)
+    (basename.with_suffix(".city.json")).write_text("{}")
+    (basename.with_suffix(".gpkg")).write_bytes(b"")
+    (basename.with_suffix(".obj")).write_text("")
 
 
 def test_export_index_reads_quadtree(tmp_path):
@@ -227,7 +225,7 @@ def test_export_index_reads_quadtree(tmp_path):
     version = ReleaseVersionResource(version=VERSION)
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "tiles"
+    tiles_dir = export_dir / "t"
 
     _make_quadtree_tsv(export_dir / "quadtree.tsv", tile_ids)
     for tid in tile_ids:
@@ -265,15 +263,15 @@ def test_compressed_tiles(tmp_path):
     version = ReleaseVersionResource(version=VERSION)
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "tiles"
+    tiles_dir = export_dir / "t"
     tile_dir = tiles_dir / tile_id
-    tile_dir.mkdir(parents=True, exist_ok=True)
+    tile_dir.parent.mkdir(parents=True, exist_ok=True)
 
     # Create tile files
-    cj_file = tile_dir / f"{lid}.city.json"
-    gpkg_file = tile_dir / f"{lid}.gpkg"
-    obj_file = tile_dir / f"{lid}-lod22.obj"
-    mtl_file = tile_dir / f"{lid}-lod22.mtl"
+    cj_file = tile_dir.with_suffix(".city.json")
+    gpkg_file = tile_dir.with_suffix(".gpkg")
+    obj_file = tile_dir.with_suffix(".obj")
+    mtl_file = tile_dir.with_suffix(".mtl")
 
     cj_file.write_text('{"type":"CityJSON"}')
     gpkg_file.write_bytes(b"fake-gpkg-content")
@@ -297,9 +295,9 @@ def test_compressed_tiles(tmp_path):
     )
 
     # Compressed files exist
-    assert (tile_dir / f"{lid}.city.json.gz").exists()
-    assert (tile_dir / f"{lid}.gpkg.gz").exists()
-    assert (tile_dir / f"{lid}-obj.zip").exists()
+    assert tile_dir.with_suffix(".city.json.gz").exists()
+    assert tile_dir.with_suffix(".gpkg.gz").exists()
+    assert tile_dir.with_name(f"{lid}-obj.zip").exists()
 
     # Original uncompressed files are deleted
     assert not cj_file.exists()

@@ -216,14 +216,13 @@ def export_index(
     Output it written to export_index.csv.
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
-    path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
 
     with path_export_index.open("w") as fw:
         fieldnames = ["tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
-        export_results_gen = check_export_results(merged_quadtree, path_tiles_dir)
+        export_results_gen = check_export_results(merged_quadtree, path_export_dir)
         csvwriter.writerows(dict(export_result) for export_result in export_results_gen)
     return path_export_index
 

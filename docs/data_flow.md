@@ -19,7 +19,7 @@ stages/floors_estimation/{tile_id}/{pand_id}.city.jsonl    <-- adds b3_bouwlagen
         |  4x tyler export assets (multi, 3dtiles lod12/13/22)
         v
 stages/export/{version}/
-    +-- tiles/{tile_id}/  (.city.json, .gpkg, .obj, .mtl)  <-- tyler-multiformat
+    +-- t/{tile_id}.<suffix>  (.city.json, .gpkg, .obj, .mtl)  <-- tyler-multiformat
     +-- cesium3dtiles/lod{12,13,22}/                        <-- tyler
     +-- debug/quadtree.tsv                                  <-- tyler output
     +-- sequence_header.json                                <-- generated before tyler
@@ -27,7 +27,7 @@ stages/export/{version}/
         |  archive, compression, validation assets
         v
 stages/export/{version}/
-    +-- tiles/{tile_id}/*.gz, *-obj.zip                    <-- compressed_tiles
+    +-- t/{tile_id}.*.gz, *-obj.zip                    <-- compressed_tiles
     +-- 3dbag_nl.gpkg, .gpkg.zip                           <-- geopackage_nl
     +-- export_index.csv                                   <-- export_index
     +-- reconstructed_features.csv                         <-- feature_evaluation
@@ -78,8 +78,8 @@ stages/
 |       +-- {pand_id}.city.jsonl
 +-- export/
     +-- {version}/
-        +-- tiles/
-        |   +-- {tile_id}/
+        +-- t/
+        |   +-- {tile_id}.<suffix>
         |       +-- {tile_id}.city.json[.gz]
         |       +-- {tile_id}.gpkg[.gz]
         |       +-- {tile_id}.obj

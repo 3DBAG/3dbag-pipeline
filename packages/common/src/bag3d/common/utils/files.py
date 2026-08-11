@@ -17,6 +17,10 @@ class BadArchiveError(OSError):
 
     pass
 
+def export_tile_path(export_dir: Path, tile_id: str, suffix: str) -> Path:
+    """Return the path of a Tyler tile output."""
+    return export_dir.joinpath("t", tile_id).with_suffix(suffix)
+
 
 def unzip(file: Path, dest: Path, remove: bool = True) -> None:
     """Uncompress the whole zip archive and optionally delete the zip.
@@ -44,7 +48,7 @@ def unzip(file: Path, dest: Path, remove: bool = True) -> None:
 
 
 def check_export_results(
-    path_quadtree_tsv: Path, path_tiles_dir: Path
+    path_quadtree_tsv: Path, export_dir: Path
 ) -> Iterator[ExportResult]:
     """Parse the `quadtree.tsv` written by *tyler*, check if all formats exists for each
     tile, add the tile WKT.
@@ -57,13 +61,14 @@ def check_export_results(
         for row in csvreader:
             if row["leaf"] == "true" and int(row["nr_items"]) > 0:
                 leaf_id = row["id"]
-                leaf_id_in_filename = leaf_id.replace("/", "-")
-                leaf_dir = path_tiles_dir.joinpath(leaf_id)
-                if leaf_dir.exists():
-                    obj_paths = tuple(
-                        p for p in leaf_dir.iterdir() if p.suffix == ".obj"
-                    )
-                    basename = path_tiles_dir.joinpath(leaf_id, leaf_id_in_filename)
+                basename = export_tile_path(export_dir, leaf_id, "")
+                obj_paths = tuple(basename.parent.glob(f"{basename.name}*.obj"))
+                expected_paths = (
+                    basename.with_suffix(".city.json"),
+                    basename.with_suffix(".gpkg"),
+                    *obj_paths,
+                )
+                if any(path.exists() for path in expected_paths):
                     yield ExportResult(
                         tile_id=leaf_id,
                         cityjson_path=basename.with_suffix(".city.json"),
@@ -98,11 +103,10 @@ def get_export_tile_ids() -> Sequence[str]:
     file_resource = FileStoreResource(root_dir=str(root_dir))
     export_dir = file_resource.stage_dir("export") / version
 
-    path_tiles_dir = export_dir.joinpath("tiles")
     path_quadtree_tsv = export_dir.joinpath("debug", "quadtree.tsv")
     if path_quadtree_tsv.exists():
         tileids = [
-            er.tile_id for er in check_export_results(path_quadtree_tsv, path_tiles_dir)
+            er.tile_id for er in check_export_results(path_quadtree_tsv, export_dir)
         ]
     else:
         raise FileNotFoundError(f"File not found: {path_quadtree_tsv}")
