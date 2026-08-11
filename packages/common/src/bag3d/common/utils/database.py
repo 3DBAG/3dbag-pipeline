@@ -122,11 +122,21 @@ def drop_table(computation_db: DatabaseResource, new_table, logger: Logger):
 
 
 def create_schema(computation_db: DatabaseResource, new_schema: str, logger: Logger):
-    """CREATE SCHEMA IF NOT EXISTS new_schema"""
+    """Create a schema while serializing concurrent attempts for that schema.
+
+    ``CREATE SCHEMA IF NOT EXISTS`` can still race when multiple PostgreSQL
+    sessions attempt to create the same namespace simultaneously. The
+    transaction-scoped advisory lock makes the check-and-create operation
+    atomic across Dagster processes and runs.
+    """
     conn = computation_db.connection
     q = SQL("CREATE SCHEMA IF NOT EXISTS {sch};").format(sch=Identifier(new_schema))
+    lock_q = SQL("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0));")
     logger.info(conn.print_query(q))
-    conn.send_query(q)
+
+    with conn.connect() as pg_conn:
+        pg_conn.execute(lock_q, (new_schema,))
+        pg_conn.execute(q)
 
 
 def table_exists(computation_db: DatabaseResource, table) -> bool:
