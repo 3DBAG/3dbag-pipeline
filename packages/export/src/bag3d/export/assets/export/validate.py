@@ -972,9 +972,13 @@ def gpkg(
     except Exception as e:
         logger.error("Failed to run validation for gpkg")
         raise e
-    results.nr_building = min(nr_building_all)
-    results.nr_buildingpart = min(nr_buildingpart_all)
-    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all)
+    # Temporary compatibility fix until 3dbag-specs is refactored to provide
+    # format projections for validating Tyler's new GeoPackage layer schema.
+    results.nr_building = min(nr_building_all, default=None)
+    results.nr_buildingpart = min(nr_buildingpart_all, default=None)
+    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all, default=None)
+    if not nr_building_all or not nr_buildingpart_all or not nr_invalid_2d_geom_all:
+        results.file_ok = False
     propertiesfile.unlink(missing_ok=True)
     return results
 
