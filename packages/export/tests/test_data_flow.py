@@ -15,7 +15,11 @@ from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.export.assets.export import metadata as metadata_module
-from bag3d.export.assets.export.tile import TylerConfig, reconstruction_output_gpkg
+from bag3d.export.assets.export.tile import (
+    TylerConfig,
+    merged_quadtree,
+    reconstruction_output_gpkg,
+)
 from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.archive import compressed_tiles, CompressionConfig
 
@@ -320,12 +324,14 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         assert "--debug-dump-grid" in command
         debug_dir = Path(cwd) / "debug"
         debug_dir.mkdir()
-        (debug_dir / "quadtree.tsv").write_text("id\tlevel\tnr_items\tleaf\twkt\n")
+        (debug_dir / "quadtree_level-3.tsv").write_text(
+            "node_id\tnode_level\tnr_items\twkt\n3/434/716\t3\t10\tPOLYGON((0 0,1 0,1 1,0 1,0 0))\n"
+        )
 
     runner.run.side_effect = run
     tyler = SimpleNamespace(runner=runner)
 
-    outputs = reconstruction_output_gpkg(
+    gpkg_output = reconstruction_output_gpkg(
         TylerConfig(concurrency=1),
         metadata_path,
         tyler,
@@ -334,7 +340,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         MagicMock(),
     )
 
-    gpkg_output, quadtree_output = outputs
-    assert gpkg_output.value == tmp_path / "stages" / "export" / VERSION
-    assert quadtree_output.value == gpkg_output.value / "debug" / "quadtree.tsv"
-    assert quadtree_output.value.is_file()
+    quadtree_output = merged_quadtree(gpkg_output)
+    assert gpkg_output == tmp_path / "stages" / "export" / VERSION
+    assert quadtree_output == gpkg_output / "debug" / "quadtree.tsv"
+    assert quadtree_output.is_file()

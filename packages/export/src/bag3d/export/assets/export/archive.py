@@ -18,13 +18,13 @@ logger = get_dagster_logger()
 
 
 @asset(
-    ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
+    ins={"merged_quadtree": AssetIn(key=AssetKey(("export", "merged_quadtree")))},
 )
 def geopackage(
     file_store: FileStoreResource,
     gdal: GDALResource,
     version: ReleaseVersionResource,
-    quadtree: Path,
+    merged_quadtree: Path,
 ) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = file_store.stage_subdir("export", version.version)
@@ -34,7 +34,7 @@ def geopackage(
     # Remove existing
     path_nl.unlink(missing_ok=True)
 
-    with quadtree.open("r") as fo:
+    with merged_quadtree.open("r") as fo:
         csvreader = csv.reader(fo, delimiter="\t")
         # skip header, which is [id, level, nr_items, leaf, wkt]
         next(csvreader)

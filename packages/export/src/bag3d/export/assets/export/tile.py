@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+import csv
 import json
 from os import getenv
 from pathlib import Path
@@ -8,12 +9,10 @@ from typing import Union
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
 from dagster import (
     AssetKey,
-    AssetOut,
+    AssetIn,
     Config,
-    Output,
     asset,
     get_dagster_logger,
-    multi_asset,
 )
 from pydantic import Field
 
@@ -200,11 +199,50 @@ def reconstruction_output_cityjson(
     )
 
 
-@multi_asset(
-    outs={
-        "reconstruction_output_gpkg": AssetOut(),
-        "quadtree": AssetOut(),
-    },
+def _write_quadtree_tsv(debug_dir: Path) -> Path:
+    """Normalize Tyler level-specific quadtree TSVs to the pipeline schema."""
+    quadtree_path = debug_dir.joinpath("quadtree.tsv")
+    if quadtree_path.is_file():
+        return quadtree_path
+
+    level_paths = sorted(debug_dir.glob("quadtree_level-*.tsv"))
+    if not level_paths:
+        raise FileNotFoundError(
+            f"Tyler did not create quadtree TSV files in {debug_dir}"
+        )
+
+    rows = []
+    node_ids = set()
+    for level_path in level_paths:
+        with level_path.open("r", newline="") as fo:
+            for row in csv.DictReader(fo, delimiter="\t"):
+                node_id = row["node_id"]
+                rows.append(row)
+                node_ids.add(node_id)
+
+    with quadtree_path.open("w", newline="") as fo:
+        writer = csv.writer(fo, delimiter="\t")
+        writer.writerow(["id", "level", "nr_items", "leaf", "wkt"])
+        for row in rows:
+            level, x, y = (int(part) for part in row["node_id"].split("/"))
+            child_ids = {
+                f"{level + 1}/{2 * x + dx}/{2 * y + dy}"
+                for dx in (0, 1)
+                for dy in (0, 1)
+            }
+            writer.writerow(
+                [
+                    row["node_id"],
+                    row["node_level"],
+                    row["nr_items"],
+                    str(not child_ids.intersection(node_ids)).lower(),
+                    row["wkt"],
+                ]
+            )
+    return quadtree_path
+
+
+@asset(
     deps={AssetKey(("floors_estimation", "save_cjfiles"))},
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
@@ -216,7 +254,7 @@ def reconstruction_output_gpkg(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
-) -> tuple[Output[Path], Output[Path]]:
+) -> Path:
     """Tiles for distribution in GPKG format.
     Generated with tyler."""
     with metadata.open("r") as fo:
@@ -233,13 +271,19 @@ def reconstruction_output_gpkg(
         locations=tuple(),
         verbose=config.verbose,
     )
-    quadtree = export_dir.joinpath("debug", "quadtree.tsv")
-    if not quadtree.is_file():
-        raise FileNotFoundError(f"Tyler did not create {quadtree}")
-    return (
-        Output(export_dir, output_name="reconstruction_output_gpkg"),
-        Output(quadtree, output_name="quadtree"),
-    )
+    return export_dir
+
+
+@asset(
+    ins={
+        "reconstruction_output_gpkg": AssetIn(
+            key=AssetKey(("export", "reconstruction_output_gpkg"))
+        )
+    },
+)
+def merged_quadtree(reconstruction_output_gpkg: Path) -> Path:
+    """Merge Tyler quadtree level files into the pipeline quadtree TSV."""
+    return _write_quadtree_tsv(reconstruction_output_gpkg.joinpath("debug"))
 
 
 @asset(

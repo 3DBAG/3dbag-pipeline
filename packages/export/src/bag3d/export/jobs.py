@@ -9,7 +9,7 @@ job_export = define_asset_job(
     | AssetSelection.assets(["export", "metadata"])
     | AssetSelection.assets(["export", "reconstruction_output_cityjson"])
     | AssetSelection.assets(["export", "reconstruction_output_gpkg"])
-    | AssetSelection.assets(["export", "quadtree"])
+    | AssetSelection.assets(["export", "merged_quadtree"])
     | AssetSelection.assets(["export", "reconstruction_output_obj"])
     | AssetSelection.assets(["export", "geopackage"])
     | AssetSelection.assets(["export", "compressed_tiles"])

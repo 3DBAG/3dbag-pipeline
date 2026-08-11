@@ -202,10 +202,12 @@ def feature_evaluation(
 
 
 @asset(
-    ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
+    ins={"merged_quadtree": AssetIn(key=AssetKey(("export", "merged_quadtree")))},
 )
 def export_index(
-    file_store: FileStoreResource, version: ReleaseVersionResource, quadtree: Path
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    merged_quadtree: Path,
 ) -> Path:
     """Index of the distribution tiles.
 
@@ -221,7 +223,7 @@ def export_index(
         fieldnames = ["tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
-        export_results_gen = check_export_results(quadtree, path_tiles_dir)
+        export_results_gen = check_export_results(merged_quadtree, path_tiles_dir)
         csvwriter.writerows(dict(export_result) for export_result in export_results_gen)
     return path_export_index
 
