@@ -405,7 +405,10 @@ def cityjson(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="cityjson", file_id=url_file_id or file_id, version=version
+            url_root=url_root,
+            format="cityjson",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")
@@ -628,7 +631,10 @@ def obj(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="obj", file_id=url_file_id or file_id, version=version
+            url_root=url_root,
+            format="obj",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")
@@ -865,7 +871,10 @@ def gpkg(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="gpkg", file_id=url_file_id or file_id, version=version
+            url_root=url_root,
+            format="gpkg",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")

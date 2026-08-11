@@ -88,15 +88,30 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     if not isinstance(aoi, Mapping) or not expected_aoi.issubset(aoi):
         raise ValueError("Integration-data manifest is missing AOI metadata")
     clipping = manifest.get("clipping")
-    if not isinstance(clipping, Mapping) or clipping.get("vectors") != "gdal" or clipping.get("pointclouds") != "las2las_keep_xy":
+    if (
+        not isinstance(clipping, Mapping)
+        or clipping.get("vectors") != "gdal"
+        or clipping.get("pointclouds") != "las2las_keep_xy"
+    ):
         raise ValueError("Integration-data manifest has unsupported clipping metadata")
     validation = manifest.get("validation")
     if not isinstance(validation, Mapping) or validation.get("buffer_metres") != 10.0:
-        raise ValueError("Integration-data manifest is missing 10 m validation metadata")
+        raise ValueError(
+            "Integration-data manifest is missing 10 m validation metadata"
+        )
     extents = validation.get("extents")
-    if not isinstance(extents, Mapping) or not isinstance(extents.get("vectors"), Mapping) or not isinstance(extents.get("pointclouds"), Mapping):
+    if (
+        not isinstance(extents, Mapping)
+        or not isinstance(extents.get("vectors"), Mapping)
+        or not isinstance(extents.get("pointclouds"), Mapping)
+    ):
         raise ValueError("Integration-data manifest is missing computed extents")
-    bounds = (float(aoi["minx"]) - 10.0, float(aoi["miny"]) - 10.0, float(aoi["maxx"]) + 10.0, float(aoi["maxy"]) + 10.0)
+    bounds = (
+        float(aoi["minx"]) - 10.0,
+        float(aoi["miny"]) - 10.0,
+        float(aoi["maxx"]) + 10.0,
+        float(aoi["maxy"]) + 10.0,
+    )
     for category in ("vectors", "pointclouds"):
         for name, values in extents[category].items():
             if not isinstance(name, str) or not isinstance(values, list):
@@ -106,8 +121,15 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                 if not isinstance(extent, list) or len(extent) != 4:
                     raise ValueError(f"Invalid computed extent metadata for {name}")
                 extent_values = tuple(float(value) for value in extent)
-                if not (bounds[0] <= extent_values[0] and bounds[1] <= extent_values[1] and extent_values[2] <= bounds[2] and extent_values[3] <= bounds[3]):
-                    raise ValueError(f"Computed extent for {name} exceeds the AOI plus 10 m")
+                if not (
+                    bounds[0] <= extent_values[0]
+                    and bounds[1] <= extent_values[1]
+                    and extent_values[2] <= bounds[2]
+                    and extent_values[3] <= bounds[3]
+                ):
+                    raise ValueError(
+                        f"Computed extent for {name} exceeds the AOI plus 10 m"
+                    )
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):
@@ -149,7 +171,11 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     files = manifest.get("files")
     if not isinstance(files, Mapping):
         raise ValueError("Integration-data manifest is missing files")
-    actual = {str(path.relative_to(root)) for path in root.rglob("*") if path.is_file() and path.name != "manifest.json"}
+    actual = {
+        str(path.relative_to(root))
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    }
     if actual != set(files):
         raise ValueError("Integration-data manifest file list does not match snapshot")
     for relative in actual:
@@ -283,19 +309,37 @@ def _laz(store, version, tile, pointcloud_store):
     if not isinstance(entry, Mapping) or not isinstance(entry.get("path"), str):
         raise ValueError(f"Fixture AHN{version} partition is missing tile {tile}")
     source = m.path(entry["path"])
-    destination = Path(pointcloud_store.root_dir) / "integration-fixture" / f"AHN{version}" / source.name
+    destination = (
+        Path(pointcloud_store.root_dir)
+        / "integration-fixture"
+        / f"AHN{version}"
+        / source.name
+    )
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.is_file() or destination.stat().st_size != source.stat().st_size:
         shutil.copy2(source, destination)
     source_lax = source.with_suffix(".lax")
     destination_lax = destination.with_suffix(".lax")
-    if source_lax.is_file() and (not destination_lax.is_file() or destination_lax.stat().st_size != source_lax.stat().st_size):
+    if source_lax.is_file() and (
+        not destination_lax.is_file()
+        or destination_lax.stat().st_size != source_lax.stat().st_size
+    ):
         shutil.copy2(source_lax, destination_lax)
     digest = hashlib.sha256(destination.read_bytes()).hexdigest()
     expected = entry.get("sha256")
     if expected and digest != expected:
-        raise ValueError(f"Fixture AHN{version} checksum does not match manifest: {source}")
-    return LAZDownload(str(entry.get("url", source.name)), destination, True, "sha256", digest, False, destination.stat().st_size / 1e6)
+        raise ValueError(
+            f"Fixture AHN{version} checksum does not match manifest: {source}"
+        )
+    return LAZDownload(
+        str(entry.get("url", source.name)),
+        destination,
+        True,
+        "sha256",
+        digest,
+        False,
+        destination.stat().st_size / 1e6,
+    )
 
 
 def _adapter(version):
@@ -304,7 +348,9 @@ def _adapter(version):
         integration_data_store: FileStoreResource,
         pointcloud_store: FileStoreResource,
     ):
-        value = _laz(integration_data_store, version, context.partition_key, pointcloud_store)
+        value = _laz(
+            integration_data_store, version, context.partition_key, pointcloud_store
+        )
         return Output(value, metadata=value.asdict())
 
     return adapter

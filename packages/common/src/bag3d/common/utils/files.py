@@ -17,6 +17,7 @@ class BadArchiveError(OSError):
 
     pass
 
+
 def export_tile_path(export_dir: Path, tile_id: str, suffix: str) -> Path:
     """Return the path of a Tyler tile output."""
     return export_dir.joinpath("t", tile_id).with_suffix(suffix)

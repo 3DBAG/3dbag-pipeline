@@ -80,7 +80,9 @@ def generate_tyler_config(
         )
         # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
         data_format_temp_override = "ogc3dtiles"
-        attributes = specs.applies_to(data_format=data_format_temp_override, locations=locations)
+        attributes = specs.applies_to(
+            data_format=data_format_temp_override, locations=locations
+        )
         for a_name, a_spec in attributes:
             cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
     elif data_format == TylerOutputFormat.GPKG:
@@ -335,8 +337,6 @@ def reconstruction_output_3dtiles_lod12(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
-    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
-    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
         data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,
@@ -368,8 +368,6 @@ def reconstruction_output_3dtiles_lod13(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
-    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
-    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
         data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,
@@ -401,8 +399,6 @@ def reconstruction_output_3dtiles_lod22(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
-    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
-    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
         data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,

@@ -53,15 +53,18 @@ def reconstruction_input_tiles(
         index = Identifier(output_schema, "index")
         conn.send_query(SQL("DROP TABLE IF EXISTS {}, {} CASCADE").format(index, tiles))
         conn.send_query(
-            SQL("CREATE TABLE {} (tile_id TEXT, boundary geometry(Polygon, 28992))")
-            .format(tiles)
+            SQL(
+                "CREATE TABLE {} (tile_id TEXT, boundary geometry(Polygon, 28992))"
+            ).format(tiles)
         )
-        conn.send_query(
-            SQL("CREATE TABLE {} (fid BIGINT, tile_id TEXT)").format(index)
-        )
+        conn.send_query(SQL("CREATE TABLE {} (fid BIGINT, tile_id TEXT)").format(index))
         return (
-            Output(PostgresTableIdentifier(output_schema, "tiles"), output_name="tiles"),
-            Output(PostgresTableIdentifier(output_schema, "index"), output_name="index"),
+            Output(
+                PostgresTableIdentifier(output_schema, "tiles"), output_name="tiles"
+            ),
+            Output(
+                PostgresTableIdentifier(output_schema, "index"), output_name="index"
+            ),
         )
 
     # todo: dirty hack just for now for removing sslmode, couz it's not implemented in tyler-db
