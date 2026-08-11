@@ -26,7 +26,7 @@ logger = get_dagster_logger("export.tile")
 
 
 class TylerOutputFormat(StrEnum):
-    CESIUM3DTILES = "3dtiles"
+    OGC3DTILES = "ogc3dtiles"
     GPKG = "gpkg"
     CITYJSON = "cityjson"
     OBJ = "obj"
@@ -56,7 +56,7 @@ def generate_tyler_config(
         "--qtree-capacity=280000",
     ]
     output_dir = None
-    if data_format == TylerOutputFormat.CESIUM3DTILES:
+    if data_format == TylerOutputFormat.OGC3DTILES:
         if len(locations) > 1:
             raise ValueError(
                 "Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
@@ -335,8 +335,10 @@ def reconstruction_output_3dtiles_lod12(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
+    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
-        data_format=TylerOutputFormat.CESIUM3DTILES,
+        data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,
         version=version,
         specs=specs,
@@ -366,8 +368,10 @@ def reconstruction_output_3dtiles_lod13(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
+    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
-        data_format=TylerOutputFormat.CESIUM3DTILES,
+        data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,
         version=version,
         specs=specs,
@@ -397,8 +401,10 @@ def reconstruction_output_3dtiles_lod22(
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
     version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
+    data_format_temp_override = "ogc3dtiles"
     return reconstruction_output_tiles_func(
-        data_format=TylerOutputFormat.CESIUM3DTILES,
+        data_format=TylerOutputFormat.OGC3DTILES,
         file_store=file_store,
         version=version,
         specs=specs,
