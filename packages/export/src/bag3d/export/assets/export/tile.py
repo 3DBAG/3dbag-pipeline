@@ -6,7 +6,7 @@ from os import getenv
 from pathlib import Path
 from typing import Union
 
-from bag3d.specs.core import CityJSONLocation, GpkgLocation, Cesium3dTilesLocation
+from bag3d.specs.core import CityJSONLocation, GpkgLocation, Ogc3dTilesLocation
 from dagster import (
     AssetKey,
     AssetIn,
@@ -37,7 +37,7 @@ def generate_tyler_config(
     specs: Specs3DBAGResource,
     data_format: TylerOutputFormat,
     locations: Union[
-        tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Cesium3dTilesLocation]
+        tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Ogc3dTilesLocation]
     ],
     export_dir: Path,
 ) -> tuple[list[str], Path]:
@@ -45,11 +45,11 @@ def generate_tyler_config(
 
     Args:
         specs: The 3DBAG specifications
-        data_format: Tyler output format (multi, cesium3dtiles)
-        locations: The data format locations to generate the config for. Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
+        data_format: Tyler output format (multi, ogc3dtiles)
+        locations: The data format locations to generate the config for. Can only generate tyler config for ogc3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
         export_dir:  The location of the export directory where all exported formats are stored.
     Raises:
-        ValueError: With `format=='cesium3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Cesium3dTilesLocation)`.
+        ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Ogc3dTilesLocation)`.
     """
     cli_params = [
         f"--format={data_format}",
@@ -59,12 +59,12 @@ def generate_tyler_config(
     if data_format == TylerOutputFormat.OGC3DTILES:
         if len(locations) > 1:
             raise ValueError(
-                "Can only generate tyler config for cesium3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
+                "Can only generate tyler config for ogc3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
             )
         location = locations[0]
-        if not isinstance(location, Cesium3dTilesLocation):
+        if not isinstance(location, Ogc3dTilesLocation):
             raise ValueError(
-                "With data_format 'cesium3dtiles' the location must be a single Cesium3dTilesLocation."
+                "With data_format 'ogc3dtiles' the location must be a single Ogc3dTilesLocation."
             )
         output_dir = export_dir.joinpath(data_format, str(location))
         cli_params.extend(
@@ -111,7 +111,7 @@ def generate_tyler_config(
         )
     else:
         raise ValueError(
-            f"data_format must be one of 'cityjson', 'gpkg', 'obj', 'cesium3dtiles', got {data_format}"
+            f"data_format must be one of 'cityjson', 'gpkg', 'obj', 'ogc3dtiles', got {data_format}"
         )
     output_dir.mkdir(parents=True, exist_ok=True)
     return cli_params, output_dir
@@ -128,7 +128,7 @@ def reconstruction_output_tiles_func(
     """Run tyler on the reconstruction output directory.
 
     Args:
-        data_format: Either 'multi' or 'cesium3dtiles'. See tyler docs for details.
+        data_format: Either 'multi' or 'ogc3dtiles'. See tyler docs for details.
     """
     reconstructed_root_dir = file_store.stage_dir("floors_estimation")
     export_dir = file_store.stage_subdir("export", version.version)
@@ -330,7 +330,7 @@ def reconstruction_output_3dtiles_lod12(
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ) -> Path:
-    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.2 buildings.
+    """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 1.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
@@ -345,7 +345,7 @@ def reconstruction_output_3dtiles_lod12(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Cesium3dTilesLocation.lod12,),
+        locations=(Ogc3dTilesLocation.lod12,),
         verbose=config.verbose,
     )
 
@@ -363,7 +363,7 @@ def reconstruction_output_3dtiles_lod13(
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ) -> Path:
-    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 1.3 buildings.
+    """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 1.3 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
@@ -378,7 +378,7 @@ def reconstruction_output_3dtiles_lod13(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Cesium3dTilesLocation.lod13,),
+        locations=(Ogc3dTilesLocation.lod13,),
         verbose=config.verbose,
     )
 
@@ -396,7 +396,7 @@ def reconstruction_output_3dtiles_lod22(
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ) -> Path:
-    """Tiles for distribution, in Cesium 3D Tiles format, Level of Detail 2.2 buildings.
+    """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 2.2 buildings.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
@@ -411,6 +411,6 @@ def reconstruction_output_3dtiles_lod22(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Cesium3dTilesLocation.lod22,),
+        locations=(Ogc3dTilesLocation.lod22,),
         verbose=config.verbose,
     )
