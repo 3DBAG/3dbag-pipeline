@@ -318,7 +318,9 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     def run(command, *, exe_name, cwd, logger):
         assert exe_name == "tyler"
         assert "--debug-dump-grid" in command
-        (Path(cwd) / "quadtree.tsv").write_text("id\tlevel\tnr_items\tleaf\twkt\n")
+        debug_dir = Path(cwd) / "debug"
+        debug_dir.mkdir()
+        (debug_dir / "quadtree.tsv").write_text("id\tlevel\tnr_items\tleaf\twkt\n")
 
     runner.run.side_effect = run
     tyler = SimpleNamespace(runner=runner)
@@ -334,5 +336,5 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
 
     gpkg_output, quadtree_output = outputs
     assert gpkg_output.value == tmp_path / "stages" / "export" / VERSION
-    assert quadtree_output.value == gpkg_output.value / "quadtree.tsv"
+    assert quadtree_output.value == gpkg_output.value / "debug" / "quadtree.tsv"
     assert quadtree_output.value.is_file()

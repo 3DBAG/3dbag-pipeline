@@ -203,7 +203,6 @@ def feature_evaluation(
 
 @asset(
     ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
-    deps={AssetKey(("export", "reconstruction_output_gpkg"))},
 )
 def export_index(
     file_store: FileStoreResource, version: ReleaseVersionResource, quadtree: Path

@@ -99,7 +99,7 @@ def get_export_tile_ids() -> Sequence[str]:
     export_dir = file_resource.stage_dir("export") / version
 
     path_tiles_dir = export_dir.joinpath("tiles")
-    path_quadtree_tsv = export_dir.joinpath("quadtree.tsv")
+    path_quadtree_tsv = export_dir.joinpath("debug", "quadtree.tsv")
     if path_quadtree_tsv.exists():
         tileids = [
             er.tile_id for er in check_export_results(path_quadtree_tsv, path_tiles_dir)

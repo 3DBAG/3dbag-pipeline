@@ -21,7 +21,7 @@ stages/floors_estimation/{tile_id}/{pand_id}.city.jsonl    <-- adds b3_bouwlagen
 stages/export/{version}/
     +-- tiles/{tile_id}/  (.city.json, .gpkg, .obj, .mtl)  <-- tyler-multiformat
     +-- cesium3dtiles/lod{12,13,22}/                        <-- tyler
-    +-- quadtree.tsv                                        <-- tyler output
+    +-- debug/quadtree.tsv                                  <-- tyler output
     +-- sequence_header.json                                <-- generated before tyler
         |
         |  archive, compression, validation assets
@@ -89,7 +89,7 @@ stages/
         |   +-- lod12/
         |   +-- lod13/
         |   +-- lod22/
-        +-- quadtree.tsv
+        +-- debug/quadtree.tsv
         +-- sequence_header.json
         +-- export_index.csv
         +-- reconstructed_features.csv

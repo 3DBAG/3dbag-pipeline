@@ -12,7 +12,7 @@ def test_code_location_import_fresh_process():
         [
             sys.executable,
             "-c",
-            "from bag3d.export.code_location import defs; defs.get_job_def('export')",
+            "from dagster import AssetKey; from bag3d.export.code_location import defs; g=defs.resolve_asset_graph(); assert g.get(AssetKey(('export', 'geopackage'))).parent_keys == {AssetKey(('export', 'quadtree'))}; assert g.get(AssetKey(('export', 'export_index'))).parent_keys == {AssetKey(('export', 'quadtree'))}; defs.get_job_def('export')",
         ],
         capture_output=True,
         text=True,

@@ -19,7 +19,6 @@ logger = get_dagster_logger()
 
 @asset(
     ins={"quadtree": AssetIn(key=AssetKey(("export", "quadtree")))},
-    deps={AssetKey(("export", "reconstruction_output_gpkg"))},
 )
 def geopackage(
     file_store: FileStoreResource,

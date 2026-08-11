@@ -233,7 +233,7 @@ def reconstruction_output_gpkg(
         locations=tuple(),
         verbose=config.verbose,
     )
-    quadtree = export_dir.joinpath("quadtree.tsv")
+    quadtree = export_dir.joinpath("debug", "quadtree.tsv")
     if not quadtree.is_file():
         raise FileNotFoundError(f"Tyler did not create {quadtree}")
     return (
