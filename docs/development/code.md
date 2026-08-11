@@ -60,19 +60,18 @@ The `docker_up` target sets the docker compose project name to `bag3d-dev`.
 #### Running the services
 
 Create run configuration that uses the docker compose file.
-You need to set the `docker/.env` environment variables file and set two environment variables manually.
-These two environment variables are the same that the `makefile` sets, when using the make-based setup:
+Use the `docker/.env` environment variables file. For direct Docker Compose or PyCharm
+configurations, also set the manifest-derived variables printed by:
 
 ```shell
-COMPOSE_PROJECT_NAME=bag3d-dev
-BAG3D_DOCKER_IMAGE_TAG=develop
+eval "$(python3 scripts/manifest_versions.py env --format shell)"
 ```
 
 For example, see the screenshot below. 
 ![](../images/docker_compose_run_config.png)
 
-Start the services by running the configuration from the compose file.
-For example, see the screenshot below. 
+Start the services with `make docker_dev`; it resolves the required image references from
+the manifest before invoking Docker Compose. For example, see the screenshot below.
 ![](../images/docker_compose_start.png)
 
 #### Running tests
@@ -186,13 +185,13 @@ Note that external tools (roofer, tyler, GDAL, PDAL) are not available in this m
 
 The pipeline has the following requirements:
 
-- Python 3.11
+- Python 3.12
 
 - Docker
 
 - [Tyler](https://github.com/3DGI/tyler)
 
-- [Geoflow-roofer](https://github.com/3DBAG/geoflow-roofer)
+- [Roofer](https://github.com/3DBAG/roofer)
 
 - [LAStools](https://github.com/LAStools/LAStools)
 
@@ -264,10 +263,11 @@ Assets are usually some results of computations, therefore their names are nouns
 Release always happens from the `master` branch, after merging the successful production candidate branch into `master`.
 See the [branches](#branches) section for more information.
 
-1. Update the CHANGELOG.md file with the new version and the changes. It must include the new version number that you are releasing, e.g. `## [2024.10.24]`.
-2. On GitHub, create a new pull request from the current production candidate branch to the `master` branch and merge it.
-3. Manually trigger the release workflow on GitHub Actions. You'll need to input the new version number that you added to the CHANGELOG, e.g. `2024.10.24`. This will create a new release on GitHub and add the contents of the CHANGELOG to the release notes.
-4. The workflow will automatically open a pull request from `master` to `develop` to merge back the changes from the release. This is done to keep the `develop` branch up to date with the latest changes from the `master` branch. You can merge this pull request after the release is done.
+1. If the release needs changed external tools, merge that tools update to `develop` first. It must have a new `images.tools.version`; wait for the tools workflow to publish it and commit its `images.tools.digest`.
+2. Update `3dbag-manifest.json` with the pipeline `version` and update `CHANGELOG.md`. The changelog must include that version, e.g. `## [2024.10.24]`.
+3. Run `make sync_versions` and `python3 scripts/manifest_versions.py check`, then merge the current production candidate branch into `master`.
+4. Manually trigger the release workflow on GitHub Actions. It uses `manifest.version`, creates the matching tag and release, and publishes pipeline images from the digest-pinned tools base image.
+5. The workflow automatically opens a pull request from `master` to `develop` to merge back the release changes. Merge it after the release is complete.
 
 ## Dagster
 

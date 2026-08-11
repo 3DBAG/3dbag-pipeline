@@ -1,4 +1,5 @@
-from dagster import load_assets_from_package_module
+from dagster import load_assets_from_package_module, load_assets_from_modules
+from os import getenv
 
 from bag3d.core.assets import (
     ahn,
@@ -50,9 +51,33 @@ reconstruction_assets = load_assets_from_package_module(
     group_name=RECONSTRUCTION,
 )
 
+from bag3d.core.assets import integration_data  # noqa: E402
+from bag3d.core.assets.fixture_adapters import fixture_assets  # noqa: E402
+
+integration_data_assets = load_assets_from_modules(
+    [integration_data], group_name="integration_data"
+)
+
+if getenv("BAG3D_INPUT_MODE", "").lower() == "integration_data":
+    fixture_keys = {
+        asset_key
+        for asset in fixture_assets
+        if (asset_key := getattr(asset, "key", None)) is not None
+    }
+    bgt_assets = [
+        asset for asset in bgt_assets if getattr(asset, "key", None) not in fixture_keys
+    ]
+    source_assets = [
+        asset
+        for asset in source_assets
+        if getattr(asset, "key", None) not in fixture_keys
+    ]
+    source_assets.extend(fixture_assets)
+
 all_assets = [
     *bgt_assets,
     *source_assets,
     *input_assets,
     *reconstruction_assets,
+    *integration_data_assets,
 ]

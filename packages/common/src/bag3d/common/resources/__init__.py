@@ -1,9 +1,14 @@
 import os
 from enum import StrEnum
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dagster import get_dagster_logger
 
+from bag3d.common.resources.cjindex import (
+    CityIndexResource as CityIndexResource,
+    open_ready_index as open_ready_index,
+)
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
@@ -11,7 +16,6 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
     TylerResource,
     RooferResource,
-    GeoflowResource,
     ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
@@ -26,6 +30,9 @@ from bag3d.common.resources.values import NlTransform
 # genuinely optional env vars.
 
 logger = get_dagster_logger()
+
+if TYPE_CHECKING:
+    from bag3d.common.resources.cjindex import CityIndexResource
 
 
 class DagsterDeployment(StrEnum):
@@ -51,12 +58,10 @@ nl_transform = NlTransform()
 tool_versions = ToolVersionsResource(
     exe_tyler=os.getenv("EXE_PATH_TYLER"),
     exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-    exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
-    exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+    exe_roofer=os.getenv("EXE_PATH_ROOFER"),
     exe_ogr2ogr=os.getenv("EXE_PATH_OGR2OGR"),
     exe_pdal=os.getenv("EXE_PATH_PDAL"),
     exe_lasindex=os.getenv("EXE_PATH_LASINDEX"),
-    exe_geof=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
 )
 
 
@@ -80,11 +85,11 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
             "pointcloud_store": FileStoreResource.configure_at_launch(),
+            "integration_data_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
             "tyler": TylerResource.configure_at_launch(),
-            "geoflow": GeoflowResource.configure_at_launch(),
             "validation": ValidationResource.configure_at_launch(),
             "roofer": RooferResource.configure_at_launch(),
             "version": version,
@@ -92,6 +97,8 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "publication_server": ServerTransferResource.configure_at_launch(),
             "publication_db": DatabaseResource.configure_at_launch(),
             "nl_transform": nl_transform,
+            "reconstruction_index": CityIndexResource.configure_at_launch(),
+            "party_walls_index": CityIndexResource.configure_at_launch(),
         }
     elif configure_from_env:
         return {
@@ -106,6 +113,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                     "BAG3D_POINTCLOUD_DIR",
                     str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
                 ),
+            ),
+            "integration_data_store": FileStoreResource(
+                root_dir=os.getenv(
+                    "BAG3D_INTEGRATION_DATA_DIR",
+                    str(Path(os.environ["BAG3D_FILESTORE"]) / "integration-data"),
+                )
             ),
             "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],
@@ -124,11 +137,6 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "tyler": TylerResource(
                 exe_tyler=os.getenv("EXE_PATH_TYLER"),
                 exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
-                exe_tyler_multiformat=os.getenv("EXE_PATH_TYLER_MULTIFORMAT"),
-            ),
-            "geoflow": GeoflowResource(
-                exe_geoflow=os.getenv("EXE_PATH_ROOFER_RECONSTRUCT"),
-                flowchart=os.getenv("FLOWCHART_PATH_RECONSTRUCT"),
             ),
             "validation": ValidationResource(
                 exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),
@@ -136,8 +144,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_cjio=os.getenv("EXE_PATH_CJIO"),
             ),
             "roofer": RooferResource(
-                exe_crop=os.getenv("EXE_PATH_ROOFER_CROP"),
-                exe_roofer=os.getenv("EXE_PATH_ROOFER_ROOFER"),
+                exe_roofer=os.getenv("EXE_PATH_ROOFER"),
             ),
             "version": version,
             "specs": specs,
@@ -162,9 +169,33 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 },
             ),
             "nl_transform": nl_transform,
+            "reconstruction_index": CityIndexResource(
+                dataset_dir=str(
+                    Path(os.environ["BAG3D_FILESTORE"]) / "stages" / "reconstruction"
+                )
+            ),
+            "party_walls_index": CityIndexResource(
+                dataset_dir=str(
+                    Path(os.environ["BAG3D_FILESTORE"]) / "stages" / "party_walls"
+                )
+            ),
         }
     else:
         raise RuntimeError("Cannot configure dagster environment")
+
+
+def __getattr__(name: str):
+    if name in {"CityIndexResource", "open_ready_index"}:
+        from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
+
+        globals().update(
+            {
+                "CityIndexResource": CityIndexResource,
+                "open_ready_index": open_ready_index,
+            }
+        )
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 env_name = os.getenv("DAGSTER_DEPLOYMENT", "default")

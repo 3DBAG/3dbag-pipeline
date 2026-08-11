@@ -3,13 +3,17 @@ import sys
 
 
 def test_code_location_import_fresh_process():
-    """Ensure bag3d.export.code_location can be imported without DagsterInvalidDefinitionError.
+    """Ensure the export job resolves without DagsterInvalidDefinitionError.
 
     Uses a subprocess to avoid conftest.py side-effects that pre-register Dagster types,
     masking import-order conflicts.
     """
     result = subprocess.run(
-        [sys.executable, "-c", "import bag3d.export.code_location"],
+        [
+            sys.executable,
+            "-c",
+            "from dagster import AssetKey; from bag3d.export.code_location import defs; g=defs.resolve_asset_graph(); assert g.get(AssetKey(('export', 'geopackage'))).parent_keys == {AssetKey(('export', 'merged_quadtree'))}; assert g.get(AssetKey(('export', 'export_index'))).parent_keys == {AssetKey(('export', 'merged_quadtree'))}; defs.get_job_def('export')",
+        ],
         capture_output=True,
         text=True,
     )

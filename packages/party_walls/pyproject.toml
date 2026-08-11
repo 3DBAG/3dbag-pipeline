@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-party-walls"
-version = "2025.11.18"
+version = "2026.07.29"
 description = "Workflow for calculating the party walls in the 3D BAG."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -20,11 +20,12 @@ classifiers = [
 ]
 urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
-    "dagster~=1.12.14",
-    "dagster-postgres~=0.28.14",
-    "shapely~=2.0.1",
+    "dagster~=1.13.15",
+    "dagster-postgres~=0.29.15",
+    "shapely~=2.1.2",
     "building-surfaces",
     "bag3d-common",
+    "cityjson-index==0.11.0",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
 

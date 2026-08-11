@@ -1,18 +1,16 @@
-ARG UV_VERSION=0.8.2
-ARG TYLER_VERSION=0.3.14
-ARG TYLER_MULTIFORMAT_VERSION=0.4.0-alpha10
-ARG TYLER_DB_VERSION=0.3.4-db-alpha5
-ARG ROOFER_VERSION=develop
-ARG GEOFLOW_BUNDLE_VERSION=2025.09.01
-ARG CJVAL_VERSION=0.8.2
+# These required image references are injected from 3dbag-manifest.json.
+# `scratch` keeps the Dockerfile valid for static checks when they are omitted.
+ARG UV_IMAGE=scratch
+ARG TYLER_IMAGE=scratch
+ARG TYLER_DB_IMAGE=scratch
+ARG ROOFER_IMAGE=scratch
+ARG CJVAL_IMAGE=scratch
 
-FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
-FROM 3dgi/tyler:${TYLER_VERSION} AS tyler_ext_image
-FROM 3dgi/tyler-multiformat:${TYLER_MULTIFORMAT_VERSION} AS tyler_multiformat_ext_image
-FROM 3dgi/tyler-db:${TYLER_DB_VERSION} AS tyler_db_ext_image
-FROM 3dgi/roofer:${ROOFER_VERSION} AS roofer_ext_image
-FROM 3dgi/geoflow-bundle-builder:${GEOFLOW_BUNDLE_VERSION} AS geoflow_ext_image
-FROM tudelft3d/cjval:${CJVAL_VERSION} AS cjval_ext_image
+FROM ${UV_IMAGE} AS uv-source
+FROM ${TYLER_IMAGE} AS tyler-source
+FROM ${TYLER_DB_IMAGE} AS tyler-db-source
+FROM ${ROOFER_IMAGE} AS roofer-source
+FROM ${CJVAL_IMAGE} AS cjval-source
 
 FROM ubuntu:24.04 AS dependencies
 
@@ -20,14 +18,14 @@ ARG VERSION=latest
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-ARG GDAL_VERSION=3.8.5
-ARG PROJ_VERSION=9.8.1
-ARG GEOS_VERSION=3.12.1
-ARG GEOTIFF_VERSION=1.7.3
-ARG LASTOOLS_VERSION=2.0.4
-ARG PDAL_VERSION=2.10.1
-ARG VAL3DITY_VERSION=2.4.0
-ARG CJIO_VERSION=0.10.1
+ARG GDAL_VERSION
+ARG PROJ_VERSION
+ARG GEOS_VERSION
+ARG GEOTIFF_VERSION
+ARG LASTOOLS_VERSION
+ARG PDAL_VERSION
+ARG VAL3DITY_VERSION
+ARG CJIO_VERSION
 
 ENV GDAL_VERSION=$GDAL_VERSION
 ENV PROJ_VERSION=$PROJ_VERSION
@@ -65,13 +63,10 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     libspatialite-dev libspatialite8t64 spatialite-bin \
     pipx
 
-COPY --from=uv_image /uv /bin/uv
-# Python 3.11 is currently required by the party_walls package
-RUN uv python install 3.11 3.12
+COPY --from=uv-source /uv /bin/uv
+RUN uv python install 3.12
 
 RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools
-COPY ./3dbag-manifest.json $BAG3D_PIPELINE_LOCATION/
-ENV BAG3D_MANIFEST_PATH=$BAG3D_PIPELINE_LOCATION/3dbag-manifest.json
 COPY ./tools-build.sh $BAG3D_PIPELINE_LOCATION
 COPY ./tools-test.sh $BAG3D_PIPELINE_LOCATION
 
@@ -100,69 +95,33 @@ FROM tools AS tyler
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=tyler_ext_image /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=tyler_ext_image /lib/ /tyler/lib/
-COPY --from=tyler_ext_image /lib64/ /tyler/lib64/
-COPY --from=tyler_ext_image /usr/ /tyler/usr/
-COPY --from=tyler_ext_image /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
+COPY --from=tyler-source /lib/ /tyler/lib/
+COPY --from=tyler-source /lib64/ /tyler/lib64/
+COPY --from=tyler-source /usr/ /tyler/usr/
+COPY --from=tyler-source /usr/local/bin/tyler $BAG3D_PIPELINE_LOCATION/tools/bin/tyler
 # Include Dutch transformation grids
-COPY --from=tyler_ext_image /usr/local/share/proj/nl_nsgi_nlgeo2018.tif $PROJ_DATA/nl_nsgi_nlgeo2018.tif
-COPY --from=tyler_ext_image /usr/local/share/proj/nl_nsgi_rdtrans2018.tif $PROJ_DATA/nl_nsgi_rdtrans2018.tif
+COPY --from=tyler-source /usr/local/share/proj/nl_nsgi_nlgeo2018.tif $PROJ_DATA/nl_nsgi_nlgeo2018.tif
+COPY --from=tyler-source /usr/local/share/proj/nl_nsgi_rdtrans2018.tif $PROJ_DATA/nl_nsgi_rdtrans2018.tif
 
-COPY --from=tyler_multiformat_ext_image /usr/src/tyler/resources/geof /usr/src/tyler/resources/geof
-COPY --from=tyler_multiformat_ext_image /lib/ /tyler/lib/
-COPY --from=tyler_multiformat_ext_image /lib64/ /tyler/lib64/
-COPY --from=tyler_multiformat_ext_image /usr/ /tyler/usr/
-COPY --from=tyler_multiformat_ext_image /usr/local/bin/tyler-multiformat $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-multiformat
-
-COPY --from=tyler_db_ext_image /lib/ /tyler/lib/
-COPY --from=tyler_db_ext_image /lib64/ /tyler/lib64/
-COPY --from=tyler_db_ext_image /usr/ /tyler/usr/
-COPY --from=tyler_db_ext_image /usr/local/bin/tyler-db $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-db
+COPY --from=tyler-db-source /lib/ /tyler/lib/
+COPY --from=tyler-db-source /lib64/ /tyler/lib64/
+COPY --from=tyler-db-source /usr/ /tyler/usr/
+COPY --from=tyler-db-source /usr/local/bin/tyler-db $BAG3D_PIPELINE_LOCATION/tools/bin/tyler-db
 
 RUN echo /tyler/usr/local/lib >> /etc/ld.so.conf.d/tyler.conf; \
     echo /tyler/lib >> /etc/ld.so.conf.d/tyler.conf; \
     echo /tyler/lib64 >> /etc/ld.so.conf.d/tyler.conf; \
     ldconfig
 
-RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createGLB.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/createMulti.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/metadata.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature.json && \
-    wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O $BAG3D_PIPELINE_LOCATION/tools/share/tyler/resources/geof/process_feature_multi.json
-
-
 FROM tyler AS roofer
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=roofer_ext_image /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --from=roofer_ext_image /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+COPY --from=roofer-source /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
+COPY --from=roofer-source /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
+COPY --from=roofer-source /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
 
-# We only need this until we replace the old geoflow with roofer
-FROM roofer AS geoflow-old
-ARG JOBS=2
-ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
-
-COPY --from=geoflow_ext_image /usr/local/bin/geof $BAG3D_PIPELINE_LOCATION/tools/bin/geof
-COPY --from=geoflow_ext_image /export /export
-COPY --from=geoflow_ext_image /usr/local/src/FileGDB/lib/. /usr/local/src/FileGDB/lib
-COPY --from=geoflow_ext_image /usr/local/lib/libfgdbunixrtl.so /usr/local/lib/libfgdbunixrtl.so
-COPY --from=geoflow_ext_image /usr/local/lib/LASlib /export/usr/local/lib/
-COPY --from=geoflow_ext_image /usr/local/lib/gdalplugins /export/usr/local/lib/
-COPY --from=geoflow_ext_image /usr/local/lib/geoflow-plugins/. $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
-ENV GF_PLUGIN_FOLDER=$BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/plugins
-
-RUN echo /export/usr/local/lib >> /etc/ld.so.conf.d/geoflow.conf; \
-    echo /export/lib >> /etc/ld.so.conf.d/geoflow.conf; \
-    ldconfig
-
-RUN mkdir -p $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts && \
-    wget --no-verbose https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O $BAG3D_PIPELINE_LOCATION/tools/share/geoflow-bundle/flowcharts/reconstruct_bag.json
-
-
-FROM geoflow-old AS dagster
+FROM roofer AS dagster
 
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
@@ -186,7 +145,7 @@ FROM dagster AS cjval
 
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=cjval_ext_image /usr/local/bin/cjval $BAG3D_PIPELINE_LOCATION/tools/bin/cjval
+COPY --from=cjval-source /usr/local/bin/cjval $BAG3D_PIPELINE_LOCATION/tools/bin/cjval
 
 FROM cjval AS test-tools
 # Clean up the image

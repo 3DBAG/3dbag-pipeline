@@ -13,7 +13,9 @@ The tests that are run on GitHub Actions use this configuration.
 
 ## Docker images
 
-The docker images that are built from the `develop` branch and pushed to DockerHub with a `develop` tag.
+All Docker image versions and external tool-image digests are declared in
+[`3dbag-manifest.json`](../3dbag-manifest.json). The Compose Make targets resolve
+their image references from that file; image-tag overrides are not supported.
 
 [`3dgi/3dbag-pipeline-tools`](https://hub.docker.com/r/3dgi/3dbag-pipeline-tools)
 
@@ -26,7 +28,14 @@ If you need to add a new tool to be used in the pipeline you can one of the foll
 1. If there is a image available for the tool you can make sure it is used when building the `3dbag-pipeline-tools` image by making the necessary modifications in the `docker/tools/Dockerfile` (as it is done for example for tyler)
 2. If no image is available, you should update the `tools-build.sh` and `tools-test.sh` files which are used when building the `3dbag-pipeline-tools` image. You should also modify the command in `docker/tools/Dockerfile` to ensure the new tools are installed.
 
-After you test locally that the image can be build successfully you can merge to `develop`. Then a gh action will triggered and a new `3dbag-pipeline-tools` image with today's date will be pushed to Dockerhub. Once that's done, you can update the tools image version in the workflow images and push those changes.
+To change any tools-image input, update the relevant manifest entry and assign a new
+`images.tools.version` (use `YYYY.MM.DD.N` when more than one tools image is released
+on a day). CI rejects a changed tools input without a new version and rejects any tag
+that already exists. It publishes the tag once, then commits the resulting
+`images.tools.digest` to `develop`. Compose and pipeline image builds consume the
+resulting `repository:version@digest` reference; only the publication job uses the
+tag-only reference. Pipeline release images are all tagged with the top-level manifest
+version.
 
 
 [`3dgi/3dbag-pipeline-core`](https://hub.docker.com/r/3dgi/3dbag-pipeline-core) 
@@ -88,6 +97,27 @@ make docker_down_rm
 
 Rebuild the images, volumes and restart the services.
 
-```shell
+~~~shell
 make docker_restart
-```
+~~~
+
+## Running with integration fixtures
+
+The branch provides an opt-in integration-data mode that runs against a validated,
+read-only snapshot instead of downloading source datasets. The snapshot is generated
+by the `integration_data` job and consumed by fixture adapter assets.
+
+Set `BAG3D_INTEGRATION_DATA_HOST_DIR` to the directory containing the snapshot, then
+start the stack with the integration overlay:
+
+~~~shell
+export BAG3D_INTEGRATION_DATA_HOST_DIR=/path/to/integration-data
+docker compose \
+  -f docker/compose.yaml \
+  -f docker/compose.integration-data.yaml up -d
+~~~
+
+The overlay sets `BAG3D_INPUT_MODE=integration_data` and mounts the snapshot at
+`/data/volume/integration-data` as read-only. The Dagster schedule
+`integration_data_monthly` is installed but stopped by default; enable it only when
+the snapshot should be refreshed.

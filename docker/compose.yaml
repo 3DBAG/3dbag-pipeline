@@ -4,7 +4,7 @@ services:
   # and event log storage.
   dagster-postgresql:
     image: postgres:17
-    container_name: bag3d-dagster-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: bag3d-dagster-postgresql-${BAG3D_PIPELINE_VERSION}
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d ${DAGSTER_POSTGRES_DB} -U ${DAGSTER_POSTGRES_USER}" ]
       interval: 3s
@@ -24,7 +24,7 @@ services:
     build:
       context: ./postgres
     command: ["-c", "shared_buffers=8GB", "-c", "max_connections=200", "-c", "work_mem=30MB", "-c", "logging_collector=on", "-c", "log_statement=all", "-c", "log_directory=/var/log/postgresql/"]
-    container_name: bag3d-data-postgresql-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: bag3d-data-postgresql-${BAG3D_PIPELINE_VERSION}
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: $BAG3D_PG_USER
@@ -68,10 +68,11 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-core.dockerfile
       args:
-        VERSION: ${BAG3D_DOCKER_IMAGE_TAG}
-    image: 3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}
+        VERSION: ${BAG3D_PIPELINE_VERSION}
+        TOOLS_IMAGE: ${BAG3D_TOOLS_IMAGE}
+    image: ${BAG3D_CORE_IMAGE}
     pull_policy: build
-    container_name: 3dbag-pipeline-core-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: 3dbag-pipeline-core-${BAG3D_PIPELINE_VERSION}
     # the port is built into the image
     healthcheck:
       test: ["CMD-SHELL", "dagster api grpc-health-check -p 4000"]
@@ -79,7 +80,7 @@ services:
       retries: 10
     restart: always
     environment:
-      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-core:${BAG3D_DOCKER_IMAGE_TAG}"
+      DAGSTER_CURRENT_IMAGE: ${BAG3D_CORE_IMAGE}
     env_file:
       - ./.env
     volumes:
@@ -129,10 +130,11 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-floors-estimation.dockerfile
       args:
-        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
-    image: 3dbag-pipeline-floors-estimation:${BAG3D_DOCKER_IMAGE_TAG}
+        VERSION: ${BAG3D_PIPELINE_VERSION}
+        TOOLS_IMAGE: ${BAG3D_TOOLS_IMAGE}
+    image: ${BAG3D_FLOORS_ESTIMATION_IMAGE}
     pull_policy: build
-    container_name: 3dbag-pipeline-floors-estimation-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: 3dbag-pipeline-floors-estimation-${BAG3D_PIPELINE_VERSION}
     # the port is built into the image
     healthcheck:
       test: [ "CMD-SHELL", "dagster api grpc-health-check -p 4001" ]
@@ -140,7 +142,7 @@ services:
       retries: 10
     restart: always
     environment:
-      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-floors-estimation:${BAG3D_DOCKER_IMAGE_TAG}"
+      DAGSTER_CURRENT_IMAGE: ${BAG3D_FLOORS_ESTIMATION_IMAGE}
     env_file:
       - ./.env
     volumes:
@@ -182,10 +184,11 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-party-walls.dockerfile
       args:
-        - VERSION=${BAG3D_DOCKER_IMAGE_TAG}
-    image: 3dbag-pipeline-party-walls:${BAG3D_DOCKER_IMAGE_TAG}
+        VERSION: ${BAG3D_PIPELINE_VERSION}
+        TOOLS_IMAGE: ${BAG3D_TOOLS_IMAGE}
+    image: ${BAG3D_PARTY_WALLS_IMAGE}
     pull_policy: build
-    container_name: 3dbag-pipeline-party-walls-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: 3dbag-pipeline-party-walls-${BAG3D_PIPELINE_VERSION}
     # the port is built into the image
     healthcheck:
       test: [ "CMD-SHELL", "dagster api grpc-health-check -p 4002" ]
@@ -193,7 +196,7 @@ services:
       retries: 10
     restart: always
     environment:
-      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-party-walls:${BAG3D_DOCKER_IMAGE_TAG}"
+      DAGSTER_CURRENT_IMAGE: ${BAG3D_PARTY_WALLS_IMAGE}
     env_file:
       - ./.env
     volumes:
@@ -235,17 +238,18 @@ services:
       context: ../
       dockerfile: docker/pipeline/bag3d-export.dockerfile
       args:
-        VERSION: ${BAG3D_DOCKER_IMAGE_TAG}
-    image: 3dbag-pipeline-export:${BAG3D_DOCKER_IMAGE_TAG}
+        VERSION: ${BAG3D_PIPELINE_VERSION}
+        TOOLS_IMAGE: ${BAG3D_TOOLS_IMAGE}
+    image: ${BAG3D_EXPORT_IMAGE}
     pull_policy: build
-    container_name: 3dbag-pipeline-export-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: 3dbag-pipeline-export-${BAG3D_PIPELINE_VERSION}
     healthcheck:
       test: ["CMD-SHELL", "dagster api grpc-health-check -p 4003"]
       interval: 2s
       retries: 10
     restart: always
     environment:
-      DAGSTER_CURRENT_IMAGE: "3dbag-pipeline-export:${BAG3D_DOCKER_IMAGE_TAG}"
+      DAGSTER_CURRENT_IMAGE: ${BAG3D_EXPORT_IMAGE}
     env_file:
       - ./.env
     volumes:
@@ -265,9 +269,9 @@ services:
   dagster-webserver:
     build:
       context: ./dagster
-    image: 3dgi/3dbag-pipeline-dagster:${BAG3D_DOCKER_IMAGE_TAG}
+    image: ${BAG3D_DAGSTER_IMAGE}
     pull_policy: build
-    container_name: bag3d-dagster-webserver-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: bag3d-dagster-webserver-${BAG3D_PIPELINE_VERSION}
     entrypoint:
       - dagster-webserver
       - -h
@@ -309,9 +313,9 @@ services:
   dagster-daemon:
     build:
       context: ./dagster
-    image: 3dgi/3dbag-pipeline-dagster:${BAG3D_DOCKER_IMAGE_TAG}
+    image: ${BAG3D_DAGSTER_IMAGE}
     pull_policy: build
-    container_name: bag3d-dagster-daemon-${BAG3D_DOCKER_IMAGE_TAG}
+    container_name: bag3d-dagster-daemon-${BAG3D_PIPELINE_VERSION}
     entrypoint:
       - dagster-daemon
       - run

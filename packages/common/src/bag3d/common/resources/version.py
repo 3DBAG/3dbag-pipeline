@@ -29,12 +29,10 @@ class ToolVersionsResource(ConfigurableResource):
     # Tool executable paths (same env vars as other resources)
     exe_tyler: Optional[str] = None
     exe_tyler_db: Optional[str] = None
-    exe_tyler_multiformat: Optional[str] = None
     exe_roofer: Optional[str] = None
     exe_ogr2ogr: Optional[str] = None
     exe_pdal: Optional[str] = None
     exe_lasindex: Optional[str] = None
-    exe_geof: Optional[str] = None
 
     # Cached versions
     _version_cache: Dict[str, str] = {}
@@ -70,8 +68,6 @@ class ToolVersionsResource(ConfigurableResource):
             version = self._extract_version(self.exe_tyler)
         elif tool_name == "tyler-db":
             version = self._extract_version(self.exe_tyler_db)
-        elif tool_name == "tyler-multiformat":
-            version = self._extract_version(self.exe_tyler_multiformat)
         elif tool_name == "roofer":
             version = self._extract_version(self.exe_roofer)
         elif tool_name == "ogr2ogr":
@@ -80,8 +76,6 @@ class ToolVersionsResource(ConfigurableResource):
             version = self._extract_version(self.exe_pdal)
         elif tool_name == "lasindex":
             version = self._extract_version(self.exe_lasindex, "-version")
-        elif tool_name == "geof":
-            version = self._extract_version(self.exe_geof, "--list-plugins")
 
         self._version_cache[tool_name] = version
         return version

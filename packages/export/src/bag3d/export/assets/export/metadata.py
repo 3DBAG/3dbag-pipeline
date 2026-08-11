@@ -7,6 +7,7 @@ from uuid import uuid1
 from copy import deepcopy
 
 from dagster import (
+    AssetIn,
     AssetKey,
     Output,
     asset,
@@ -16,6 +17,12 @@ from dagster import (
 )
 from psycopg.sql import SQL
 
+from bag3d.common.resources.cjindex import (
+    CityIndexResource,
+    iter_package_refs,
+    open_ready_index,
+    read_package_feature_json,
+)
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.version import ReleaseVersionResource
@@ -28,11 +35,9 @@ logger = get_dagster_logger("export.metadata")
 
 # (manifest_key, resource_key, executable, version_cmd)
 _SOFTWARE_TOOLS = [
-    ("geoflow-bundle", "geoflow", "geof", "--list-plugins --verbose"),
     ("roofer", "roofer", "roofer", None),
     ("tyler", "tyler", "tyler", None),
     ("tyler-db", "tyler", "tyler-db", None),
-    ("tyler-multiformat", "tyler", "tyler-multiformat", None),
     ("gdal", "gdal", "ogr2ogr", None),
     ("pdal", "pdal", "pdal", None),
     ("lastools", "lastools", "lasindex", "-version"),
@@ -111,6 +116,9 @@ def features_to_csv(
             writer.writerow(row)
 
 
+_PAGE_SIZE = 1000
+
+
 @asset(
     deps={AssetKey(("reconstruction", "reconstructed_building_models"))},
 )
@@ -118,11 +126,11 @@ def feature_evaluation(
     file_store: FileStoreResource,
     computation_db: DatabaseResource,
     version: ReleaseVersionResource,
+    reconstruction_index: CityIndexResource,
 ) -> Path:
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
-    reconstructed_root_dir = file_store.stage_dir("reconstruction")
     output_dir = file_store.stage_subdir("export", version.version)
     output_csv = output_dir.joinpath("reconstructed_features.csv")
     conn = computation_db.connection
@@ -149,14 +157,18 @@ def feature_evaluation(
 
     reconstructed_buildings = set()
     cityobjects = {}
-    for path in Path(reconstructed_root_dir).rglob("*.city.jsonl"):
-        reconstructed_buildings.add(path.stem[:-5])
-        with open(path, "r") as f:
-            cityjson = json.load(f)
+
+    idx = open_ready_index(reconstruction_index)
+    for refs in iter_package_refs(idx, _PAGE_SIZE):
+        for ref in refs:
+            reconstructed_buildings.add(ref.model_id)
+            cityjson = read_package_feature_json(idx, ref)
             codata = get_info_per_cityobject(
                 cityjson, deepcopy(cityobject_info), attributes_to_include
             )
-        cityobjects.update(codata)
+            cityobjects.update(codata)
+    idx.close()
+
     logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
     logger.debug(f"len(cityobjects)={len(cityobjects)}")
 
@@ -190,10 +202,12 @@ def feature_evaluation(
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
+    ins={"merged_quadtree": AssetIn(key=AssetKey(("export", "merged_quadtree")))},
 )
 def export_index(
-    file_store: FileStoreResource, version: ReleaseVersionResource
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    merged_quadtree: Path,
 ) -> Path:
     """Index of the distribution tiles.
 
@@ -202,15 +216,13 @@ def export_index(
     Output it written to export_index.csv.
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
-    path_tiles_dir = path_export_dir.joinpath("tiles")
     path_export_index = path_export_dir.joinpath("export_index.csv")
-    path_quadtree_tsv = path_export_dir.joinpath("quadtree.tsv")
 
     with path_export_index.open("w") as fw:
         fieldnames = ["tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
-        export_results_gen = check_export_results(path_quadtree_tsv, path_tiles_dir)
+        export_results_gen = check_export_results(merged_quadtree, path_export_dir)
         csvwriter.writerows(dict(export_result) for export_result in export_results_gen)
     return path_export_index
 
