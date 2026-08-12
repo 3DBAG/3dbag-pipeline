@@ -32,6 +32,6 @@ steps:
         marker="$admin/deployment/3dbag-pipeline/user/.git-ref-$deploy_id"
         test -r "$fixture/manifest.json"
         if test ! -f "$marker"; then
-          just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
+          GIT_SSH_COMMAND="ssh -F /dev/null" just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
         fi
         just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref"
