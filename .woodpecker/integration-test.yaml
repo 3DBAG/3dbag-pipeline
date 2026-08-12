@@ -25,7 +25,7 @@ steps:
         git -C "$pipeline" diff --quiet
         git -C "$pipeline" diff --cached --quiet
         trap 'git -C "$pipeline" checkout --quiet "$original_ref"' EXIT
-        git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
+        GIT_SSH_COMMAND="ssh -F /dev/null" git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
         git -C "$pipeline" checkout --quiet --detach "$CI_COMMIT_SHA"
         test "$(git -C "$pipeline" rev-parse HEAD)" = "$CI_COMMIT_SHA"
         deploy_id=$(printf '%s' "$pipeline_ref-woodpecker-integration" | sha256sum | cut -c1-8)
