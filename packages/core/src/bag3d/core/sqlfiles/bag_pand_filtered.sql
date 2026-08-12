@@ -39,7 +39,7 @@ SELECT
     ) AS removal_reasons
 FROM ${bag_pand} bag
 LEFT JOIN ${bag_bgt_join} bbj ON bag.identificatie = bbj.identificatie
-JOIN ${bag_bag_overlap} bbo ON bag.fid = bbo.fid
+LEFT JOIN ${bag_bag_overlap} bbo ON bag.fid = bbo.fid
 WHERE
     (bbj.relatievehoogteligging < 0)
     OR
