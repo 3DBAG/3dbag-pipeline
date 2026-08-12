@@ -31,7 +31,12 @@ steps:
         test "$(git -C "$pipeline" rev-parse HEAD)" = "$CI_COMMIT_SHA"
         deploy_id=$(printf '%s' "$pipeline_ref-woodpecker-integration" | sha256sum | cut -c1-8)
         marker="$admin/deployment/3dbag-pipeline/user/.git-ref-$deploy_id"
+        compose_project="bag3d-woodpecker-integration-$deploy_id"
+        temp_dir="/root/3dbag-pipeline-deploy-$deploy_id"
         test -r "$fixture/manifest.json"
+        if test -f "$marker" && { test ! -f "$temp_dir/docker/compose.yaml" || ! docker compose -p "$compose_project" ps -q | grep -q .; }; then
+          just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" cleanup "$deploy_id" || true
+        fi
         if test ! -f "$marker"; then
           GIT_SSH_COMMAND="ssh -F /dev/null" just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
         fi
