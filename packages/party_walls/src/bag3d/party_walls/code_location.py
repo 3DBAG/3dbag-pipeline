@@ -2,7 +2,7 @@ from dagster import Definitions, load_assets_from_modules
 
 from bag3d.common.resources import resource_defs
 from bag3d.party_walls.assets import party_walls
-from bag3d.party_walls.jobs import job_party_walls, job_party_walls_index
+from bag3d.party_walls.jobs import job_party_walls
 
 all_assets = load_assets_from_modules(
     modules=(party_walls,), key_prefix="party_walls", group_name="party_walls"
@@ -13,6 +13,5 @@ defs = Definitions(
     assets=all_assets,
     jobs=[
         job_party_walls,
-        job_party_walls_index,
     ],
 )

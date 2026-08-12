@@ -1,7 +1,6 @@
 from bag3d.party_walls.code_location import defs
-from bag3d.party_walls.jobs import job_party_walls, job_party_walls_index
+from bag3d.party_walls.jobs import job_party_walls
 
 
 def test_all_jobs_resolvable():
-    for job_def in (job_party_walls, job_party_walls_index):
-        assert defs.get_job_def(job_def.name) is not None
+    assert defs.get_job_def(job_party_walls.name) is not None

@@ -2,6 +2,9 @@
 # need to have access to any pipeline code.
 FROM python:3.12-alpine
 
+ARG VERSION
+LABEL org.opencontainers.image.version=$VERSION
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

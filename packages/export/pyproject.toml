@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-export"
-version = "2025.11.18"
+version = "2026.07.29"
 description = "Workflow for exporting and deploying the 3D BAG data set"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -22,23 +22,23 @@ urls = { github = "https://github.com/3DBAG/3dbag-pipeline" }
 dependencies = [
     "pgutils",
     "psycopg[binary]~=3.3.2",
-    "dagster~=1.12.14",
-    "dagster-postgres~=0.28.14",
-    "lxml~=6.0.2",
+    "dagster~=1.13.15",
+    "dagster-postgres~=0.29.15",
+    "lxml~=6.1.1",
     "bag3d-common",
-    "certifi>=2026.1.4",
+    "certifi>=2026.7.22",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "fabric~=3.2",
     "paramiko",
 ]
 
 [tool.uv]
-constraint-dependencies = ["mako>=1.3.12"]
+constraint-dependencies = ["mako>=1.3.12", "urllib3>=2.7.0", "cryptography>=50.0.0", "lxml>=6.1.0", "requests>=2.33.0", "idna>=3.15", "paramiko>=5.0.0", "pygments>=2.20.0"]
 
 [dependency-groups]
 dev = [
     "coverage~=7.13.4",
-    "pytest~=9.0.2",
+    "pytest>=9.0.3",
     "dagster-webserver",
     "pyright>=1.1",
     "starlette>=1.1.0",  # CVE-2026-48818: SSRF/NTLM credential theft via UNC paths in StaticFiles

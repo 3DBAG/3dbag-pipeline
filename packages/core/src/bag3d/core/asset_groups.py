@@ -1,9 +1,11 @@
-from dagster import load_assets_from_package_module
+from dagster import load_assets_from_package_module, load_assets_from_modules
+from os import getenv
 
 from bag3d.core.assets import (
     ahn,
     bag,
     bgt,
+    cbs,
     top10nl,
     input,
     reconstruction,
@@ -11,6 +13,7 @@ from bag3d.core.assets import (
 
 BAG = "bag"
 BGT = "bgt"
+CBS = "cbs"
 TOP10NL = "top10nl"
 AHN = "ahn"
 INPUT = "input"
@@ -28,11 +31,15 @@ bgt_assets = load_assets_from_package_module(
     package_module=bgt, key_prefix="bgt", group_name=BGT
 )
 
+cbs_assets = load_assets_from_package_module(
+    package_module=cbs, key_prefix="cbs", group_name=CBS
+)
+
 top10nl_assets = load_assets_from_package_module(
     package_module=top10nl, key_prefix="top10nl", group_name=TOP10NL
 )
 
-source_assets = [*ahn_assets, *bag_assets, *top10nl_assets]
+source_assets = [*ahn_assets, *bag_assets, *cbs_assets, *top10nl_assets]
 
 input_assets = load_assets_from_package_module(
     package_module=input, key_prefix="input", group_name=INPUT
@@ -44,9 +51,33 @@ reconstruction_assets = load_assets_from_package_module(
     group_name=RECONSTRUCTION,
 )
 
+from bag3d.core.assets import integration_data  # noqa: E402
+from bag3d.core.assets.fixture_adapters import fixture_assets  # noqa: E402
+
+integration_data_assets = load_assets_from_modules(
+    [integration_data], group_name="integration_data"
+)
+
+if getenv("BAG3D_INPUT_MODE", "").lower() == "integration_data":
+    fixture_keys = {
+        asset_key
+        for asset in fixture_assets
+        if (asset_key := getattr(asset, "key", None)) is not None
+    }
+    bgt_assets = [
+        asset for asset in bgt_assets if getattr(asset, "key", None) not in fixture_keys
+    ]
+    source_assets = [
+        asset
+        for asset in source_assets
+        if getattr(asset, "key", None) not in fixture_keys
+    ]
+    source_assets.extend(fixture_assets)
+
 all_assets = [
     *bgt_assets,
     *source_assets,
     *input_assets,
     *reconstruction_assets,
+    *integration_data_assets,
 ]

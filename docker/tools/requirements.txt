@@ -1,4 +1,4 @@
 # Requirements for running a dagster grpc server in the workflow package images.
-dagster==1.12.14
-dagster-postgres==0.28.14
-dagster-docker==0.28.14
+dagster==1.13.15
+dagster-postgres==0.29.15
+dagster-docker==0.29.15

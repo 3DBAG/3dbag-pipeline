@@ -1,21 +1,21 @@
 import json
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+import cityjson_index
 from bag3d.common.testing import build_asset_context_for
-from bag3d.common.resources import nl_transform
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
-    features_file_index,
     building_surfaces,
 )
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.cjindex import CityIndexResource
 
 
-def _make_feature_file(path, pand_id: str) -> None:
-    """Create a minimal CityJSONFeature file for testing."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _make_feature_bytes(pand_id: str) -> bytes:
+    """Create a minimal CityJSONFeature payload for testing."""
     content = {
         "type": "CityJSONFeature",
         "id": pand_id,
@@ -28,72 +28,105 @@ def _make_feature_file(path, pand_id: str) -> None:
         },
         "vertices": [],
     }
-    path.write_text(json.dumps(content))
+    return json.dumps(content).encode()
 
 
-def _make_reconstruction_feature(root_dir: Path, tile_id: str, pand_id: str) -> Path:
-    feature_path = (
-        root_dir
-        / "stages"
-        / "reconstruction"
-        / tile_id
-        / "objects"
-        / pand_id
-        / "reconstruct"
-        / f"{pand_id}.city.jsonl"
-    )
-    _make_feature_file(feature_path, pand_id)
-    return feature_path
+def _make_root_bytes() -> bytes:
+    content = {
+        "type": "CityJSON",
+        "version": "2.0",
+        "transform": {
+            "scale": [0.001, 0.001, 0.001],
+            "translate": [100.0, 200.0, 300.0],
+        },
+        "metadata": {"title": "reconstruction-root"},
+        "CityObjects": {},
+        "vertices": [],
+    }
+    return json.dumps(content).encode()
 
 
-def test_features_file_index(tmp_path):
-    """features_file_index maps pand_id -> path for all .city.jsonl files."""
-    recon_dir = tmp_path / "stages" / "reconstruction"
-    # Create z/x/y/objects/<pand_id>/reconstruct/<pand_id>.city.jsonl structure
-    pand_ids = [
-        "NL.IMBAG.Pand.0307100000308298",
-        "NL.IMBAG.Pand.0307100000368987",
+def _stream_items(path: Path) -> list[dict]:
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
-    for pand_id in pand_ids:
-        feature_path = (
-            recon_dir
-            / "0"
-            / "0"
-            / "0"
-            / "objects"
-            / pand_id
-            / "reconstruct"
-            / f"{pand_id}.city.jsonl"
+
+
+_SOURCE_PATHS: dict[str, str] = {}
+
+
+def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
+    """Create PackageRef mocks backed by a tile-level reconstruction source."""
+    source_path = (
+        tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
+    )
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_bytes(
+        b"\n".join(
+            [
+                _make_root_bytes(),
+                *[_make_feature_bytes(pand_id) for pand_id in pand_ids],
+            ]
         )
-        _make_feature_file(feature_path, pand_id)
-
-    file_store = FileStoreResource(root_dir=str(tmp_path))
-    result = features_file_index(PartyWallsConfig(), file_store)
-
-    assert isinstance(result, dict)
-    assert len(result) == len(pand_ids)
+        + b"\n"
+    )
+    refs_with_bytes = []
     for pand_id in pand_ids:
-        assert pand_id in result
-        assert result[pand_id].exists()
+        ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
+        refs_with_bytes.append((ref, _make_feature_bytes(pand_id)))
+    _SOURCE_PATHS.clear()
+    _SOURCE_PATHS.update({pand_id: str(source_path) for pand_id in pand_ids})
+    return refs_with_bytes
+
+
+def _stub_open_index(refs_with_bytes: list) -> MagicMock:
+    """Build a mock OpenedIndex that serves the given (ref, bytes) pairs."""
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_bounds_summary.return_value.package_count = len(refs_with_bytes)
+
+    refs = [r for r, _ in refs_with_bytes]
+    feature_map = {r.model_id: json.loads(b) for r, b in refs_with_bytes}
+
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
+    )
+    mock_idx.package_source_paths.side_effect = lambda page: [
+        _SOURCE_PATHS[ref.model_id] for ref in page
+    ]
+    mock_idx.read_package.side_effect = lambda ref: feature_map[ref.model_id]
+    mock_idx.get_json.side_effect = lambda fid: feature_map.get(fid)
+    return mock_idx
 
 
 def test_building_surfaces_empty_index(tmp_path):
-    """building_surfaces returns [] when features_file_index is empty."""
+    """building_surfaces returns [] when the reconstruction index has no features."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
     mock_db = MagicMock()
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
 
-    with build_asset_context_for(building_surfaces) as context:
-        result = building_surfaces(
-            context,
-            PartyWallsConfig(),
-            {},  # Empty index
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_bounds_summary.return_value.package_count = 0
+    mock_idx.package_ref_page_after_record_id.return_value = []
+
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
+        with build_asset_context_for(building_surfaces) as context:
+            result = building_surfaces(
+                context,
+                PartyWallsConfig(),
+                resource,
+                mock_db,
+                file_store,
+            )
 
     assert result == []
-    # DB should not be queried when index is empty
     mock_db.connection.get_dict.assert_not_called()
 
 
@@ -104,73 +137,68 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
-    target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
-    adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
-
-    shared_walls_calls = []
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, [target_id, adjacent_id], tile_id)
+    mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
-        shared_walls_calls.append((target, adjacent))
-        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
-
-    def fake_write_cityjsonfeature(raw_feature, result, output_path):
-        building_id = raw_feature["id"]
-        raw_feature["CityObjects"][building_id]["attributes"].update(result)
-        output_path.write_text(json.dumps(raw_feature))
+        return SimpleNamespace(
+            area_shared_wall=12.5,
+            area_exterior_wall=8.0,
+            area_ground=0.0,
+            area_roof_flat=0.0,
+            area_roof_sloped=0.0,
+        )
 
     monkeypatch.setattr(
         "bag3d.party_walls.assets.party_walls.shared_walls",
         fake_shared_walls,
     )
-    monkeypatch.setattr(
-        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
-        fake_write_cityjsonfeature,
-    )
 
     mock_db = MagicMock()
     mock_db.connection.get_dict.return_value = [
-        {
-            "identificatie": target_id,
-            "adjacent_identificatie": adjacent_id,
-        },
-        {
-            "identificatie": adjacent_id,
-            "adjacent_identificatie": target_id,
-        },
+        {"identificatie": target_id, "adjacent_identificatie": adjacent_id},
+        {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    with build_asset_context_for(building_surfaces) as context:
-        result = building_surfaces(
-            context,
-            PartyWallsConfig(concurrency=1),
-            {
-                target_id: target_path,
-                adjacent_id: adjacent_path,
-            },
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    # Workers open their own index via cityjson_index.OpenedIndex.open(dataset_dir)
+    import cityjson_index as _cityjson_index
+
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
+        with build_asset_context_for(building_surfaces) as context:
+            result = building_surfaces(
+                context,
+                PartyWallsConfig(concurrency=1),
+                resource,
+                mock_db,
+                file_store,
+            )
 
     output_paths = cast(list[Path], result)
+    assert len(output_paths) == 1
 
-    assert output_paths == [
-        tmp_path / "stages" / "party_walls" / tile_id / f"{target_id}.city.jsonl",
-        tmp_path / "stages" / "party_walls" / tile_id / f"{adjacent_id}.city.jsonl",
-    ]
-    # shared_walls call count cannot be asserted via a local list with ProcessPoolExecutor
-    # (worker mutations are not visible in the parent process); correctness is verified
-    # via output file content below.
+    for output_path in output_paths:
+        assert output_path.exists()
+        items = _stream_items(output_path)
+        assert len(items) == 3
+        assert items[0]["type"] == "CityJSON"
+        assert items[0]["metadata"]["title"] == "reconstruction-root"
+        for data in items[1:]:
+            pand_id = data["id"]
+            assert (
+                data["CityObjects"][pand_id]["attributes"]["b3_opp_scheidingsmuur"]
+                == 12.5
+            )
+            assert (
+                data["CityObjects"][pand_id]["attributes"]["b3_opp_buitenmuur"] == 8.0
+            )
 
-    target_output = json.loads(output_paths[0].read_text())
-    assert (
-        target_output["CityObjects"][target_id]["attributes"]["b3_opp_scheidingsmuur"]
-        == 12.5
-    )
-    assert (
-        target_output["CityObjects"][target_id]["attributes"]["b3_opp_buitenmuur"]
-        == 8.0
-    )
     mock_db.connection.get_dict.assert_called_once()
 
 
@@ -181,50 +209,47 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     target_id = "NL.IMBAG.Pand.0307100000308298"
     adjacent_id = "NL.IMBAG.Pand.0307100000368987"
 
-    target_path = _make_reconstruction_feature(tmp_path, tile_id, target_id)
-    adjacent_path = _make_reconstruction_feature(tmp_path, tile_id, adjacent_id)
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, [target_id, adjacent_id], tile_id)
+    mock_idx = _stub_open_index(refs_with_bytes)
 
     def fake_shared_walls(target, adjacent):
-        return {"b3_opp_scheidingsmuur": 12.5, "b3_opp_buitenmuur": 8.0}
-
-    def fake_write_cityjsonfeature(raw_feature, result, output_path):
-        building_id = raw_feature["id"]
-        raw_feature["CityObjects"][building_id]["attributes"].update(result)
-        output_path.write_text(json.dumps(raw_feature))
+        return SimpleNamespace(
+            area_shared_wall=12.5,
+            area_exterior_wall=8.0,
+            area_ground=0.0,
+            area_roof_flat=0.0,
+            area_roof_sloped=0.0,
+        )
 
     monkeypatch.setattr(
         "bag3d.party_walls.assets.party_walls.shared_walls",
         fake_shared_walls,
     )
-    monkeypatch.setattr(
-        "bag3d.party_walls.assets.party_walls.write_cityjsonfeature",
-        fake_write_cityjsonfeature,
-    )
 
     mock_db = MagicMock()
     mock_db.connection.get_dict.return_value = [
-        {
-            "identificatie": target_id,
-            "adjacent_identificatie": adjacent_id,
-        },
-        {
-            "identificatie": adjacent_id,
-            "adjacent_identificatie": target_id,
-        },
+        {"identificatie": target_id, "adjacent_identificatie": adjacent_id},
+        {"identificatie": adjacent_id, "adjacent_identificatie": target_id},
     ]
 
-    with build_asset_context_for(building_surfaces) as context:
-        _ = building_surfaces(
-            context,
-            PartyWallsConfig(concurrency=1, profile=True),
-            {
-                target_id: target_path,
-                adjacent_id: adjacent_path,
-            },
-            mock_db,
-            file_store,
-            nl_transform,
-        )
+    import cityjson_index as _cityjson_index
+
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with patch(
+        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    ):
+        with build_asset_context_for(building_surfaces) as context:
+            _ = building_surfaces(
+                context,
+                PartyWallsConfig(concurrency=1, profile=True),
+                resource,
+                mock_db,
+                file_store,
+            )
 
     profile_path = (
         tmp_path
@@ -237,7 +262,8 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
 
     summary = json.loads(profile_path.read_text())
     assert summary["buildings_profiled"] == 2
-    assert summary["files_written"] == 2
+    assert summary["features_written"] == 2
+    assert summary["tiles_written"] == 1
     assert summary["adjacency_rows"] == 2
     assert summary["max_workers"] == 1
     assert len(summary["top_slowest_buildings"]) == 2

@@ -14,9 +14,11 @@ from bag3d.core.asset_groups import (
     source_assets,
     input_assets,
     reconstruction_assets,
+    integration_data_assets,
 )
 from bag3d.core.jobs import (
     job_bgt,
+    job_cbs,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
@@ -26,17 +28,21 @@ from bag3d.core.jobs import (
     job_ahn_metadata_index,
     job_reconstruct,
     job_reconstruct_debug,
+    job_integration_data,
 )
+from bag3d.core.schedules import integration_data_schedule
 
 all_assets = [
     *bgt_assets,
     *source_assets,
     *input_assets,
     *reconstruction_assets,
+    *integration_data_assets,
 ]
 
 all_jobs = [
     job_bgt,
+    job_cbs,
     job_source_input,
     job_ahn_tile_index,
     job_ahn3,
@@ -46,6 +52,7 @@ all_jobs = [
     job_ahn_metadata_index,
     job_reconstruct,
     job_reconstruct_debug,
+    job_integration_data,
 ]
 
 sensor_status = (
@@ -63,5 +70,9 @@ all_sensors = [
 ]
 
 defs = Definitions(
-    resources=resource_defs, assets=all_assets, jobs=all_jobs, sensors=all_sensors
+    resources=resource_defs,
+    assets=all_assets,
+    jobs=all_jobs,
+    schedules=[integration_data_schedule],
+    sensors=all_sensors,
 )

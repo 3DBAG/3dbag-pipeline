@@ -159,10 +159,8 @@ def create_roofer_config(
     yoc-attribute = "oorspronkelijkbouwjaar"
     lod11-fallback-area = 30000
 
-    split-cjseq = true
-    omit-metadata = true
-    cj-translate = {nl_transform_translate}
-    cj-scale = {nl_transform_scale}
+    split-cjseq = false
+    omit-metadata = false
     output-directory = "{output_path}"
 
     lod12 = true

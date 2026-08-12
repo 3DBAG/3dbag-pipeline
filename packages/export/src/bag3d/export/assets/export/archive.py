@@ -7,10 +7,11 @@ from pathlib import Path
 from shutil import copyfileobj
 from concurrent.futures import ProcessPoolExecutor
 
-from dagster import asset, Output, AssetKey, Config, get_dagster_logger
+from dagster import AssetIn, asset, Output, AssetKey, Config, get_dagster_logger
 from pydantic import Field
 
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.utils.files import export_tile_path
 from bag3d.common.resources.executables import GDALResource
 from bag3d.common.resources.version import ReleaseVersionResource
 
@@ -18,20 +19,23 @@ logger = get_dagster_logger()
 
 
 @asset(
-    deps={AssetKey(("export", "reconstruction_output_multitiles"))},
+    ins={"merged_quadtree": AssetIn(key=AssetKey(("export", "merged_quadtree")))},
 )
 def geopackage(
-    file_store: FileStoreResource, gdal: GDALResource, version: ReleaseVersionResource
+    file_store: FileStoreResource,
+    gdal: GDALResource,
+    version: ReleaseVersionResource,
+    merged_quadtree: Path,
 ) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = file_store.stage_subdir("export", version.version)
-    path_tiles_dir = path_export_dir.joinpath("tiles")
+    path_tiles_dir = path_export_dir.joinpath("t")
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
 
     # Remove existing
     path_nl.unlink(missing_ok=True)
 
-    with path_export_dir.joinpath("quadtree.tsv").open("r") as fo:
+    with merged_quadtree.open("r") as fo:
         csvreader = csv.reader(fo, delimiter="\t")
         # skip header, which is [id, level, nr_items, leaf, wkt]
         next(csvreader)
@@ -128,21 +132,19 @@ def geopackage(
 
 
 def create_path_layer(id_layer, path_tiles_dir):
-    lid_in_filename = id_layer.replace("/", "-")
-    name_lod12_2d = f"{lid_in_filename}.gpkg"
-    path_lod12_2d = path_tiles_dir.joinpath(id_layer, name_lod12_2d)
-    return path_lod12_2d
+    return path_tiles_dir.joinpath(id_layer).with_suffix(".gpkg")
 
 
 def compress_files(input_tile_path):
-    tile_id, path_tiles_dir = input_tile_path
+    tile_id, export_dir = input_tile_path
     logger.debug(f"Compressing tile {tile_id}")
-    path_tile_dir = path_tiles_dir.joinpath(tile_id)
+    basename = export_tile_path(export_dir, tile_id, "")
     lid_in_filename = tile_id.replace("/", "-")
+
     # OBJ
-    obj_zip = path_tile_dir.joinpath(f"{lid_in_filename}-obj.zip")
-    obj_files = (
-        p for p in path_tile_dir.iterdir() if p.suffix == ".obj" or p.suffix == ".mtl"
+    obj_zip = basename.with_name(f"{lid_in_filename}-obj.zip")
+    obj_files = tuple(basename.parent.glob(f"{basename.name}*.obj")) + tuple(
+        basename.parent.glob(f"{basename.name}*.mtl")
     )
     with ZipFile(
         file=obj_zip, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=9
@@ -150,8 +152,9 @@ def compress_files(input_tile_path):
         for f in obj_files:
             oz.write(filename=f, arcname=f.name)
             f.unlink()
+
     # CityJSON
-    cj_file = path_tile_dir.joinpath(f"{lid_in_filename}.city.json")
+    cj_file = export_tile_path(export_dir, tile_id, ".city.json")
     cj_zip = str(cj_file) + ".gz"
     if cj_file.exists():
         with cj_file.open("rb") as f_in:
@@ -160,8 +163,9 @@ def compress_files(input_tile_path):
         cj_file.unlink()
     else:
         logger.warning(f"CityJSON file {cj_file} does not exist, skipping compression.")
+
     # GPKG
-    gpkg_file = path_tile_dir.joinpath(f"{lid_in_filename}.gpkg")
+    gpkg_file = export_tile_path(export_dir, tile_id, ".gpkg")
     gpkg_zip = str(gpkg_file) + ".gz"
     if gpkg_file.exists():
         with gpkg_file.open("rb") as f_in:
@@ -194,11 +198,10 @@ def compressed_tiles(
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = file_store.stage_subdir("export", version.version)
-    path_tiles_dir = path_export_dir.joinpath("tiles")
     with export_index.open("r") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # skip header
-        tile_ids = tuple((row[0], path_tiles_dir) for row in csvreader)
+        tile_ids = tuple((row[0], path_export_dir) for row in csvreader)
 
     with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         for _ in executor.map(compress_files, tile_ids):

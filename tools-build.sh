@@ -13,7 +13,6 @@
 # Default variable values
 build_tyler=false
 build_tyler_db=false
-build_geoflow_roofer=false
 build_geos=false
 build_proj=false
 build_lastools=false
@@ -24,14 +23,13 @@ build_val3dity=false
 build_cjval=false
 build_cjio=false
 
-geos_version="${GEOS_VERSION:-3.12.1}"
-geotiff_version="${GEOTIFF_VERSION:-1.7.3}"
-proj_version="${PROJ_VERSION:-9.8.1}"
-lastools_version="${LASTOOLS_VERSION:-2.0.4}"
-gdal_version="${GDAL_VERSION:-3.8.5}"
-pdal_version="${PDAL_VERSION:-2.10.1}"
-geoflow_bundle_version="2024.08.09"
-val3dity_version="${VAL3DITY_VERSION:-2.4.0}"
+geos_version="${GEOS_VERSION:?GEOS_VERSION must be set from 3dbag-manifest.json}"
+geotiff_version="${GEOTIFF_VERSION:?GEOTIFF_VERSION must be set from 3dbag-manifest.json}"
+proj_version="${PROJ_VERSION:?PROJ_VERSION must be set from 3dbag-manifest.json}"
+lastools_version="${LASTOOLS_VERSION:?LASTOOLS_VERSION must be set from 3dbag-manifest.json}"
+gdal_version="${GDAL_VERSION:?GDAL_VERSION must be set from 3dbag-manifest.json}"
+pdal_version="${PDAL_VERSION:?PDAL_VERSION must be set from 3dbag-manifest.json}"
+val3dity_version="${VAL3DITY_VERSION:?VAL3DITY_VERSION must be set from 3dbag-manifest.json}"
 
 jobs=8
 root_dir=$PWD
@@ -49,7 +47,6 @@ usage() {
  echo " --build-all               Build all dependencies"
  echo " --build-tyler             Build Tyler"
  echo " --build-tyler-db          Build Tyler-db"
- echo " --build-geoflow-roofer    Build Geoflow-roofer"
  echo " --build-geos              Build GEOS"
  echo " --build-proj              Build PROJ"
  echo " --build-lastools          Build LASTools"
@@ -101,7 +98,6 @@ handle_options() {
       --build-all)
         build_tyler=true
         build_tyler_db=true
-        build_geoflow_roofer=true
         build_geos=true
         build_proj=true
         build_lastools=true
@@ -117,9 +113,6 @@ handle_options() {
         ;;
       --build-tyler-db)
         build_tyler_db=true
-        ;;
-      --build-geoflow-roofer)
-        build_geoflow_roofer=true
         ;;
       --build-geos)
         build_geos=true
@@ -162,25 +155,13 @@ handle_options() {
 handle_options "$@"
 cd $root_dir || exit
 
-
 if [ "$build_tyler" = true ] ; then
   printf "\n\nInstalling Tyler...\n\n"
   cd $root_dir || exit
   cargo install \
     --root . \
     --git https://github.com/3DGI/tyler.git \
-    --branch multi-format-output \
     --bin tyler
-
-  tyler_resources=share/tyler/resources
-  if ! [ -d "$tyler_resources" ] ; then
-    mkdir -p "$tyler_resources"/geof
-  fi
-  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createGLB.json -O "$tyler_resources"/geof/createGLB.json
-  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/createMulti.json -O "$tyler_resources"/geof/createMulti.json
-  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/metadata.json -O "$tyler_resources"/geof/metadata.json
-  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature.json -O "$tyler_resources"/geof/process_feature.json
-  wget --no-verbose https://raw.githubusercontent.com/3DGI/tyler/multi-format-output/resources/geof/process_feature_multi.json -O "$tyler_resources"/geof/process_feature_multi.json
 fi
 
 if [ "$build_tyler_db" = true ] ; then
@@ -310,42 +291,6 @@ if [ "$build_pdal" = true ] ; then
   rm PDAL-${pdal_version}-src.tar.gz
 fi
 
-if [ "$build_geoflow_roofer" = true ] ; then
-  cd $root_dir || exit
-  if ! [ -d vcpkg ] ; then
-    printf "\n\nInstalling vcpkg...\n\n"
-    git clone https://github.com/microsoft/vcpkg.git
-    cd vcpkg && ./bootstrap-vcpkg.sh -disableMetrics
-  fi
-  export VCPKG_ROOT="$root_dir/vcpkg"
-
-  printf "\n\nInstalling Geoflow-roofer...\n\n"
-  cd $root_dir || exit
-  git clone https://github.com/3DBAG/geoflow-roofer.git
-  mkdir geoflow-roofer/build
-
-  cd geoflow-roofer
-  $root_dir/vcpkg/vcpkg x-update-baseline
-  cd $root_dir
-
-  cmake \
-    --preset vcpkg-minimal \
-    -DRF_USE_LOGGER_SPDLOG=ON \
-    -DRF_BUILD_APPS=ON \
-    -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -S geoflow-roofer \
-    -B geoflow-roofer/build
-  cmake --build geoflow-roofer/build -j $jobs --target install --config Release
-
-  geoflow_flowcharts=share/geoflow-bundle/flowcharts
-  if ! [ -d "$geoflow_flowcharts" ] ; then
-    mkdir -p "$geoflow_flowcharts"
-  fi
-  wget --no-verbose https://raw.githubusercontent.com/geoflow3d/gfc-brecon/79ab70bc7b08aee37a1ceca7e3bb4db18c0f2778/stream/reconstruct_bag.json -O "$geoflow_flowcharts/reconstruct_bag.json"
-
-  rm -rf geoflow-roofer
-fi
-
 if [ "$build_val3dity" = true ] ; then
   printf "\n\nInstalling Val3dity...\n\n"
   cd $root_dir || exit
@@ -399,7 +344,5 @@ if [ "$clean_up" = true ] ; then
   rm -rf PDAL-${pdal_version}-src || true
   rm -rf val3dity-${val3dity_version} || true
   rm -rf build || true
-  rm -rf geoflow-bundle-src || true
-  rm -rf geoflow-roofer || true
   rm -rf vcpkg || true
 fi

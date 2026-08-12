@@ -7,6 +7,12 @@ job_bgt = define_asset_job(
     selection=AssetSelection.groups("bgt"),
 )
 
+job_cbs = define_asset_job(
+    name="cbs",
+    description="Download and load CBS data (key figures, buurtkaart, address mapping).",
+    selection=AssetSelection.groups("cbs"),
+)
+
 job_ahn_tile_index = define_asset_job(
     name="ahn_tile_index",
     description="Get the tile index (bladwijzer), md5 hashes of the LAZ files and "
@@ -81,6 +87,7 @@ job_source_input = define_asset_job(
     | AssetSelection.assets(["bag", "stage_bag_verblijfsobject"])
     | AssetSelection.assets(["bag", "bag_verblijfsobjectactueelbestaand"])
     | AssetSelection.groups("bgt")
+    | AssetSelection.groups("cbs")
     | AssetSelection.groups("top10nl")
     | AssetSelection.groups("input"),
 )
@@ -99,4 +106,22 @@ job_reconstruct_debug = define_asset_job(
     selection=AssetSelection.assets(
         ["reconstruction", "reconstructed_building_models"]
     ),
+)
+
+
+job_integration_data = define_asset_job(
+    name="integration_data",
+    description="Refresh the AOI-specific native-format integration-data fixtures.",
+    selection=AssetSelection.groups("integration_data")
+    | AssetSelection.assets(["bag", "extract_bag"])
+    | AssetSelection.assets(["bgt", "extract_bgt"])
+    | AssetSelection.assets(["top10nl", "extract_top10nl"])
+    | AssetSelection.assets(["cbs", "extract_cbs_key_figures"])
+    | AssetSelection.assets(["cbs", "extract_cbs_buurtkaart"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
+    | AssetSelection.assets(["ahn", "md5_ahn3"])
+    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn5"])
+    | AssetSelection.assets(["ahn", "sha256_ahn6"]),
 )

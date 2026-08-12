@@ -356,6 +356,7 @@ def cityjson(
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
+    url_file_id: str | None = None,
 ) -> CityJSONFileResults:
     """Validate a single CityJSON file.
 
@@ -404,7 +405,10 @@ def cityjson(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="cityjson", file_id=file_id, version=version
+            url_root=url_root,
+            format="cityjson",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")
@@ -593,9 +597,11 @@ def obj(
     snap_tol: float,
     url_root: str,
     version: str,
+    archive_file_id: str | None = None,
+    url_file_id: str | None = None,
 ) -> OBJFileResults:
     results = OBJFileResults()
-    inputzipfile = dirpath.joinpath(f"{file_id}-obj.zip")
+    inputzipfile = dirpath.joinpath(f"{archive_file_id or file_id}-obj.zip")
     inputfiles = [
         dirpath / f"{file_id}-LoD12-3D.obj",
         dirpath / f"{file_id}-LoD12-3D.obj.mtl",
@@ -625,7 +631,10 @@ def obj(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="obj", file_id=file_id, version=version
+            url_root=url_root,
+            format="obj",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")
@@ -830,6 +839,7 @@ def gpkg(
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
+    url_file_id: str | None = None,
 ) -> GPKGFileResults:
     results = GPKGFileResults()
     inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
@@ -861,7 +871,10 @@ def gpkg(
         sha256 = result.stdout.split(" ")[0]
         results.sha256 = sha256
         results.download = create_download_link(
-            url_root=url_root, format="gpkg", file_id=file_id, version=version
+            url_root=url_root,
+            format="gpkg",
+            file_id=url_file_id or file_id,
+            version=version,
         )
     except Exception:
         logger.error("Failed to compute sha256 or create download link")
@@ -968,9 +981,13 @@ def gpkg(
     except Exception as e:
         logger.error("Failed to run validation for gpkg")
         raise e
-    results.nr_building = min(nr_building_all)
-    results.nr_buildingpart = min(nr_buildingpart_all)
-    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all)
+    # Temporary compatibility fix until 3dbag-specs is refactored to provide
+    # format projections for validating Tyler's new GeoPackage layer schema.
+    results.nr_building = min(nr_building_all, default=None)
+    results.nr_buildingpart = min(nr_buildingpart_all, default=None)
+    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all, default=None)
+    if not nr_building_all or not nr_buildingpart_all or not nr_invalid_2d_geom_all:
+        results.file_ok = False
     propertiesfile.unlink(missing_ok=True)
     return results
 
@@ -1000,7 +1017,7 @@ def check_formats(inputs) -> TileResults:
     system = CommandRunner()
 
     specs = Specs3DBAGResource()
-    file_id = tile_id.replace("/", "-")
+    file_id = tile_id.rsplit("/", 1)[-1]
     planarity_n_tol = 20.0
     planarity_d2p_tol = 0.0001
     snap_tol = 0.0001
@@ -1015,6 +1032,7 @@ def check_formats(inputs) -> TileResults:
         url_root=url_root,
         version=version,
         specs=specs,
+        url_file_id=tile_id.replace("/", "-"),
     )
     obj_results = obj(
         system,
@@ -1026,6 +1044,8 @@ def check_formats(inputs) -> TileResults:
         snap_tol=snap_tol,
         url_root=url_root,
         version=version,
+        archive_file_id=tile_id.replace("/", "-"),
+        url_file_id=tile_id.replace("/", "-"),
     )
     gpkg_results = gpkg(
         system,
@@ -1035,6 +1055,7 @@ def check_formats(inputs) -> TileResults:
         url_root=url_root,
         version=version,
         specs=specs,
+        url_file_id=tile_id.replace("/", "-"),
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
@@ -1097,8 +1118,8 @@ def compressed_tiles_validation(
             (
                 validation_runner,
                 gdal_runner,
-                path_export_dir.joinpath("tiles", row[0]),
-                row[0],
+                path_export_dir.joinpath("t", row[0]).parent,
+                row[0].rsplit("/", 1)[-1],
                 url_root,
                 version_str,
             )

@@ -9,11 +9,17 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.export.assets.export import metadata as metadata_module
+from bag3d.export.assets.export.tile import (
+    TylerConfig,
+    merged_quadtree,
+    reconstruction_output_gpkg,
+)
 from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.archive import compressed_tiles, CompressionConfig
 
@@ -70,7 +76,7 @@ def _make_reconstruction_feature(root_dir: Path, tile_id: str, pand_id: str) -> 
 
 
 def test_feature_evaluation_reads_reconstruction(tmp_path):
-    """feature_evaluation scans reconstruction stage and produces reconstructed_features.csv."""
+    """feature_evaluation reads reconstruction stage via cjindex and produces reconstructed_features.csv."""
     tile_id = "10/434/716"
     pand_ids = [
         "NL.IMBAG.Pand.0307100000308298",
@@ -78,8 +84,32 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
     ]
     extra_input_id = "NL.IMBAG.Pand.9999999999999999"
 
-    for pand_id in pand_ids:
-        _make_reconstruction_feature(tmp_path, tile_id, pand_id)
+    paths = [
+        _make_reconstruction_feature(tmp_path, tile_id, pand_id) for pand_id in pand_ids
+    ]
+
+    # Build mock PackageRef objects backed by the real on-disk files
+    refs_with_bytes = []
+    for pand_id, path in zip(pand_ids, paths):
+        ref = MagicMock()
+        ref.model_id = pand_id
+        ref.source_path = str(path)
+        refs_with_bytes.append((ref, path.read_bytes()))
+
+    refs = [r for r, _ in refs_with_bytes]
+    bytes_map = {r.model_id: b for r, b in refs_with_bytes}
+
+    mock_idx = MagicMock()
+    mock_idx.status.return_value = MagicMock(needs_reindex=False)
+    mock_idx.feature_bounds_summary.return_value.package_count = len(refs)
+    mock_idx.package_ref_page_after_record_id.side_effect = lambda after, limit: (
+        refs if after is None else []
+    )
+    mock_idx.read_package.side_effect = lambda ref: json.loads(bytes_map[ref.model_id])
+
+    recon_resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
@@ -93,7 +123,13 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         (extra_input_id,),
     ]
 
-    result_csv = cast(Path, feature_evaluation(file_store, mock_db, version))
+    with patch(
+        "bag3d.export.assets.export.metadata.open_ready_index",
+        return_value=mock_idx,
+    ):
+        result_csv = cast(
+            Path, feature_evaluation(file_store, mock_db, version, recon_resource)
+        )
 
     assert result_csv.exists()
     assert result_csv.name == "reconstructed_features.csv"
@@ -174,14 +210,13 @@ def _make_quadtree_tsv(path: Path, tile_ids: list[str]) -> None:
 
 
 def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
-    """Create placeholder tile files (.city.json, .gpkg, .obj)."""
-    tile_dir = tiles_dir / tile_id
-    tile_dir.mkdir(parents=True, exist_ok=True)
-    lid = tile_id.replace("/", "-")
-    (tile_dir / f"{lid}.city.json").write_text("{}")
-    (tile_dir / f"{lid}.gpkg").write_bytes(b"")
-    for suffix in ["-lod12.obj", "-lod13.obj", "-lod22.obj"]:
-        (tile_dir / f"{lid}{suffix}").write_text("")
+    """Create placeholder Tyler tile files."""
+    basename = tiles_dir / tile_id
+    basename.parent.mkdir(parents=True, exist_ok=True)
+    (basename.with_suffix(".city.json")).write_text("{}")
+    (basename.with_suffix(".gpkg")).write_bytes(b"")
+    for suffix in ("-lod12.obj", "-lod13.obj", "-lod22.obj"):
+        (basename.with_name(f"{basename.name}{suffix}")).write_text("")
 
 
 def test_export_index_reads_quadtree(tmp_path):
@@ -191,13 +226,15 @@ def test_export_index_reads_quadtree(tmp_path):
     version = ReleaseVersionResource(version=VERSION)
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "tiles"
+    tiles_dir = export_dir / "t"
 
     _make_quadtree_tsv(export_dir / "quadtree.tsv", tile_ids)
     for tid in tile_ids:
         _make_tile_files(tiles_dir, tid)
 
-    result_path = cast(Path, export_index(file_store, version))
+    result_path = cast(
+        Path, export_index(file_store, version, export_dir / "quadtree.tsv")
+    )
 
     assert result_path.exists()
     assert result_path.name == "export_index.csv"
@@ -227,15 +264,15 @@ def test_compressed_tiles(tmp_path):
     version = ReleaseVersionResource(version=VERSION)
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "tiles"
+    tiles_dir = export_dir / "t"
     tile_dir = tiles_dir / tile_id
-    tile_dir.mkdir(parents=True, exist_ok=True)
+    tile_dir.parent.mkdir(parents=True, exist_ok=True)
 
     # Create tile files
-    cj_file = tile_dir / f"{lid}.city.json"
-    gpkg_file = tile_dir / f"{lid}.gpkg"
-    obj_file = tile_dir / f"{lid}-lod22.obj"
-    mtl_file = tile_dir / f"{lid}-lod22.mtl"
+    cj_file = tile_dir.with_suffix(".city.json")
+    gpkg_file = tile_dir.with_suffix(".gpkg")
+    obj_file = tile_dir.with_suffix(".obj")
+    mtl_file = tile_dir.with_suffix(".mtl")
 
     cj_file.write_text('{"type":"CityJSON"}')
     gpkg_file.write_bytes(b"fake-gpkg-content")
@@ -259,12 +296,52 @@ def test_compressed_tiles(tmp_path):
     )
 
     # Compressed files exist
-    assert (tile_dir / f"{lid}.city.json.gz").exists()
-    assert (tile_dir / f"{lid}.gpkg.gz").exists()
-    assert (tile_dir / f"{lid}-obj.zip").exists()
+    assert tile_dir.with_suffix(".city.json.gz").exists()
+    assert tile_dir.with_suffix(".gpkg.gz").exists()
+    assert tile_dir.with_name(f"{lid}-obj.zip").exists()
 
     # Original uncompressed files are deleted
     assert not cj_file.exists()
     assert not gpkg_file.exists()
     assert not obj_file.exists()
     assert not mtl_file.exists()
+
+
+def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
+    """The mocked Tyler runner produces both the export directory and quadtree asset."""
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
+    )
+
+    runner = MagicMock()
+
+    def run(command, *, exe_name, cwd, logger):
+        assert exe_name == "tyler"
+        assert "--debug-dump-grid" in command
+        debug_dir = Path(cwd) / "debug"
+        debug_dir.mkdir()
+        (debug_dir / "quadtree_level-3.tsv").write_text(
+            "node_id\tnode_level\tnr_items\twkt\n3/434/716\t3\t10\tPOLYGON((0 0,1 0,1 1,0 1,0 0))\n"
+        )
+
+    runner.run.side_effect = run
+    tyler = SimpleNamespace(runner=runner)
+
+    gpkg_output = reconstruction_output_gpkg(
+        TylerConfig(concurrency=1),
+        metadata_path,
+        tyler,
+        file_store,
+        version,
+        MagicMock(),
+    )
+    assert isinstance(gpkg_output, Path)
+
+    quadtree_output = merged_quadtree(gpkg_output)
+    assert isinstance(quadtree_output, Path)
+    assert gpkg_output == tmp_path / "stages" / "export" / VERSION
+    assert quadtree_output == gpkg_output / "debug" / "quadtree.tsv"
+    assert quadtree_output.is_file()
