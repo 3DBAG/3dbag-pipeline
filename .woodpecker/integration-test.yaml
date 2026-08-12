@@ -1,0 +1,34 @@
+when:
+  - event: push
+    branch: self-hosted-ci
+  - event: manual
+
+steps:
+  - name: integration-test
+    image: woodpecker-ci-utility:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/balazs/.ssh:/root/.ssh:ro
+      - /home/balazs/Development/3dbag-pipeline:/home/balazs/Development/3dbag-pipeline
+      - /home/balazs/Development/3dbag-admin:/home/balazs/Development/3dbag-admin
+      - /home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data:/home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data:ro
+    commands:
+      - |
+        set -euxo pipefail
+        pipeline=/home/balazs/Development/3dbag-pipeline
+        admin=/home/balazs/Development/3dbag-admin
+        fixture=/home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data
+        pipeline_ref=self-hosted-ci
+        original_ref=$(git -C "$pipeline" symbolic-ref --quiet --short HEAD || git -C "$pipeline" rev-parse HEAD)
+        test -z "$(git -C "$pipeline" status --porcelain)"
+        trap 'git -C "$pipeline" checkout --quiet "$original_ref"' EXIT
+        git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
+        git -C "$pipeline" checkout --quiet --detach "$CI_COMMIT_SHA"
+        test "$(git -C "$pipeline" rev-parse HEAD)" = "$CI_COMMIT_SHA"
+        deploy_id=$(printf '%s' "$pipeline_ref-woodpecker-integration" | sha256sum | cut -c1-8)
+        marker="$admin/deployment/3dbag-pipeline/user/.git-ref-$deploy_id"
+        test -r "$fixture/manifest.json"
+        if test ! -f "$marker"; then
+          just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
+        fi
+        just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref"
