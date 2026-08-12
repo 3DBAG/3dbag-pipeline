@@ -22,7 +22,8 @@ steps:
         pipeline_ref=self-hosted-ci
         git config --global --add safe.directory "$pipeline"
         original_ref=$(git -C "$pipeline" symbolic-ref --quiet --short HEAD || git -C "$pipeline" rev-parse HEAD)
-        test -z "$(git -C "$pipeline" status --porcelain)"
+        git -C "$pipeline" diff --quiet
+        git -C "$pipeline" diff --cached --quiet
         trap 'git -C "$pipeline" checkout --quiet "$original_ref"' EXIT
         git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
         git -C "$pipeline" checkout --quiet --detach "$CI_COMMIT_SHA"
