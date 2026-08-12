@@ -46,7 +46,7 @@ steps:
         test_log="$ci_home/integration-test-$CI_PIPELINE_NUMBER.log"
         set +e
         just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref" 2>&1 | tee "$test_log"
-        test_status=${PIPESTATUS[0]}
+        test_status=$PIPESTATUS
         set -e
         test "$test_status" -eq 0
         runner_log=$(find "$temp_dir" -maxdepth 1 -type f -name 'runner-*.log' -print | sort | tail -n1)
