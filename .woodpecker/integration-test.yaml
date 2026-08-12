@@ -35,9 +35,9 @@ steps:
         temp_dir="/root/3dbag-pipeline-deploy-$deploy_id"
         test -r "$fixture/manifest.json"
         if test -f "$marker" && { test ! -f "$temp_dir/docker/compose.yaml" || ! docker compose -p "$compose_project" ps -q | grep -q .; }; then
-          just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" cleanup "$deploy_id" || true
+          just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" cleanup "$deploy_id" || true
         fi
         if test ! -f "$marker"; then
-          GIT_SSH_COMMAND="ssh -F /dev/null" just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
+          GIT_SSH_COMMAND="ssh -F /dev/null" just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
         fi
-        just --set current_user woodpecker-integration -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref"
+        just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref"
