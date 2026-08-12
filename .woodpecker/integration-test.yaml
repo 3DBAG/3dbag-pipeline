@@ -12,12 +12,15 @@ steps:
       - /home/balazs/.ssh:/root/.ssh:ro
       - /home/balazs/Development/3dbag-pipeline:/home/balazs/Development/3dbag-pipeline
       - /home/balazs/Development/3dbag-admin:/home/balazs/Development/3dbag-admin
+      - /home/balazs/Development/test-woodpecker-3dbag/.woodpecker-tmp:/home/balazs/Development/test-woodpecker-3dbag/.woodpecker-tmp
       - /home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data:/home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data:ro
     commands:
       - |
         set -euxo pipefail
         pipeline=/home/balazs/Development/3dbag-pipeline
         admin=/home/balazs/Development/3dbag-admin
+        ci_home=/home/balazs/Development/test-woodpecker-3dbag/.woodpecker-tmp
+        export HOME="$ci_home"
         fixture=/home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data
         pipeline_ref=self-hosted-ci
         export DOCKER_BUILDKIT=1
@@ -26,18 +29,26 @@ steps:
         git -C "$pipeline" diff --quiet
         git -C "$pipeline" diff --cached --quiet
         trap 'git -C "$pipeline" checkout --quiet "$original_ref"' EXIT
-        GIT_SSH_COMMAND="ssh -F /dev/null" git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
+        GIT_SSH_COMMAND="ssh -F /dev/null -i /root/.ssh/id_ed25519 -o UserKnownHostsFile=/root/.ssh/known_hosts" git -C "$pipeline" fetch --quiet origin "$pipeline_ref"
         git -C "$pipeline" checkout --quiet --detach "$CI_COMMIT_SHA"
         test "$(git -C "$pipeline" rev-parse HEAD)" = "$CI_COMMIT_SHA"
         deploy_id=$(printf '%s' "$pipeline_ref-woodpecker-integration" | sha256sum | cut -c1-8)
         marker="$admin/deployment/3dbag-pipeline/user/.git-ref-$deploy_id"
         compose_project="bag3d-woodpecker-integration-$deploy_id"
-        temp_dir="/root/3dbag-pipeline-deploy-$deploy_id"
+        temp_dir="$ci_home/3dbag-pipeline-deploy-$deploy_id"
         test -r "$fixture/manifest.json"
         if test -f "$marker" && { test ! -f "$temp_dir/docker/compose.yaml" || ! docker compose -p "$compose_project" ps -q | grep -q .; }; then
           just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" cleanup "$deploy_id" || true
         fi
         if test ! -f "$marker"; then
-          GIT_SSH_COMMAND="ssh -F /dev/null" just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
+          GIT_SSH_COMMAND="ssh -F /dev/null -i /root/.ssh/id_ed25519 -o UserKnownHostsFile=/root/.ssh/known_hosts" just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false deploy-dev "$pipeline_ref" "$pipeline"
         fi
-        just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref"
+        test_log="$ci_home/integration-test-$CI_PIPELINE_NUMBER.log"
+        set +e
+        just --set current_user woodpecker-integration --set dagster_port_base 3080 --set pg_port_base 5610 -f "$admin/deployment/3dbag-pipeline/user/justfile" preset=integration cleanup=false wipe=false test "$pipeline_ref" 2>&1 | tee "$test_log"
+        test_status=${PIPESTATUS[0]}
+        set -e
+        test "$test_status" -eq 0
+        runner_log=$(find "$temp_dir" -maxdepth 1 -type f -name 'runner-*.log' -print | sort | tail -n1)
+        test -n "$runner_log"
+        ! rg -n 'Traceback|IsADirectoryError|ERROR' "$runner_log"
