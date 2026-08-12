@@ -1,3 +1,4 @@
+# Branch-specific activation for the local integration deployment.
 when:
   - event: push
     branch: self-hosted-ci
