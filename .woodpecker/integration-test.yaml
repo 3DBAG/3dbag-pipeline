@@ -20,6 +20,7 @@ steps:
         admin=/home/balazs/Development/3dbag-admin
         fixture=/home/balazs/.config/JetBrains/PyCharm2026.2/docker/3dbag-pipeline-core-2026_07_29/data/volume/integration-data
         pipeline_ref=self-hosted-ci
+        export DOCKER_BUILDKIT=1
         git config --global --add safe.directory "$pipeline"
         original_ref=$(git -C "$pipeline" symbolic-ref --quiet --short HEAD || git -C "$pipeline" rev-parse HEAD)
         git -C "$pipeline" diff --quiet
