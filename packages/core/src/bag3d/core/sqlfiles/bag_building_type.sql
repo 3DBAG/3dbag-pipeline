@@ -4,7 +4,7 @@ CREATE TABLE ${new_table} AS
 WITH clusters AS (SELECT identificatie
                        , geometrie
                        , st_clusterintersectingwin(st_buffer(geometrie, 0.1)) OVER () AS cluster
-                  FROM ${bag_pand})
+                  FROM ${bag_pand_filtered})
    , counts AS (SELECT *, count(*) OVER (PARTITION BY cluster) AS count_in_cluster
                 FROM clusters)
    , woningtype_single AS (SELECT identificatie
@@ -19,8 +19,8 @@ WITH clusters AS (SELECT identificatie
                            FROM counts)
    , isects AS (SELECT id1 AS identificatie, count(*) AS isect_count
                 FROM (SELECT pd1.identificatie AS id1, pd2.identificatie AS id2
-                      FROM ${bag_pand} AS pd1
-                               LEFT JOIN ${bag_pand} AS pd2
+                      FROM ${bag_pand_filtered} AS pd1
+                               LEFT JOIN ${bag_pand_filtered} AS pd2
                                          ON st_intersects(pd1.geometrie, pd2.geometrie)
                       WHERE pd1.identificatie != pd2.identificatie) AS sub
                 GROUP BY id1)

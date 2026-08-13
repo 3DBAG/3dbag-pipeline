@@ -229,7 +229,7 @@ def export_index(
 
 ASSET_DEPENDENCIES_FOR_METADATA = [
     AssetKey(("bag", "extract_bag")),
-    AssetKey(("bag", "bag_pandactueelbestaand")),
+    AssetKey(("bag", "bag_pandactueelbestaand_filtered")),
     AssetKey(("top10nl", "extract_top10nl")),
     AssetKey(("top10nl", "top10nl_gebouw")),
     AssetKey(("input", "reconstruction_input")),

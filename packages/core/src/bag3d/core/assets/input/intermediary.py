@@ -35,7 +35,7 @@ def bag_kas_warenhuis(
     )
     query = load_sql(
         query_params={
-            "bag_pandactueelbestaand": bag_pandactueelbestaand_filtered,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "top10nl_gebouw": top10nl_gebouw,
             "new_table": new_table,
         }
@@ -110,7 +110,7 @@ def bag_pand_vbo_views(
             "view_single": view_single,
             "view_multi": view_multi,
             "view_woonfunctie": view_woonfunctie,
-            "bag_pand": bag_pandactueelbestaand_filtered,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "bag_vbo": bag_verblijfsobjectactueelbestaand,
         }
     )
@@ -159,7 +159,7 @@ def bag_building_type(
     query = load_sql(
         query_params={
             "new_table": new_table,
-            "bag_pand": bag_pandactueelbestaand_filtered,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "pand_vbo_single": pand_vbo_single,
             "pand_vbo_multi": pand_vbo_multi,
         }
@@ -269,7 +269,7 @@ def bag_adjacency(
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_adjacency")
     query = load_sql(
         query_params={
-            "bag_pand": bag_pandactueelbestaand_filtered,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "new_table": new_table,
         }
     )
