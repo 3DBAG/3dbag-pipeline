@@ -18,14 +18,14 @@ logger = get_dagster_logger("input.intermediary")
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "top10nl_gebouw": AssetIn(key_prefix="top10nl"),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_kas_warenhuis(
-    bag_pandactueelbestaand, top10nl_gebouw, computation_db: DatabaseResource
+    bag_pandactueelbestaand_filtered, top10nl_gebouw, computation_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
@@ -35,7 +35,7 @@ def bag_kas_warenhuis(
     )
     query = load_sql(
         query_params={
-            "bag_pandactueelbestaand": bag_pandactueelbestaand,
+            "bag_pandactueelbestaand": bag_pandactueelbestaand_filtered,
             "top10nl_gebouw": top10nl_gebouw,
             "new_table": new_table,
         }
@@ -78,14 +78,14 @@ def bag_bag_overlap(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "bag_verblijfsobjectactueelbestaand": AssetIn(key_prefix="bag"),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_pand_vbo_views(
-    bag_pandactueelbestaand,
+    bag_pandactueelbestaand_filtered,
     bag_verblijfsobjectactueelbestaand,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
@@ -110,7 +110,7 @@ def bag_pand_vbo_views(
             "view_single": view_single,
             "view_multi": view_multi,
             "view_woonfunctie": view_woonfunctie,
-            "bag_pand": bag_pandactueelbestaand,
+            "bag_pand": bag_pandactueelbestaand_filtered,
             "bag_vbo": bag_verblijfsobjectactueelbestaand,
         }
     )
@@ -129,14 +129,14 @@ def bag_pand_vbo_views(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "bag_pand_vbo_views": AssetIn(key_prefix=INTERMEDIARY),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_building_type(
-    bag_pandactueelbestaand,
+    bag_pandactueelbestaand_filtered,
     bag_pand_vbo_views,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
@@ -159,7 +159,7 @@ def bag_building_type(
     query = load_sql(
         query_params={
             "new_table": new_table,
-            "bag_pand": bag_pandactueelbestaand,
+            "bag_pand": bag_pandactueelbestaand_filtered,
             "pand_vbo_single": pand_vbo_single,
             "pand_vbo_multi": pand_vbo_multi,
         }
@@ -207,7 +207,7 @@ def bag_bgt_join(
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
-def bag_pand_filtered(
+def bag_pandactueelbestaand_filtered(
     bag_pandactueelbestaand,
     bag_bgt_join,
     bag_bag_overlap,
@@ -215,7 +215,7 @@ def bag_pand_filtered(
 ) -> Output[PostgresTableIdentifier]:
     """Filtered BAG Pand table with problematic polygons removed.
     Creates 2 tables in the reconstruction_input schema:
-    - bag_pand_filtered: BAG polygons that pass the filtering criteria
+    - bag_pandactueelbestaand_filtered: BAG polygons that pass the filtering criteria
     - bag_pand_removed: BAG polygons that are removed due to filtering criteria
 
     Removes:
@@ -226,7 +226,7 @@ def bag_pand_filtered(
     """
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(
-        RECONSTRUCTION_INPUT_SCHEMA, "bag_pand_filtered"
+        RECONSTRUCTION_INPUT_SCHEMA, "bag_pandactueelbestaand_filtered"
     )
     query = load_sql(
         query_params={
@@ -235,7 +235,7 @@ def bag_pand_filtered(
             "bag_bag_overlap": bag_bag_overlap,
             "new_table": new_table,
             "bag_pand_removed": PostgresTableIdentifier(
-                RECONSTRUCTION_INPUT_SCHEMA, "bag_pand_removed"
+                RECONSTRUCTION_INPUT_SCHEMA, "bag_pandactueelbestaand_removed"
             ),
         }
     )
@@ -249,13 +249,13 @@ def bag_pand_filtered(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pand_filtered": AssetIn(key_prefix=INTERMEDIARY),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_adjacency(
-    bag_pand_filtered, computation_db: DatabaseResource
+    bag_pandactueelbestaand_filtered, computation_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """BAG polygon adjacency index.
 
@@ -268,7 +268,7 @@ def bag_adjacency(
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_adjacency")
     query = load_sql(
-        query_params={"bag_pand": bag_pand_filtered, "new_table": new_table}
+        query_params={"bag_pand": bag_pandactueelbestaand_filtered, "new_table": new_table}
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
