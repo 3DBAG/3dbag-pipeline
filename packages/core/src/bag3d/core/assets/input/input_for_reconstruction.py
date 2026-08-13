@@ -16,7 +16,7 @@ logger = get_dagster_logger("input.input_for_reconstruction")
 
 @asset(
     ins={
-        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix="intermediary"),
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
         "bag_bag_overlap": AssetIn(key_prefix="intermediary"),
     },
