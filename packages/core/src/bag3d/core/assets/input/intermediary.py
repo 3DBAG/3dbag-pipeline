@@ -268,7 +268,10 @@ def bag_adjacency(
     create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_adjacency")
     query = load_sql(
-        query_params={"bag_pand": bag_pandactueelbestaand_filtered, "new_table": new_table}
+        query_params={
+            "bag_pand": bag_pandactueelbestaand_filtered,
+            "new_table": new_table,
+        }
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
