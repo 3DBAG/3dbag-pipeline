@@ -7,7 +7,7 @@ from bag3d.common.utils.database import (
     postgrestable_from_query,
 )
 from dagster import AssetIn, AutomationCondition, Output, asset, get_dagster_logger
-from psycopg.sql import SQL
+from psycopg.sql import SQL, Identifier
 
 INTERMEDIARY = "intermediary"
 RECONSTRUCTION_INPUT_SCHEMA = "reconstruction_input"
@@ -242,6 +242,16 @@ def bag_pandactueelbestaand_filtered(
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
         SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
+    )
+    computation_db.connection.send_query(
+        SQL("CREATE INDEX {} ON {} USING gist (geometrie)").format(
+            Identifier(f"{new_table.table.str}_geometrie_idx"), new_table.id
+        )
+    )
+    computation_db.connection.send_query(
+        SQL("CREATE INDEX {} ON {} (identificatie)").format(
+            Identifier(f"{new_table.table.str}_identificatie_idx"), new_table.id
+        )
     )
     return Output(new_table, metadata=metadata)
 
