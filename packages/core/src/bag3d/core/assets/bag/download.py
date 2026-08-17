@@ -485,11 +485,10 @@ def bagextract_metadata(logger: Logger, extract_dir: Path) -> tuple[dict, str]:
         f"{{{nsmap['selecties-extract']}}}LVC-Extract"
     )
     if LVC_Extract is None:  # pragma: no cover
-        logger.critical(
+        raise ValueError(
             "The LVBAG extract is not of the type 'LVC-Extract' "
             "(Levenscyclus en LevenscyclusVanaf)."
         )
-        raise Exception
     Gebied_Registratif = lvdoc.getroot().SelectieGegevens.find(
         f"{{{nsmap['selecties-extract']}}}Gebied-Registratief"
     )
