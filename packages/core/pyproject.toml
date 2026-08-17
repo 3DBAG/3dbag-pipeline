@@ -57,4 +57,5 @@ filterwarnings = [
     "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
     "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
     "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
+    "ignore:.*include_sources.*beta.*:dagster_shared.utils.warnings.BetaWarning",
 ]
