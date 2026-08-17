@@ -90,7 +90,7 @@ def geopackage(
             result = gdal.runner.run(cmd, exe_name="ogr2ogr", logger=logger)
             if not result.success:
                 failed.append((lid, result.stderr))
-        except Exception:
+        except Exception:  # noqa: BLE001
             failed.append((lid, result.stderr if "result" in locals() else ""))
 
     layers = [

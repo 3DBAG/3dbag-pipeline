@@ -383,7 +383,7 @@ def cityjson(
         cmd = " ".join(["gunzip", "-t", str(inputzipfile)])
         result = system.run(cmd, cwd=str(dirpath))
         results.zip_ok = bool(result.success and len(result.stdout) == 0)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to test zip with file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
@@ -392,7 +392,7 @@ def cityjson(
     try:
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         system.run(cmd, cwd=str(dirpath))
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
@@ -409,7 +409,7 @@ def cityjson(
             file_id=url_file_id or file_id,
             version=version,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error("Failed to compute sha256 or create download link")
         inputfile.unlink(missing_ok=True)
         return results
@@ -429,21 +429,21 @@ def cityjson(
             results.nr_building = int(
                 re.search(r"(?<=Building \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning("Failed to extract number of buildings from output")
             results.nr_building = -1
         try:
             results.nr_buildingpart = int(
                 re.search(r"(?<=BuildingPart \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning("Failed to extract number of building parts from output")
             results.nr_buildingpart = -1
         try:
             results.lod = ast.literal_eval(
                 re.search(r"(?<=LoD = ).+", result.stdout).group(0)  # type: ignore[union-attr]
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning("Failed to extract LoD from output")
             results.lod = [
                 "",
@@ -614,7 +614,7 @@ def obj(
         cmd = " ".join(["unzip", "-t", str(inputzipfile)])
         result = system.run(cmd, cwd=str(dirpath))
         results.zip_ok = result.stdout.count("OK") == 6
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
@@ -632,7 +632,7 @@ def obj(
             file_id=url_file_id or file_id,
             version=version,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error("Failed to compute sha256 or create download link")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
@@ -642,7 +642,7 @@ def obj(
     try:
         cmd = " ".join(["unzip", "-o", str(inputzipfile)])
         system.run(cmd, cwd=str(dirpath))
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to test zip with file {inputzipfile}")
         for inputfile in inputfiles:
             inputfile.unlink(missing_ok=True)
@@ -678,7 +678,7 @@ def obj(
                             buildingpart_ids.add(bpid_match.group(0))
                 nr_building_all.append(len(building_ids))
                 nr_buildingpart_all.append(len(buildingpart_ids_temp_until_obj_fix))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.error(
                     f"Failed to read building and building part IDs from {inputfile}"
                 )
@@ -845,7 +845,7 @@ def gpkg(
         cmd = " ".join(["gunzip", "-t", str(inputzipfile)])
         result = system.run(cmd, cwd=str(dirpath))
         results.zip_ok = bool(result.success and len(result.stdout) == 0)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to test zip with file {inputzipfile}")
         return results
 
@@ -853,7 +853,7 @@ def gpkg(
     try:
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
         system.run(cmd, cwd=str(dirpath))
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error(f"Failed to unzip file {inputzipfile}")
         inputfile.unlink(missing_ok=True)
         return results
@@ -870,7 +870,7 @@ def gpkg(
             file_id=url_file_id or file_id,
             version=version,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.error("Failed to compute sha256 or create download link")
         return results
     finally:
@@ -906,7 +906,7 @@ def gpkg(
                 n = int(re.search(re_buildingpart_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_buildingpart_all.append(n)
 
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.warning(
                     f"Failed to extract number of building parts from output for layer {layer}"
                 )
@@ -927,7 +927,7 @@ def gpkg(
             try:
                 n = int(re.search(re_building_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_building_all.append(n)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.warning(
                     f"Failed to extract number of buildings from output for layer {layer}"
                 )
@@ -948,7 +948,7 @@ def gpkg(
             try:
                 n = int(re.search(re_invalid_count, result.stdout).group(0))  # type: ignore[union-attr]
                 nr_invalid_2d_geom_all.append(n)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.warning(
                     f"Failed to extract number of valid geometries from output for layer {layer}"
                 )
@@ -968,7 +968,7 @@ def gpkg(
             gpkg_info = json.loads(result.stdout)
             for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
                 results.attributes_with_errors.add_error(res_one)
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning("Failed to get the json ogrinfo for file")
     except Exception:
         logger.error("Failed to run validation for gpkg")

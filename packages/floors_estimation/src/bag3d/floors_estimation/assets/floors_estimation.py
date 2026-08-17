@@ -175,7 +175,7 @@ def bag3d_features(
         for i, future in enumerate(as_completed(futures_map)):
             try:
                 _ = future.result()
-            except Exception as e:  # pragma: no cover
+            except Exception as e:  # noqa: BLE001  # pragma: no cover
                 logger.error(f"Error in chunk {i} raised an exception: {e}")
 
     idx.close()
@@ -384,7 +384,7 @@ def save_cjfiles(
                 tile_features[tile_id].append(
                     FeatureRecord(feature=feature_json, source_path=source_path)
                 )
-            except Exception as e:  # pragma: no cover
+            except Exception as e:  # noqa: BLE001  # pragma: no cover
                 logger.error(f"Error processing feature: {e}")
 
     # Write per-tile cityjsonseq files

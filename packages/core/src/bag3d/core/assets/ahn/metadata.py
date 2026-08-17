@@ -180,7 +180,7 @@ def metadata_ahn6(
 
         try:
             _, out_info = pdal_info(pdal.runner, file_path=fpath, with_all=config.all)
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.warning(f"AHN6 tile {tile_id}: PDAL info failed for {fpath}")
             failed += 1
             continue

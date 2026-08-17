@@ -371,7 +371,7 @@ def building_surfaces(
                     )
                 if result.timing is not None:
                     building_timings.append(result.timing)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.error(f"Error processing building {pand_id}: {exc}")
     processing_total_s = perf_counter() - processing_start
 

@@ -131,7 +131,7 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                     continue
                 try:
                     checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     context.log.warning(f"Failed to read checksums for AHN{version}")
                     continue
 
