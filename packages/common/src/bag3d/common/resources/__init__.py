@@ -7,22 +7,24 @@ from dagster import get_dagster_logger
 
 from bag3d.common.resources.cjindex import (
     CityIndexResource as CityIndexResource,
+)
+from bag3d.common.resources.cjindex import (
     open_ready_index as open_ready_index,
 )
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import (
     GDALResource,
-    PDALResource,
     LASToolsResource,
-    TylerResource,
+    PDALResource,
     RooferResource,
+    TylerResource,
     ValidationResource,
 )
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
-from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
 from bag3d.common.resources.values import NlTransform
+from bag3d.common.resources.version import ReleaseVersionResource, ToolVersionsResource
 
 # NOTE os.getenv() shows the env value in the Dagster UI, EnvVar hides the value in the Dagster UI
 # Use os.environ[key] for required env vars: raises KeyError if unset and returns str (not
@@ -30,9 +32,6 @@ from bag3d.common.resources.values import NlTransform
 # genuinely optional env vars.
 
 logger = get_dagster_logger()
-
-if TYPE_CHECKING:
-    from bag3d.common.resources.cjindex import CityIndexResource
 
 
 class DagsterDeployment(StrEnum):

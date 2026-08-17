@@ -1,5 +1,4 @@
-from dagster import define_asset_job, AssetSelection
-
+from dagster import AssetSelection, define_asset_job
 
 job_bgt = define_asset_job(
     name="bgt",

@@ -1,14 +1,13 @@
-from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL
-
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
     create_schema,
     drop_table,
     load_sql,
     postgrestable_from_query,
 )
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources.database import DatabaseResource
+from dagster import AssetIn, AutomationCondition, Output, asset, get_dagster_logger
+from psycopg.sql import SQL
 
 INTERMEDIARY = "intermediary"
 NEW_SCHEMA = "reconstruction_input"

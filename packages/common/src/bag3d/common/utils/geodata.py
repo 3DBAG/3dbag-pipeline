@@ -1,16 +1,15 @@
 import json
 import re
+from json.decoder import JSONDecodeError
 from logging import Logger
 from pathlib import Path
-from typing import List, Tuple
-from json.decoder import JSONDecodeError
 
 from dagster import (
-    TableSchemaMetadataValue,
-    TableSchema,
-    TableColumnConstraints,
-    TableColumn,
     Failure,
+    TableColumn,
+    TableColumnConstraints,
+    TableSchema,
+    TableSchemaMetadataValue,
     get_dagster_logger,
 )
 from pgutils import PostgresTableIdentifier
@@ -18,7 +17,6 @@ from pgutils import PostgresTableIdentifier
 from bag3d.common.resources import DatabaseResource
 from bag3d.common.resources.executables import CommandRunner
 from bag3d.common.utils.database import postgrestable_metadata
-
 
 logger = get_dagster_logger()
 
@@ -43,10 +41,10 @@ def bbox_from_wkt(wkt):
         maxx, maxy = fcoord
         for coord in cstr:
             x, y = tuple(map(float, coord.strip(" ").split(" ")))
-            minx = x if x < minx else minx
-            miny = y if y < miny else miny
-            maxx = x if x > maxx else maxx
-            maxy = y if y > maxy else maxy
+            minx = min(minx, x)
+            miny = min(miny, y)
+            maxx = max(maxx, x)
+            maxy = max(maxy, y)
         return minx, miny, maxx, maxy
     else:
         return None
@@ -61,16 +59,7 @@ def ogrinfo(
     logger: Logger | None = None,
 ):
     """Runs ogrinfo on the zipped extract."""
-    cmd = " ".join(
-        [
-            "{exe}",
-            "-so",
-            "-al",
-            '-oo XSD="{xsd}"',
-            "-oo WRITE_GFS=NO",
-            "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
-        ]
-    )
+    cmd = '{exe} -so -al -oo XSD="{xsd}" -oo WRITE_GFS=NO /vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}'
 
     info = {}
     for feature_type in feature_types:
@@ -102,9 +91,7 @@ def parse_ogrinfo(ogrinfo_stdout: str, feature_type: str) -> tuple[str, dict]:
     ft = feature_type.lower()
     fc_match = re_feature_count.search(inf)
     layerinfo[f"Feature Count [{ft}]"] = int(fc_match[0]) if fc_match else 0
-    layerinfo[f"Extent [{ft}]"] = dict(
-        (geom, wkt) for geom, wkt in parse_ogrinfo_extent(inf)
-    )
+    layerinfo[f"Extent [{ft}]"] = {geom: wkt for geom, wkt in parse_ogrinfo_extent(inf)}
     schema = parse_ogrinfo_attributes(inf[inf.find("gml_id") :])
     layerinfo[f"Schema [{ft}]"] = TableSchemaMetadataValue(schema)
     return layername, layerinfo
@@ -117,7 +104,7 @@ def parse_ogrinfo_attributes(attributes_str: str) -> TableSchema:
     return schema
 
 
-def attributes_dict(attributes_str: str) -> List[dict]:
+def attributes_dict(attributes_str: str) -> list[dict]:
     """
     [
         {
@@ -185,7 +172,7 @@ def attributes_dict(attributes_str: str) -> List[dict]:
     return ret
 
 
-def attributes_schema(attributes_list: List[dict]) -> TableSchema:
+def attributes_schema(attributes_list: list[dict]) -> TableSchema:
     cols = []
     for a in attributes_list:
         cols.append(
@@ -252,21 +239,7 @@ def ogr2postgres(
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
     """
-    cmd = " ".join(
-        [
-            "{exe}",
-            "--config PG_USE_COPY=YES",
-            "-overwrite",
-            "-nln {new_table}",
-            '-oo XSD="{xsd}"',
-            "-oo WRITE_GFS=NO",
-            "-lco UNLOGGED=ON",
-            "-lco SPATIAL_INDEX=NONE",
-            "-lco GEOMETRY_NAME=wkb_geometry",
-            '-f PostgreSQL PG:"{dsn}"',
-            "/vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}",
-        ]
-    )
+    cmd = '{exe} --config PG_USE_COPY=YES -overwrite -nln {new_table} -oo XSD="{xsd}" -oo WRITE_GFS=NO -lco UNLOGGED=ON -lco SPATIAL_INDEX=NONE -lco GEOMETRY_NAME=wkb_geometry -f PostgreSQL PG:"{dsn}" /vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}'
 
     kwargs = {
         "new_table": new_table,
@@ -288,7 +261,7 @@ def ogr2postgres(
 
 def pdal_info(
     pdal, file_path: Path, logger: Logger | None = None, with_all: bool = False
-) -> Tuple[int, dict]:
+) -> tuple[int, dict]:
     """Run 'pdal info' on a point cloud file.
 
     Args:

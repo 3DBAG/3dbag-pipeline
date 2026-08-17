@@ -3,11 +3,14 @@
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
-from dagster import AssetExecutionContext, Output, asset
+from typing import Any
+
 from bag3d.common.resources.files import FileStoreResource
+from dagster import AssetExecutionContext, Output, asset
+
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
     partition_definition_ahn6_batches,

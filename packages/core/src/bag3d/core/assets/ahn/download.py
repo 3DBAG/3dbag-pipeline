@@ -1,32 +1,33 @@
 import json
-import time
 import random
-import warnings
-from pathlib import Path
-from typing import Any, Mapping, Union, Optional
-from hashlib import new as hash_new, algorithms_available
-from dataclasses import dataclass
-import urllib.request
+import time
 import urllib.error
+import urllib.request
+import warnings
+from collections.abc import Mapping
+from dataclasses import dataclass
+from hashlib import algorithms_available
+from hashlib import new as hash_new
+from pathlib import Path
+from typing import Any
 
 import urllib3
-
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.utils.requests import download_as_str, download_file
 from dagster import (
-    asset,
-    Output,
-    get_dagster_logger,
-    Config,
-    Failure,
     AssetExecutionContext,
     AutomationCondition,
+    Config,
+    Failure,
+    Output,
+    asset,
+    get_dagster_logger,
 )
 
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.utils.requests import download_file, download_as_str
 from bag3d.core.assets.ahn.core import (
-    format_laz_log,
-    download_ahn_index,
     download_ahn6_index,
+    download_ahn_index,
+    format_laz_log,
     partition_definition_ahn,
     partition_definition_ahn6_batches,
     tiles_in_batch,
@@ -105,8 +106,8 @@ class LAZDownload:
     url: str
     path: Path
     success: bool
-    hash_name: Union[str, None]
-    hash_hexdigest: Union[str, None]
+    hash_name: str | None
+    hash_hexdigest: str | None
     new: bool
     size: float
 
@@ -567,7 +568,7 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     return checksums
 
 
-def _head_check(url: str) -> Optional[int]:
+def _head_check(url: str) -> int | None:
     """Quick HEAD check. Returns HTTP status code, or None on network error."""
     try:
         req = urllib.request.Request(url, method="HEAD")
@@ -606,7 +607,7 @@ def download_ahn_laz(
     if url_laz is not None:
         url = url_laz
     elif url_base is not None:
-        url = "/".join([url_base, fpath.name])
+        url = f"{url_base}/{fpath.name}"
     else:
         raise Failure(
             format_laz_log(

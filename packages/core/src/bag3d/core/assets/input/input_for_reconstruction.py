@@ -1,15 +1,14 @@
-from dagster import asset, Output, AssetIn, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL
-
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
     create_schema,
     load_sql,
     postgrestable_from_query,
 )
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
+from dagster import AssetIn, AutomationCondition, Output, asset, get_dagster_logger
+from psycopg.sql import SQL
 
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 logger = get_dagster_logger("input.input_for_reconstruction")
 

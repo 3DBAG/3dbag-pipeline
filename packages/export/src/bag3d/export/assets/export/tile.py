@@ -1,26 +1,23 @@
-from enum import StrEnum
-
 import csv
 import json
+from enum import StrEnum
 from os import getenv
 from pathlib import Path
-from typing import Union
 
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.executables import TylerResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.specs.core import CityJSONLocation, GpkgLocation, Ogc3dTilesLocation
 from dagster import (
-    AssetKey,
     AssetIn,
+    AssetKey,
     Config,
     asset,
     get_dagster_logger,
 )
 from pydantic import Field
-
-from bag3d.common.resources import tool_versions
-from bag3d.common.resources.specs import Specs3DBAGResource
-from bag3d.common.resources.executables import TylerResource
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.version import ReleaseVersionResource
 
 logger = get_dagster_logger("export.tile")
 
@@ -36,9 +33,9 @@ class TylerOutputFormat(StrEnum):
 def generate_tyler_config(
     specs: Specs3DBAGResource,
     data_format: TylerOutputFormat,
-    locations: Union[
-        tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Ogc3dTilesLocation]
-    ],
+    locations: tuple[CityJSONLocation]
+    | tuple[GpkgLocation]
+    | tuple[Ogc3dTilesLocation],
     export_dir: Path,
 ) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
@@ -196,7 +193,7 @@ def reconstruction_output_cityjson(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(),
+        locations=(),
         verbose=config.verbose,
     )
 
@@ -270,7 +267,7 @@ def reconstruction_output_gpkg(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(),
+        locations=(),
         verbose=config.verbose,
     )
     return export_dir
@@ -314,7 +311,7 @@ def reconstruction_output_obj(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=tuple(),
+        locations=(),
         verbose=config.verbose,
     )
 

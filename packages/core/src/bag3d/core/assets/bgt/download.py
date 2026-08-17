@@ -1,13 +1,10 @@
-from typing import Optional
-
-from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
-from pydantic import Field
-
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.executables import GDALResource
-from bag3d.common.utils.requests import download_extract
-from bag3d.common.utils.geodata import ogrinfo, add_info
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import Path
+from bag3d.common.utils.geodata import add_info, ogrinfo
+from bag3d.common.utils.requests import download_extract
+from dagster import AutomationCondition, Config, Output, asset, get_dagster_logger
+from pydantic import Field
 
 logger = get_dagster_logger("bgt.download")
 
@@ -18,7 +15,7 @@ class BgtDownloadConfig(Config):
     featuretypes: list = Field(
         default=["pand"], description="The feature types to download."
     )
-    geofilter: Optional[str] = Field(
+    geofilter: str | None = Field(
         default=None, description="WKT of the polygonal extent"
     )
 

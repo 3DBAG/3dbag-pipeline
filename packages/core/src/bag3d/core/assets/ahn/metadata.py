@@ -3,23 +3,23 @@ from datetime import datetime
 from functools import partial
 
 import pytz
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import PDALResource
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.utils.database import create_schema, load_sql
+from bag3d.common.utils.geodata import pdal_info
 from dagster import (
-    asset,
-    Output,
-    Config,
-    get_dagster_logger,
     AssetExecutionContext,
     AutomationCondition,
+    Config,
+    Output,
+    asset,
+    get_dagster_logger,
 )
-from bag3d.common.types import PostgresTableIdentifier
-from psycopg.sql import Identifier, Literal, SQL
+from psycopg.sql import SQL, Identifier, Literal
 from psycopg.types.json import Jsonb, set_json_dumps
 from pydantic import Field
 
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import PDALResource
-from bag3d.common.utils.geodata import pdal_info
-from bag3d.common.utils.database import create_schema, load_sql
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
     partition_definition_ahn6_batches,
@@ -324,15 +324,14 @@ def compute_load_metadata(
     """
     logger = get_dagster_logger()
     conn = computation_db.connection
-    if not laz_files_ahn.new:
-        if not config.force:
-            logger.info(
-                f"Metadata for this LAZ tile {tile_id} already exists, "
-                f"skipping computation."
-            )
-            return Output(None)
+    if not laz_files_ahn.new and not config.force:
+        logger.info(
+            f"Metadata for this LAZ tile {tile_id} already exists, "
+            f"skipping computation."
+        )
+        return Output(None)
 
-    ret_code, out_info = pdal_info(
+    _ret_code, out_info = pdal_info(
         pdal.runner,
         file_path=laz_files_ahn.path,
         with_all=config.all,

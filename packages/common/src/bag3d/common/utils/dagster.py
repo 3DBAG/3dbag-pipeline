@@ -3,11 +3,11 @@
 from datetime import date
 
 from dagster import (
+    AssetExecutionContext,
+    StaticPartitionsDefinition,
     TableColumn,
     TableSchema,
-    StaticPartitionsDefinition,
     get_dagster_logger,
-    AssetExecutionContext,
 )
 
 from bag3d.common.utils.files import get_export_tile_ids
@@ -58,4 +58,4 @@ class PartitionDefinition3DBagDistribution(StaticPartitionsDefinition):
         except BaseException as e:
             logger.exception(e)
             tile_ids = []
-        super().__init__(partition_keys=sorted(list(tile_ids)))
+        super().__init__(partition_keys=sorted(tile_ids))

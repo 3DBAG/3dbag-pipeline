@@ -9,11 +9,11 @@ from dagster import (
     RunRequest,
     SensorDefinition,
     SkipReason,
+    SupersessionWarning,
     multi_asset_sensor,
 )
-from dagster import SupersessionWarning
 
-from bag3d.core.assets.ahn.core import download_ahn_index, download_ahn6_index, BATCH_KM
+from bag3d.core.assets.ahn.core import BATCH_KM, download_ahn6_index, download_ahn_index
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 

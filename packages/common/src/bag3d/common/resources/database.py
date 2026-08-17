@@ -1,7 +1,6 @@
-from typing import Optional, Dict, Any
+from typing import Any
 
 from dagster import ConfigurableResource
-
 from pgutils import PostgresConnection
 
 DatabaseConnection = PostgresConnection
@@ -22,10 +21,10 @@ class DatabaseResource(ConfigurableResource):
 
     host: str
     user: str
-    password: Optional[str] = None
+    password: str | None = None
     dbname: str
     port: int
-    other_params: Optional[Dict[str, Any]] = None
+    other_params: dict[str, Any] | None = None
 
     @property
     def connection(self) -> DatabaseConnection:

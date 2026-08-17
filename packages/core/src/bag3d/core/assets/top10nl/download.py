@@ -1,20 +1,17 @@
-from typing import Optional
-
+from bag3d.common.resources.executables import GDALResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.types import Path
+from bag3d.common.utils.geodata import add_info, ogrinfo
+from bag3d.common.utils.requests import download_extract
 from dagster import (
-    asset,
-    Output,
+    AutomationCondition,
     Config,
     DataVersion,
+    Output,
+    asset,
     get_dagster_logger,
-    AutomationCondition,
 )
 from pydantic import Field
-
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.executables import GDALResource
-from bag3d.common.utils.requests import download_extract
-from bag3d.common.utils.geodata import ogrinfo, add_info
-from bag3d.common.types import Path
 
 logger = get_dagster_logger("top10nl.download")
 
@@ -25,7 +22,7 @@ class Top10nlDownloadConfig(Config):
     featuretypes: list = Field(
         default=["gebouw"], description="The feature types to download."
     )
-    geofilter: Optional[str] = Field(
+    geofilter: str | None = Field(
         default=None, description="WKT of the polygonal extent"
     )
 

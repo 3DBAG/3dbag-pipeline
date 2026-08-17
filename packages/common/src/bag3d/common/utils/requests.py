@@ -1,17 +1,17 @@
+import os
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
 from time import sleep
-from typing import Mapping, Union
-from urllib.parse import urlparse, urljoin
-import os
+from urllib.parse import urljoin, urlparse
 
 import requests
 from dagster import (
-    get_dagster_logger,
-    RetryRequested,
-    PathMetadataValue,
-    UrlMetadataValue,
     FloatMetadataValue,
+    PathMetadataValue,
+    RetryRequested,
+    UrlMetadataValue,
+    get_dagster_logger,
 )
 
 
@@ -37,7 +37,7 @@ def download_file(
     parameters: Mapping | None = None,
     verify: bool = True,
     attempt_resume: bool = False,
-) -> Union[Path, None]:
+) -> Path | None:
     """Download a large file and save it to disk.
 
     Args:
@@ -78,30 +78,32 @@ def download_file(
             local_size = 0
             logger.debug(f"Starting download of {remote_size} bytes")
 
-        with fpath.open("ab") as fd:
-            with session.get(
+        with (
+            fpath.open("ab") as fd,
+            session.get(
                 url, headers=headers, stream=True, verify=verify, params=parameters
-            ) as r:
-                if local_size and r.status_code != 206:
-                    raise ValueError("Server does not support range requests")
-                elif r.status_code not in (200, 206):
-                    r.raise_for_status()
+            ) as r,
+        ):
+            if local_size and r.status_code != 206:
+                raise ValueError("Server does not support range requests")
+            elif r.status_code not in (200, 206):
+                r.raise_for_status()
 
-                bytes_written = local_size
-                last_logged_percent = (
-                    int((bytes_written / remote_size) * 100) if remote_size else 0
-                )
-                for data in r.iter_content(chunk_size=chunk_size):
-                    fd.write(data)
-                    bytes_written += len(data)
-                    if remote_size:
-                        percent = int((bytes_written / remote_size) * 100)
-                        if percent > last_logged_percent and percent % 10 == 0:
-                            logger.debug(
-                                f"{percent}% ({bytes_written}/{remote_size} bytes)"
-                            )
-                            last_logged_percent = percent
-                return fpath
+            bytes_written = local_size
+            last_logged_percent = (
+                int((bytes_written / remote_size) * 100) if remote_size else 0
+            )
+            for data in r.iter_content(chunk_size=chunk_size):
+                fd.write(data)
+                bytes_written += len(data)
+                if remote_size:
+                    percent = int((bytes_written / remote_size) * 100)
+                    if percent > last_logged_percent and percent % 10 == 0:
+                        logger.debug(
+                            f"{percent}% ({bytes_written}/{remote_size} bytes)"
+                        )
+                        last_logged_percent = percent
+            return fpath
     except (
         requests.RequestException,
         requests.exceptions.ChunkedEncodingError,
@@ -117,7 +119,7 @@ def get_metadata(url_api: str):
     :returns: {"timeliness": <date>: [featuretype,...]}
     """
     r_meta = requests.get(url_api, verify=True)
-    if not r_meta.status_code == requests.codes.ok:  # pragma: no cover
+    if r_meta.status_code != requests.codes.ok:  # pragma: no cover
         r_meta.raise_for_status()
     meta = {"timeliness": {}}
     for layer in r_meta.json()["timeliness"]:
@@ -145,7 +147,7 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str 
         request_json["geofilter"] = geofilter
     r_post = requests.post(url, json=request_json)
     logger.info(f"Requesting extract: {r_post.url} with {request_json} ")
-    if not r_post.status_code == requests.codes.accepted:  # pragma: no cover
+    if r_post.status_code != requests.codes.accepted:  # pragma: no cover
         logger.error(r_post.text)
         r_post.raise_for_status()
     else:
@@ -159,7 +161,7 @@ def get_extract_download_link(url, featuretypes, data_format, geofilter) -> str 
                 r_status := requests.get(url_status, verify=True)
             ).status_code == requests.codes.ok:
                 sleep(15)
-            if not r_status.status_code == requests.codes.created:  # pragma: no cover
+            if r_status.status_code != requests.codes.created:  # pragma: no cover
                 logger.error(r_status.text)
                 r_status.raise_for_status()
             url_download = urljoin(

@@ -1,15 +1,14 @@
-from dagster import asset, Output, get_dagster_logger, AutomationCondition
-
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
-    postgrestable_from_query,
-    load_sql,
-    drop_table,
     create_schema,
+    drop_table,
+    load_sql,
+    postgrestable_from_query,
 )
 from bag3d.common.utils.geodata import ogr2postgres
-from bag3d.common.types import PostgresTableIdentifier
+from dagster import AutomationCondition, Output, asset, get_dagster_logger
 
 SCHEMA_STAGE = "stage_bgt"
 SCHEMA_PROD = "bgt"

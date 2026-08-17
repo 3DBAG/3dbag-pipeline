@@ -9,18 +9,17 @@ import re
 from pathlib import Path
 
 import requests
-from dagster import (
-    asset,
-    Config,
-    Output,
-    get_dagster_logger,
-    AutomationCondition,
-)
-from pydantic import Field
-
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.files import unzip
 from bag3d.common.utils.requests import download_file
+from dagster import (
+    AutomationCondition,
+    Config,
+    Output,
+    asset,
+    get_dagster_logger,
+)
+from pydantic import Field
 
 logger = get_dagster_logger("cbs.download")
 

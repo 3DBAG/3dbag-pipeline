@@ -3,18 +3,18 @@
 Loads CBS key figures and buurtkaart GeoPackage into the 'cbs' schema.
 """
 
-from dagster import asset, Output, get_dagster_logger, AutomationCondition
-from psycopg import connect
-from psycopg.sql import SQL, Identifier, Literal
-
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
     create_schema,
     drop_table,
     postgrestable_metadata,
 )
-from bag3d.common.types import PostgresTableIdentifier
+from dagster import AutomationCondition, Output, asset, get_dagster_logger
+from psycopg import connect
+from psycopg.sql import SQL, Identifier, Literal
+
 from bag3d.core.assets.cbs.download import CbsKeyFiguresConfig
 
 logger = get_dagster_logger("cbs.load")
@@ -69,13 +69,12 @@ def _load_records_to_postgres(
         SQL(", ").join(Identifier(c) for c in headers),
         col_placeholders,
     )
-    with connect(conn.dsn) as pg_conn:
-        with pg_conn.cursor() as cur:
-            cur.executemany(
-                insert_q,
-                [tuple(record.get(c) for c in headers) for record in records],
-            )
-            pg_conn.commit()
+    with connect(conn.dsn) as pg_conn, pg_conn.cursor() as cur:
+        cur.executemany(
+            insert_q,
+            [tuple(record.get(c) for c in headers) for record in records],
+        )
+        pg_conn.commit()
 
 
 @asset(
@@ -132,19 +131,7 @@ def cbs_buurten(
     new_table = PostgresTableIdentifier(CBS_SCHEMA, "buurten")
     drop_table(computation_db, new_table, logger=logger)
 
-    cmd = " ".join(
-        [
-            "{exe}",
-            "--config PG_USE_COPY=YES",
-            "-overwrite",
-            "-nln {new_table}",
-            "-lco UNLOGGED=ON",
-            "-lco SPATIAL_INDEX=NONE",
-            "-lco GEOMETRY_NAME=geom",
-            '-f PostgreSQL PG:"{dsn}"',
-            '"{local_path}" buurten',
-        ]
-    )
+    cmd = '{exe} --config PG_USE_COPY=YES -overwrite -nln {new_table} -lco UNLOGGED=ON -lco SPATIAL_INDEX=NONE -lco GEOMETRY_NAME=geom -f PostgreSQL PG:"{dsn}" "{local_path}" buurten'
 
     result = gdal.runner.run(
         cmd,

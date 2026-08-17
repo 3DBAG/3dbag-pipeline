@@ -1,21 +1,21 @@
 import os
 
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import TylerResource
+from bag3d.common.types import PostgresTableIdentifier
 from dagster import (
     AssetOut,
-    multi_asset,
+    AutomationCondition,
     Output,
     get_dagster_logger,
-    AutomationCondition,
+    multi_asset,
 )
 from pgutils import PostgresConnection
 from psycopg import connect
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL, Identifier, Literal
 
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import tool_versions
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import TylerResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 logger = get_dagster_logger("input.tile")

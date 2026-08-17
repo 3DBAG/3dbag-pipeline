@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from bag3d.common.types import PostgresTableIdentifier
 from dagster import build_asset_context
 
-from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.cbs.download import (
     CbsBuurtkaartConfig,
     CbsKeyFiguresConfig,

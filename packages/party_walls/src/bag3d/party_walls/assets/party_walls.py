@@ -1,37 +1,36 @@
+import json
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
-import json
 from os import getenv
 from pathlib import Path
 from time import perf_counter
 from typing import Any, cast
 
 import cityjson_index
-from dagster import (
-    asset,
-    AssetKey,
-    MetadataValue,
-    get_dagster_logger,
-    AssetExecutionContext,
-    Config,
-)
-from pydantic import Field
-from psycopg import sql as pgsql
-from building_surfaces.walls import shared_walls
-
 from bag3d.common.resources.cjindex import (
     CityIndexResource,
+    iter_package_refs,
     open_ready_index,
     read_package_feature_json,
-    iter_package_refs,
 )
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.cityjsonseq import (
     FeatureRecord,
     write_feature_records_as_cityjsonseq,
 )
+from building_surfaces.walls import shared_walls
+from dagster import (
+    AssetExecutionContext,
+    AssetKey,
+    Config,
+    MetadataValue,
+    asset,
+    get_dagster_logger,
+)
+from psycopg import sql as pgsql
+from pydantic import Field
 
 logger = get_dagster_logger("party_walls")
 

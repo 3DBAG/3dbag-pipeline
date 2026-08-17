@@ -6,19 +6,19 @@ import re
 import shutil
 import sqlite3
 import tempfile
+from collections.abc import Iterable, Mapping
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
-
-from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
-from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
-from pydantic import Field
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_file
+from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
+from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
+from pydantic import Field
 
 AOI_WKT = "POLYGON ((121967 485750, 123354 485750, 123354 486550, 121967 486550, 121967 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [

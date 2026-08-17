@@ -1,8 +1,8 @@
 """Custom types, custom Dagster types"""
 
-from pathlib import Path
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
+from pathlib import Path
 
 from dagster import PythonObjectDagsterType, make_python_type_usable_as_dagster_type
 from pgutils import PostgresTableIdentifier

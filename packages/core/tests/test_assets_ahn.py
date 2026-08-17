@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import dagster as dg
 import pytest
+from bag3d.common.testing import build_asset_context_for
 from dagster import (
     AssetKey,
     AssetMaterialization,
@@ -9,12 +10,11 @@ from dagster import (
     build_multi_asset_sensor_context,
 )
 
-from bag3d.common.testing import build_asset_context_for
 from bag3d.core.assets.ahn.core import download_ahn_index
 from bag3d.core.assets.ahn.download import (
+    URL_LAZ_SHA,
     LAZDownload,
     LazFilesConfig,
-    URL_LAZ_SHA,
     get_checksums,
     laz_files_ahn3,
     laz_files_ahn4,
@@ -25,7 +25,6 @@ from bag3d.core.assets.ahn.download import (
 )
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
 from bag3d.core.sensors import ahn_checksum_sensor
-
 
 MOCK_AHN_INDEX = {
     "01cz1": {
@@ -157,54 +156,60 @@ def _mock_laz_download(tmp_path, filename: str) -> LAZDownload:
 
 def test_laz_files_ahn3(resources_ahn, md5_ahn3_fix, tile_index_ahn_fix, tmp_path):
     config = LazFilesConfig(force_download=False, check_hash=False)
-    with patch(
-        "bag3d.core.assets.ahn.download.download_ahn_laz",
-        return_value=_mock_laz_download(tmp_path, "C_01CZ1.LAZ"),
+    with (
+        patch(
+            "bag3d.core.assets.ahn.download.download_ahn_laz",
+            return_value=_mock_laz_download(tmp_path, "C_01CZ1.LAZ"),
+        ),
+        build_asset_context_for(laz_files_ahn3, partition_key="01cz1") as context,
     ):
-        with build_asset_context_for(laz_files_ahn3, partition_key="01cz1") as context:
-            res = laz_files_ahn3(
-                context,
-                config,
-                resources_ahn["file_store"],
-                md5_ahn3_fix,
-                tile_index_ahn_fix,
-            )
+        res = laz_files_ahn3(
+            context,
+            config,
+            resources_ahn["file_store"],
+            md5_ahn3_fix,
+            tile_index_ahn_fix,
+        )
     assert isinstance(res, Output)
     assert res.value.url is not None
 
 
 def test_laz_files_ahn4(resources_ahn, md5_ahn4_fix, tile_index_ahn_fix, tmp_path):
     config = LazFilesConfig(force_download=False, check_hash=False)
-    with patch(
-        "bag3d.core.assets.ahn.download.download_ahn_laz",
-        return_value=_mock_laz_download(tmp_path, "C_01CZ1.LAZ"),
+    with (
+        patch(
+            "bag3d.core.assets.ahn.download.download_ahn_laz",
+            return_value=_mock_laz_download(tmp_path, "C_01CZ1.LAZ"),
+        ),
+        build_asset_context_for(laz_files_ahn4, partition_key="01cz1") as context,
     ):
-        with build_asset_context_for(laz_files_ahn4, partition_key="01cz1") as context:
-            res = laz_files_ahn4(
-                context,
-                config,
-                resources_ahn["file_store"],
-                md5_ahn4_fix,
-                tile_index_ahn_fix,
-            )
+        res = laz_files_ahn4(
+            context,
+            config,
+            resources_ahn["file_store"],
+            md5_ahn4_fix,
+            tile_index_ahn_fix,
+        )
     assert isinstance(res, Output)
     assert res.value.url is not None
 
 
 def test_laz_files_ahn5(resources_ahn, sha256_ahn5_fix, tile_index_ahn_fix, tmp_path):
     config = LazFilesConfig(force_download=False, check_hash=False)
-    with patch(
-        "bag3d.core.assets.ahn.download.download_ahn_laz",
-        return_value=_mock_laz_download(tmp_path, "2023_C_01CZ1.LAZ"),
+    with (
+        patch(
+            "bag3d.core.assets.ahn.download.download_ahn_laz",
+            return_value=_mock_laz_download(tmp_path, "2023_C_01CZ1.LAZ"),
+        ),
+        build_asset_context_for(laz_files_ahn5, partition_key="01cz1") as context,
     ):
-        with build_asset_context_for(laz_files_ahn5, partition_key="01cz1") as context:
-            res = laz_files_ahn5(
-                context,
-                config,
-                resources_ahn["file_store"],
-                sha256_ahn5_fix,
-                tile_index_ahn_fix,
-            )
+        res = laz_files_ahn5(
+            context,
+            config,
+            resources_ahn["file_store"],
+            sha256_ahn5_fix,
+            tile_index_ahn_fix,
+        )
     assert isinstance(res, Output)
     assert res.value.url is not None
 

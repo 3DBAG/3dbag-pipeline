@@ -1,16 +1,14 @@
 from datetime import datetime
-from typing import Optional
-
-from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL, Identifier
 
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
+    create_schema,
     load_sql,
     postgrestable_from_query,
-    create_schema,
 )
-from bag3d.common.types import PostgresTableIdentifier
+from dagster import AutomationCondition, Config, Output, asset, get_dagster_logger
+from psycopg.sql import SQL, Identifier
 from pydantic import Field
 
 NEW_SCHEMA = "lvbag"
@@ -20,7 +18,7 @@ logger = get_dagster_logger("bag.load")
 class BagLoadConfig(Config):
     """Configuration for BAG load assets."""
 
-    reference_date: Optional[str] = Field(
+    reference_date: str | None = Field(
         default=None, description="Reference date in format YYYY-MM-DD."
     )
 

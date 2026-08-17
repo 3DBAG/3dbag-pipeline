@@ -4,24 +4,24 @@ from datetime import date
 from hashlib import sha1
 from os import getenv
 
+from bag3d.common.resources import NlTransform, tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import RooferResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.utils.dagster import format_date
 from dagster import (
-    asset,
-    StaticPartitionsDefinition,
-    AssetIn,
-    Failure,
-    get_dagster_logger,
-    Config,
     AssetExecutionContext,
+    AssetIn,
+    Config,
+    Failure,
+    StaticPartitionsDefinition,
+    asset,
+    get_dagster_logger,
 )
-from pydantic import Field
 from pgutils import PostgresTableIdentifier
 from psycopg.sql import SQL
+from pydantic import Field
 
-from bag3d.common.resources import tool_versions, NlTransform
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.executables import RooferResource
-from bag3d.common.utils.dagster import format_date
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
 
@@ -66,7 +66,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
     def __init__(self, schema: str, table_tiles: str, wkt: str | None = None):
         logger = get_dagster_logger("PartitionDefinition3DBagReconstruction")
         tile_ids = get_tile_ids(schema, table_tiles, logger, wkt)
-        super().__init__(partition_keys=sorted(list(tile_ids)))
+        super().__init__(partition_keys=sorted(tile_ids))
 
 
 @asset(

@@ -1,33 +1,32 @@
+import zipfile
+from copy import deepcopy
 from datetime import datetime
 from logging import Logger
-from typing import LiteralString, Optional, Tuple
-from copy import deepcopy
-import zipfile
+from typing import LiteralString
 
-from dagster import (
-    asset,
-    Output,
-    Config,
-    DataVersion,
-    get_dagster_logger,
-    AutomationCondition,
-)
-from pydantic import Field
-from lxml import objectify  # type: ignore[attr-defined]
-from psycopg.sql import SQL, Identifier
-
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
-from bag3d.common.utils.geodata import bbox_from_wkt
-from bag3d.common.utils.files import unzip
-from bag3d.common.utils.requests import download_file
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.types import Path, PostgresTableIdentifier
 from bag3d.common.utils.database import (
     create_schema,
     drop_table,
     postgrestable_metadata,
 )
-from bag3d.common.types import PostgresTableIdentifier, Path
+from bag3d.common.utils.files import unzip
+from bag3d.common.utils.geodata import bbox_from_wkt
+from bag3d.common.utils.requests import download_file
+from dagster import (
+    AutomationCondition,
+    Config,
+    DataVersion,
+    Output,
+    asset,
+    get_dagster_logger,
+)
+from lxml import objectify  # type: ignore[attr-defined]
+from psycopg.sql import SQL, Identifier
+from pydantic import Field
 
 logger = get_dagster_logger("bag.download")
 
@@ -93,7 +92,7 @@ def _create_empty_bag_layer(computation_db, table, layer):
 class BagDownloadConfig(Config):
     """Configuration for BAG download/stage assets."""
 
-    geofilter: Optional[str] = Field(
+    geofilter: str | None = Field(
         default=None,
         description="WKT of the polygonal extent. Will be converted to a BBOX.",
     )
@@ -110,7 +109,7 @@ class BagDownloadConfig(Config):
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
-def extract_bag(file_store: FileStoreResource) -> Output[Tuple[Path, dict, str]]:
+def extract_bag(file_store: FileStoreResource) -> Output[tuple[Path, dict, str]]:
     """Download the latest LVBAG extract from PDOK.
 
     Extract URL: https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip
@@ -447,7 +446,7 @@ def load_bag_layer(
     return result.success
 
 
-def bagextract_metadata(logger: Logger, extract_dir: Path) -> Tuple[dict, str]:
+def bagextract_metadata(logger: Logger, extract_dir: Path) -> tuple[dict, str]:
     """Determine what type of LVBAG extract do we have, Gemeente or Nederland.
 
     LVBAG schema version: 20200601

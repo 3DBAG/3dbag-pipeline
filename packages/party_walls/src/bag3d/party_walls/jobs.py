@@ -1,4 +1,4 @@
-from dagster import define_asset_job, AssetSelection
+from dagster import AssetSelection, define_asset_job
 
 job_party_walls = define_asset_job(
     name="party_walls",

@@ -1,4 +1,4 @@
-from bag3d.common.utils.requests import get_metadata, download_as_str, download_file
+from bag3d.common.utils.requests import download_as_str, download_file, get_metadata
 
 
 def test_get_metadata_parses_timeliness(mock_requests):

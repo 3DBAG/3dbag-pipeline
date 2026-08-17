@@ -1,17 +1,18 @@
 import json
 from pathlib import Path
-from typing import cast
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import cityjson_index
+from bag3d.common.resources.cjindex import CityIndexResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.testing import build_asset_context_for
+
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     building_surfaces,
 )
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.resources.cjindex import CityIndexResource
 
 
 def _make_feature_bytes(pand_id: str) -> bytes:
@@ -114,17 +115,20 @@ def test_building_surfaces_empty_index(tmp_path):
     mock_idx.feature_bounds_summary.return_value.package_count = 0
     mock_idx.package_ref_page_after_record_id.return_value = []
 
-    with patch(
-        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    with (
+        patch(
+            "bag3d.party_walls.assets.party_walls.open_ready_index",
+            return_value=mock_idx,
+        ),
+        build_asset_context_for(building_surfaces) as context,
     ):
-        with build_asset_context_for(building_surfaces) as context:
-            result = building_surfaces(
-                context,
-                PartyWallsConfig(),
-                resource,
-                mock_db,
-                file_store,
-            )
+        result = building_surfaces(
+            context,
+            PartyWallsConfig(),
+            resource,
+            mock_db,
+            file_store,
+        )
 
     assert result == []
     mock_db.connection.get_dict.assert_not_called()
@@ -168,17 +172,20 @@ def test_building_surfaces_writes_computed_features(tmp_path, monkeypatch):
 
     monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
-    with patch(
-        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    with (
+        patch(
+            "bag3d.party_walls.assets.party_walls.open_ready_index",
+            return_value=mock_idx,
+        ),
+        build_asset_context_for(building_surfaces) as context,
     ):
-        with build_asset_context_for(building_surfaces) as context:
-            result = building_surfaces(
-                context,
-                PartyWallsConfig(concurrency=1),
-                resource,
-                mock_db,
-                file_store,
-            )
+        result = building_surfaces(
+            context,
+            PartyWallsConfig(concurrency=1),
+            resource,
+            mock_db,
+            file_store,
+        )
 
     output_paths = cast(list[Path], result)
     assert len(output_paths) == 1
@@ -239,17 +246,20 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
 
     monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
 
-    with patch(
-        "bag3d.party_walls.assets.party_walls.open_ready_index", return_value=mock_idx
+    with (
+        patch(
+            "bag3d.party_walls.assets.party_walls.open_ready_index",
+            return_value=mock_idx,
+        ),
+        build_asset_context_for(building_surfaces) as context,
     ):
-        with build_asset_context_for(building_surfaces) as context:
-            _ = building_surfaces(
-                context,
-                PartyWallsConfig(concurrency=1, profile=True),
-                resource,
-                mock_db,
-                file_store,
-            )
+        _ = building_surfaces(
+            context,
+            PartyWallsConfig(concurrency=1, profile=True),
+            resource,
+            mock_db,
+            file_store,
+        )
 
     profile_path = (
         tmp_path

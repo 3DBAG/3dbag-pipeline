@@ -1,15 +1,12 @@
 """Perform the final steps for the 3D BAG release on the publication server"""
 
-from pathlib import Path
 import json
 from datetime import datetime
+from pathlib import Path
 
-from dagster import AssetIn, asset, AssetKey
-
-from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.database import DatabaseResource
-from dagster import get_dagster_logger
-
+from bag3d.common.resources.server_transfer import ServerTransferResource
+from dagster import AssetIn, AssetKey, asset, get_dagster_logger
 
 logger = get_dagster_logger("release.publish")
 

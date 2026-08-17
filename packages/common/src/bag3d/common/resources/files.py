@@ -1,7 +1,7 @@
 from pathlib import Path
 from shutil import rmtree
 
-from dagster import get_dagster_logger, ConfigurableResource
+from dagster import ConfigurableResource, get_dagster_logger
 
 logger = get_dagster_logger("resources.file_store")
 
