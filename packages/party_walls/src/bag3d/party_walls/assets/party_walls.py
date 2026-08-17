@@ -358,8 +358,7 @@ def building_surfaces(
                 )
                 futures[future] = (pand_id, source_paths[pand_id])
 
-        for future in futures:
-            pand_id, source_path = futures[future]
+        for future, (pand_id, source_path) in futures.items():
             try:
                 result = future.result()
                 if result.feature_json is not None and result.tile_id is not None:
