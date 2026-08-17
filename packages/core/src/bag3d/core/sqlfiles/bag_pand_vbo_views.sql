@@ -6,7 +6,7 @@ WITH joined AS (SELECT p.identificatie
                      , vbo.oppervlakte
                      , vbo.vbo_identificatie
                      , p.geometrie
-                FROM ${bag_pand} AS p
+                FROM ${bag_pand_filtered} AS p
                          RIGHT JOIN (SELECT unnest(pandref) AS pandref
                                           , gebruiksdoel
                                           , oppervlakte
@@ -33,7 +33,7 @@ WITH joined AS (SELECT p.identificatie
                      , vbo.oppervlakte
                      , vbo.vbo_identificatie
                      , p.geometrie
-                FROM ${bag_pand} AS p
+                FROM ${bag_pand_filtered} AS p
                          RIGHT JOIN (SELECT unnest(pandref) AS pandref
                                           , gebruiksdoel
                                           , oppervlakte
@@ -58,7 +58,7 @@ SELECT p.identificatie AS pand_identificatie
      , vbo.oppervlakte
      , vbo.vbo_identificatie
      , p.geometrie
-FROM ${bag_pand} AS p
+FROM ${bag_pand_filtered} AS p
          RIGHT JOIN (SELECT unnest(pandref) AS pandref
                           , gebruiksdoel
                           , oppervlakte

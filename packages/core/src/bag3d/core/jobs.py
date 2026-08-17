@@ -80,15 +80,22 @@ job_ahn_metadata_index = define_asset_job(
 
 job_source_input = define_asset_job(
     name="source_input",
-    description="Update the source data sets and prepare the input for the reconstruction.",
+    description="Update the source data sets.",
     selection=AssetSelection.assets(["bag", "extract_bag"])
     | AssetSelection.assets(["bag", "stage_bag_pand"])
     | AssetSelection.assets(["bag", "bag_pandactueelbestaand"])
     | AssetSelection.assets(["bag", "stage_bag_verblijfsobject"])
     | AssetSelection.assets(["bag", "bag_verblijfsobjectactueelbestaand"])
+    | AssetSelection.groups("bgt")
     | AssetSelection.groups("cbs")
-    | AssetSelection.groups("top10nl")
-    | AssetSelection.groups("input"),
+    | AssetSelection.groups("top10nl"),
+)
+
+
+job_preprocessing = define_asset_job(
+    name="preprocessing",
+    description="Prepare the input for reconstruction (intermediary processing and tiling).",
+    selection=AssetSelection.groups("input"),
 )
 
 job_reconstruct = define_asset_job(

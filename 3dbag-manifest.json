@@ -151,6 +151,14 @@
       ]
     },
     {
+      "name": "preprocessing",
+      "display_name": "preprocessing",
+      "allow_partial_failure": false,
+      "jobs": [
+        { "job": "preprocessing", "code_location": "core" }
+      ]
+    },
+    {
       "name": "reconstruct",
       "display_name": "reconstruct",
       "allow_partial_failure": true,
