@@ -271,11 +271,34 @@ def preprocessed_features(
     return data
 
 
+def _patch_sklearn_utils() -> None:
+    """Restore ``sklearn.utils.tosequence``, removed in scikit-learn 1.0.
+
+    The floor-estimation model is pickled with the unmaintained ``sklearn_pandas``
+    package, which imports ``tosequence`` from ``sklearn.utils`` at unpickle time.
+    """
+    from collections.abc import Sequence
+
+    import sklearn.utils
+
+    if not hasattr(sklearn.utils, "tosequence"):
+
+        def tosequence(x):
+            if isinstance(x, np.ndarray):
+                return np.asarray(x)
+            if isinstance(x, Sequence):
+                return x
+            return list(x)
+
+        sklearn.utils.tosequence = tosequence
+
+
 @asset
 def inferenced_floors(
     preprocessed_features: pd.DataFrame, model_store: ModelStoreResource
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
+    _patch_sklearn_utils()
     logger.info(f"Loading model from {model_store.model_path}")
     pipeline = load(model_store.model_path)
     logger.info("Running the inference.")
