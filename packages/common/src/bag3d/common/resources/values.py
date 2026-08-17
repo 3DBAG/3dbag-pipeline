@@ -1,4 +1,5 @@
 from dagster import ConfigurableResource
+from pydantic import Field
 
 
 class NlTransform(ConfigurableResource):
@@ -6,5 +7,5 @@ class NlTransform(ConfigurableResource):
     Used when we need a single transform that applies for the whole Netherlands.
     """
 
-    translate: list[float] = [171800.0, 472700.0, 0.0]
-    scale: list[float] = [0.001, 0.001, 0.001]
+    translate: list[float] = Field(default_factory=lambda: [171800.0, 472700.0, 0.0])
+    scale: list[float] = Field(default_factory=lambda: [0.001, 0.001, 0.001])

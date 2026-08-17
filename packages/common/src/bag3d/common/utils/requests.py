@@ -108,8 +108,8 @@ def download_file(
         requests.RequestException,
         requests.exceptions.ChunkedEncodingError,
         ValueError,
-    ) as e:  # pragma: no cover
-        logger.exception(e)
+    ):  # pragma: no cover
+        logger.exception("Download failed")
         return None
 
 

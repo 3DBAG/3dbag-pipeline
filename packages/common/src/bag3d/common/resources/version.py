@@ -4,7 +4,7 @@ from subprocess import CalledProcessError, TimeoutExpired, run
 from typing import Annotated
 
 from dagster import ConfigurableResource, get_dagster_logger
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, PrivateAttr
 
 logger = get_dagster_logger()
 
@@ -35,7 +35,7 @@ class ToolVersionsResource(ConfigurableResource):
     exe_lasindex: str | None = None
 
     # Cached versions
-    _version_cache: dict[str, str] = {}
+    _version_cache: dict[str, str] = PrivateAttr(default_factory=dict)
 
     def _extract_version(
         self, exe_path: str | None, version_flag: str = "--version"

@@ -1,7 +1,6 @@
 import os
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from dagster import get_dagster_logger
 

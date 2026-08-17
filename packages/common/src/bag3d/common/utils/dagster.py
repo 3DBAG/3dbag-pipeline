@@ -55,7 +55,7 @@ class PartitionDefinition3DBagDistribution(StaticPartitionsDefinition):
         logger = get_dagster_logger("PartitionDefinition3DBagDistribution")
         try:
             tile_ids = get_export_tile_ids()
-        except BaseException as e:
-            logger.exception(e)
+        except BaseException:
+            logger.exception("Failed to get export tile IDs")
             tile_ids = []
         super().__init__(partition_keys=sorted(tile_ids))
