@@ -7,7 +7,7 @@ import shutil
 import sqlite3
 import tempfile
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -922,7 +922,7 @@ def integration_manifest(
             }
     manifest = {
         "fixture_version": "2",
-        "date": date.today().isoformat(),
+        "date": datetime.now(tz=timezone.utc).date().isoformat(),
         "aoi": {
             "wkt": AOI_WKT,
             "minx": aoi[0],
