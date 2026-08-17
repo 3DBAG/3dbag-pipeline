@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -38,7 +38,7 @@ def bag_woonplaatsactueelbestaand(
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -70,7 +70,7 @@ def bag_verblijfsobjectactueelbestaand(
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -113,7 +113,7 @@ def bag_pandactueelbestaand(
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -161,7 +161,7 @@ def bag_openbareruimteactueelbestaand(
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
@@ -192,7 +192,7 @@ def bag_nummeraanduidingactueelbestaand(
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
     if config.reference_date is not None:
         reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)

@@ -293,12 +293,13 @@ def cityobject_validate_attributes(
                 outcome=AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES,
             )
         for specs_attr in building_attributes.values():
-            if co_attr := co_attributes.get(specs_attr.name):
-                if type(co_attr).__name__ != specs_attr.type.as_python():
-                    yield AttributeValidationResultOne(
-                        attribute_name=specs_attr.name,
-                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                    )
+            if (co_attr := co_attributes.get(specs_attr.name)) and (
+                type(co_attr).__name__ != specs_attr.type.as_python()
+            ):
+                yield AttributeValidationResultOne(
+                    attribute_name=specs_attr.name,
+                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                )
 
     # Semantic attributes
     if geometries := co.get("geometry"):
@@ -336,12 +337,13 @@ def cityobject_validate_attributes(
                             outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
                         )
                     for specs_attr in specs_surface_attributes.values():
-                        if sem_attr := semantic_surface_attributes.get(specs_attr.name):
-                            if type(sem_attr).__name__ != specs_attr.type.as_python():
-                                yield AttributeValidationResultOne(
-                                    attribute_name=specs_attr.name,
-                                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                                )
+                        if (
+                            sem_attr := semantic_surface_attributes.get(specs_attr.name)
+                        ) and (type(sem_attr).__name__ != specs_attr.type.as_python()):
+                            yield AttributeValidationResultOne(
+                                attribute_name=specs_attr.name,
+                                outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                            )
 
 
 def cityjson(

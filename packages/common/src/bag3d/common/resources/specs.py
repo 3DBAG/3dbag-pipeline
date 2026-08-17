@@ -51,7 +51,9 @@ class Specs3DBAGResource(ConfigurableResource):
                 f"Unsupported data format: {data_format}. Allowed formats are: {allowed_formats}"
             )
         for a_name, a_spec in self.attributes.items():
-            if format_spec := getattr(a_spec.applies_to, data_format):
-                if attribute_locations := format_spec["locations"]:
-                    if len(requested_locations.intersection(attribute_locations)) > 0:
-                        yield a_name, a_spec
+            if (
+                (format_spec := getattr(a_spec.applies_to, data_format))
+                and (attribute_locations := format_spec["locations"])
+                and len(requested_locations.intersection(attribute_locations)) > 0
+            ):
+                yield a_name, a_spec

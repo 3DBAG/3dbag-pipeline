@@ -557,10 +557,11 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     if ahn_version in (5, 6):
         # We have a GeoJSON FeatureCollection
         for feature in json.loads(_hashes)["features"]:
-            if properties := feature.get("properties"):
-                if file_url := properties.get("file"):
-                    filename = file_url.split("/")[-1]
-                    checksums[filename] = properties.get("sha256")
+            if (properties := feature.get("properties")) and (
+                file_url := properties.get("file")
+            ):
+                filename = file_url.split("/")[-1]
+                checksums[filename] = properties.get("sha256")
     else:
         for tile in _hashes.strip().split("\n"):
             sha, file = tile.split()

@@ -243,15 +243,15 @@ def test_laz_files_ahn3_retries_after_checksum_failure(
         patch.object(
             LAZDownload, "validate", side_effect=[False, True]
         ) as validate_mock,
+        build_asset_context_for(laz_files_ahn3, partition_key="01cz1") as context,
     ):
-        with build_asset_context_for(laz_files_ahn3, partition_key="01cz1") as context:
-            res = laz_files_ahn3(
-                context,
-                config,
-                resources_ahn["file_store"],
-                md5_ahn3_fix,
-                tile_index_ahn_fix,
-            )
+        res = laz_files_ahn3(
+            context,
+            config,
+            resources_ahn["file_store"],
+            md5_ahn3_fix,
+            tile_index_ahn_fix,
+        )
 
     assert isinstance(res, Output)
     assert download_mock.call_count == 2

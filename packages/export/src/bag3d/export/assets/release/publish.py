@@ -1,7 +1,7 @@
 """Perform the final steps for the 3D BAG release on the publication server"""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
@@ -86,7 +86,7 @@ def publish_webservices(
     latest_schema = "webservice"
     dev_schema = "webservice_dev"
 
-    extension = str(datetime.now(tz=timezone.utc).date())
+    extension = str(datetime.now(tz=UTC).date())
     alter_latest_to_archive = (
         f"ALTER SCHEMA {latest_schema} RENAME TO bag3d_{extension};"
     )

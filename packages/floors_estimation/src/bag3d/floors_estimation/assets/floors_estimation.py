@@ -308,10 +308,12 @@ def predictions_table(
     query = SQL("""INSERT INTO {}
                 VALUES (%s, %s);""").format(predictions_table.id)
 
-    with connect(computation_db.connection.dsn) as connection:
-        with connection.cursor() as cur:
-            cur.executemany(query, data, returning=True)
-            connection.commit()
+    with (
+        connect(computation_db.connection.dsn) as connection,
+        connection.cursor() as cur,
+    ):
+        cur.executemany(query, data, returning=True)
+        connection.commit()
 
     return Output(predictions_table, metadata=metadata)
 

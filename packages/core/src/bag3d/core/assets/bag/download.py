@@ -1,6 +1,6 @@
 import zipfile
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from logging import Logger
 from typing import LiteralString
 
@@ -496,7 +496,7 @@ def bagextract_metadata(logger: Logger, extract_dir: Path) -> tuple[dict, str]:
 
     metadata["StandTechnischeDatum"] = datetime.strptime(
         str(LVC_Extract.StandTechnischeDatum), "%Y-%m-%d"
-    ).replace(tzinfo=timezone.utc)
+    ).replace(tzinfo=UTC)
 
     for g in Gebied_Registratif.getchildren():
         if g.tag == f"{{{nsmap['selecties-extract']}}}Gebied-GEM":  # pragma: no cover
