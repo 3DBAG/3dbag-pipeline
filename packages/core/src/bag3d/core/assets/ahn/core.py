@@ -171,7 +171,7 @@ def download_ahn6_index(
         resp = requests.get(AHN6_INDEX_URL, timeout=120)
         resp.raise_for_status()
         data = resp.json()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.error(f"Failed to download AHN6 index: {exc}")
         return {}
 
