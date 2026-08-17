@@ -2,7 +2,7 @@ import csv
 import json
 from collections.abc import Iterable
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid1
 
@@ -250,10 +250,8 @@ def metadata(
     For extended ISO lineage, see 19115-2, https://wiki.esipfed.org/ISO_Lineage. This
     has XML examples. And also https://wiki.esipfed.org/Data_Understanding_-_Provenance_(ISO-19115-1).
     """
-    date_3dbag = format_date(datetime.now(tz=timezone.utc).date(), version=False)
-    version_3dbag = (
-        f"v{format_date(datetime.now(tz=timezone.utc).date(), version=True)}"
-    )
+    date_3dbag = format_date(datetime.now(tz=UTC).date(), version=False)
+    version_3dbag = f"v{format_date(datetime.now(tz=UTC).date(), version=True)}"
     uuid_3dbag = str(uuid1())
 
     asset_keys = ASSET_DEPENDENCIES_FOR_METADATA
@@ -283,7 +281,7 @@ def metadata(
                         "runId": event_record.run_id,
                         "featureCount": rows.value if rows is not None else None,
                         "dateTime": datetime.fromtimestamp(
-                            event_record.event_log_entry.timestamp, tz=timezone.utc
+                            event_record.event_log_entry.timestamp, tz=UTC
                         )
                         .date()
                         .isoformat(),

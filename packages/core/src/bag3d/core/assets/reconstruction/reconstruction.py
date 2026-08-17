@@ -1,6 +1,6 @@
 import time
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha1
 from os import getenv
 
@@ -45,7 +45,7 @@ def generate_3dbag_version_date():
     """Generate a version from today's date and current timestamp hash."""
     sha1().update(str(time.time()).encode("utf-8"))
     hs = sha1().hexdigest()
-    dt = datetime.now(tz=timezone.utc).strftime("%Y%m%d")
+    dt = datetime.now(tz=UTC).strftime("%Y%m%d")
     template = "v_{date}_{hash}"
     version = template.format(date=dt, hash=hs)
     logger.info(f"Generated version: {version}")
@@ -59,7 +59,7 @@ def reconstruction_date() -> str:
     days.
     """
     template = "v{date}"
-    return template.format(date=format_date(datetime.now(tz=timezone.utc).date()))
+    return template.format(date=format_date(datetime.now(tz=UTC).date()))
 
 
 class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):

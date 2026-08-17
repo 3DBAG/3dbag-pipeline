@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.types import PostgresTableIdentifier
@@ -37,7 +37,9 @@ def bag_woonplaatsactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -67,7 +69,9 @@ def bag_verblijfsobjectactueelbestaand(
     table_name = "verblijfsobjectactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -108,7 +112,9 @@ def bag_pandactueelbestaand(
     table_name = "pandactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -154,7 +160,9 @@ def bag_openbareruimteactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -183,7 +191,9 @@ def bag_nummeraanduidingactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
