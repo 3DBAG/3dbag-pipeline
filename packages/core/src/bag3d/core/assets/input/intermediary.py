@@ -7,10 +7,10 @@ from bag3d.common.utils.database import (
     postgrestable_from_query,
 )
 from dagster import AssetIn, AutomationCondition, Output, asset, get_dagster_logger
-from psycopg.sql import SQL
+from psycopg.sql import SQL, Identifier
 
 INTERMEDIARY = "intermediary"
-NEW_SCHEMA = "reconstruction_input"
+RECONSTRUCTION_INPUT_SCHEMA = "reconstruction_input"
 
 logger = get_dagster_logger("input.intermediary")
 
@@ -18,22 +18,24 @@ logger = get_dagster_logger("input.intermediary")
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "top10nl_gebouw": AssetIn(key_prefix="top10nl"),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_kas_warenhuis(
-    bag_pandactueelbestaand, top10nl_gebouw, computation_db: DatabaseResource
+    bag_pandactueelbestaand_filtered, top10nl_gebouw, computation_db: DatabaseResource
 ) -> Output[PostgresTableIdentifier]:
     """The BAG Pand labelled as greenhouse, warehouse (kas, warenhuis) using the
     TOP10NL."""
-    create_schema(computation_db, NEW_SCHEMA, logger=logger)
-    new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_kas_warenhuis")
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    new_table = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "bag_kas_warenhuis"
+    )
     query = load_sql(
         query_params={
-            "bag_cleaned": bag_pandactueelbestaand,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "top10nl_gebouw": top10nl_gebouw,
             "new_table": new_table,
         }
@@ -58,10 +60,13 @@ def bag_bag_overlap(
 ) -> Output[PostgresTableIdentifier]:
     """The overlap between BAG polygons, in m2. For every object the
     total area of overlap is calculated."""
-    create_schema(computation_db, NEW_SCHEMA, logger=logger)
-    new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_bag_overlap")
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_bag_overlap")
     query = load_sql(
-        query_params={"bag_cleaned": bag_pandactueelbestaand, "new_table": new_table}
+        query_params={
+            "bag_pandactueelbestaand": bag_pandactueelbestaand,
+            "new_table": new_table,
+        }
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
     computation_db.connection.send_query(
@@ -73,47 +78,14 @@ def bag_bag_overlap(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
-    },
-    op_tags={"compute_kind": "sql"},
-    automation_condition=AutomationCondition.eager(),
-)
-def bag_adjacency(
-    bag_pandactueelbestaand, computation_db: DatabaseResource
-) -> Output[PostgresTableIdentifier]:
-    """BAG polygon adjacency index.
-
-    Stores one row per directed adjacency pair:
-    (identificatie, adjacent_identificatie).
-
-    Two polygons are adjacent when their geometries intersect or come within
-    0.1 units of each other. Self-pairs are excluded.
-    """
-    create_schema(computation_db, NEW_SCHEMA, logger=logger)
-    new_table = PostgresTableIdentifier(NEW_SCHEMA, "bag_adjacency")
-    query = load_sql(
-        query_params={"bag_pand": bag_pandactueelbestaand, "new_table": new_table}
-    )
-    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
-    computation_db.connection.send_query(
-        SQL(
-            "ALTER TABLE {} ADD PRIMARY KEY (identificatie, adjacent_identificatie)"
-        ).format(new_table.id)
-    )
-    return Output(new_table, metadata=metadata)
-
-
-@asset(
-    key_prefix=INTERMEDIARY,
-    ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "bag_verblijfsobjectactueelbestaand": AssetIn(key_prefix="bag"),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_pand_vbo_views(
-    bag_pandactueelbestaand,
+    bag_pandactueelbestaand_filtered,
     bag_verblijfsobjectactueelbestaand,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
@@ -125,16 +97,20 @@ def bag_pand_vbo_views(
     - pand_vbo_multi: pand with multiple VBOs with woonfunctie
     - pand_vbo_woonfunctie: all pand joined with VBOs with woonfunctie
     """
-    create_schema(computation_db, NEW_SCHEMA, logger=logger)
-    view_single = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_single")
-    view_multi = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_multi")
-    view_woonfunctie = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_woonfunctie")
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    view_single = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "pand_vbo_single"
+    )
+    view_multi = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "pand_vbo_multi")
+    view_woonfunctie = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "pand_vbo_woonfunctie"
+    )
     query = load_sql(
         query_params={
             "view_single": view_single,
             "view_multi": view_multi,
             "view_woonfunctie": view_woonfunctie,
-            "bag_pand": bag_pandactueelbestaand,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "bag_vbo": bag_verblijfsobjectactueelbestaand,
         }
     )
@@ -144,7 +120,7 @@ def bag_pand_vbo_views(
     return Output(
         view_single,
         metadata={
-            "schema": NEW_SCHEMA,
+            "schema": RECONSTRUCTION_INPUT_SCHEMA,
             "views": "pand_vbo_single, pand_vbo_multi, pand_vbo_woonfunctie",
         },
     )
@@ -153,14 +129,14 @@ def bag_pand_vbo_views(
 @asset(
     key_prefix=INTERMEDIARY,
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
         "bag_pand_vbo_views": AssetIn(key_prefix=INTERMEDIARY),
     },
     op_tags={"compute_kind": "sql"},
     automation_condition=AutomationCondition.eager(),
 )
 def bag_building_type(
-    bag_pandactueelbestaand,
+    bag_pandactueelbestaand_filtered,
     bag_pand_vbo_views,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
@@ -172,17 +148,145 @@ def bag_building_type(
 
     Depends on the bag_pand_vbo_views asset for the pand_vbo_single and pand_vbo_multi views.
     """
-    new_table = PostgresTableIdentifier(NEW_SCHEMA, "woningtypen")
+    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "woningtypen")
     drop_table(computation_db, new_table, logger=logger)
-    pand_vbo_single = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_single")
-    pand_vbo_multi = PostgresTableIdentifier(NEW_SCHEMA, "pand_vbo_multi")
+    pand_vbo_single = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "pand_vbo_single"
+    )
+    pand_vbo_multi = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "pand_vbo_multi"
+    )
     query = load_sql(
         query_params={
             "new_table": new_table,
-            "bag_pand": bag_pandactueelbestaand,
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
             "pand_vbo_single": pand_vbo_single,
             "pand_vbo_multi": pand_vbo_multi,
         }
     )
     metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bgt_pandactueelbestaand": AssetIn(key_prefix="bgt"),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_bgt_join(
+    bag_pandactueelbestaand,
+    bgt_pandactueelbestaand,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    """Spatial join of BAG Pand and BGT Pand, aggregating BGT polygon geometries per
+    BAG building identification."""
+    create_schema(computation_db, "bag", logger=logger)
+    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_bgt_join")
+    query = load_sql(
+        query_params={
+            "bag_pand": bag_pandactueelbestaand,
+            "bgt_pand": bgt_pandactueelbestaand,
+            "new_table": new_table,
+        }
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_bag_overlap": AssetIn(key_prefix=INTERMEDIARY),
+        "bag_bgt_join": AssetIn(key_prefix=INTERMEDIARY),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_pandactueelbestaand_filtered(
+    bag_pandactueelbestaand,
+    bag_bgt_join,
+    bag_bag_overlap,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    """Filtered BAG Pand table with problematic polygons removed.
+    Creates 2 tables in the reconstruction_input schema:
+    - bag_pandactueelbestaand_filtered: BAG polygons that pass the filtering criteria
+    - bag_pand_removed: BAG polygons that are removed due to filtering criteria
+
+    Removes:
+    - BAG polygons with area > 1000 m2 that have no matching BGT geometry
+    - BAG polygons where the BGT geometry area is less than 10% of the BAG geometry area
+    - BAG polygons which have a high percentage of overlap with other BAG polygons (overlap > 10% of BAG polygon area)
+
+    """
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    new_table = PostgresTableIdentifier(
+        RECONSTRUCTION_INPUT_SCHEMA, "bag_pandactueelbestaand_filtered"
+    )
+    query = load_sql(
+        query_params={
+            "bag_pand": bag_pandactueelbestaand,
+            "bag_bgt_join": bag_bgt_join,
+            "bag_bag_overlap": bag_bag_overlap,
+            "new_table": new_table,
+            "bag_pand_removed": PostgresTableIdentifier(
+                RECONSTRUCTION_INPUT_SCHEMA, "bag_pandactueelbestaand_removed"
+            ),
+        }
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    computation_db.connection.send_query(
+        SQL("ALTER TABLE {} ADD PRIMARY KEY (fid)").format(new_table.id)
+    )
+    computation_db.connection.send_query(
+        SQL("CREATE INDEX {} ON {} USING gist (geometrie)").format(
+            Identifier(f"{new_table.table.str}_geometrie_idx"), new_table.id
+        )
+    )
+    computation_db.connection.send_query(
+        SQL("CREATE INDEX {} ON {} (identificatie)").format(
+            Identifier(f"{new_table.table.str}_identificatie_idx"), new_table.id
+        )
+    )
+    return Output(new_table, metadata=metadata)
+
+
+@asset(
+    key_prefix=INTERMEDIARY,
+    ins={
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix=INTERMEDIARY),
+    },
+    op_tags={"compute_kind": "sql"},
+    automation_condition=AutomationCondition.eager(),
+)
+def bag_adjacency(
+    bag_pandactueelbestaand_filtered, computation_db: DatabaseResource
+) -> Output[PostgresTableIdentifier]:
+    """BAG polygon adjacency index.
+
+    Stores one row per directed adjacency pair:
+    (identificatie, adjacent_identificatie).
+
+    Two polygons are adjacent when their geometries intersect or come within
+    0.1 units of each other. Self-pairs are excluded.
+    """
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
+    new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_adjacency")
+    query = load_sql(
+        query_params={
+            "bag_pand_filtered": bag_pandactueelbestaand_filtered,
+            "new_table": new_table,
+        }
+    )
+    metadata = postgrestable_from_query(computation_db, query, new_table, logger=logger)
+    computation_db.connection.send_query(
+        SQL(
+            "ALTER TABLE {} ADD PRIMARY KEY (identificatie, adjacent_identificatie)"
+        ).format(new_table.id)
+    )
     return Output(new_table, metadata=metadata)

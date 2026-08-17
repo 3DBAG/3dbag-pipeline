@@ -85,6 +85,13 @@ KEY_TOP10NL_GEBOUW = dg.AssetKey(["top10nl", "top10nl_gebouw"])
 
 KEY_BAG_KAS_WARENHUIS = dg.AssetKey(["input", "intermediary", "bag_kas_warenhuis"])
 KEY_BAG_BAG_OVERLAP = dg.AssetKey(["input", "intermediary", "bag_bag_overlap"])
+KEY_BAG_BGT_JOIN = dg.AssetKey(["input", "intermediary", "bag_bgt_join"])
+KEY_BAG_PANDACTUEELBESTAAND_FILTERED = dg.AssetKey(
+    ["input", "intermediary", "bag_pandactueelbestaand_filtered"]
+)
+KEY_BAG_PAND_VBO_VIEWS = dg.AssetKey(["input", "intermediary", "bag_pand_vbo_views"])
+KEY_BAG_BUILDING_TYPE = dg.AssetKey(["input", "intermediary", "bag_building_type"])
+KEY_BAG_ADJACENCY = dg.AssetKey(["input", "intermediary", "bag_adjacency"])
 KEY_RECONSTRUCTION_INPUT = dg.AssetKey(["input", "reconstruction_input"])
 KEY_TILES = dg.AssetKey(["input", "tiles"])
 KEY_INDEX = dg.AssetKey(["input", "index"])
@@ -110,6 +117,11 @@ ALL_KEYS = [
     KEY_TOP10NL_GEBOUW,
     KEY_BAG_KAS_WARENHUIS,
     KEY_BAG_BAG_OVERLAP,
+    KEY_BAG_BGT_JOIN,
+    KEY_BAG_PANDACTUEELBESTAAND_FILTERED,
+    KEY_BAG_PAND_VBO_VIEWS,
+    KEY_BAG_BUILDING_TYPE,
+    KEY_BAG_ADJACENCY,
     KEY_RECONSTRUCTION_INPUT,
     KEY_TILES,
     KEY_INDEX,
@@ -135,7 +147,7 @@ def instance():
 
 @pytest.fixture
 def instance_all_materialized(instance):
-    """Instance with all 22 automated assets already materialized (clean baseline).
+    """Instance with all 27 automated assets already materialized (clean baseline).
 
     Starting from a fully-up-to-date state means eager() is quiet until something
     is re-materialized upstream, isolating which downstream assets react.

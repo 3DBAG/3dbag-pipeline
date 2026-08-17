@@ -15,7 +15,7 @@ logger = get_dagster_logger("input.input_for_reconstruction")
 
 @asset(
     ins={
-        "bag_pandactueelbestaand": AssetIn(key_prefix="bag"),
+        "bag_pandactueelbestaand_filtered": AssetIn(key_prefix="intermediary"),
         "bag_kas_warenhuis": AssetIn(key_prefix="intermediary"),
         "bag_bag_overlap": AssetIn(key_prefix="intermediary"),
     },
@@ -23,7 +23,7 @@ logger = get_dagster_logger("input.input_for_reconstruction")
     automation_condition=AutomationCondition.eager(),
 )
 def reconstruction_input(
-    bag_pandactueelbestaand,
+    bag_pandactueelbestaand_filtered,
     bag_kas_warenhuis,
     bag_bag_overlap,
     computation_db: DatabaseResource,
@@ -37,7 +37,7 @@ def reconstruction_input(
     )
     query = load_sql(
         query_params={
-            "bag_cleaned": bag_pandactueelbestaand,
+            "bag_pandactueelbestaand": bag_pandactueelbestaand_filtered,
             "bag_kas_warenhuis": bag_kas_warenhuis,
             "bag_bag_overlap": bag_bag_overlap,
             "new_table": new_table,
