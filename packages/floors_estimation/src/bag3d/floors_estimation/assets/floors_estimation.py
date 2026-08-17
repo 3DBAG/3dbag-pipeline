@@ -271,11 +271,20 @@ def preprocessed_features(
     return data
 
 
-def _patch_sklearn_utils() -> None:
-    """Restore ``sklearn.utils.tosequence``, removed in scikit-learn 1.0.
+def _patch_sklearn_pickle_compat() -> None:
+    """Patch scikit-learn so the pickled floor-estimation model can be loaded.
 
-    The floor-estimation model is pickled with the unmaintained ``sklearn_pandas``
-    package, which imports ``tosequence`` from ``sklearn.utils`` at unpickle time.
+    The model was serialized with older versions of scikit-learn and the
+    unmaintained ``sklearn_pandas`` package. Two things are missing from the
+    runtime environment:
+
+    - ``sklearn.utils.tosequence`` (removed in scikit-learn 1.0), imported by
+      ``sklearn_pandas`` at unpickle time.
+    - The Cython ``__pyx_unpickle_*`` helpers for the stateless loss-function
+      classes in ``sklearn._loss._loss`` (e.g. ``CyHalfSquaredError``). These
+      helpers were dropped in newer scikit-learn releases, but the model pickle
+      still references them. The classes themselves are stateless, so a fresh
+      instance is an equivalent stand-in.
     """
     from collections.abc import Sequence
 
@@ -292,13 +301,32 @@ def _patch_sklearn_utils() -> None:
 
         sklearn.utils.tosequence = tosequence
 
+    import sklearn._loss._loss as _loss
+
+    for name in dir(_loss):
+        if not name.startswith("Cy") or name == "CyLossFunction":
+            continue
+        cls = getattr(_loss, name)
+        if not isinstance(cls, type):
+            continue
+        unpickler = f"__pyx_unpickle_{name}"
+        if not hasattr(_loss, unpickler):
+            setattr(_loss, unpickler, _make_loss_unpickler(cls))
+
+
+def _make_loss_unpickler(cls):
+    def _unpickle(__pyx_type, __pyx_checksum, __pyx_state):
+        return __pyx_type()
+
+    return _unpickle
+
 
 @asset
 def inferenced_floors(
     preprocessed_features: pd.DataFrame, model_store: ModelStoreResource
 ) -> pd.DataFrame:
     """Runs the inference on the features."""
-    _patch_sklearn_utils()
+    _patch_sklearn_pickle_compat()
     logger.info(f"Loading model from {model_store.model_path}")
     pipeline = load(model_store.model_path)
     logger.info("Running the inference.")
