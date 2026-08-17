@@ -140,7 +140,7 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str | None = None):
         query = SQL("SELECT tile_id FROM {}").format(Identifier(schema, table_tiles))
     try:
         conn = PostgresConnection(
-            port=int(os.environ.get("BAG3D_PG_PORT", 5432)),
+            port=int(os.environ.get("BAG3D_PG_PORT", "5432")),
             user=os.environ.get("BAG3D_PG_USER"),
             password=os.environ.get("BAG3D_PG_PASSWORD"),
             dbname=os.environ.get("BAG3D_PG_DATABASE"),

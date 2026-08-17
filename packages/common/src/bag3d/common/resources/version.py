@@ -50,6 +50,7 @@ class ToolVersionsResource(ConfigurableResource):
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             # Return first line of output, sanitized
             return result.stdout.strip().split("\n")[0].replace(",", " ")

@@ -122,7 +122,7 @@ class CommandRunner:
             stderr=PIPE,
             cwd=cwd,
             env=env,
-            preexec_fn=self._pre_exec,
+            preexec_fn=self._pre_exec,  # noqa: PLW1509
             encoding="UTF-8",
         )
         stdout, stderr = sub_process.communicate()
@@ -150,7 +150,7 @@ class CommandRunner:
             stderr=PIPE,
             cwd=cwd,
             env=env,
-            preexec_fn=self._pre_exec,
+            preexec_fn=self._pre_exec,  # noqa: PLW1509
             encoding="UTF-8",
         )
         stdout, stderr = sub_process.communicate()
