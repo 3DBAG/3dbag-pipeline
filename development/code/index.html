@@ -1,0 +1,3162 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://3DBAG.github.io/3dbag-pipeline/development/code/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../documentation/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Code - bag3d-pipeline</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#code" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="bag3d-pipeline" class="md-header__button md-logo" aria-label="bag3d-pipeline" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bag3d-pipeline
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Code
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/3DBAG/3dbag-pipeline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    3DBAG/3dbag-pipeline
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="bag3d-pipeline" class="md-nav__button md-logo" aria-label="bag3d-pipeline" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    bag3d-pipeline
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/3DBAG/3dbag-pipeline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    3DBAG/3dbag-pipeline
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Overview
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3DBAG pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../source_datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#docker-volumes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Volumes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-setup-in-pycharm-professional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker setup in PyCharm (professional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Docker setup in PyCharm (professional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-interpreter-in-a-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python interpreter in a container
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analyzing-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analyzing Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development-without-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development (without Docker)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-requirements-without-the-docker-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing requirements without the Docker setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coding Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dagster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dagster
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dagster">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#concurrency-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concurrency Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#two-levels-of-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two Levels of Concurrency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pool-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pool Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#purpose-of-pools-for-different-asset-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose of Pools for Different Asset Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-tyler-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Tyler Assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pool-assignments-in-the-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pool Assignments in the Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-add-pools-to-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Add Pools to Assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-pool-limits-per-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring Pool Limits per Deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminate-all-in-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminate all in the queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedules-and-sensors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedules and sensors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graphql-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraphQL API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pycharm-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PyCharm Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../deployment/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deployment
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../production/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Production
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plans/native-dagster-orchestration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plans
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packages
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Packages
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index_common/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    common
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index_core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index_floors_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    floors_estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index_party_walls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    party_walls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../adr/0001-ahn-checksum-automation-strategy/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Decisions
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-independent-package-environments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0002: Independent Package Environments over uv Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-building-surfaces-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0003: building_surfaces Performance — ProcessPoolExecutor Initializer Pattern
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-cjindex-stage-interface-and-cityjsonseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0004: cjindex as Stage Interface and CityJSONSeq over Per-Feature Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-manifest-owned-versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR 0005: Manifest-Owned Versioning and Docker Image Resolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    bag3d
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    bag3d
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/bag3d/common/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    common
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_1" id="__nav_8_1_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    common
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_1_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/bag3d/common/resources/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    resources
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_1_1" id="__nav_8_1_1_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_8_1_1_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_1_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    resources
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/cjindex/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cjindex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/executables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    executables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/server_transfer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    server_transfer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    specs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/values/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    values
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/version/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    version
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/resources/wkt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    wkt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/sqlfiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sqlfiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_1_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/bag3d/common/testing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    testing
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_1_3" id="__nav_8_1_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_8_1_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    testing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/testing/conftest_plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    conftest_plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/testing/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/testing/mock_resources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mock_resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_1_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/bag3d/common/utils/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utils
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_1_5" id="__nav_8_1_1_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_8_1_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    utils
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/cityjsonseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cityjsonseq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/dagster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dagster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/geodata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    geodata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/manifest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    manifest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bag3d/common/utils/requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#docker-volumes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Volumes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-setup-in-pycharm-professional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker setup in PyCharm (professional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Docker setup in PyCharm (professional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python-interpreter-in-a-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python interpreter in a container
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analyzing-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analyzing Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development-without-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development (without Docker)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-requirements-without-the-docker-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing requirements without the Docker setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coding Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dagster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dagster
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dagster">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#concurrency-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concurrency Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#two-levels-of-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two Levels of Concurrency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pool-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pool Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#purpose-of-pools-for-different-asset-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose of Pools for Different Asset Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-tyler-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Tyler Assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pool-assignments-in-the-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pool Assignments in the Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-add-pools-to-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Add Pools to Assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuring-pool-limits-per-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuring Pool Limits per Deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminate-all-in-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terminate all in the queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedules-and-sensors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedules and sensors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graphql-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraphQL API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="code">Code<a class="headerlink" href="#code" title="Permanent link">&para;</a></h1>
+<p>Thank you for considering contributing to the 3DBAG pipeline. In this document, we will guide you through setting up your local development environment and running the tests. For information on how to submit a contribution, please refer to our <a href="../guidelines/">guidelines</a>.</p>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<p>After cloning the repository from <a href="https://github.com/3DBAG/3dbag-pipeline">https://github.com/3DBAG/3dbag-pipeline</a>, the recommended way to set up your environment is with Docker.</p>
+<p>Requirements:</p>
+<ul>
+<li>
+<p>Python &gt;=3.11</p>
+</li>
+<li>
+<p>make</p>
+</li>
+<li>
+<p>Docker Engine</p>
+</li>
+<li>
+<p>Docker Compose (&gt;= 2.22.0)</p>
+</li>
+</ul>
+<p>We use <code>make</code> for managing many commands that we use in development.</p>
+<h3 id="docker-volumes">Docker Volumes<a class="headerlink" href="#docker-volumes" title="Permanent link">&para;</a></h3>
+<p>The Makefile uses two different .env files for controlling the local environment and the environment in the Docker containers.
+The <code>.env</code> file in the root directory is used for the local environment and the <code>docker/.env</code> file is used for the Docker environment.</p>
+<p>Create the Docker volumes with:</p>
+<pre><code class="language-shell">make docker_volume_create
+</code></pre>
+<p>In addition, <code>make docker_volume_rm</code> removes the volumes, <code>make docker_volume_recreate</code> recreates the volumes.</p>
+<h3 id="docker-containers">Docker containers<a class="headerlink" href="#docker-containers" title="Permanent link">&para;</a></h3>
+<p>Start the Docker containers with:</p>
+<pre><code class="language-shell">make docker_up
+</code></pre>
+<p>When you issue this command for the first time, several things happen:</p>
+<ol>
+<li>
+<p>The required base images are pulled from DockerHub.</p>
+</li>
+<li>
+<p>The 3dbag-pipeline workflow images are built from the local source code.</p>
+</li>
+<li>
+<p>The containers are connected to the volumes and networks.</p>
+</li>
+<li>
+<p>The dagster-webserver is published on <code>localhost:3003</code>.</p>
+</li>
+</ol>
+<p>The running containers contain all the tools required for a complete run of the 3dbag-pipeline.
+This means that you can develop and test any part of the code locally.</p>
+<p>The <code>docker_up</code> target sets the docker compose project name to <code>bag3d-dev</code>.</p>
+<h3 id="docker-setup-in-pycharm-professional">Docker setup in PyCharm (professional)<a class="headerlink" href="#docker-setup-in-pycharm-professional" title="Permanent link">&para;</a></h3>
+<h4 id="running-the-services">Running the services<a class="headerlink" href="#running-the-services" title="Permanent link">&para;</a></h4>
+<p>Create run configuration that uses the docker compose file.
+Use the <code>docker/.env</code> environment variables file. For direct Docker Compose or PyCharm
+configurations, also set the manifest-derived variables printed by:</p>
+<pre><code class="language-shell">eval &quot;$(python3 scripts/manifest_versions.py env --format shell)&quot;
+</code></pre>
+<p>For example, see the screenshot below. 
+<img alt="" src="../../images/docker_compose_run_config.png" /></p>
+<p>Start the services with <code>make docker_dev</code>; it resolves the required image references from
+the manifest before invoking Docker Compose. For example, see the screenshot below.
+<img alt="" src="../../images/docker_compose_start.png" /></p>
+<h4 id="running-tests">Running tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h4>
+<p>Make sure that the docker volumes are created (see above), but the <a href="#Running-the-services">docker services</a> are not running and the containers are removed.</p>
+<p>You need to add a python interpreter per workflow package (core, floors_estimation, party_walls). 
+Set up the python interpreter in the docker container of the workflow packages as the project interpreter, using PyCharm's docker-compose interpreter setup (<code>Add Interpreter</code> / <code>On Docker Compose...</code>).
+Note here that you need to use the matching service for the 3dbag-pipeline package, and set the two environment variables just as when configuring the <a href="#Running-the-services">docker services</a>. 
+For example, for working on the <code>core</code> package, you need to configure the <code>bag3d-core</code> service for the python interpreter.\
+After clicking 'Next', you might need to manually set the path to the python executable, which is <code>/opt/3dbag-pipeline/venv/bin/python</code>. The python installation is configured in the <a href="deployment/docker.md">tools docker image</a>.</p>
+<p><img alt="" src="../../images/docker_compose_interpreter.png" /></p>
+<p>To run a specific test, set up a run configuration with the python interpreter in docker and make sure to use the environment variables from the <code>docker/.env</code> file.
+<img alt="" src="../../images/docker_compose_test_config.png" /></p>
+<p>For further details, see the <a href="https://www.jetbrains.com/help/pycharm/using-docker-compose-as-a-remote-interpreter.html#run">PyCharm documentation</a>.</p>
+<h4 id="python-interpreter-in-a-container">Python interpreter in a container<a class="headerlink" href="#python-interpreter-in-a-container" title="Permanent link">&para;</a></h4>
+<p>To set up a Python interpreter for getting correct code analysis in the editor and being able to run a python console, you need to add a new interpreter in a docker container.</p>
+<ol>
+<li>Build the docker images from the local source code with <code>make docker_up</code>.</li>
+<li>Add a new python interpreter with <code>Add New Interpreter</code> &gt; <code>On Docker...</code> (instead of <code>On Docker Compose...</code>).</li>
+<li>Set <code>Pull or use existing</code> image (instead of <code>Build</code>).</li>
+<li>Set image to <code>3dbag-pipeline-core:develop</code>. This image should have been built by the <code>make docker_up</code> step.</li>
+</ol>
+<h3 id="code-formatting">Code formatting<a class="headerlink" href="#code-formatting" title="Permanent link">&para;</a></h3>
+<p>In you have a local installation of <code>uv</code>, you can format you code with:</p>
+<pre><code class="language-shell">make format
+</code></pre>
+<h3 id="tests">Tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h3>
+<p>Tests are run separately for each package and they are located in the <code>tests</code> directory of the package.
+Tests use <code>pytest</code>.</p>
+<p>The default pytest tier is expected to run offline with mocked database, HTTP, and file resources.</p>
+<p>You can run the tests for all packages with:</p>
+<pre><code class="language-shell">make test
+</code></pre>
+<h3 id="analyzing-test-results">Analyzing Test Results<a class="headerlink" href="#analyzing-test-results" title="Permanent link">&para;</a></h3>
+<p>After running tests, you can analyze the warnings and errors with the test log parser:</p>
+<pre><code class="language-shell">make test_report
+</code></pre>
+<p>This command parses <code>tests/test.log</code> and displays a summary of unique warnings and errors, grouped by type and sorted by frequency. This is useful for identifying systematic issues across test runs.</p>
+<p><strong>Example output:</strong></p>
+<pre><code>=== Test Log Analysis: tests/test.log ===
+
+WARNINGS (8 unique):
+──────────────────────────────────────────────────
+[146 occurrences] PydanticDeprecatedSince20
+  Location: .../dagster/_model/pydantic_compat_layer.py:70
+  Message: The `__fields__` attribute is deprecated, use the `model_fields` class property instead...
+
+[10 occurrences] DeprecationWarning
+  Location: .../dagster/_utils/__init__.py:691
+  Message: Function `DagsterInstance.get_event_records` is deprecated and will be removed in 2.0.
+
+Summary: 8 unique warnings
+</code></pre>
+<p>For more options, see <code>scripts/README.md</code> or run:</p>
+<pre><code class="language-shell">python3 scripts/parse_test_log.py --help
+</code></pre>
+<h2 id="local-development-without-docker">Local development (without Docker)<a class="headerlink" href="#local-development-without-docker" title="Permanent link">&para;</a></h2>
+<p>If you don't need to run the full pipeline (e.g. for working on Dagster definitions, sensors, or Python logic that doesn't require the external tools), you can run the Dagster UI locally without Docker.</p>
+<p>Install <code>uv</code> if you don't have it yet:</p>
+<pre><code class="language-shell">make local_install_uv
+</code></pre>
+<p>Create virtual environments for all packages:</p>
+<pre><code class="language-shell">make local_venv
+</code></pre>
+<p>Start the Dagster dev server:</p>
+<pre><code class="language-shell">make local_dev
+</code></pre>
+<p>This runs <code>dagster dev</code> using <code>tests/dagster_home/workspace.yaml</code> and serves the Dagster UI on <code>http://localhost:3000</code>.</p>
+<p>Note that external tools (roofer, tyler, GDAL, PDAL) are not available in this mode. Assets that invoke those tools will fail unless the tools are installed separately (see below).</p>
+<h2 id="installing-requirements-without-the-docker-setup">Installing requirements without the Docker setup<a class="headerlink" href="#installing-requirements-without-the-docker-setup" title="Permanent link">&para;</a></h2>
+<p>The pipeline has the following requirements:</p>
+<ul>
+<li>
+<p>Python 3.12</p>
+</li>
+<li>
+<p>Docker</p>
+</li>
+<li>
+<p><a href="https://github.com/3DGI/tyler">Tyler</a></p>
+</li>
+<li>
+<p><a href="https://github.com/3DBAG/roofer">Roofer</a></p>
+</li>
+<li>
+<p><a href="https://github.com/LAStools/LAStools">LAStools</a></p>
+</li>
+<li>
+<p><a href="https://github.com/OSGeo/gdal">gdal</a></p>
+</li>
+<li>
+<p><a href="https://github.com/PDAL/PDAL">pdal</a></p>
+</li>
+</ul>
+<p>The <code>tools-build.sh</code> Bash script at the root of the repository can help you to build the required tools.
+See <code>tools-build.sh --help</code> for usage instructions.
+Note that you need to run <code>tools-build.sh</code> with <code>bash</code> (not <code>sh</code>), and it can take a
+couple of hours to build everything.
+Requirements for building the tools:</p>
+<ul>
+<li>C and C++ compilers (min. GCC 13 or Clang 18)</li>
+<li>CMake</li>
+<li>Rust toolchain</li>
+<li>Git</li>
+<li>wget</li>
+<li>libgeos</li>
+<li>sqlite3</li>
+<li>libtiff</li>
+</ul>
+<h2 id="branches">Branches<a class="headerlink" href="#branches" title="Permanent link">&para;</a></h2>
+<p>The <code>master</code> branch contains stable versions of the 3dbag-pipeline.
+We use the master branch to produce a 3DBAG version. 
+After a new 3DBAG is successfully produced, we tag and release the master branch, using the version number of the new 3DBAG, in the form of <code>&lt;year&gt;.&lt;month&gt;.&lt;day&gt;</code>, for example <code>2024.10.24</code>.</p>
+<p>We use production candidate tags in the form of <code>&lt;year&gt;.&lt;month&gt;-pc&lt;build&gt;</code>, for example <code>2024.10-pc0</code>.
+Production candidates are versions on the <code>develop</code> branch that are deployed to our production server and tested with a full pipeline run, but with a subset of the input.
+If a production candidate is successful then it will be used for producing the final 3DBAG.</p>
+<p>Moving the code onto a <code>production</code> branch helps the collaboration with external contributors.
+When we move a version onto <code>production</code>, we freeze that version and won't add any new features, only fixes that are required in the production test.
+At the same time, work can continue on the <code>develop</code> branch, pull requests can be opened and merged.</p>
+<p>The <code>develop</code> branch is a trunk where the pull requests from the contributors are merged.
+When a pull request is opened, the following checks are performed in GitHub Actions:
+- static code analysis,
+- formatting conformance,
+- unit testing,
+- integration testing.
+Each check must pass for the pull request in order to be approved.</p>
+<p>When a pull request is merged into the develop branch, the following actions are performed in GitHub Actions:
+- documentation is built,
+- the docker images are built and published on DockerHub with the <code>develop</code> tag,
+- the <code>develop</code> docker images are deployed onto our production server.</p>
+<h2 id="coding-conventions">Coding Conventions<a class="headerlink" href="#coding-conventions" title="Permanent link">&para;</a></h2>
+<p>SQL files are stored in the <code>sqlfiles</code> subpackage, so that the <code>bag3d.common.utils.database.load_sql</code> function can load them.</p>
+<p>The dependency graph of the 3D BAG packages is strictly <code>common</code>&lt;--<em>workflow packages</em>, thus workflow packages cannot depend on each other.
+If you find that you need to depend on functionality in another workflow package, move that function to <code>common</code>.</p>
+<p>Docstrings follow the <a href="https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings">Google style</a>. 
+However, <em>dagster</em> is too smart for it's own good and if you describe the return value with the <code>Returns:</code> section, then <em>dagster</em> will only display the text of the <code>Returns:</code> section in the dagster UI.
+A workaround for this is to include the <code>Returns:</code> heading in the return value description.
+For example <code>Returns a collection type, storing the...</code></p>
+<p>Assets are usually some results of computations, therefore their names are nouns, not verbs.</p>
+<h2 id="release-process">Release process<a class="headerlink" href="#release-process" title="Permanent link">&para;</a></h2>
+<p>Release always happens from the <code>master</code> branch, after merging the successful production candidate branch into <code>master</code>.
+See the <a href="#branches">branches</a> section for more information.</p>
+<ol>
+<li>If the release needs changed external tools, merge that tools update to <code>develop</code> first. It must have a new <code>images.tools.version</code>; wait for the tools workflow to publish it and commit its <code>images.tools.digest</code>.</li>
+<li>Update <code>3dbag-manifest.json</code> with the pipeline <code>version</code> and update <code>CHANGELOG.md</code>. The changelog must include that version, e.g. <code>## [2024.10.24]</code>.</li>
+<li>Run <code>make sync_versions</code> and <code>python3 scripts/manifest_versions.py check</code>, then merge the current production candidate branch into <code>master</code>.</li>
+<li>Manually trigger the release workflow on GitHub Actions. It uses <code>manifest.version</code>, creates the matching tag and release, and publishes pipeline images from the digest-pinned tools base image.</li>
+<li>The workflow automatically opens a pull request from <code>master</code> to <code>develop</code> to merge back the release changes. Merge it after the release is complete.</li>
+</ol>
+<h2 id="dagster">Dagster<a class="headerlink" href="#dagster" title="Permanent link">&para;</a></h2>
+<h3 id="concurrency-management">Concurrency Management<a class="headerlink" href="#concurrency-management" title="Permanent link">&para;</a></h3>
+<p>The 3DBAG pipeline uses Dagster's concurrency pools to manage resource usage across assets. Understanding concurrency configuration is essential for optimizing performance and preventing resource exhaustion.</p>
+<h4 id="two-levels-of-concurrency">Two Levels of Concurrency<a class="headerlink" href="#two-levels-of-concurrency" title="Permanent link">&para;</a></h4>
+<p>The pipeline implements two distinct levels of concurrency control:</p>
+<p><strong>1. Pool-level concurrency</strong>
+Controls how many asset materializations can execute <strong>simultaneously</strong> across the Dagster instance. Configured via the <code>pool</code> parameter on assets:</p>
+<pre><code class="language-python">@asset(pool=&quot;roofer&quot;)
+def reconstructed_building_models_nl(...):
+    ...
+</code></pre>
+<p><strong>2. Tool-level concurrency</strong>
+Controls threads/workers <strong>within a single tool invocation</strong>. Configured via asset config parameters:</p>
+<pre><code class="language-python">class RooferConfig(Config):
+    concurrency: int = Field(
+        default_factory=lambda: int(getenv(&quot;BAG3D_CONCURRENCY_TOOL_ROOFER&quot;, &quot;10&quot;)),
+        description=&quot;Roofer --jobs (threads per invocation)&quot;
+    )
+</code></pre>
+<h4 id="pool-configuration">Pool Configuration<a class="headerlink" href="#pool-configuration" title="Permanent link">&para;</a></h4>
+<p>Pools are configured in <code>docker/dagster/dagster.yaml</code>:</p>
+<pre><code class="language-yaml">concurrency:
+  pools:
+    default_limit: 1  # Default: only 1 asset per pool runs at a time
+</code></pre>
+<p>With <code>default_limit: 1</code>, only one asset from each pool can run at a time across the entire Dagster instance.</p>
+<h4 id="purpose-of-pools-for-different-asset-types">Purpose of Pools for Different Asset Types<a class="headerlink" href="#purpose-of-pools-for-different-asset-types" title="Permanent link">&para;</a></h4>
+<p>Pools serve different purposes depending on whether assets are partitioned:</p>
+<p><strong>Partitioned assets</strong> (e.g., <code>laz_files_ahn3</code>, <code>reconstructed_building_models_nl</code>):
+- Limit concurrent partitions of the <strong>same asset</strong>
+- Example: With <code>pool="roofer"</code> and <code>limit: 1</code>, only 1 partition of <code>reconstructed_building_models_nl</code> runs at a time
+- Prevents: 10 partitions each spawning 10-threaded roofer processes → 100 threads competing for resources</p>
+<p><strong>Non-partitioned assets</strong> (e.g., tyler tiling assets, compression, validation):
+- Limit concurrent execution across <strong>different assets</strong> using the same tool/resource
+- Example: 4 tyler assets (<code>reconstruction_output_multitiles_nl</code>, <code>reconstruction_output_3dtiles_lod12_nl</code>, etc.) all share <code>pool="tyler"</code>
+- With <code>default_limit: 1</code>, only 1 tyler asset can run at a time
+- Prevents: Multiple different assets running tyler simultaneously, each with multi-threaded execution → resource overload</p>
+<h4 id="example-tyler-assets">Example: Tyler Assets<a class="headerlink" href="#example-tyler-assets" title="Permanent link">&para;</a></h4>
+<p>Without pools:</p>
+<pre><code>Dagster sees 4 independent tyler assets with satisfied dependencies
+→ Tries to run all 4 in parallel
+→ Each spawns a multi-threaded tyler process (e.g., 10 threads each)
+→ System gets 40+ threads competing for CPU/memory → OVERLOAD
+</code></pre>
+<p>With <code>pool="tyler"</code> and <code>limit: 1</code>:</p>
+<pre><code>Only 1 tyler asset runs at a time
+→ That single invocation uses tool-level concurrency (10 threads)
+→ Other tyler assets queue until the first completes
+→ System stays within resource budget
+</code></pre>
+<h4 id="pool-assignments-in-the-pipeline">Pool Assignments in the Pipeline<a class="headerlink" href="#pool-assignments-in-the-pipeline" title="Permanent link">&para;</a></h4>
+<p>Current pool assignments (limits configured in deployment <code>.env</code> files):</p>
+<ul>
+<li><code>pool="laz_download"</code> - AHN LAZ file downloads (prevents network/disk saturation)</li>
+<li><code>pool="ahn_metadata"</code> - AHN metadata and indexing operations</li>
+<li><code>pool="roofer"</code> - 3D reconstruction (memory/CPU intensive)</li>
+<li><code>pool="tyler"</code> - Multiple tiling assets share this pool</li>
+<li><code>pool="compression"</code> - Archive compression operations</li>
+<li><code>pool="validation"</code> - Format validation with ProcessPoolExecutor</li>
+</ul>
+<h4 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h4>
+<p>Concurrency limits are configured via environment variables in <code>docker/.env</code>:</p>
+<pre><code class="language-bash"># Tool-level: threads/workers per single tool invocation
+BAG3D_CONCURRENCY_TOOL_ROOFER=10
+BAG3D_CONCURRENCY_TOOL_TYLER=10
+BAG3D_CONCURRENCY_TOOL_ARCHIVE=10
+BAG3D_CONCURRENCY_TOOL_VALIDATION=4
+</code></pre>
+<p>These values are read by asset configs using <code>Field(default_factory=lambda: int(getenv(...)))</code>.</p>
+<p>Pool-level limits are configured in deployment <code>.env</code> files only (see "Configuring Pool Limits per Deployment" below).</p>
+<h4 id="when-to-add-pools-to-assets">When to Add Pools to Assets<a class="headerlink" href="#when-to-add-pools-to-assets" title="Permanent link">&para;</a></h4>
+<p>Add a pool to an asset when:</p>
+<ol>
+<li><strong>Partitioned assets</strong>: The asset runs many partitions that shouldn't all execute simultaneously</li>
+<li><strong>Resource-intensive tools</strong>: The asset uses expensive tools (CPU/memory/disk) that shouldn't run multiple instances in parallel</li>
+<li><strong>Shared tool across assets</strong>: Multiple different assets use the same tool and shouldn't run concurrently</li>
+</ol>
+<p>Without appropriate pool assignments, Dagster will attempt to parallelize asset execution based on the DAG structure alone, which can lead to resource exhaustion.</p>
+<h4 id="configuring-pool-limits-per-deployment">Configuring Pool Limits per Deployment<a class="headerlink" href="#configuring-pool-limits-per-deployment" title="Permanent link">&para;</a></h4>
+<p>Pool limits in <code>dagster.yaml</code> default to <code>default_limit: 1</code> (one asset per pool at a time). For production or PC deployments, limits are set dynamically via environment variables when <code>runner.py</code> executes.</p>
+<p>Add <code>BAG3D_POOL_LIMIT_*</code> variables to the deployment <code>.env</code> file:</p>
+<pre><code class="language-bash"># Pool-level: max concurrent Dagster asset materializations per pool
+BAG3D_POOL_LIMIT_ROOFER=1
+BAG3D_POOL_LIMIT_TYLER=1
+BAG3D_POOL_LIMIT_COMPRESSION=20
+BAG3D_POOL_LIMIT_VALIDATION=10
+BAG3D_POOL_LIMIT_AHN_METADATA=4
+BAG3D_POOL_LIMIT_LAZ_DOWNLOAD=1
+</code></pre>
+<p><code>runner.py</code> reads these variables and sets the limits via the Dagster GraphQL API before submitting jobs. Limits are stored in PostgreSQL and persist across daemon restarts.</p>
+<p><strong>Local development</strong> uses <code>default_limit: 1</code> for all pools — no configuration needed.</p>
+<p>To check current pool limits on a running deployment:</p>
+<pre><code class="language-shell"># Production
+just -f deployment/3dbag-pipeline/production/justfile concurrency-status
+
+# PC
+just -f deployment/3dbag-pipeline/pc/justfile concurrency-status
+</code></pre>
+<p>To manually adjust a limit (e.g. for local testing):</p>
+<pre><code class="language-shell">dagster instance concurrency set-limit &lt;pool&gt; &lt;limit&gt;
+</code></pre>
+<h4 id="terminate-all-in-the-queue">Terminate all in the queue<a class="headerlink" href="#terminate-all-in-the-queue" title="Permanent link">&para;</a></h4>
+<p>Needs to be executed in the environment where the Dagster UI and the Dagster-daemon are running.
+This is currently <code>/opt/dagster/venv</code> on gilfoyle.
+On gilfoyle, need to source all the environment variables first (<code>/opt/dagster/dagster_home/.env</code>).</p>
+<p>On gilfyole:</p>
+<pre><code class="language-shell">su dagster
+export DAGSTER_HOME=/opt/dagster/dagster_home
+source DAGSTER_HOME=/opt/dagster/dagster_home/.env
+source /opt/dagster/venv/bin/activate
+</code></pre>
+<pre><code class="language-python">from dagster import DagsterInstance, RunsFilter, DagsterRunStatus
+
+instance = DagsterInstance.get() # needs your DAGSTER_HOME to be set, DAGSTER_HOME=/opt/dagster/dagster_home on gilfoyle
+
+while True:
+    queued_runs = instance.get_runs(limit=100, filters=RunsFilter(statuses=[DagsterRunStatus.QUEUED]))
+    if not queued_runs:
+        break
+    for run in queued_runs:
+        instance.report_run_canceled(run)
+</code></pre>
+<h4 id="schedules-and-sensors">Schedules and sensors<a class="headerlink" href="#schedules-and-sensors" title="Permanent link">&para;</a></h4>
+<p>If you want to enable Dagster <a href="https://docs.dagster.io/concepts/partitions-schedules-sensors/schedules">Schedules</a> or <a href="https://docs.dagster.io/concepts/partitions-schedules-sensors/sensors">Sensors</a> for your jobs, start the <a href="https://docs.dagster.io/deployment/dagster-daemon">Dagster Daemon</a> process in the same folder as your <code>workspace.yaml</code> file, but in a different shell or terminal.</p>
+<p>The <code>$DAGSTER_HOME</code> environment variable must be set to a directory for the daemon to work. Note: using directories within /tmp may cause issues. See <a href="https://docs.dagster.io/deployment/dagster-instance#default-local-behavior">Dagster Instance default local behavior</a> for more details.</p>
+<p>In this repository the <code>$DAGSTER_HOME</code> is in <code>tests/dagster_home</code>.</p>
+<pre><code class="language-bash">export DAGSTER_HOME=&lt;absolute path to tests/dagster_home&gt;
+dagster-daemon run
+</code></pre>
+<p>Once your Dagster Daemon is running, you can start turning on schedules and sensors for your jobs.</p>
+<h4 id="graphql-api">GraphQL API<a class="headerlink" href="#graphql-api" title="Permanent link">&para;</a></h4>
+<p>Dagster has a GraphQL API and it is served alongside the dagster-webserver at <code>/graphql</code> (eg <code>http://localhost:3000/graphql</code>).
+One can do basically everything that is doable in the Dagster UI.
+Retrieve data on assets, runs etc., but also launch runs.</p>
+<p>This query to get the asset materializations metadata and asset dependencies (lineage):</p>
+<pre><code>{
+  assetNodes(
+    group: {
+      groupName: &quot;top10nl&quot;
+      repositoryName: &quot;__repository__&quot;
+      repositoryLocationName: &quot;&lt;your-code-location-name&gt;&quot;
+    }
+    pipeline: {
+      pipelineName: &quot;source_input&quot;
+      repositoryName: &quot;__repository__&quot;
+      repositoryLocationName: &quot;&lt;your-code-location-name&gt;&quot;
+    }
+    # assetKeys: { path: [&quot;top10nl&quot;, &quot;stage_top10nl_gebouw&quot;] }
+    loadMaterializations: true
+  ) {
+    assetKey {
+      path
+    }
+    dependencies {
+      asset {
+        assetKey{path}
+      }
+    }
+    assetMaterializations(limit: 1) {
+      runId
+      assetLineage {
+        assetKey {
+          path
+        }
+        partitions
+      }
+      metadataEntries {
+        label
+        description
+        __typename
+        ... on TextMetadataEntry {
+          text
+        }
+        __typename
+        ... on IntMetadataEntry {
+          intValue
+        }
+      }
+    }
+  }
+}
+</code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
