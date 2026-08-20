@@ -1,21 +1,19 @@
 """Working with file inputs and outputs"""
 
-import os
-from typing import Sequence, Iterator
 import csv
+import os
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from zipfile import ZipFile
 
 from dagster import get_dagster_logger
 
-from bag3d.common.types import ExportResult
 from bag3d.common.resources import DagsterDeployment, FileStoreResource
+from bag3d.common.types import ExportResult
 
 
 class BadArchiveError(OSError):
     """The archive contains a bad file"""
-
-    pass
 
 
 def export_tile_path(export_dir: Path, tile_id: str, suffix: str) -> Path:

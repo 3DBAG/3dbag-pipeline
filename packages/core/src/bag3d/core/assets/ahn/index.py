@@ -1,7 +1,7 @@
-from dagster import asset, get_dagster_logger, Config
+from bag3d.common.resources.executables import LASToolsResource
+from dagster import Config, asset, get_dagster_logger
 from pydantic import Field
 
-from bag3d.common.resources.executables import LASToolsResource
 from bag3d.core.assets.ahn.core import partition_definition_ahn
 from bag3d.core.assets.ahn.download import LAZDownload
 

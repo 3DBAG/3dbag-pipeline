@@ -2,9 +2,9 @@ import inspect
 from importlib import resources
 from logging import Logger
 
-from dagster import get_dagster_logger, MarkdownMetadataValue
+from dagster import MarkdownMetadataValue, get_dagster_logger
+from pgutils import PostgresTableIdentifier, inject_parameters
 from psycopg.sql import SQL, Composed, Identifier, Literal
-from pgutils import inject_parameters, PostgresTableIdentifier
 
 from bag3d.common.resources.database import DatabaseResource
 
@@ -66,7 +66,7 @@ def summary_md(fields, null_count):
     metacols = ["column", "type", "NULLs"]
     header = " ".join(["|", " | ".join(metacols), "|"])
     header_separator = " ".join(["|", " | ".join("---" for _ in metacols), "|"])
-    mdtbl = "\n".join([header, header_separator]) + "\n"
+    mdtbl = f"{header}\n{header_separator}" + "\n"
     _missing_vals = {rec["column_name"]: rec["missing_values"] for rec in null_count}
     for colname, coltype in fields:
         metarow = "| "

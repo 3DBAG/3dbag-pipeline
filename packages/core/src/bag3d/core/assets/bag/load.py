@@ -1,16 +1,14 @@
-from datetime import datetime
-from typing import Optional
-
-from dagster import asset, Output, Config, get_dagster_logger, AutomationCondition
-from psycopg.sql import SQL, Identifier
+from datetime import UTC, datetime
 
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import (
+    create_schema,
     load_sql,
     postgrestable_from_query,
-    create_schema,
 )
-from bag3d.common.types import PostgresTableIdentifier
+from dagster import AutomationCondition, Config, Output, asset, get_dagster_logger
+from psycopg.sql import SQL, Identifier
 from pydantic import Field
 
 NEW_SCHEMA = "lvbag"
@@ -20,7 +18,7 @@ logger = get_dagster_logger("bag.load")
 class BagLoadConfig(Config):
     """Configuration for BAG load assets."""
 
-    reference_date: Optional[str] = Field(
+    reference_date: str | None = Field(
         default=None, description="Reference date in format YYYY-MM-DD."
     )
 
@@ -39,7 +37,9 @@ def bag_woonplaatsactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "woonplaatsactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=UTC
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -69,7 +69,9 @@ def bag_verblijfsobjectactueelbestaand(
     table_name = "verblijfsobjectactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=UTC
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -110,7 +112,9 @@ def bag_pandactueelbestaand(
     table_name = "pandactueelbestaand"
     new_table = PostgresTableIdentifier(NEW_SCHEMA, table_name)
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=UTC
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -156,7 +160,9 @@ def bag_openbareruimteactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "openbareruimteactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=UTC
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(
@@ -185,7 +191,9 @@ def bag_nummeraanduidingactueelbestaand(
     create_schema(computation_db, NEW_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(NEW_SCHEMA, "nummeraanduidingactueelbestaand")
     if config.reference_date is not None:
-        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d")
+        reference_date = datetime.strptime(config.reference_date, "%Y-%m-%d").replace(
+            tzinfo=UTC
+        )
     else:
         reference_date = datetime.now(tz=datetime.now().astimezone().tzinfo)
     query = load_sql(

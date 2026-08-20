@@ -1,13 +1,13 @@
 from pathlib import Path
-from typing import Dict, Optional
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
-from bag3d.core.assets.ahn import AHN_TILE_IDS, AHN6_TILE_IDS
+
+from bag3d.core.assets.ahn import AHN6_TILE_IDS, AHN_TILE_IDS
 
 logger = get_dagster_logger("ahn")
 
-partition_definition_ahn = StaticPartitionsDefinition(sorted(list(AHN_TILE_IDS)))
+partition_definition_ahn = StaticPartitionsDefinition(sorted(AHN_TILE_IDS))
 
 
 BATCH_KM = 10
@@ -97,7 +97,7 @@ def invert_geometry_coordinates(geometry):
 
 def download_ahn_index(
     with_geom: bool = False,
-) -> Optional[Dict[str, Optional[Dict[str, Optional[str]]]]]:
+) -> dict[str, dict[str, str | None] | None] | None:
     """Downloads the AHN 3/4/5 tile index.
     Args:
         with_geom: If False, request only the AHN tile ids. Else also request the
@@ -160,7 +160,7 @@ def download_ahn_index(
 
 def download_ahn6_index(
     with_geom: bool = False,
-) -> Dict[str, Optional[Dict[str, Optional[str]]]]:
+) -> dict[str, dict[str, str | None] | None]:
     """Download the AHN6 KM COPC tile index with checksums.
 
     Fetches the GeoJSON from AHN6_INDEX_URL and extracts each feature's
@@ -171,7 +171,7 @@ def download_ahn6_index(
         resp = requests.get(AHN6_INDEX_URL, timeout=120)
         resp.raise_for_status()
         data = resp.json()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.error(f"Failed to download AHN6 index: {exc}")
         return {}
 

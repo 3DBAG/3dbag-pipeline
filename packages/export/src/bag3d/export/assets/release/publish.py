@@ -1,15 +1,12 @@
 """Perform the final steps for the 3D BAG release on the publication server"""
 
-from pathlib import Path
 import json
-from datetime import datetime
+from datetime import UTC, datetime
+from pathlib import Path
 
-from dagster import AssetIn, asset, AssetKey
-
-from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.database import DatabaseResource
-from dagster import get_dagster_logger
-
+from bag3d.common.resources.server_transfer import ServerTransferResource
+from dagster import AssetIn, AssetKey, asset, get_dagster_logger
 
 logger = get_dagster_logger("release.publish")
 
@@ -89,7 +86,7 @@ def publish_webservices(
     latest_schema = "webservice"
     dev_schema = "webservice_dev"
 
-    extension = str(datetime.now().date())
+    extension = str(datetime.now(tz=UTC).date())
     alter_latest_to_archive = (
         f"ALTER SCHEMA {latest_schema} RENAME TO bag3d_{extension};"
     )

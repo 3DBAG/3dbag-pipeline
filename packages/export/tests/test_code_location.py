@@ -16,6 +16,7 @@ def test_code_location_import_fresh_process():
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, (
         f"Importing bag3d.export.code_location failed:\n{result.stderr}"

@@ -1,35 +1,34 @@
 import csv
 import json
-from datetime import date, datetime
-from pathlib import Path
-from typing import Dict, Iterable
-from uuid import uuid1
+from collections.abc import Iterable
 from copy import deepcopy
+from datetime import UTC, datetime
+from pathlib import Path
+from uuid import uuid1
 
-from dagster import (
-    AssetIn,
-    AssetKey,
-    Output,
-    asset,
-    AssetExecutionContext,
-    AssetRecordsFilter,
-    get_dagster_logger,
-)
-from psycopg.sql import SQL
-
+from bag3d.common.resources import resource_defs
 from bag3d.common.resources.cjindex import (
     CityIndexResource,
     iter_package_refs,
     open_ready_index,
     read_package_feature_json,
 )
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
-from bag3d.common.resources import resource_defs
 from bag3d.common.utils.manifest import get_tool_metadata
+from dagster import (
+    AssetExecutionContext,
+    AssetIn,
+    AssetKey,
+    AssetRecordsFilter,
+    Output,
+    asset,
+    get_dagster_logger,
+)
+from psycopg.sql import SQL
 
 logger = get_dagster_logger("export.metadata")
 
@@ -68,7 +67,7 @@ def _build_software_list() -> list[dict]:
 
 def get_info_per_cityobject(
     cityjson: dict, cityobject_info: dict, attribute_names: Iterable
-) -> Dict[str, Dict]:
+) -> dict[str, dict]:
     """Given a CityJSON object as a dict, it returns information about
     the available LoD level per city object and the requested attributes.
     The output is a dictionary
@@ -93,13 +92,13 @@ def get_info_per_cityobject(
 
 def features_to_csv(
     output_csv: Path,
-    features: Dict[str, Dict[str, int]],
+    features: dict[str, dict[str, int]],
     cityobject_info: dict,
     lods: list,
 ) -> None:
     """Creates a csv with the city object id and the city object information"""
     fieldnames = ["id", "identificatie", "lod_0", "lod_12", "lod_13", "lod_22"]
-    fieldnames += [k for k in cityobject_info.keys() if k not in lods]
+    fieldnames += [k for k in cityobject_info if k not in lods]
     with open(output_csv, "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -153,7 +152,7 @@ def feature_evaluation(
     )
     cityobject_info = {lod: 0 for lod in lods}
     cityobject_info["has_geometry"] = False
-    cityobject_info.update(dict((a, None) for a in attributes_to_include))  # type: ignore[arg-type]
+    cityobject_info.update({a: None for a in attributes_to_include})  # type: ignore[arg-type]
 
     reconstructed_buildings = set()
     cityobjects = {}
@@ -178,7 +177,7 @@ def feature_evaluation(
         FROM reconstruction_input.reconstruction_input;
         """)
     )
-    input_buildings = set([row[0] for row in res])
+    input_buildings = {row[0] for row in res}
     logger.debug(f"len(input_buildings)={len(input_buildings)}")
 
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
@@ -251,8 +250,8 @@ def metadata(
     For extended ISO lineage, see 19115-2, https://wiki.esipfed.org/ISO_Lineage. This
     has XML examples. And also https://wiki.esipfed.org/Data_Understanding_-_Provenance_(ISO-19115-1).
     """
-    date_3dbag = format_date(date.today(), version=False)
-    version_3dbag = f"v{format_date(date.today(), version=True)}"
+    date_3dbag = format_date(datetime.now(tz=UTC).date(), version=False)
+    version_3dbag = f"v{format_date(datetime.now(tz=UTC).date(), version=True)}"
     uuid_3dbag = str(uuid1())
 
     asset_keys = ASSET_DEPENDENCIES_FOR_METADATA
@@ -282,7 +281,7 @@ def metadata(
                         "runId": event_record.run_id,
                         "featureCount": rows.value if rows is not None else None,
                         "dateTime": datetime.fromtimestamp(
-                            event_record.event_log_entry.timestamp
+                            event_record.event_log_entry.timestamp, tz=UTC
                         )
                         .date()
                         .isoformat(),

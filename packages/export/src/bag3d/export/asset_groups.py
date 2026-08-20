@@ -1,8 +1,8 @@
 from dagster import load_assets_from_package_module
 
 from bag3d.export.assets import (
-    export,
     deploy,
+    export,
     release,
 )
 

@@ -1,6 +1,6 @@
+from bag3d.common.resources import resource_defs
 from dagster import Definitions, load_assets_from_modules
 
-from bag3d.common.resources import resource_defs
 from bag3d.party_walls.assets import party_walls
 from bag3d.party_walls.jobs import job_party_walls
 

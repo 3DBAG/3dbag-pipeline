@@ -55,7 +55,7 @@ def read_package_feature_json(
     return city_model_to_feature_json(index.read_package(ref))
 
 
-def open_ready_index(resource: "CityIndexResource") -> cityjson_index.OpenedIndex:
+def open_ready_index(resource: CityIndexResource) -> cityjson_index.OpenedIndex:
     """Open the index and rebuild it when its source dataset is stale."""
     index = resource.open()
     if index.status().needs_reindex:

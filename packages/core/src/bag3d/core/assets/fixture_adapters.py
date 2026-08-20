@@ -3,11 +3,14 @@
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
-from dagster import AssetExecutionContext, Output, asset
+from typing import Any
+
 from bag3d.common.resources.files import FileStoreResource
+from dagster import AssetExecutionContext, Output, asset
+
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
     partition_definition_ahn6_batches,
@@ -80,7 +83,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid integration-data manifest: {path}") from exc
     if not isinstance(manifest, Mapping):
-        raise ValueError("Integration-data manifest must contain a JSON object")
+        raise TypeError("Integration-data manifest must contain a JSON object")
     if str(manifest.get("fixture_version")) != FIXTURE_VERSION:
         raise ValueError(
             f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected {FIXTURE_VERSION!r}"
@@ -107,7 +110,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         or not isinstance(extents.get("vectors"), Mapping)
         or not isinstance(extents.get("pointclouds"), Mapping)
     ):
-        raise ValueError("Integration-data manifest is missing computed extents")
+        raise TypeError("Integration-data manifest is missing computed extents")
     bounds = (
         float(aoi["minx"]) - 10.0,
         float(aoi["miny"]) - 10.0,
@@ -117,7 +120,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     for category in ("vectors", "pointclouds"):
         for name, values in extents[category].items():
             if not isinstance(name, str) or not isinstance(values, list):
-                raise ValueError("Invalid computed extent metadata")
+                raise TypeError("Invalid computed extent metadata")
             values_to_check = values if category == "vectors" else [values]
             for extent in values_to_check:
                 if not isinstance(extent, list) or len(extent) != 4:
@@ -135,7 +138,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):
-        raise ValueError("Integration-data manifest is missing sources")
+        raise TypeError("Integration-data manifest is missing sources")
     if missing := required - set(sources):
         raise ValueError(
             f"Integration-data manifest is missing sources: {sorted(missing)}"
@@ -147,7 +150,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         or not isinstance(ahn.get("checksums"), Mapping)
         or not isinstance(ahn.get("partitions"), Mapping)
     ):
-        raise ValueError(
+        raise TypeError(
             "Integration-data manifest is missing AHN indexes, checksums, or partitions"
         )
     if not {"3", "6"}.issubset(ahn["indexes"]):
@@ -156,7 +159,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         raise ValueError("Integration-data manifest must contain AHN3-AHN6 checksums")
     for version, partitions in ahn["partitions"].items():
         if not isinstance(partitions, Mapping):
-            raise ValueError(f"Invalid AHN{version} partition mapping")
+            raise TypeError(f"Invalid AHN{version} partition mapping")
         values = (
             entry
             for batch in partitions.values()
@@ -168,11 +171,11 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         )
         for entry in values:
             if not isinstance(entry, Mapping) or not isinstance(entry.get("path"), str):
-                raise ValueError(f"Invalid AHN{version} partition entry")
+                raise TypeError(f"Invalid AHN{version} partition entry")
             _verify(root, manifest, entry["path"])
     files = manifest.get("files")
     if not isinstance(files, Mapping):
-        raise ValueError("Integration-data manifest is missing files")
+        raise TypeError("Integration-data manifest is missing files")
     actual = {
         str(path.relative_to(root))
         for path in root.rglob("*")
@@ -184,7 +187,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         _verify(root, manifest, relative)
     for name, source in sources.items():
         if not isinstance(source, Mapping) or not isinstance(source.get("path"), str):
-            raise ValueError(
+            raise TypeError(
                 f"Invalid source entry in integration-data manifest: {name}"
             )
         _verify(root, manifest, source["path"])
@@ -242,7 +245,7 @@ def fixture_extract_cbs_key_figures(integration_data_store: FileStoreResource):
         _path(_m(integration_data_store), "cbs_key_figures").read_text(encoding="utf-8")
     )
     if not isinstance(value, list):
-        raise ValueError("Fixture CBS key figures must be a JSON list")
+        raise TypeError("Fixture CBS key figures must be a JSON list")
     return value
 
 
@@ -254,7 +257,7 @@ def fixture_extract_cbs_buurtkaart(integration_data_store: FileStoreResource):
 def _ahn(store, version):
     value = _m(store).value["ahn"]["indexes"].get(str(version))
     if not isinstance(value, Mapping):
-        raise ValueError(f"Fixture AHN{version} index is missing")
+        raise TypeError(f"Fixture AHN{version} index is missing")
     return dict(value)
 
 
@@ -271,7 +274,7 @@ def fixture_tile_index_ahn6(integration_data_store: FileStoreResource):
 def _checks(store, version):
     value = _m(store).value["ahn"]["checksums"].get(str(version))
     if not isinstance(value, Mapping):
-        raise ValueError(f"Fixture AHN{version} checksums are missing")
+        raise TypeError(f"Fixture AHN{version} checksums are missing")
     return {str(k): str(v) for k, v in value.items()}
 
 
@@ -309,7 +312,7 @@ def _laz(store, version, tile, pointcloud_store):
             None,
         )
     if not isinstance(entry, Mapping) or not isinstance(entry.get("path"), str):
-        raise ValueError(f"Fixture AHN{version} partition is missing tile {tile}")
+        raise TypeError(f"Fixture AHN{version} partition is missing tile {tile}")
     source = m.path(entry["path"])
     destination = (
         Path(pointcloud_store.root_dir)

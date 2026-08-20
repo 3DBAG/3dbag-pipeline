@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, patch
 
 import cityjson_index
 import pandas as pd
-
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
+
 from bag3d.floors_estimation.assets.floors_estimation import (
     FloorsEstimationIOConfig,
     save_cjfiles,

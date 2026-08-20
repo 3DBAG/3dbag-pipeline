@@ -12,8 +12,8 @@ Part 2: Sensor tests
     - selective partition triggering for changed checksums
 """
 
-import json
 import datetime
+import json
 from unittest.mock import patch
 
 import dagster as dg
@@ -21,9 +21,9 @@ import pytest
 
 from bag3d.core.asset_groups import ahn_assets
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
-from bag3d.core.sensors import ahn_checksum_sensor, _build_filename_to_tile_id
+from bag3d.core.sensors import _build_filename_to_tile_id, ahn_checksum_sensor
 
-utc = datetime.timezone.utc
+utc = datetime.UTC
 
 MOCK_RESOURCES = {
     "file_store": dg.ResourceDefinition.mock_resource(),

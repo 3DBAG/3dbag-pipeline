@@ -4,9 +4,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from bag3d.common.types import PostgresTableIdentifier
 from dagster import build_asset_context
 
-from bag3d.common.types import PostgresTableIdentifier
 from bag3d.core.assets.cbs.download import (
     CbsBuurtkaartConfig,
     CbsKeyFiguresConfig,
@@ -156,11 +156,13 @@ class TestExtractCbsBuurtkaart:
             "bag3d.core.assets.cbs.download.unzip", lambda *a, **kw: None
         )
 
-        with build_asset_context() as context:
-            with pytest.raises(FileNotFoundError, match="No GeoPackage found"):
-                extract_cbs_buurtkaart(
-                    context, CbsBuurtkaartConfig(year="2025", version="v1"), file_store
-                )
+        with (
+            build_asset_context() as context,
+            pytest.raises(FileNotFoundError, match="No GeoPackage found"),
+        ):
+            extract_cbs_buurtkaart(
+                context, CbsBuurtkaartConfig(year="2025", version="v1"), file_store
+            )
 
 
 # ---------------------------------------------------------------------------

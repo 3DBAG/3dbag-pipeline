@@ -23,6 +23,7 @@ For example, inject a resource into an asset in the workflow package using type-
 ```python
 from bag3d.common.resources.database import DatabaseResource
 
+
 @asset
 def my_asset(context, computation_db: DatabaseResource):
     data = computation_db.connection.get_dict(query)

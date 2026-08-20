@@ -1,18 +1,15 @@
 """Deploy 3D BAG to the publication server and perform the final steps of the release"""
 
+import json
 import tarfile
 from pathlib import Path
-import json
 
-from dagster import AssetIn, Output, asset, AssetKey
-
-from bag3d.common.utils.database import load_sql
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from dagster import get_dagster_logger
-
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.utils.database import load_sql
+from dagster import AssetIn, AssetKey, Output, asset, get_dagster_logger
 
 logger = get_dagster_logger("deploy")
 
@@ -166,7 +163,7 @@ def webservice_publication(
                 "-f",
                 "PostgreSQL",
                 f'PG:"dbname={publication_db.dbname} port={publication_db.port} host={publication_db.host} user={publication_db.user} active_schema={schema}"',
-                f"/vsizip/{str(deploy_dir)}/3dbag_nl.gpkg.zip",
+                f"/vsizip/{deploy_dir!s}/3dbag_nl.gpkg.zip",
                 layer,
                 "-nln",
                 layer + "_tmp",

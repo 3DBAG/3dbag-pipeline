@@ -2,36 +2,37 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os import getenv
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import cityjson_index
 import numpy as np
 import pandas as pd
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.utils.database import (
-    create_schema,
-    load_sql,
-    postgrestable_from_query,
-)
 from bag3d.common.resources.cjindex import (
     CityIndexResource,
     iter_package_refs,
     open_ready_index,
     read_package_feature_json,
 )
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.cityjsonseq import (
     FeatureRecord,
     write_feature_records_as_cityjsonseq,
 )
-from bag3d.floors_estimation.resources import ModelStoreResource
+from bag3d.common.utils.database import (
+    create_schema,
+    load_sql,
+    postgrestable_from_query,
+)
 from dagster import AssetKey, Config, Output, asset, get_dagster_logger
 from joblib import load
-from pgutils import inject_parameters, PostgresConnection
+from pgutils import PostgresConnection, inject_parameters
 from psycopg import connect
 from psycopg.sql import SQL
 from pydantic import Field
+
+from bag3d.floors_estimation.resources import ModelStoreResource
 
 SCHEMA = "floors_estimation"
 CHUNK_SIZE = 1000
@@ -81,7 +82,7 @@ _REQUIRED_ATTRIBUTES = [
 
 def _process_chunk(
     conn: PostgresConnection,
-    chunk_attrs: list[Dict],
+    chunk_attrs: list[dict],
     chunk_id: int,
     table: PostgresTableIdentifier,
     logger,
@@ -117,10 +118,9 @@ def _process_chunk(
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO NOTHING;""").format(table.id)
 
-    with connect(conn.dsn) as connection:
-        with connection.cursor() as cur:
-            cur.executemany(query, data, returning=True)
-            connection.commit()
+    with connect(conn.dsn) as connection, connection.cursor() as cur:
+        cur.executemany(query, data, returning=True)
+        connection.commit()
 
     logger.info(f"Chunk {chunk_id} done.")
 
@@ -175,7 +175,7 @@ def bag3d_features(
         for i, future in enumerate(as_completed(futures_map)):
             try:
                 _ = future.result()
-            except Exception as e:  # pragma: no cover
+            except Exception as e:  # noqa: BLE001  # pragma: no cover
                 logger.error(f"Error in chunk {i} raised an exception: {e}")
 
     idx.close()
@@ -308,10 +308,12 @@ def predictions_table(
     query = SQL("""INSERT INTO {}
                 VALUES (%s, %s);""").format(predictions_table.id)
 
-    with connect(computation_db.connection.dsn) as connection:
-        with connection.cursor() as cur:
-            cur.executemany(query, data, returning=True)
-            connection.commit()
+    with (
+        connect(computation_db.connection.dsn) as connection,
+        connection.cursor() as cur,
+    ):
+        cur.executemany(query, data, returning=True)
+        connection.commit()
 
     return Output(predictions_table, metadata=metadata)
 
@@ -384,7 +386,7 @@ def save_cjfiles(
                 tile_features[tile_id].append(
                     FeatureRecord(feature=feature_json, source_path=source_path)
                 )
-            except Exception as e:  # pragma: no cover
+            except Exception as e:  # noqa: BLE001  # pragma: no cover
                 logger.error(f"Error processing feature: {e}")
 
     # Write per-tile cityjsonseq files

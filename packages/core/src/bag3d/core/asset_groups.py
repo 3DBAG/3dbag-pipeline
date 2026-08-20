@@ -1,14 +1,15 @@
-from dagster import load_assets_from_package_module, load_assets_from_modules
 from os import getenv
+
+from dagster import load_assets_from_modules, load_assets_from_package_module
 
 from bag3d.core.assets import (
     ahn,
     bag,
     bgt,
     cbs,
-    top10nl,
     input,
     reconstruction,
+    top10nl,
 )
 
 BAG = "bag"
@@ -51,8 +52,8 @@ reconstruction_assets = load_assets_from_package_module(
     group_name=RECONSTRUCTION,
 )
 
-from bag3d.core.assets import integration_data  # noqa: E402
-from bag3d.core.assets.fixture_adapters import fixture_assets  # noqa: E402
+from bag3d.core.assets import integration_data
+from bag3d.core.assets.fixture_adapters import fixture_assets
 
 integration_data_assets = load_assets_from_modules(
     [integration_data], group_name="integration_data"

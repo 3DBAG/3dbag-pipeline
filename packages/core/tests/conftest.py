@@ -2,8 +2,9 @@ import pytest
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.types import PostgresTableIdentifier
-from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from dagster import AssetKey, AssetSpec, IOManager, io_manager
+
+from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]
 

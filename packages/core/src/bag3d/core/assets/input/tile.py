@@ -1,21 +1,21 @@
 import os
 
+from bag3d.common.resources import tool_versions
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import TylerResource
+from bag3d.common.types import PostgresTableIdentifier
 from dagster import (
     AssetOut,
-    multi_asset,
+    AutomationCondition,
     Output,
     get_dagster_logger,
-    AutomationCondition,
+    multi_asset,
 )
 from pgutils import PostgresConnection
 from psycopg import connect
 from psycopg.errors import OperationalError, UndefinedTable
 from psycopg.sql import SQL, Identifier, Literal
 
-from bag3d.common.types import PostgresTableIdentifier
-from bag3d.common.resources import tool_versions
-from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import TylerResource
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 
 logger = get_dagster_logger("input.tile")
@@ -140,7 +140,7 @@ def get_tile_ids(schema: str, table_tiles: str, logger, wkt: str | None = None):
         query = SQL("SELECT tile_id FROM {}").format(Identifier(schema, table_tiles))
     try:
         conn = PostgresConnection(
-            port=int(os.environ.get("BAG3D_PG_PORT", 5432)),
+            port=int(os.environ.get("BAG3D_PG_PORT", "5432")),
             user=os.environ.get("BAG3D_PG_USER"),
             password=os.environ.get("BAG3D_PG_PASSWORD"),
             dbname=os.environ.get("BAG3D_PG_DATABASE"),

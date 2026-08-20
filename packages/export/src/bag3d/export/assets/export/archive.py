@@ -1,19 +1,18 @@
 import csv
-import zipfile
-from zipfile import ZipFile
 import gzip
+import zipfile
+from concurrent.futures import ProcessPoolExecutor
 from os import getenv
 from pathlib import Path
 from shutil import copyfileobj
-from concurrent.futures import ProcessPoolExecutor
+from zipfile import ZipFile
 
-from dagster import AssetIn, asset, Output, AssetKey, Config, get_dagster_logger
-from pydantic import Field
-
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.utils.files import export_tile_path
 from bag3d.common.resources.executables import GDALResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.common.utils.files import export_tile_path
+from dagster import AssetIn, AssetKey, Config, Output, asset, get_dagster_logger
+from pydantic import Field
 
 logger = get_dagster_logger()
 
@@ -91,7 +90,7 @@ def geopackage(
             result = gdal.runner.run(cmd, exe_name="ogr2ogr", logger=logger)
             if not result.success:
                 failed.append((lid, result.stderr))
-        except Exception:
+        except Exception:  # noqa: BLE001
             failed.append((lid, result.stderr if "result" in locals() else ""))
 
     layers = [
@@ -157,9 +156,8 @@ def compress_files(input_tile_path):
     cj_file = export_tile_path(export_dir, tile_id, ".city.json")
     cj_zip = str(cj_file) + ".gz"
     if cj_file.exists():
-        with cj_file.open("rb") as f_in:
-            with gzip.open(cj_zip, "wb") as f_out:
-                copyfileobj(f_in, f_out)
+        with cj_file.open("rb") as f_in, gzip.open(cj_zip, "wb") as f_out:
+            copyfileobj(f_in, f_out)
         cj_file.unlink()
     else:
         logger.warning(f"CityJSON file {cj_file} does not exist, skipping compression.")
@@ -168,9 +166,8 @@ def compress_files(input_tile_path):
     gpkg_file = export_tile_path(export_dir, tile_id, ".gpkg")
     gpkg_zip = str(gpkg_file) + ".gz"
     if gpkg_file.exists():
-        with gpkg_file.open("rb") as f_in:
-            with gzip.open(gpkg_zip, "wb") as f_out:
-                copyfileobj(f_in, f_out)
+        with gpkg_file.open("rb") as f_in, gzip.open(gpkg_zip, "wb") as f_out:
+            copyfileobj(f_in, f_out)
         gpkg_file.unlink()
     else:
         logger.warning(f"GPKG file {gpkg_file} does not exist, skipping compression.")

@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import patch
 
+import pytest
 import requests
 
 pytest_plugins = ["bag3d.common.testing.conftest_plugin"]

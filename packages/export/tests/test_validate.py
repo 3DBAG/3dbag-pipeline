@@ -1,6 +1,6 @@
 import pytest
-
 from bag3d.common.resources.specs import Specs3DBAGResource
+
 from bag3d.export.assets.export.validate import (
     AttributeValidationOutcome,
     AttributeValidationResultOne,

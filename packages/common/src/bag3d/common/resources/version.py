@@ -1,10 +1,10 @@
-from subprocess import run, TimeoutExpired, CalledProcessError
-from typing import Annotated, Optional, Dict
 import random
 import string
+from subprocess import CalledProcessError, TimeoutExpired, run
+from typing import Annotated
 
 from dagster import ConfigurableResource, get_dagster_logger
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, PrivateAttr
 
 logger = get_dagster_logger()
 
@@ -27,18 +27,18 @@ class ToolVersionsResource(ConfigurableResource):
     """
 
     # Tool executable paths (same env vars as other resources)
-    exe_tyler: Optional[str] = None
-    exe_tyler_db: Optional[str] = None
-    exe_roofer: Optional[str] = None
-    exe_ogr2ogr: Optional[str] = None
-    exe_pdal: Optional[str] = None
-    exe_lasindex: Optional[str] = None
+    exe_tyler: str | None = None
+    exe_tyler_db: str | None = None
+    exe_roofer: str | None = None
+    exe_ogr2ogr: str | None = None
+    exe_pdal: str | None = None
+    exe_lasindex: str | None = None
 
     # Cached versions
-    _version_cache: Dict[str, str] = {}
+    _version_cache: dict[str, str] = PrivateAttr(default_factory=dict)
 
     def _extract_version(
-        self, exe_path: Optional[str], version_flag: str = "--version"
+        self, exe_path: str | None, version_flag: str = "--version"
     ) -> str:
         """Extract version by running tool with version flag."""
         if not exe_path:
@@ -50,6 +50,7 @@ class ToolVersionsResource(ConfigurableResource):
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             # Return first line of output, sanitized
             return result.stdout.strip().split("\n")[0].replace(",", " ")

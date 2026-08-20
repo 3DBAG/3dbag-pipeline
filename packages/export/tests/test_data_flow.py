@@ -14,15 +14,15 @@ from unittest.mock import MagicMock, patch
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
+
 from bag3d.export.assets.export import metadata as metadata_module
+from bag3d.export.assets.export.archive import CompressionConfig, compressed_tiles
+from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.tile import (
     TylerConfig,
     merged_quadtree,
     reconstruction_output_gpkg,
 )
-from bag3d.export.assets.export.metadata import export_index, feature_evaluation
-from bag3d.export.assets.export.archive import compressed_tiles, CompressionConfig
-
 
 VERSION = "test_version"
 
@@ -182,7 +182,7 @@ def test_metadata_creates_versioned_export_directory(tmp_path, monkeypatch):
     mock_instance.fetch_materializations.return_value.records = []
     context = cast(object, SimpleNamespace(instance=mock_instance))
 
-    monkeypatch.setattr(metadata_module, "_build_software_list", lambda: [])
+    monkeypatch.setattr(metadata_module, "_build_software_list", list)
 
     decorated_fn = cast(Any, metadata_module.metadata.op.compute_fn).decorated_fn
     result = decorated_fn(

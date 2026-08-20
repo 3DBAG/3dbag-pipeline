@@ -25,7 +25,7 @@ import datetime
 import dagster as dg
 import pytest
 
-from bag3d.core.asset_groups import bag_assets, bgt_assets, top10nl_assets, input_assets
+from bag3d.core.asset_groups import bag_assets, bgt_assets, input_assets, top10nl_assets
 
 AUTOMATED_ASSETS = [
     *bag_assets,
@@ -48,9 +48,9 @@ MOCK_RESOURCES = {
 DEFS = dg.Definitions(assets=AUTOMATED_ASSETS, resources=MOCK_RESOURCES)
 
 # Time before any cron fires
-BEFORE_CRON = datetime.datetime(2025, 1, 8, 23, 59, tzinfo=datetime.timezone.utc)
+BEFORE_CRON = datetime.datetime(2025, 1, 8, 23, 59, tzinfo=datetime.UTC)
 # Time after all three crons have fired (BAG: 00:00, BGT: 06:00, TOP10NL: 12:00 on 9th)
-AFTER_CRON = datetime.datetime(2026, 2, 9, 12, 1, tzinfo=datetime.timezone.utc)
+AFTER_CRON = datetime.datetime(2026, 2, 9, 12, 1, tzinfo=datetime.UTC)
 
 # Asset keys with the correct prefixes as applied by asset_groups
 KEY_EXTRACT_BAG = dg.AssetKey(["bag", "extract_bag"])

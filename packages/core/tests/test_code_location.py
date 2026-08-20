@@ -8,7 +8,7 @@ from dagster import Definitions
 def test_definitions_loadable():
     # Import your definitions module
     module = importlib.import_module("bag3d.core.code_location")
-    defs = getattr(module, "defs")
+    defs = module.defs
 
     # This will raise an error if definitions are not loadable
     Definitions.validate_loadable(defs)
@@ -29,6 +29,7 @@ def test_code_location_import_fresh_process():
         [sys.executable, "-c", "import bag3d.core.code_location"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, (
         f"Importing bag3d.core.code_location failed:\n{result.stderr}"

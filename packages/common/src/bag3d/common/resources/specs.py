@@ -1,14 +1,14 @@
-from dagster import ConfigurableResource
-from typing import Dict, Optional, Union, Generator, Tuple
-from pydantic import PrivateAttr
+from collections.abc import Generator
 
 from bag3d.specs.core import (
-    load_attributes_spec,
     Attribute,
     CityJSONLocation,
     GpkgLocation,
     Ogc3dTilesLocation,
+    load_attributes_spec,
 )
+from dagster import ConfigurableResource
+from pydantic import PrivateAttr
 
 
 class Specs3DBAGResource(ConfigurableResource):
@@ -18,10 +18,10 @@ class Specs3DBAGResource(ConfigurableResource):
     Source: https://github.com/3DBAG/3dbag-specs
     """
 
-    _attributes_specs: Optional[Dict[str, Attribute]] = PrivateAttr(default=None)
+    _attributes_specs: dict[str, Attribute] | None = PrivateAttr(default=None)
 
     @property
-    def attributes(self) -> Dict[str, Attribute]:
+    def attributes(self) -> dict[str, Attribute]:
         """Returns the complete attributes specification."""
         # Lazy load the attributes
         if self._attributes_specs is None:
@@ -31,10 +31,10 @@ class Specs3DBAGResource(ConfigurableResource):
     def applies_to(
         self,
         data_format: str,
-        locations: Union[
-            tuple[CityJSONLocation], tuple[GpkgLocation], tuple[Ogc3dTilesLocation]
-        ],
-    ) -> Generator[Tuple[str, Attribute], None, None]:
+        locations: tuple[CityJSONLocation]
+        | tuple[GpkgLocation]
+        | tuple[Ogc3dTilesLocation],
+    ) -> Generator[tuple[str, Attribute], None, None]:
         """Filter the attributes spec for the specified data format and location.
 
         Args:
@@ -51,7 +51,9 @@ class Specs3DBAGResource(ConfigurableResource):
                 f"Unsupported data format: {data_format}. Allowed formats are: {allowed_formats}"
             )
         for a_name, a_spec in self.attributes.items():
-            if format_spec := getattr(a_spec.applies_to, data_format):
-                if attribute_locations := format_spec["locations"]:
-                    if len(requested_locations.intersection(attribute_locations)) > 0:
-                        yield a_name, a_spec
+            if (
+                (format_spec := getattr(a_spec.applies_to, data_format))
+                and (attribute_locations := format_spec["locations"])
+                and len(requested_locations.intersection(attribute_locations)) > 0
+            ):
+                yield a_name, a_spec

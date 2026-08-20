@@ -1,7 +1,4 @@
-from typing import Optional
-
 from dagster import ConfigurableResource
-
 from fabric import Connection
 
 
@@ -27,12 +24,12 @@ class ServerTransferResource(ConfigurableResource):
     """
 
     host: str
-    port: Optional[int] = None
+    port: int | None = None
     user: str
-    password: Optional[str] = None
-    key_filename: Optional[str] = None
+    password: str | None = None
+    key_filename: str | None = None
     target_dir: str
-    public_dir: Optional[str] = None
+    public_dir: str | None = None
 
     @property
     def connection(self) -> Connection:

@@ -9,9 +9,10 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import cityjson_index
-from bag3d.common.testing import build_asset_context_for
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.testing import build_asset_context_for
+
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
     building_surfaces,
@@ -126,18 +127,20 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         },
     ]
 
-    with patch(
-        "bag3d.party_walls.assets.party_walls.open_ready_index",
-        return_value=mock_idx,
+    with (
+        patch(
+            "bag3d.party_walls.assets.party_walls.open_ready_index",
+            return_value=mock_idx,
+        ),
+        build_asset_context_for(building_surfaces) as context,
     ):
-        with build_asset_context_for(building_surfaces) as context:
-            output_paths = building_surfaces(
-                context,
-                PartyWallsConfig(concurrency=1),
-                resource,
-                mock_db,
-                file_store,
-            )
+        output_paths = building_surfaces(
+            context,
+            PartyWallsConfig(concurrency=1),
+            resource,
+            mock_db,
+            file_store,
+        )
 
     # Verify output files exist at stages/party_walls/{tile_id}/
     party_walls_dir = tmp_path / "stages" / "party_walls" / tile_id

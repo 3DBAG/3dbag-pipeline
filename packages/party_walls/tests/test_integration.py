@@ -31,7 +31,7 @@ for _mod in list(sys.modules):
 
 _real_shared_walls: object = None
 try:
-    from building_surfaces.walls import (  # noqa: E402
+    from building_surfaces.walls import (
         shared_walls as _real_shared_walls,
     )
 
@@ -44,9 +44,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 # Common imports that don't depend on building_surfaces
-from bag3d.common.resources.cjindex import CityIndexResource  # noqa: E402
-from bag3d.common.resources.files import FileStoreResource  # noqa: E402
-from bag3d.common.testing import build_asset_context_for  # noqa: E402
+from bag3d.common.resources.cjindex import CityIndexResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.testing import build_asset_context_for
 
 # ---------------------------------------------------------------------------
 # Test data paths

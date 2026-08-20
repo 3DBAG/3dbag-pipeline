@@ -1,37 +1,36 @@
+import json
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
-import json
 from os import getenv
 from pathlib import Path
 from time import perf_counter
 from typing import Any, cast
 
 import cityjson_index
-from dagster import (
-    asset,
-    AssetKey,
-    MetadataValue,
-    get_dagster_logger,
-    AssetExecutionContext,
-    Config,
-)
-from pydantic import Field
-from psycopg import sql as pgsql
-from building_surfaces.walls import shared_walls
-
 from bag3d.common.resources.cjindex import (
     CityIndexResource,
+    iter_package_refs,
     open_ready_index,
     read_package_feature_json,
-    iter_package_refs,
 )
-from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.cityjsonseq import (
     FeatureRecord,
     write_feature_records_as_cityjsonseq,
 )
+from building_surfaces.walls import shared_walls
+from dagster import (
+    AssetExecutionContext,
+    AssetKey,
+    Config,
+    MetadataValue,
+    asset,
+    get_dagster_logger,
+)
+from psycopg import sql as pgsql
+from pydantic import Field
 
 logger = get_dagster_logger("party_walls")
 
@@ -359,8 +358,7 @@ def building_surfaces(
                 )
                 futures[future] = (pand_id, source_paths[pand_id])
 
-        for future in futures:
-            pand_id, source_path = futures[future]
+        for future, (pand_id, source_path) in futures.items():
             try:
                 result = future.result()
                 if result.feature_json is not None and result.tile_id is not None:
@@ -372,7 +370,7 @@ def building_surfaces(
                     )
                 if result.timing is not None:
                     building_timings.append(result.timing)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.error(f"Error processing building {pand_id}: {exc}")
     processing_total_s = perf_counter() - processing_start
 

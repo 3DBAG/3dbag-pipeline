@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import cityjson_lib
 
@@ -18,7 +19,7 @@ def write_feature_records_as_cityjsonseq(
     output_path: Path,
     records: Iterable[FeatureRecord],
 ) -> None:
-    items = sorted(list(records), key=lambda record: _feature_id(record.feature))
+    items = sorted(records, key=lambda record: _feature_id(record.feature))
     if not items:
         raise ValueError("cannot write CityJSONSeq without any features")
 
