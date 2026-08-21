@@ -45,3 +45,8 @@ coverage-report.md
 
 # Misc
 TODO*
+
+*.python-version
+*.vscode/
+*.venv/
+*.tmp_dagster_home*
