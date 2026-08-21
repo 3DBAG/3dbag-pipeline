@@ -7,6 +7,7 @@ job_export = define_asset_job(
     | AssetSelection.assets(["export", "export_index"])
     | AssetSelection.assets(["export", "metadata"])
     | AssetSelection.assets(["export", "reconstruction_output_cityjson"])
+    | AssetSelection.assets(["export", "reconstruction_output_ifc"])
     | AssetSelection.assets(["export", "reconstruction_output_gpkg"])
     | AssetSelection.assets(["export", "merged_quadtree"])
     | AssetSelection.assets(["export", "reconstruction_output_obj"])

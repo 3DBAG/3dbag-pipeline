@@ -4,19 +4,11 @@ See ``NOTICE`` for provenance and licensing.
 """
 
 from .cityjson2ifc import Cityjson2ifc
-from .convert import (
-    LODS,
-    convert_cityjson_to_ifc,
-    convert_cityjson_to_ifc_zip,
-    load_cityjson,
-    zip_ifc_files,
-)
+from .convert import LODS, convert_cityjson_to_ifc, load_cityjson
 
 __all__ = [
     "LODS",
     "Cityjson2ifc",
     "convert_cityjson_to_ifc",
-    "convert_cityjson_to_ifc_zip",
     "load_cityjson",
-    "zip_ifc_files",
 ]

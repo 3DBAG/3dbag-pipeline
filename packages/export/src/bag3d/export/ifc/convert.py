@@ -12,9 +12,7 @@ replaces ``click.echo``.
 
 import gc
 import logging
-import os
 import warnings
-import zipfile
 from pathlib import Path
 
 from cjio import cityjson, errors
@@ -111,62 +109,3 @@ def convert_cityjson_to_ifc(
             del cm
         gc.collect()
     return output_ifc_files
-
-
-def zip_ifc_files(ifc_files: list[Path], zip_path: Path) -> Path:
-    """Zip the given IFC files into a single archive and remove the originals."""
-    zip_tmp = str(zip_path) + ".tmp"
-    if os.path.isfile(zip_tmp):
-        os.remove(zip_tmp)
-    try:
-        with zipfile.ZipFile(zip_tmp, "w") as zf:
-            for ifc_file in ifc_files:
-                zf.write(ifc_file, os.path.basename(ifc_file))
-        os.rename(zip_tmp, zip_path)
-    finally:
-        for ifc_file in ifc_files:
-            try:
-                os.remove(ifc_file)
-            except OSError:
-                pass
-    return zip_path
-
-
-def convert_cityjson_to_ifc_zip(
-    cityjson_path: Path,
-    ignore_duplicate_keys: bool = False,
-    lods: list[str] | None = None,
-    zip_path: Path | None = None,
-    force: bool = False,
-) -> Path | None:
-    """Convert a ``.city.json`` tile and zip the resulting IFC files.
-
-    Args:
-        cityjson_path: Path to the ``.city.json`` tile.
-        ignore_duplicate_keys: Ignore duplicate JSON keys in the CityJSON file.
-        lods: LoDs to export. Defaults to ``LODS``.
-        zip_path: Destination ``.ifc.zip`` path. Defaults to the tile path with
-            the ``.ifc.zip`` suffix.
-        force: Reconvert even if the zip already exists.
-
-    Returns:
-        The path to the generated zip, or ``None`` if no IFC files were produced.
-    """
-    if zip_path is None:
-        zip_path = Path(str(cityjson_path).replace(".city.json", ".ifc.zip"))
-    if zip_path.is_file() and not force:
-        logger.info("Zip file %s exists. Skipping %s.", zip_path, cityjson_path)
-        return zip_path
-
-    ifc_files = convert_cityjson_to_ifc(
-        cityjson_path,
-        ignore_duplicate_keys=ignore_duplicate_keys,
-        lods=lods,
-    )
-    if not ifc_files:
-        logger.warning("No IFC files generated for %s. Skipping zip.", cityjson_path)
-        return None
-
-    zip_ifc_files(ifc_files, zip_path)
-    logger.info("Zipped IFC files into %s.", zip_path)
-    return zip_path
