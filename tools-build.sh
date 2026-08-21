@@ -320,7 +320,7 @@ if [ "$build_cjio" = true ] ; then
   printf "\n\nInstalling cjio...\n\n"
   export PIPX_HOME="$root_dir/.pipx"
   export PIPX_BIN_DIR="$root_dir/bin"
-  pipx install "cjio==${CJIO_VERSION:-0.9.2}"
+  pipx install "cjio==${CJIO_VERSION:-0.9.0}"
   pipx ensurepath
 fi
 
