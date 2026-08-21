@@ -51,6 +51,9 @@ exclude = [
     "**/build",
     "**/docs",
     "**/site",
+    # Vendored LGPL files (from ifccityjson) are kept verbatim and untyped.
+    "packages/export/src/bag3d/export/ifc/geometry.py",
+    "packages/export/src/bag3d/export/ifc/cityjson2ifc.py",
 ]
 pythonVersion = "3.12"
 reportPrivateImportUsage = false

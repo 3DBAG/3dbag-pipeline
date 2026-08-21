@@ -27,6 +27,8 @@ dependencies = [
     "lxml~=6.1.1",
     "bag3d-common",
     "certifi>=2026.7.22",
+    "cjio==0.9.0",
+    "ifcopenshell",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "fabric~=3.2",
     "paramiko",
@@ -46,6 +48,11 @@ dev = [
 
 [tool.ruff]
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
+# Vendored LGPL files (from IFC3DBAG/ifccityjson) are kept verbatim.
+extend-exclude = [
+    "src/bag3d/export/ifc/geometry.py",
+    "src/bag3d/export/ifc/cityjson2ifc.py",
+]
 
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }

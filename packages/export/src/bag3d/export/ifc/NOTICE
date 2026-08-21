@@ -1,0 +1,45 @@
+Provenance and licensing for the ``bag3d.export.ifc`` package
+=============================================================
+
+This package contains the CityJSON-to-IFC conversion logic used by the
+3DBAG pipeline's IFC export.
+
+Vendored files
+--------------
+
+The following files were copied from the IFC3DBAG repository
+(https://github.com/tudelft3d/IFC3DBAG), which is itself a fork of the
+``ifccityjson`` converter from IfcOpenShell
+(https://github.com/IfcOpenShell/IfcOpenShell/tree/master/src/ifccityjson):
+
+- ``geometry.py``      - copied verbatim (LGPL-3.0-or-later)
+- ``cityjson2ifc.py``  - copied, with one change (see below)
+
+Both files are licensed under the GNU Lesser General Public License
+(LGPL), version 3 or (at your option) any later version. See their file
+headers and http://www.gnu.org/licenses/ for the license text.
+
+Copyright:
+- 2021 Laurens J.N. Oostwegel <l.oostwegel@gmail.com>
+- 2023 Balázs Dukai <balazs.dukai@3dgi.nl>
+
+Modifications
+-------------
+
+- ``cityjson2ifc.py``: the import ``from geometry import GeometryIO`` was
+  changed to ``from .geometry import GeometryIO`` so the module works as part
+  of the ``bag3d.export.ifc`` package.
+
+- The original ``batch_converter.py`` (click CLI + multiprocessing + unzip)
+  was refactored into ``convert.py``. The single-tile conversion logic is
+  unchanged; the CLI, process pool, and ``.city.json.gz`` unzip step were
+  removed, and logging replaced ``click.echo``.
+
+New files (Apache-2.0 / MIT, this repository)
+--------------------------------------------
+
+- ``convert.py`` - refactored conversion driver (see above). Uses ``cjio``
+  0.9.x as a library dependency for CityJSON parsing and the object model
+  (``cityjson.reader``, ``load_from_j``, ``get_cityobjects``).
+
+- ``__init__.py`` - package exports.
