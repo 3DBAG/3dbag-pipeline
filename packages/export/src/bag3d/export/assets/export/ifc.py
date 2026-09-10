@@ -1,6 +1,6 @@
 """IFC tile export."""
 
-import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
 from os import getenv
 from pathlib import Path
 
@@ -55,7 +55,6 @@ def reconstruction_output_ifc(
     logger.info("Converting %d CityJSON tiles to IFC", len(cityjson_files))
 
     args = [(path, config.ignore_duplicate_keys) for path in cityjson_files]
-    # maxtasksperchild restarts workers periodically to avoid C-level memory leaks
-    with mp.Pool(config.concurrency, maxtasksperchild=5) as pool:
-        for _ in pool.imap_unordered(_convert_tile, args):
+    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
+        for _ in executor.map(_convert_tile, args):
             pass
