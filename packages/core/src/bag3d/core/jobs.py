@@ -19,8 +19,8 @@ job_ahn_tile_index = define_asset_job(
     "the AHN jobs can be run.",
     selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
     | AssetSelection.assets(["ahn", "tile_index_ahn6"])
-    | AssetSelection.assets(["ahn", "md5_ahn3"])
-    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn3"])
+    | AssetSelection.assets(["ahn", "sha256_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
     | AssetSelection.assets(["ahn", "sha256_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
@@ -125,8 +125,8 @@ job_integration_data = define_asset_job(
     | AssetSelection.assets(["cbs", "extract_cbs_buurtkaart"])
     | AssetSelection.assets(["ahn", "tile_index_ahn"])
     | AssetSelection.assets(["ahn", "tile_index_ahn6"])
-    | AssetSelection.assets(["ahn", "md5_ahn3"])
-    | AssetSelection.assets(["ahn", "md5_ahn4"])
+    | AssetSelection.assets(["ahn", "sha256_ahn3"])
+    | AssetSelection.assets(["ahn", "sha256_ahn4"])
     | AssetSelection.assets(["ahn", "sha256_ahn5"])
     | AssetSelection.assets(["ahn", "sha256_ahn6"]),
 )

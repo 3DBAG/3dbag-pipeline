@@ -278,13 +278,13 @@ def _checks(store, version):
     return {str(k): str(v) for k, v in value.items()}
 
 
-@asset(name="md5_ahn3", key_prefix="ahn", group_name="ahn")
-def fixture_md5_ahn3(integration_data_store: FileStoreResource):
+@asset(name="sha256_ahn3", key_prefix="ahn", group_name="ahn")
+def fixture_sha256_ahn3(integration_data_store: FileStoreResource):
     return _checks(integration_data_store, 3)
 
 
-@asset(name="md5_ahn4", key_prefix="ahn", group_name="ahn")
-def fixture_md5_ahn4(integration_data_store: FileStoreResource):
+@asset(name="sha256_ahn4", key_prefix="ahn", group_name="ahn")
+def fixture_sha256_ahn4(integration_data_store: FileStoreResource):
     return _checks(integration_data_store, 4)
 
 
@@ -413,8 +413,8 @@ fixture_assets = [
     fixture_extract_cbs_buurtkaart,
     fixture_tile_index_ahn,
     fixture_tile_index_ahn6,
-    fixture_md5_ahn3,
-    fixture_md5_ahn4,
+    fixture_sha256_ahn3,
+    fixture_sha256_ahn4,
     fixture_sha256_ahn5,
     fixture_sha256_ahn6,
     fixture_laz_files_ahn3,

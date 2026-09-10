@@ -19,8 +19,8 @@ from bag3d.core.assets.ahn.download import (
     laz_files_ahn3,
     laz_files_ahn4,
     laz_files_ahn5,
-    md5_ahn3,
-    md5_ahn4,
+    sha256_ahn3,
+    sha256_ahn4,
     sha256_ahn5,
 )
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
@@ -140,8 +140,8 @@ def test_checksums_for_ahn():
             '{"features": [{"properties": {"file": "https://example.com/2024_C_01CZ1.LAZ", "sha256": "def"}}]}',
         ],
     ):
-        assert md5_ahn3() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
-        assert md5_ahn4() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
+        assert sha256_ahn3() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
+        assert sha256_ahn4() == {"C_01CZ1.LAZ": "56c731a1814dd73c79a0a5347f8a04c7"}
         assert sha256_ahn5() == {"2023_C_01CZ1.LAZ": "abc"}
 
 
@@ -159,7 +159,7 @@ def _mock_laz_download(tmp_path, filename: str) -> LAZDownload:
     )
 
 
-def test_laz_files_ahn3(resources_ahn, md5_ahn3_fix, tile_index_ahn_fix, tmp_path):
+def test_laz_files_ahn3(resources_ahn, sha256_ahn3_fix, tile_index_ahn_fix, tmp_path):
     config = LazFilesConfig(force_download=False, check_hash=False)
     with (
         patch(
@@ -172,14 +172,14 @@ def test_laz_files_ahn3(resources_ahn, md5_ahn3_fix, tile_index_ahn_fix, tmp_pat
             context,
             config,
             resources_ahn["file_store"],
-            md5_ahn3_fix,
+            sha256_ahn3_fix,
             tile_index_ahn_fix,
         )
     assert isinstance(res, Output)
     assert res.value.url is not None
 
 
-def test_laz_files_ahn4(resources_ahn, md5_ahn4_fix, tile_index_ahn_fix, tmp_path):
+def test_laz_files_ahn4(resources_ahn, sha256_ahn4_fix, tile_index_ahn_fix, tmp_path):
     config = LazFilesConfig(force_download=False, check_hash=False)
     with (
         patch(
@@ -192,7 +192,7 @@ def test_laz_files_ahn4(resources_ahn, md5_ahn4_fix, tile_index_ahn_fix, tmp_pat
             context,
             config,
             resources_ahn["file_store"],
-            md5_ahn4_fix,
+            sha256_ahn4_fix,
             tile_index_ahn_fix,
         )
     assert isinstance(res, Output)
@@ -220,7 +220,7 @@ def test_laz_files_ahn5(resources_ahn, sha256_ahn5_fix, tile_index_ahn_fix, tmp_
 
 
 def test_laz_files_ahn3_retries_after_checksum_failure(
-    resources_ahn, md5_ahn3_fix, tile_index_ahn_fix, tmp_path
+    resources_ahn, sha256_ahn3_fix, tile_index_ahn_fix, tmp_path
 ):
     config = LazFilesConfig(force_download=False, check_hash=True)
     downloads: list[LAZDownload] = []
@@ -254,7 +254,7 @@ def test_laz_files_ahn3_retries_after_checksum_failure(
             context,
             config,
             resources_ahn["file_store"],
-            md5_ahn3_fix,
+            sha256_ahn3_fix,
             tile_index_ahn_fix,
         )
 
@@ -273,7 +273,7 @@ def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
 
     with dg.DagsterInstance.ephemeral() as inst:
         inst.report_runless_asset_event(
-            AssetMaterialization(asset_key=AssetKey(["ahn", "md5_ahn3"]))
+            AssetMaterialization(asset_key=AssetKey(["ahn", "sha256_ahn3"]))
         )
         with (
             patch(
@@ -284,8 +284,8 @@ def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
         ):
             ctx = build_multi_asset_sensor_context(
                 monitored_assets=[
-                    AssetKey(["ahn", "md5_ahn3"]),
-                    AssetKey(["ahn", "md5_ahn4"]),
+                    AssetKey(["ahn", "sha256_ahn3"]),
+                    AssetKey(["ahn", "sha256_ahn4"]),
                     AssetKey(["ahn", "sha256_ahn5"]),
                 ],
                 instance=inst,

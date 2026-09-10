@@ -167,14 +167,14 @@ class BatchLAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn3() -> dict[str, str]:
-    """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
+def sha256_ahn3() -> dict[str, str]:
+    """Download the SHA256 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn4() -> dict[str, str]:
-    """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
+def sha256_ahn4() -> dict[str, str]:
+    """Download the SHA256 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
@@ -215,7 +215,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn3: dict[str, str],
+    sha256_ahn3: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -241,10 +241,10 @@ def laz_files_ahn3(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+            sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -263,7 +263,7 @@ def laz_files_ahn3(
                     fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
                 )
             second_validation = lazdownload.validate(
-                sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+                sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -281,7 +281,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn4: dict[str, str],
+    sha256_ahn4: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -308,10 +308,10 @@ def laz_files_ahn4(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+            sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -332,7 +332,7 @@ def laz_files_ahn4(
                     verify_ssl=verify_ssl,
                 )
             second_validation = lazdownload.validate(
-                sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+                sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -375,7 +375,7 @@ def laz_files_ahn5(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")

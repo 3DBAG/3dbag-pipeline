@@ -6,7 +6,7 @@ from bag3d.core.assets.ahn.download import (
 )
 
 
-def test_get_checksums_parses_md5_payload():
+def test_get_checksums_parses_sha256_payload():
     payload = (
         '{"type": "FeatureCollection", "features": ['
         '{"type": "Feature", "properties": {'

@@ -28,12 +28,12 @@ class _AhnVersionConfig(TypedDict):
 _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
     3: {
         "job_name": "ahn3",
-        "asset_key": AssetKey(["ahn", "md5_ahn3"]),
+        "asset_key": AssetKey(["ahn", "sha256_ahn3"]),
         "url_key": "AHN3_LAZ",
     },
     4: {
         "job_name": "ahn4",
-        "asset_key": AssetKey(["ahn", "md5_ahn4"]),
+        "asset_key": AssetKey(["ahn", "sha256_ahn4"]),
         "url_key": "AHN4_LAZ",
     },
     5: {
@@ -68,8 +68,8 @@ def _build_filename_to_tile_id(tile_index: dict, url_key: str) -> dict[str, str]
 def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition:
     """Factory that returns the AHN checksum sensor with the given default status.
 
-    The sensor watches for new materializations of the checksum assets (md5_ahn3,
-    md5_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
+    The sensor watches for new materializations of the checksum assets (sha256_ahn3,
+    sha256_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
     index to build a filename to tile_id mapping, reads the checksums, compares
     against previously stored checksums in the cursor, and triggers partition runs
     only for tiles whose checksum has changed.
@@ -91,8 +91,8 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
 
         @multi_asset_sensor(
             monitored_assets=[
-                AssetKey(["ahn", "md5_ahn3"]),
-                AssetKey(["ahn", "md5_ahn4"]),
+                AssetKey(["ahn", "sha256_ahn3"]),
+                AssetKey(["ahn", "sha256_ahn4"]),
                 AssetKey(["ahn", "sha256_ahn5"]),
                 AssetKey(["ahn", "sha256_ahn6"]),
             ],
