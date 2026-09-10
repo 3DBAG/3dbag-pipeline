@@ -1,8 +1,6 @@
 import json
 import random
 import time
-import urllib.error
-import urllib.request
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -11,6 +9,7 @@ from hashlib import new as hash_new
 from pathlib import Path
 from typing import Any
 
+import requests
 import urllib3
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_as_str, download_file
@@ -564,18 +563,43 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     return checksums
 
 
-def _head_check(url: str) -> int | None:
-    """Quick HEAD check. Returns HTTP status code, or None on network error."""
-    if not url:
-        return None
+HEAD_CHECK_TIMEOUT = 10
+
+
+def _is_http_url(url: str) -> bool:
+    return isinstance(url, str) and url.startswith(("http://", "https://"))
+
+
+def _head_check(url: str, fpath: Path, verify_ssl: bool = True) -> None:
+    """Pre-check a LAZ download URL with a HEAD request.
+
+    Raises :class:`dagster.Failure` (without retrying) when the URL cannot be
+    used, i.e. the URL is empty/not an ``http(s)`` URL, the server returns
+    403/404, or any network/timeout/HTTP error occurs. Returns normally only
+    when the server answered positively, so the caller proceeds to the download.
+    """
+    if not _is_http_url(url):
+        raise Failure(
+            format_laz_log(
+                fpath,
+                "No valid download URL for this tile (the AHN LAZ URL is "
+                "missing or malformed in the tile index)",
+            )
+        )
     try:
-        req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            return resp.status
-    except urllib.error.HTTPError as e:
-        return e.code
-    except (urllib.error.URLError, OSError, TimeoutError, ValueError):
-        return None
+        resp = requests.head(
+            url, timeout=HEAD_CHECK_TIMEOUT, allow_redirects=True, verify=verify_ssl
+        )
+    except (requests.RequestException, ValueError):
+        raise Failure(
+            format_laz_log(fpath, f"URL {url} is unreachable (network error)")
+        )
+    if resp.status_code in (403, 404):
+        raise Failure(
+            format_laz_log(
+                fpath, f"URL returned HTTP {resp.status_code} (not retrying)"
+            )
+        )
 
 
 def download_ahn_laz(
@@ -607,25 +631,12 @@ def download_ahn_laz(
     elif url_base is not None:
         url = f"{url_base}/{fpath.name}"
     else:
-        raise Failure(
-            format_laz_log(
-                fpath,
-                "No download URL available for this tile (the AHN LAZ URL is "
-                "missing in the tile index)",
-            )
-        )
+        url = None
 
-    http_status = _head_check(url)
-    if http_status is None:
-        raise Failure(
-            format_laz_log(
-                fpath, f"URL {url} not reachable (network error, not retrying)"
-            )
-        )
-    if http_status in (403, 404):
-        raise Failure(
-            format_laz_log(fpath, f"URL returned HTTP {http_status} (not retrying)")
-        )
+    # Pre-check the URL: raises Failure (without retry) for a missing/malformed
+    # URL or an HTTP 403/404. For OK/UNREACHABLE we proceed to the real download,
+    # which retries on transient errors.
+    _head_check(url, fpath=fpath, verify_ssl=verify_ssl)
 
     success = False
     file_size = 0.0
