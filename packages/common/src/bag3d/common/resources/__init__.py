@@ -46,9 +46,7 @@ class DagsterDeployment(StrEnum):
         return frozenset(
             {
                 cls.PRODUCTION,
-                cls.USER,
                 cls.PYTEST,
-                cls.PC,
                 cls.FEATURE,
                 cls.STAGING,
             }
