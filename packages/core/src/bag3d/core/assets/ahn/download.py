@@ -717,5 +717,5 @@ def match_sha(
         logger.info(format_laz_log(fpath, f"{hash_name} OK"))
         return True
     else:  # pragma: no cover
-        logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
+        logger.info(format_laz_log(fpath, f"{hash_name}: {hash_hexdigest} != {sha_reference[fpath.name]}"))
         return False
