@@ -618,7 +618,9 @@ def download_ahn_laz(
     http_status = _head_check(url)
     if http_status is None:
         raise Failure(
-            format_laz_log(fpath, "URL not reachable (network error, not retrying)")
+            format_laz_log(
+                fpath, f"URL {url} not reachable (network error, not retrying)"
+            )
         )
     if http_status in (403, 404):
         raise Failure(
