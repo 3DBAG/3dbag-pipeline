@@ -39,8 +39,8 @@ logger = get_dagster_logger("ahn.download")
 URL_LAZ_SHA = {
     6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
-    4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
-    3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
+    4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
+    3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
 }
 
 
@@ -554,18 +554,13 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    if ahn_version in (5, 6):
-        # We have a GeoJSON FeatureCollection
-        for feature in json.loads(_hashes)["features"]:
-            if (properties := feature.get("properties")) and (
-                file_url := properties.get("file")
-            ):
-                filename = file_url.split("/")[-1]
-                checksums[filename] = properties.get("sha256")
-    else:
-        for tile in _hashes.strip().split("\n"):
-            sha, file = tile.split()
-            checksums[file] = sha
+    # We have a GeoJSON FeatureCollection
+    for feature in json.loads(_hashes)["features"]:
+        if (properties := feature.get("properties")) and (
+            file_url := properties.get("file")
+        ):
+            filename = file_url.split("/")[-1]
+            checksums[filename] = properties.get("sha256")
     return checksums
 
 
