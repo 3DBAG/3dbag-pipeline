@@ -46,7 +46,12 @@ MOCK_AHN5_RESPONSE = {
     ]
 }
 
-MOCK_AHN34_RESPONSE = "56c731a1814dd73c79a0a5347f8a04c7  C_01CZ1.LAZ\n"
+MOCK_AHN34_RESPONSE = (
+    '{"features": ['
+    '{"properties": {"file": "https://example.com/C_01CZ1.LAZ", '
+    '"sha256": "56c731a1814dd73c79a0a5347f8a04c7"}}'
+    "]}"
+)
 MOCK_AHN_INDEX_RESPONSE = {
     "features": [
         {
