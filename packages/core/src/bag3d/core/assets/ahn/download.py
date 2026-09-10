@@ -566,13 +566,15 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
 
 def _head_check(url: str) -> int | None:
     """Quick HEAD check. Returns HTTP status code, or None on network error."""
+    if not url:
+        return None
     try:
         req = urllib.request.Request(url, method="HEAD")
         with urllib.request.urlopen(req, timeout=5) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
         return e.code
-    except (urllib.error.URLError, OSError, TimeoutError):
+    except (urllib.error.URLError, OSError, TimeoutError, ValueError):
         return None
 
 
@@ -607,11 +609,17 @@ def download_ahn_laz(
     else:
         raise Failure(
             format_laz_log(
-                fpath, "No URL provided (both url_laz and url_base are None)"
+                fpath,
+                "No download URL available for this tile (the AHN LAZ URL is "
+                "missing in the tile index)",
             )
         )
 
     http_status = _head_check(url)
+    if http_status is None:
+        raise Failure(
+            format_laz_log(fpath, "URL not reachable (network error, not retrying)")
+        )
     if http_status in (403, 404):
         raise Failure(
             format_laz_log(fpath, f"URL returned HTTP {http_status} (not retrying)")
