@@ -36,14 +36,23 @@ logger = get_dagster_logger()
 class DagsterDeployment(StrEnum):
     DEFAULT = "default"
     PRODUCTION = "production"
-    USER = "user"
+    FEATURE = "feature"
     PYTEST = "pytest"
-    PC = "pc"
+    STAGING = "staging"
 
     @classmethod
     def env_configured_deployments(cls) -> frozenset[str]:
         """Return deployment types that use environment variable configuration."""
-        return frozenset({cls.PRODUCTION, cls.USER, cls.PYTEST, cls.PC})
+        return frozenset(
+            {
+                cls.PRODUCTION,
+                cls.USER,
+                cls.PYTEST,
+                cls.PC,
+                cls.FEATURE,
+                cls.STAGING,
+            }
+        )
 
 
 version = ReleaseVersionResource(version=os.getenv("BAG3D_RELEASE_VERSION"))  # type: ignore[arg-type]
