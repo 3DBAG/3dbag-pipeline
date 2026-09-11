@@ -53,12 +53,16 @@ def resources_ahn(database, file_store):
 
 @pytest.fixture(scope="session")
 def sha256_ahn3_fix():
-    yield {"C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"}
+    yield {
+        "C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"
+    }
 
 
 @pytest.fixture(scope="session")
 def sha256_ahn4_fix():
-    yield {"C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"}
+    yield {
+        "C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"
+    }
 
 
 @pytest.fixture(scope="session")

@@ -23,7 +23,7 @@ def test_get_metadata_parses_timeliness(mock_requests):
 
 
 def test_download_as_str_returns_text(mock_requests):
-    url = "https://example.com/AHN4.md5"
+    url = "https://example.com/AHN4.sha256"
     body = "56c731a1814dd73c79a0a5347f8a04c7  C_01CZ1.LAZ\n"
     mock_requests.get(url, text=body)
 
@@ -31,13 +31,13 @@ def test_download_as_str_returns_text(mock_requests):
 
 
 def test_download_file_writes_payload(mock_requests, tmp_path):
-    url = "https://example.com/AHN4.md5"
+    url = "https://example.com/AHN4.sha256"
     body = "56c731a1814dd73c79a0a5347f8a04c7  C_01CZ1.LAZ\n"
     mock_requests.head(url, headers={"content-length": str(len(body))})
     mock_requests.get(url, body=body.encode())
 
-    path = download_file(url=url, target_path=tmp_path / "checksums.md5")
+    path = download_file(url=url, target_path=tmp_path / "checksums.sha256")
 
     assert path is not None
-    assert path == tmp_path / "checksums.md5"
+    assert path == tmp_path / "checksums.sha256"
     assert path.read_text() == body

@@ -44,13 +44,15 @@ URL_LAZ_SHA = {
 
 
 class HashChunkwise:
-    """Compute the MD5/SHA256 of the contents of a file, reading by chunks.
+    """Compute the checksum of a file's contents, reading it in chunks.
 
-    Read chunks of 4096 bytes sequentially and feed them to md5, because
-    the file is too big to fit into the memory.
+    Chunks of 4096 bytes are read sequentially and fed to the hashing function
+    selected by ``method`` (e.g. ``"md5"`` or ``"sha256"``), so the file does
+    not need to fit into memory.
 
     Args:
-        method (str): One of the hashing algorithms available in ``hashlib``.
+        method (str): One of the hashing algorithms available in ``hashlib``
+            (see :func:`hashlib.algorithms_available`).
     """
 
     def __init__(self, method: str):
@@ -548,7 +550,7 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
 
     Returns:
         Mapping[str, str]: A dictionary where the keys are filenames and the values
-            are their corresponding SHA-256 or MD5 checksums.
+            are their corresponding SHA-256 checksums.
     """
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
