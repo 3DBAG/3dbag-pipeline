@@ -9,7 +9,6 @@ from hashlib import new as hash_new
 from pathlib import Path
 from typing import Any
 
-import requests
 import urllib3
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_as_str, download_file
@@ -565,43 +564,8 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     return checksums
 
 
-HEAD_CHECK_TIMEOUT = 10
-
-
 def _is_http_url(url: str) -> bool:
     return isinstance(url, str) and url.startswith(("http://", "https://"))
-
-
-def _head_check(url: str, fpath: Path, verify_ssl: bool = True) -> None:
-    """Pre-check a LAZ download URL with a HEAD request.
-
-    Raises :class:`dagster.Failure` (without retrying) when the URL cannot be
-    used, i.e. the URL is empty/not an ``http(s)`` URL, the server returns
-    403/404, or any network/timeout/HTTP error occurs. Returns normally only
-    when the server answered positively, so the caller proceeds to the download.
-    """
-    if not _is_http_url(url):
-        raise Failure(
-            format_laz_log(
-                fpath,
-                "No valid download URL for this tile (the AHN LAZ URL is "
-                "missing or malformed in the tile index)",
-            )
-        )
-    try:
-        resp = requests.head(
-            url, timeout=HEAD_CHECK_TIMEOUT, allow_redirects=True, verify=verify_ssl
-        )
-    except (requests.RequestException, ValueError):
-        raise Failure(
-            format_laz_log(fpath, f"URL {url} is unreachable (network error)")
-        )
-    if resp.status_code in (403, 404):
-        raise Failure(
-            format_laz_log(
-                fpath, f"URL returned HTTP {resp.status_code} (not retrying)"
-            )
-        )
 
 
 def download_ahn_laz(
@@ -635,10 +599,20 @@ def download_ahn_laz(
     else:
         url = None
 
-    # Pre-check the URL: raises Failure (without retry) for a missing/malformed
-    # URL or an HTTP 403/404. For OK/UNREACHABLE we proceed to the real download,
-    # which retries on transient errors.
-    _head_check(url, fpath=fpath, verify_ssl=verify_ssl)
+    # Local (no-network) guard: a missing/malformed URL can never succeed, so fail
+    # clearly here instead of burning the downloader's retries. HTTP 403/404 and
+    # transient errors are handled by the downloader (download_file issues its own
+    # HEAD and retries via download_laz), which is why we don't issue an extra HEAD
+    # request here -- that would double the per-tile request count for no benefit
+    # on the (vast majority of) files that exist.
+    if not _is_http_url(url):
+        raise Failure(
+            format_laz_log(
+                fpath,
+                "No valid download URL for this tile (the AHN LAZ URL is "
+                "missing or malformed in the tile index)",
+            )
+        )
 
     success = False
     file_size = 0.0
