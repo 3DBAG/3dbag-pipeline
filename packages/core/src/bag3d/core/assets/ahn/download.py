@@ -564,7 +564,7 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
     return checksums
 
 
-def _is_http_url(url: str) -> bool:
+def _is_http_url(url: str | None) -> bool:
     return isinstance(url, str) and url.startswith(("http://", "https://"))
 
 
