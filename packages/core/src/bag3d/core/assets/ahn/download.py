@@ -227,6 +227,10 @@ def laz_files_ahn3(
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN3/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN3 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -294,6 +298,10 @@ def laz_files_ahn4(
 
     laz_dir = pointcloud_store.create_subdir("AHN4/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN4 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -361,6 +369,10 @@ def laz_files_ahn5(
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN5/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN5 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
