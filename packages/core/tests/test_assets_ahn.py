@@ -7,6 +7,7 @@ from dagster import (
     AssetKey,
     AssetMaterialization,
     Failure,
+    IntMetadataValue,
     Output,
     build_multi_asset_sensor_context,
 )
@@ -372,23 +373,26 @@ def test_laz_files_ahn6_skips_tile_with_null_url(resources_ahn, tmp_path):
         )
 
     with (
-        patch(
-            "bag3d.core.assets.ahn.download.tiles_in_batch", return_value=tiles
-        ),
+        patch("bag3d.core.assets.ahn.download.tiles_in_batch", return_value=tiles),
         patch(
             "bag3d.core.assets.ahn.download.download_ahn_laz",
             side_effect=fake_download_ahn_laz,
         ),
         patch.object(LAZDownload, "compute_sha"),
         patch("bag3d.core.assets.ahn.download.logger.warning") as warning_mock,
-        build_asset_context_for(laz_files_ahn6, partition_key="150000_460000") as context,
+        build_asset_context_for(
+            laz_files_ahn6, partition_key="150000_460000"
+        ) as context,
     ):
         res = laz_files_ahn6(
             context, config, resources_ahn["file_store"], {}, tile_index
         )
 
     assert isinstance(res, Output)
-    assert res.metadata["failed"].value >= 1
+    failed = res.metadata["failed"]
+    assert isinstance(failed, IntMetadataValue)
+    assert failed.value is not None
+    assert failed.value >= 1
     assert any(
         "not found in tile index" in str(call.args[0])
         for call in warning_mock.call_args_list
