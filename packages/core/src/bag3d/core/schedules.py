@@ -11,8 +11,8 @@ integration_data_schedule = ScheduleDefinition(
     default_status=DefaultScheduleStatus.STOPPED,
     run_config={
         "ops": {
-            "bgt__extract_bgt": {"config": {"geofilter": AOI_WKT}},
-            "top10nl__extract_top10nl": {"config": {"geofilter": AOI_WKT}},
+            "extract_bgt": {"config": {"geofilter": AOI_WKT}},
+            "extract_top10nl": {"config": {"geofilter": AOI_WKT}},
         }
     },
 )
