@@ -3,6 +3,7 @@
 import json
 import zipfile
 from typing import cast
+from unittest.mock import patch
 
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
@@ -126,6 +127,22 @@ def test_compress_files_zips_ifc(tmp_path):
         assert not ifc_path.exists()
 
 
+class _SyncPool:
+    """A synchronous stand-in for ProcessPoolExecutor."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def map(self, func, iterable):
+        return [func(item) for item in iterable]
+
+
 def test_reconstruction_output_ifc(tmp_path):
     """reconstruction_output_ifc converts all CityJSON tiles to IFC files."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
@@ -136,7 +153,8 @@ def test_reconstruction_output_ifc(tmp_path):
     base.parent.mkdir(parents=True, exist_ok=True)
     (base.with_suffix(".city.json")).write_text(json.dumps(_minimal_cityjson()))
 
-    reconstruction_output_ifc(IFCConfig(), file_store, version)
+    with patch("bag3d.export.assets.export.ifc.ProcessPoolExecutor", _SyncPool):
+        reconstruction_output_ifc(IFCConfig(concurrency=1), file_store, version)
 
     for lod in ("0", "1.2", "1.3", "2.2"):
         assert (base.with_name(f"{base.name}-{lod}.ifc")).exists()
