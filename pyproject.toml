@@ -51,7 +51,7 @@ exclude = [
     "**/build",
     "**/docs",
     "**/site",
-    # Vendored LGPL files (from ifccityjson) are kept verbatim and untyped.
+    # Vendored LGPL files (from IFC3DBAG/ifccityjson); untyped third-party code.
     "packages/export/src/bag3d/export/ifc/geometry.py",
     "packages/export/src/bag3d/export/ifc/cityjson2ifc.py",
 ]
