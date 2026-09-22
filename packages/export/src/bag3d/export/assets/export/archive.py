@@ -192,9 +192,7 @@ class CompressionConfig(Config):
 
 @asset(
     deps={
-        AssetKey("geopackage"),
-        # compress_files deletes the .city.json tiles after gzipping them, so the
-        # IFC conversion (which reads .city.json) must finish first.
+        AssetKey(("export", "geopackage")),
         AssetKey(("export", "reconstruction_output_ifc")),
     },
     pool="compression",
