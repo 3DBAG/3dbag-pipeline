@@ -30,6 +30,7 @@ class ExportResult:
         tile_id (str): Tile ID
         cityjson_path (Path): Path to the cityjson file
         gpkg_path (Path): Path to the geopackage file
+        ifc_path (Path): Path to the IFC zip file
         obj_paths (Sequence[Path]): Paths to the OBJ files
         wkt (str): Tile WKT
     """
@@ -37,6 +38,7 @@ class ExportResult:
     tile_id: str
     cityjson_path: Path
     gpkg_path: Path
+    ifc_path: Path
     obj_paths: Sequence[Path]
     wkt: str
 
@@ -49,6 +51,11 @@ class ExportResult:
     def has_gpkg(self) -> bool:
         """Has an existing GeoPackage file"""
         return self.gpkg_path is not None and self.gpkg_path.exists()
+
+    @property
+    def has_ifc(self) -> bool:
+        """Has an existing IFC zip file"""
+        return self.ifc_path is not None and self.ifc_path.exists()
 
     @property
     def has_obj(self) -> bool:

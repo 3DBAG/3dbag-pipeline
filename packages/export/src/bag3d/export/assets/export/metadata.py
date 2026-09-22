@@ -3,6 +3,7 @@ import json
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import UTC, datetime
+from importlib.metadata import version as _package_version
 from pathlib import Path
 from uuid import uuid1
 
@@ -43,6 +44,28 @@ _SOFTWARE_TOOLS = [
 ]
 
 
+def _python_library_versions() -> list[dict]:
+    """Versions of the Python libraries used by the IFC export.
+
+    Unlike the tools in ``_SOFTWARE_TOOLS``, these are Python libraries without a
+    command-line executable, so their versions are read from package metadata.
+    """
+    return [
+        {
+            "name": "IfcOpenShell",
+            "version": _package_version("ifcopenshell"),
+            "repository": "https://github.com/IfcOpenShell/IfcOpenShell",
+            "description": "IFC file writing for the CityJSON to IFC conversion",
+        },
+        {
+            "name": "cjio",
+            "version": _package_version("cjio"),
+            "repository": "https://github.com/cityjson/cjio",
+            "description": "CityJSON parsing for the IFC conversion",
+        },
+    ]
+
+
 def _build_software_list() -> list[dict]:
     """Build the software list from manifest metadata and runtime versions."""
     software = []
@@ -62,6 +85,7 @@ def _build_software_list() -> list[dict]:
                 "description": meta["description"],
             }
         )
+    software.extend(_python_library_versions())
     return software
 
 
@@ -218,7 +242,14 @@ def export_index(
     path_export_index = path_export_dir.joinpath("export_index.csv")
 
     with path_export_index.open("w") as fw:
-        fieldnames = ["tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"]
+        fieldnames = [
+            "tile_id",
+            "has_cityjson",
+            "has_gpkg",
+            "has_ifc",
+            "has_obj",
+            "wkt",
+        ]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
         export_results_gen = check_export_results(merged_quadtree, path_export_dir)

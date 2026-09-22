@@ -215,6 +215,7 @@ def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
     basename.parent.mkdir(parents=True, exist_ok=True)
     (basename.with_suffix(".city.json")).write_text("{}")
     (basename.with_suffix(".gpkg")).write_bytes(b"")
+    (basename.with_name(f"{tile_id.replace('/', '-')}-ifc.zip")).write_bytes(b"")
     for suffix in ("-lod12.obj", "-lod13.obj", "-lod22.obj"):
         (basename.with_name(f"{basename.name}{suffix}")).write_text("")
 
@@ -244,7 +245,7 @@ def test_export_index_reads_quadtree(tmp_path):
         rows = list(reader)
 
     assert len(rows) == len(tile_ids)
-    expected_cols = {"tile_id", "has_cityjson", "has_gpkg", "has_obj", "wkt"}
+    expected_cols = {"tile_id", "has_cityjson", "has_gpkg", "has_ifc", "has_obj", "wkt"}
     assert reader.fieldnames is not None
     assert expected_cols == set(reader.fieldnames)
 
@@ -252,6 +253,7 @@ def test_export_index_reads_quadtree(tmp_path):
         assert row["tile_id"] in tile_ids
         assert row["has_cityjson"] == "True"
         assert row["has_gpkg"] == "True"
+        assert row["has_ifc"] == "True"
         assert row["has_obj"] == "True"
         assert row["wkt"] == "POLYGON((0 0,1 0,1 1,0 1,0 0))"
 

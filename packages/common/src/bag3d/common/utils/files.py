@@ -62,9 +62,11 @@ def check_export_results(
                 leaf_id = row["id"]
                 basename = export_tile_path(export_dir, leaf_id, "")
                 obj_paths = tuple(basename.parent.glob(f"{basename.name}*.obj"))
+                ifc_path = basename.with_name(f"{leaf_id.replace('/', '-')}-ifc.zip")
                 expected_paths = (
                     basename.with_suffix(".city.json"),
                     basename.with_suffix(".gpkg"),
+                    ifc_path,
                     *obj_paths,
                 )
                 if any(path.exists() for path in expected_paths):
@@ -72,6 +74,7 @@ def check_export_results(
                         tile_id=leaf_id,
                         cityjson_path=basename.with_suffix(".city.json"),
                         gpkg_path=basename.with_suffix(".gpkg"),
+                        ifc_path=ifc_path,
                         obj_paths=obj_paths,
                         wkt=row["wkt"],
                     )
