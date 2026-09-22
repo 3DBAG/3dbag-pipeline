@@ -435,15 +435,15 @@ class Cityjson2ifc:
         pset = ifcopenshell.api.run("pset.add_pset", self.IFC_model, product=IFC_entity, name="3DBAG_attributes")
         ifcopenshell.api.run("pset.edit_pset", self.IFC_model, pset=pset, properties=CJ_attributes)
         psetPand = ifcopenshell.api.run("pset.add_pset", self.IFC_model, product=IFC_entity, name="Pset_BuildingCommon")
+        properties_to_add = {}
         if "identificatie" in CJ_attributes:
             value = CJ_attributes["identificatie"]
-            value = value[len("NL.IMBAG.Pand."):]
-            properties_to_add = {"BuildingID": value}
+            properties_to_add["BuildingID"] = value[len("NL.IMBAG.Pand."):]
+
+        if "b3_bouwlagen" in CJ_attributes:
+            properties_to_add["NumberOfStories"] = CJ_attributes["b3_bouwlagen"]
 
         if "oorspronkelijkbouwjaar" in CJ_attributes:
-            properties_to_add["NumberOfStories"] = CJ_attributes["b3_bouwlagen"]
-        
-        if "b3_bouwlagen" in CJ_attributes:
             properties_to_add["YearOfConstruction"] = CJ_attributes["oorspronkelijkbouwjaar"]
 
         ifcopenshell.api.run(
