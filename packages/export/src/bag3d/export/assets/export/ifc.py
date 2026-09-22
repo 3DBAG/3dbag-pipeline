@@ -1,9 +1,5 @@
 """IFC tile export."""
 
-from concurrent.futures import ProcessPoolExecutor
-from os import getenv
-from pathlib import Path
-
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import AssetKey, Config, asset, get_dagster_logger
@@ -15,20 +11,9 @@ logger = get_dagster_logger("export.ifc")
 
 
 class IFCConfig(Config):
-    concurrency: int = Field(
-        default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_IFC", "1")),
-        description="Number of parallel workers for IFC conversion",
-    )
     ignore_duplicate_keys: bool = Field(
         default=False,
         description="Ignore duplicate JSON keys in the CityJSON tiles",
-    )
-
-
-def _convert_tile(args: tuple[Path, bool]) -> list[Path]:
-    cityjson_path, ignore_duplicate_keys = args
-    return convert_cityjson_to_ifc(
-        cityjson_path, ignore_duplicate_keys=ignore_duplicate_keys
     )
 
 
@@ -54,7 +39,7 @@ def reconstruction_output_ifc(
         raise FileNotFoundError(f"No CityJSON tiles found under {export_dir}")
     logger.info("Converting %d CityJSON tiles to IFC", len(cityjson_files))
 
-    args = [(path, config.ignore_duplicate_keys) for path in cityjson_files]
-    with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
-        for _ in executor.map(_convert_tile, args):
-            pass
+    for cityjson_path in cityjson_files:
+        convert_cityjson_to_ifc(
+            cityjson_path, ignore_duplicate_keys=config.ignore_duplicate_keys
+        )
