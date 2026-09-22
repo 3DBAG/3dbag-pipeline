@@ -65,4 +65,8 @@ filterwarnings = [
     "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
     "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
     "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
+    # cjio 0.9 deprecations (pinned for the vendored IFC converter)
+    "ignore:cityjson.models module will be deprecated.*:DeprecationWarning",
+    "ignore:cityjson.load_from_j.*:DeprecationWarning",
+    "ignore:datetime.datetime.utcnow.*:DeprecationWarning",
 ]
