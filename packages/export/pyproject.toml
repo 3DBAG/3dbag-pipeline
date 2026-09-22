@@ -48,11 +48,6 @@ dev = [
 
 [tool.ruff]
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
-# Vendored LGPL files (from IFC3DBAG/ifccityjson) are kept verbatim.
-extend-exclude = [
-    "src/bag3d/export/ifc/geometry.py",
-    "src/bag3d/export/ifc/cityjson2ifc.py",
-]
 
 [tool.uv.sources]
 pgutils = { git = "https://github.com/balazsdukai/pgutils.git", rev = "2026.1017" }

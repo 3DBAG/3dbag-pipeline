@@ -7,13 +7,12 @@ This package contains the CityJSON-to-IFC conversion logic used by the
 Vendored files
 --------------
 
-The following files were copied from the IFC3DBAG repository
-(https://github.com/tudelft3d/IFC3DBAG), which is itself a fork of the
-``ifccityjson`` converter from IfcOpenShell
-(https://github.com/IfcOpenShell/IfcOpenShell/tree/master/src/ifccityjson):
+The following files are a modified version of the ``ifccityjson`` converter
+from IfcOpenShell (https://github.com/IfcOpenShell/IfcOpenShell), as adapted
+for 3DBAG by the IFC3DBAG project (https://github.com/tudelft3d/IFC3DBAG):
 
-- ``geometry.py``      - copied verbatim (LGPL-3.0-or-later)
-- ``cityjson2ifc.py``  - copied, with one change (see below)
+- ``geometry.py``      - copied from IfcOpenShell, modified
+- ``cityjson2ifc.py``  - copied from IfcOpenShell, modified (see below)
 
 Both files are licensed under the GNU Lesser General Public License
 (LGPL), version 3 or (at your option) any later version. See their file
@@ -29,6 +28,12 @@ Modifications
 - ``cityjson2ifc.py``: the import ``from geometry import GeometryIO`` was
   changed to ``from .geometry import GeometryIO`` so the module works as part
   of the ``bag3d.export.ifc`` package.
+
+- ``cityjson2ifc.py``: in ``create_property_set``, the ``Pset_BuildingCommon``
+  mapping was corrected. ``properties_to_add`` is now always initialized, and
+  the guards for ``NumberOfStories``/``YearOfConstruction`` were fixed to match
+  their respective source attributes (``b3_bouwlagen`` and
+  ``oorspronkelijkbouwjaar`` were previously swapped).
 
 - The original ``batch_converter.py`` (click CLI + multiprocessing + unzip)
   was refactored into ``convert.py``. The single-tile conversion logic is
