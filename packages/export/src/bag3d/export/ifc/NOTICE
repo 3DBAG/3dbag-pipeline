@@ -22,23 +22,6 @@ Copyright:
 - 2021 Laurens J.N. Oostwegel <l.oostwegel@gmail.com>
 - 2023 Balázs Dukai <balazs.dukai@3dgi.nl>
 
-Modifications
--------------
-
-- ``cityjson2ifc.py``: the import ``from geometry import GeometryIO`` was
-  changed to ``from .geometry import GeometryIO`` so the module works as part
-  of the ``bag3d.export.ifc`` package.
-
-- ``cityjson2ifc.py``: in ``create_property_set``, the ``Pset_BuildingCommon``
-  mapping was corrected. ``properties_to_add`` is now always initialized, and
-  the guards for ``NumberOfStories``/``YearOfConstruction`` were fixed to match
-  their respective source attributes (``b3_bouwlagen`` and
-  ``oorspronkelijkbouwjaar`` were previously swapped).
-
-- The original ``batch_converter.py`` (click CLI + multiprocessing + unzip)
-  was refactored into ``convert.py``. The single-tile conversion logic is
-  unchanged; the CLI, process pool, and ``.city.json.gz`` unzip step were
-  removed, and logging replaced ``click.echo``.
 
 New files (Apache-2.0 / MIT, this repository)
 --------------------------------------------

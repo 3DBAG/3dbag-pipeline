@@ -78,32 +78,35 @@ def convert_cityjson_to_ifc(
         with open(cityjson_path, "r") as infile:
             logger.info("Parsing %s ...", infile.name)
             cm = load_cityjson(infile, ignore_duplicate_keys=ignore_duplicate_keys)
-            for lod in lods:
-                converter = Cityjson2ifc()
-                output_ifc_path = Path(
-                    str(cityjson_path).replace(".city.json", f"-{lod}.ifc")
+    except Exception as ex:
+        raise RuntimeError(f"Failed to parse CityJSON tile: {cityjson_path}") from ex
+
+    try:
+        for lod in lods:
+            converter = Cityjson2ifc()
+            output_ifc_path = Path(
+                str(cityjson_path).replace(".city.json", f"-{lod}.ifc")
+            )
+            converter.configuration(
+                name_project="3DBAG Project",
+                name_site="3DBAG Site",
+                name_person_family="3Dgeoinfo",
+                name_person_given="3DGI/",
+                lod=lod,
+                file_destination=str(output_ifc_path),
+            )
+            try:
+                converter.convert(cm)
+            except Exception as ex:
+                raise RuntimeError(
+                    f"Failed to convert {cityjson_path} to IFC at LoD {lod}"
+                ) from ex
+            if not output_ifc_path.is_file() or output_ifc_path.stat().st_size == 0:
+                raise RuntimeError(
+                    f"IFC conversion produced no (or empty) output for "
+                    f"{cityjson_path} at LoD {lod}: {output_ifc_path}"
                 )
-                converter.configuration(
-                    name_project="3DBAG Project",
-                    name_site="3DBAG Site",
-                    name_person_family="3Dgeoinfo",
-                    name_person_given="3DGI/",
-                    lod=lod,
-                    file_destination=str(output_ifc_path),
-                )
-                try:
-                    converter.convert(cm)
-                    output_ifc_files.append(output_ifc_path)
-                except Exception as ex:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to convert %s at LoD %s.\nError: %s",
-                        cityjson_path,
-                        lod,
-                        ex,
-                    )
-                    continue
-    except Exception as ex:  # noqa: BLE001
-        logger.error("Error processing %s: %s", cityjson_path, ex)
+            output_ifc_files.append(output_ifc_path)
     finally:
         if cm is not None:
             del cm

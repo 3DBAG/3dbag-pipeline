@@ -55,6 +55,24 @@ def reconstruction_output_ifc(
     logger.info("Converting %d CityJSON tiles to IFC", len(cityjson_files))
 
     args = [(path, config.ignore_duplicate_keys) for path in cityjson_files]
+    produced: list[Path] = []
+    failed: list[str] = []
     with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
-        for _ in executor.map(_convert_tile, args):
-            pass
+        for cityjson_path, ifc_files in zip(
+            cityjson_files, executor.map(_convert_tile, args)
+        ):
+            if ifc_files:
+                produced.extend(ifc_files)
+            else:
+                failed.append(str(cityjson_path))
+
+    logger.info(
+        "Converted %d/%d CityJSON tiles to IFC (%d files)",
+        len(cityjson_files) - len(failed),
+        len(cityjson_files),
+        len(produced),
+    )
+    if failed:
+        raise RuntimeError(
+            f"IFC conversion produced no output for {len(failed)} tile(s): {failed}"
+        )
