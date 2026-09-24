@@ -49,10 +49,20 @@ def reconstruction_output_ifc(
     before they are gzipped by ``compressed_tiles``.
     """
     export_dir = file_store.stage_subdir("export", version.version)
+    logger.info("IFC export directory: %s (version=%s)", export_dir, version.version)
     cityjson_files = sorted(export_dir.glob("t/**/*.city.json"))
+    logger.info("Found %d CityJSON tiles to convert", len(cityjson_files))
     if not cityjson_files:
-        raise FileNotFoundError(f"No CityJSON tiles found under {export_dir}")
-    logger.info("Converting %d CityJSON tiles to IFC", len(cityjson_files))
+        tiles_dir = export_dir / "t"
+        if tiles_dir.is_dir():
+            listing = [str(p.relative_to(export_dir)) for p in tiles_dir.rglob("*")]
+            detail = f"Contents of {tiles_dir}: {listing}"
+        else:
+            detail = f"{tiles_dir} does not exist"
+        raise FileNotFoundError(
+            f"No CityJSON tiles found under {export_dir} (version={version.version}). "
+            f"{detail}"
+        )
 
     args = [(path, config.ignore_duplicate_keys) for path in cityjson_files]
     produced: list[Path] = []

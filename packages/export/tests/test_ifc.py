@@ -100,6 +100,26 @@ def test_convert_cityjson_to_ifc(tmp_path):
         assert f.stat().st_size > 0
 
 
+def test_convert_cityjson_to_ifc_no_transform(tmp_path):
+    """A CityJSON tile without a transform (absolute coordinates) still converts."""
+    cj = _minimal_cityjson()
+    cj.pop("transform")
+    path = tmp_path / "tile.city.json"
+    path.write_text(json.dumps(cj))
+
+    files = convert_cityjson_to_ifc(path)
+
+    assert {f.name for f in files} == {
+        "tile-0.ifc",
+        "tile-1.2.ifc",
+        "tile-1.3.ifc",
+        "tile-2.2.ifc",
+    }
+    for f in files:
+        assert f.exists()
+        assert f.stat().st_size > 0
+
+
 def test_compress_files_zips_ifc(tmp_path):
     """compress_files zips the per-LoD IFC files and removes the originals."""
     export_dir = tmp_path / "export"
