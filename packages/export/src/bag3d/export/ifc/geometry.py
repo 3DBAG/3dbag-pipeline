@@ -32,7 +32,9 @@ class GeometryIO:
 
     def build_vertex(self, IFC_model, vertex):
         if self.scale:
-            IFC_vertex = [float(xyz) * coord_scale for xyz, coord_scale in zip(vertex, self.scale)]
+            IFC_vertex = [
+                float(xyz) * coord_scale for xyz, coord_scale in zip(vertex, self.scale)
+            ]
             IFC_vertex[2] = IFC_vertex[2] + float(self.height)
         else:
             IFC_vertex = [float(xyz) for xyz in vertex]
@@ -44,10 +46,10 @@ class GeometryIO:
 
     def get_vertex(self, IFC_model, vertex):
         if not isinstance(vertex[0], Iterable):
-                if tuple(vertex) in self.vertices:
-                    return self.vertices[tuple(vertex)]
-                else:
-                    return self.build_vertex(IFC_model, vertex)           
+            if tuple(vertex) in self.vertices:
+                return self.vertices[tuple(vertex)]
+            else:
+                return self.build_vertex(IFC_model, vertex)
         else:
             for v in vertex:
                 if tuple(v) in self.vertices:
@@ -59,7 +61,6 @@ class GeometryIO:
     # https://www.cityjson.org/dev/geom-arrays/
     # https://www.cityjson.org/specs/1.0.3/#geometry-objects
     def create_IFC_geometry(self, IFC_model, geometry):
-        IFC_Geometry = None
         geometry_type = "SurfaceModel"
         if geometry.type in ["MultiPoint"]:
             IFC_geometry = self.create_IFC_cartesian_point_list3D(IFC_model, geometry)
@@ -84,7 +85,9 @@ class GeometryIO:
     def create_IFC_cartesian_point_list3D(self, IFC_model, geometry):
         # https://www.cityjson.org/dev/geom-arrays/
         # https://standards.buildingsmart.org/IFC/DEV/IFC4_2/FINAL/HTML/schema/ifcgeometricmodelresource/lexical/ifccartesianpointlist3d.htm
-        IFC_geometry = IFC_model.create_entity("IfcCartesianPointList3D", geometry.boundaries)
+        IFC_geometry = IFC_model.create_entity(
+            "IfcCartesianPointList3D", geometry.boundaries
+        )
         return IFC_geometry
 
     def create_IFC_composite_curve(self, IFC_model, geometry):
@@ -159,7 +162,9 @@ class GeometryIO:
         for vertex in face[0]:
             vertices.append(self.get_vertex(IFC_model, vertex))
         polyloop = IFC_model.create_entity("IfcPolyLoop", Polygon=vertices)
-        outerbound = IFC_model.create_entity("IfcFaceOuterBound", Bound=polyloop, Orientation=True)
+        outerbound = IFC_model.create_entity(
+            "IfcFaceOuterBound", Bound=polyloop, Orientation=True
+        )
 
         # return if only exterior face
         if len(face) == 1:
@@ -171,5 +176,9 @@ class GeometryIO:
             for vertex in interior_face:
                 vertices.append(self.get_vertex(IFC_model, vertex))
             polyloop = IFC_model.create_entity("IfcPolyLoop", Polygon=vertices)
-            innerbounds.append(IFC_model.create_entity("IfcFaceBound", Bound=polyloop, Orientation=False))
+            innerbounds.append(
+                IFC_model.create_entity(
+                    "IfcFaceBound", Bound=polyloop, Orientation=False
+                )
+            )
         return IFC_model.create_entity("IfcFace", Bounds=[outerbound] + innerbounds)
