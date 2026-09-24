@@ -1,8 +1,6 @@
 import json
 import random
 import time
-import urllib.error
-import urllib.request
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -39,19 +37,21 @@ logger = get_dagster_logger("ahn.download")
 URL_LAZ_SHA = {
     6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
-    4: "https://gist.githubusercontent.com/fwrite/6bb4ad23335c861f9f3162484e57a112/raw/ee5274c7c6cf42144d569e303cf93bcede3e2da1/AHN4.md5",
-    3: "https://gist.githubusercontent.com/arbakker/dcca00384cddbdf10c0421ed26d8911c/raw/f43465d287a654254e21851cce38324eba75d03c/checksum_laz.md5",
+    4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
+    3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
 }
 
 
 class HashChunkwise:
-    """Compute the MD5/SHA256 of the contents of a file, reading by chunks.
+    """Compute the checksum of a file's contents, reading it in chunks.
 
-    Read chunks of 4096 bytes sequentially and feed them to md5, because
-    the file is too big to fit into the memory.
+    Chunks of 4096 bytes are read sequentially and fed to the hashing function
+    selected by ``method`` (e.g. ``"md5"`` or ``"sha256"``), so the file does
+    not need to fit into memory.
 
     Args:
-        method (str): One of the hashing algorithms available in ``hashlib``.
+        method (str): One of the hashing algorithms available in ``hashlib``
+            (see :func:`hashlib.algorithms_available`).
     """
 
     def __init__(self, method: str):
@@ -167,14 +167,14 @@ class BatchLAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn3() -> dict[str, str]:
-    """Download the MD5 sums that are calculated by PDOK for the AHN3 LAZ files."""
+def sha256_ahn3() -> dict[str, str]:
+    """Download the SHA256 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def md5_ahn4() -> dict[str, str]:
-    """Download the MD5 sums that are calculated by PDOK for the AHN4 LAZ files."""
+def sha256_ahn4() -> dict[str, str]:
+    """Download the SHA256 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
@@ -215,7 +215,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn3: dict[str, str],
+    sha256_ahn3: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -227,6 +227,10 @@ def laz_files_ahn3(
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN3/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN3 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -241,10 +245,10 @@ def laz_files_ahn3(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+            sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -263,7 +267,7 @@ def laz_files_ahn3(
                     fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
                 )
             second_validation = lazdownload.validate(
-                sha_reference=md5_ahn3, sha_func=HashChunkwise("md5")
+                sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -281,7 +285,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    md5_ahn4: dict[str, str],
+    sha256_ahn4: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -294,6 +298,10 @@ def laz_files_ahn4(
 
     laz_dir = pointcloud_store.create_subdir("AHN4/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN4 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -308,10 +316,10 @@ def laz_files_ahn4(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+            sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -332,7 +340,7 @@ def laz_files_ahn4(
                     verify_ssl=verify_ssl,
                 )
             second_validation = lazdownload.validate(
-                sha_reference=md5_ahn4, sha_func=HashChunkwise("md5")
+                sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -361,6 +369,10 @@ def laz_files_ahn5(
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN5/as_downloaded/LAZ")
     url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
+    if not url_laz:
+        raise Failure(
+            f"AHN5 download URL is None or empty in the tile index for tile {tile_id}"
+        )
     fpath = laz_dir / url_laz.split("/")[-1]
     # Because https://ns_hwh.fundaments.nl is not configured properly.
     # Check with https://www.digicert.com/help/
@@ -375,7 +387,7 @@ def laz_files_ahn5(
             verify_ssl=verify_ssl,
             force_download=config.force_download,
         )
-    lazdownload.compute_sha(HashChunkwise("md5"))
+    lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
             sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
@@ -549,36 +561,23 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
 
     Returns:
         Mapping[str, str]: A dictionary where the keys are filenames and the values
-            are their corresponding SHA-256 or MD5 checksums.
+            are their corresponding SHA-256 checksums.
     """
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
     checksums = {}
-    if ahn_version in (5, 6):
-        # We have a GeoJSON FeatureCollection
-        for feature in json.loads(_hashes)["features"]:
-            if (properties := feature.get("properties")) and (
-                file_url := properties.get("file")
-            ):
-                filename = file_url.split("/")[-1]
-                checksums[filename] = properties.get("sha256")
-    else:
-        for tile in _hashes.strip().split("\n"):
-            sha, file = tile.split()
-            checksums[file] = sha
+    # We have a GeoJSON FeatureCollection
+    for feature in json.loads(_hashes)["features"]:
+        if (properties := feature.get("properties")) and (
+            file_url := properties.get("file")
+        ):
+            filename = file_url.split("/")[-1]
+            checksums[filename] = properties.get("sha256")
     return checksums
 
 
-def _head_check(url: str) -> int | None:
-    """Quick HEAD check. Returns HTTP status code, or None on network error."""
-    try:
-        req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            return resp.status
-    except urllib.error.HTTPError as e:
-        return e.code
-    except (urllib.error.URLError, OSError, TimeoutError):
-        return None
+def _is_http_url(url: str | None) -> bool:
+    return isinstance(url, str) and url.startswith(("http://", "https://"))
 
 
 def download_ahn_laz(
@@ -610,16 +609,21 @@ def download_ahn_laz(
     elif url_base is not None:
         url = f"{url_base}/{fpath.name}"
     else:
+        url = None
+
+    # Local (no-network) guard: a missing/malformed URL can never succeed, so fail
+    # clearly here instead of burning the downloader's retries. HTTP 403/404 and
+    # transient errors are handled by the downloader (download_file issues its own
+    # HEAD and retries via download_laz), which is why we don't issue an extra HEAD
+    # request here -- that would double the per-tile request count for no benefit
+    # on the (vast majority of) files that exist.
+    if not _is_http_url(url):
         raise Failure(
             format_laz_log(
-                fpath, "No URL provided (both url_laz and url_base are None)"
+                fpath,
+                "No valid download URL for this tile (the AHN LAZ URL is "
+                "missing or malformed in the tile index)",
             )
-        )
-
-    http_status = _head_check(url)
-    if http_status in (403, 404):
-        raise Failure(
-            format_laz_log(fpath, f"URL returned HTTP {http_status} (not retrying)")
         )
 
     success = False
@@ -722,5 +726,9 @@ def match_sha(
         logger.info(format_laz_log(fpath, f"{hash_name} OK"))
         return True
     else:  # pragma: no cover
-        logger.info(format_laz_log(fpath, f"{hash_name} mismatch"))
+        logger.info(
+            format_laz_log(
+                fpath, f"{hash_name}: {hash_hexdigest} != {sha_reference[fpath.name]}"
+            )
+        )
         return False
