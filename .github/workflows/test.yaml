@@ -30,7 +30,7 @@ jobs:
     - name: Generate coverage JSON
       if: always()
       run: |
-        for pkg in common core export floors_estimation party_walls terrain; do
+        for pkg in common core export floors_estimation party_walls underpasses terrain; do
           uv --project packages/$pkg run coverage json \
             --data-file=.coverage.$pkg -o .coverage.$pkg.json
         done
