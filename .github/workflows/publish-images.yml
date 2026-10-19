@@ -1,4 +1,4 @@
-# Publish all six images on release tag pushes; require tag and manifest version agreement before publication.
+# Publish all seven images on release tag pushes; require tag and manifest version agreement before publication.
 name: Publish Images Packages
 
 on:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    name: Publish six pipeline images
+    name: Publish seven pipeline images
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -92,6 +92,18 @@ jobs:
             TOOLS_IMAGE=${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE }}
           push: true
           tags: ${{ steps.manifest.outputs.BAG3D_TERRAIN_IMAGE }}
+      - name: Build and push underpasses
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ./
+          file: ./docker/pipeline/bag3d-underpasses.dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          build-args: |
+            JOBS=2
+            VERSION=${{ steps.manifest.outputs.BAG3D_PIPELINE_VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE }}
+          push: true
+          tags: ${{ steps.manifest.outputs.BAG3D_UNDERPASSES_IMAGE }}
       - name: Build and push export
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
