@@ -23,6 +23,7 @@ PYPROJECT_FILES = (
     "packages/floors_estimation/pyproject.toml",
     "packages/party_walls/pyproject.toml",
     "packages/terrain/pyproject.toml",
+    "packages/underpasses/pyproject.toml",
 )
 LOCKFILE_PACKAGES = {
     "uv.lock": ("3dbag-pipeline",),
@@ -32,6 +33,7 @@ LOCKFILE_PACKAGES = {
     "packages/floors_estimation/uv.lock": ("bag3d-common", "bag3d-floors-estimation"),
     "packages/party_walls/uv.lock": ("bag3d-common", "bag3d-party-walls"),
     "packages/terrain/uv.lock": ("bag3d-common", "bag3d-terrain"),
+    "packages/underpasses/uv.lock": ("bag3d-common", "bag3d-underpasses"),
 }
 DOCKER_TOOL_ARGS = {
     "uv": "UV_IMAGE",
@@ -55,6 +57,7 @@ PIPELINE_IMAGES = {
     "floors-estimation": "BAG3D_FLOORS_ESTIMATION_IMAGE",
     "party-walls": "BAG3D_PARTY_WALLS_IMAGE",
     "terrain": "BAG3D_TERRAIN_IMAGE",
+    "underpasses": "BAG3D_UNDERPASSES_IMAGE",
     "export": "BAG3D_EXPORT_IMAGE",
     "dagster": "BAG3D_DAGSTER_IMAGE",
 }
