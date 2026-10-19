@@ -40,6 +40,17 @@ services:
       - ../packages/floors_estimation/tests:/opt/3dbag-pipeline/packages/floors_estimation/tests
       - /var/run/docker.sock:/var/run/docker.sock
 
+  bag3d-underpasses:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/underpasses/src:/opt/3dbag-pipeline/packages/underpasses/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/underpasses/tests:/opt/3dbag-pipeline/packages/underpasses/tests
+      - /var/run/docker.sock:/var/run/docker.sock
+
   bag3d-party-walls:
     volumes:
       - bag3d-data-pipeline:/data/volume
