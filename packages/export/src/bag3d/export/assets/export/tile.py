@@ -9,7 +9,12 @@ from bag3d.common.resources.executables import TylerResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.specs.core import CityJSONLocation, GpkgLocation, Ogc3dTilesLocation, ObjLocation
+from bag3d.specs.core import (
+    CityJSONLocation,
+    GpkgLocation,
+    ObjLocation,
+    Ogc3dTilesLocation,
+)
 from dagster import (
     AssetIn,
     AssetKey,
@@ -35,7 +40,7 @@ def generate_tyler_config(
     data_format: TylerOutputFormat,
     locations: tuple[CityJSONLocation]
     | tuple[GpkgLocation]
-    | tuple[Ogc3dTilesLocation],
+    | tuple[Ogc3dTilesLocation]
     | tuple[ObjLocation],
     export_dir: Path,
 ) -> tuple[list[str], Path]:
@@ -79,7 +84,7 @@ def generate_tyler_config(
         # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
         data_format_temp_override = "ogc3dtiles"
         attributes = specs.applies_to(
-            data_format=data_format_temp_override, locations=locations
+            data_format=data_format_temp_override, locations=(location,)
         )
         for a_name, a_spec in attributes:
             cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
@@ -133,7 +138,7 @@ def generate_tyler_config(
                 f"--output={output_dir}",
                 "--object-type=BuildingPart",
                 f"--lod-building-part={location.lod}",
-                f"--output-suffix=lod{location.lod.replace('.', '')}"
+                f"--output-suffix=lod{location.lod.replace('.', '')}",
             ]
         )
     else:
