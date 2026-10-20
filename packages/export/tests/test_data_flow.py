@@ -354,7 +354,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
 
 def test_reconstruction_output_obj_lods(tmp_path):
     """The OBJ assets run tyler with the correct LoD parameters."""
-    from bag3d.specs.core import Ogc3dTilesLocation
+    from bag3d.specs.core import ObjLocation
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
@@ -368,9 +368,9 @@ def test_reconstruction_output_obj_lods(tmp_path):
 
     # Test generate_tyler_config for each LoD
     for loc, expected_lod in [
-        (Ogc3dTilesLocation.lod12, "1.2"),
-        (Ogc3dTilesLocation.lod13, "1.3"),
-        (Ogc3dTilesLocation.lod22, "2.2"),
+        (ObjLocation.lod12, "1.2"),
+        (ObjLocation.lod13, "1.3"),
+        (ObjLocation.lod22, "2.2"),
     ]:
         params, out_dir = generate_tyler_config(
             specs=specs,

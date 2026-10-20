@@ -344,7 +344,7 @@ def reconstruction_output_obj_lod12(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod12),
+        locations=(ObjLocation.lod12,),
         verbose=config.verbose,
     )
 
@@ -375,7 +375,7 @@ def reconstruction_output_obj_lod13(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod13),
+        locations=(ObjLocation.lod13,),
         verbose=config.verbose,
     )
 
@@ -406,7 +406,7 @@ def reconstruction_output_obj_lod22(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod22),
+        locations=(ObjLocation.lod22,),
         verbose=config.verbose,
     )
 
