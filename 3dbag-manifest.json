@@ -14,10 +14,10 @@
   },
   "tools": {
     "tyler": {
-      "version": "1.0.0-alpha1",
+      "version": "latest",
       "image": {
         "repository": "docker.io/3dgi/tyler",
-        "digest": "sha256:260b2a46a81f0a9f78eb29aa1dad4a0467488619a3a57c319b23500cc007df50"
+        "digest": "sha256:cf0858cdb4d0facb2c13007a1c24997a0567ca5021d5044f08155b638ae07192"
       },
       "type": "docker",
       "display_name": "tyler",
