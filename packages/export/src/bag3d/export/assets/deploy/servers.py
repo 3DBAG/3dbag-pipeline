@@ -25,6 +25,9 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "reconstruction_output_3dtiles_lod12")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod13")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod22")),
+        AssetKey(("export", "reconstruction_output_obj_lod12")),
+        AssetKey(("export", "reconstruction_output_obj_lod13")),
+        AssetKey(("export", "reconstruction_output_obj_lod22")),
     ],
 )
 def compressed_export(metadata, version: ReleaseVersionResource) -> Output[Path]:
