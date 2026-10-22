@@ -115,6 +115,11 @@ metadata, raw AHN rasters, regional GLO-30 rasters and these mandatory grids:
 - `nl_nsgi_nlgeo2018.tif`
 - `us_nga_egm08_25.tif`
 
+AHN5 and AHN6 item endpoints are resolved from their current collection listings,
+because the provider replaces layer UUIDs. An empty feature page ends pagination
+even if the API includes a `next` link back to the beginning; nonempty pagination
+cycles still fail rather than publishing an incomplete catalog.
+
 Bounding-box selection includes neighboring AHN inputs for interpolation and
 source transitions. The output extent is the requested box, or the AHN source
 bounds for national processing; it never expands to the Copernicus footprint.
