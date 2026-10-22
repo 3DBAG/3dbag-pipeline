@@ -46,10 +46,16 @@ BUFFER_METRES = 10.0
 
 
 class IntegrationDataConfig(Config):
-    geofilter: str = Field(default=AOI_WKT)
+    geofilter: str = Field(
+        default=AOI_WKT,
+        description="WKT polygon defining the area used to clip integration fixtures.",
+    )
     cbs_year: str = Field(default="2025")
     ahn6_allowlist: list[str] = Field(
-        default_factory=lambda: AHN6_AOI_TILE_ALLOWLIST.copy()
+        default_factory=lambda: AHN6_AOI_TILE_ALLOWLIST.copy(),
+        description=(
+            "AHN6 tile IDs eligible for download before AOI intersection filtering."
+        ),
     )
 
 
@@ -350,6 +356,7 @@ def _codes_from_clipped_buurtkaart(path: Path) -> set[str]:
 
 @asset(
     group_name="integration_data",
+    description="Create a BAG extract filtered to the configured integration area.",
     ins={"extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -366,6 +373,9 @@ def integration_bag(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Clip the BGT building (pand) data to the configured integration area."
+    ),
     ins={"extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -387,6 +397,7 @@ def integration_bgt(
 
 @asset(
     group_name="integration_data",
+    description="Clip TOP10NL building data to the configured integration area.",
     ins={"extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -408,6 +419,9 @@ def integration_top10nl(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Keep CBS key figure records for the neighbourhoods in the clipped buurtkaart."
+    ),
     ins={
         "extract_cbs_key_figures": AssetIn(
             key=AssetKey(["cbs", "extract_cbs_key_figures"])
@@ -445,6 +459,9 @@ def integration_cbs_key_figures(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Clip the CBS neighbourhood and district map to the configured integration area."
+    ),
     ins={
         "extract_cbs_buurtkaart": AssetIn(
             key=AssetKey(["cbs", "extract_cbs_buurtkaart"])
@@ -524,6 +541,10 @@ def _download_ahn_tiles(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Download and spatially crop AHN3 point-cloud tiles intersecting the "
+        "integration area."
+    ),
     ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -544,6 +565,10 @@ def integration_ahn3(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Download and spatially crop AHN4 point-cloud tiles intersecting the "
+        "integration area."
+    ),
     ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -564,6 +589,10 @@ def integration_ahn4(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Download and spatially crop AHN5 point-cloud tiles intersecting the "
+        "integration area."
+    ),
     ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -584,6 +613,10 @@ def integration_ahn5(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Download allowlisted AHN6 point-cloud tiles that intersect the "
+        "integration area, then crop them."
+    ),
     ins={"tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"]))},
     automation_condition=AutomationCondition.eager(),
 )
@@ -795,6 +828,10 @@ def _validate_and_return(
 
 @asset(
     group_name="integration_data",
+    description=(
+        "Validate the integration fixtures, record source and output metadata, and "
+        "write a manifest with file sizes, checksums, and spatial extents."
+    ),
     automation_condition=AutomationCondition.eager(),
     ins={
         "extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"])),
