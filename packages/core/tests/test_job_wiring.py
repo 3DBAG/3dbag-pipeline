@@ -10,6 +10,7 @@ from bag3d.core.jobs import (
     job_ahn_tile_index,
     job_bgt,
     job_cbs,
+    job_integration_data,
     job_preprocessing,
     job_reconstruct,
     job_reconstruct_debug,
@@ -26,6 +27,7 @@ JOB_DEFS = [
     job_ahn4,
     job_ahn5,
     job_ahn_metadata_index,
+    job_integration_data,
     job_reconstruct,
     job_reconstruct_debug,
 ]
@@ -39,6 +41,12 @@ def test_all_jobs_resolvable():
 def test_partitioned_jobs_have_partition_defs():
     for job_name in ("ahn3", "ahn4", "ahn5"):
         assert defs.get_job_def(job_name).partitions_def is not None
+
+
+def test_integration_data_job_includes_packaging_and_publication():
+    selected = defs.get_job_def("integration_data").asset_layer.selected_asset_keys
+    assert dg.AssetKey("integration_data_archive") in selected
+    assert dg.AssetKey("publish_integration_data") in selected
 
 
 def test_core_assets_validate_with_mock_resources():

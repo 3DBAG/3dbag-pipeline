@@ -51,6 +51,7 @@ nav:
     - index.md
     - Source datasets: source_datasets.md
     - Data flow: data_flow.md
+    - Integration data: integration_data.md
   - Development: development/
   - Deployment: deployment/
   - Production: production.md

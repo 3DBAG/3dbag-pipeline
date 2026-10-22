@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import shlex
 import shutil
 import sqlite3
 import tempfile
@@ -15,8 +16,16 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.utils.requests import download_file
-from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
+from dagster import (
+    AssetExecutionContext,
+    AssetIn,
+    AssetKey,
+    AutomationCondition,
+    Config,
+    asset,
+)
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
@@ -852,6 +861,7 @@ def _validate_and_return(
     },
 )
 def integration_manifest(
+    context: AssetExecutionContext,
     integration_data_store: FileStoreResource,
     integration_bag,
     integration_bgt,
@@ -957,9 +967,11 @@ def integration_manifest(
                 "size": path.stat().st_size,
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
+    snapshot_date = datetime.now(tz=UTC).date().isoformat()
     manifest = {
         "fixture_version": "2",
-        "date": datetime.now(tz=UTC).date().isoformat(),
+        "date": snapshot_date,
+        "snapshot_id": f"{snapshot_date}-{context.run_id}",
         "aoi": {
             "wkt": AOI_WKT,
             "minx": aoi[0],
@@ -983,3 +995,90 @@ def integration_manifest(
         "files": files,
     }
     return _write_json(root / "manifest.json", manifest)
+
+
+@asset(
+    group_name="integration_data",
+    description="Archive the complete validated integration-data fixture snapshot.",
+    ins={"integration_manifest": AssetIn()},
+)
+def integration_data_archive(integration_manifest: Path) -> Path:
+    """Create a zip with the fixture root, including manifest.json at its root."""
+    return _archive_integration_data(integration_manifest)
+
+
+def _archive_integration_data(integration_manifest: Path) -> Path:
+    root = integration_manifest.parent
+    manifest = json.loads(integration_manifest.read_text(encoding="utf-8"))
+    snapshot_id = manifest["snapshot_id"]
+    archive = root.parent / f"integration-data-{snapshot_id}.zip"
+    temporary_archive = archive.with_suffix(".zip.tmp")
+    with ZipFile(temporary_archive, "w", ZIP_DEFLATED) as zip_file:
+        for path in sorted(path for path in root.rglob("*") if path.is_file()):
+            zip_file.write(path, arcname=path.relative_to(root).as_posix())
+    temporary_archive.replace(archive)
+    return archive
+
+
+@asset(
+    group_name="integration_data",
+    description="Publish a versioned integration-data fixture snapshot.",
+    ins={
+        "integration_archive": AssetIn(key=AssetKey("integration_data_archive")),
+        "integration_manifest": AssetIn(key=AssetKey("integration_manifest")),
+    },
+)
+def publish_integration_data(
+    integration_archive: Path,
+    integration_manifest: Path,
+    publication_server: ServerTransferResource,
+) -> None:
+    """Upload a complete snapshot to the public data service, then expose it atomically."""
+    _publish_integration_data(
+        integration_archive, integration_manifest, publication_server
+    )
+
+
+def _publish_integration_data(
+    integration_archive: Path,
+    integration_manifest: Path,
+    publication_server: ServerTransferResource,
+) -> None:
+    manifest = json.loads(integration_manifest.read_text(encoding="utf-8"))
+    snapshot_id = manifest["snapshot_id"]
+    base_dir = "/srv/data/integration-data"
+    final_dir = f"{base_dir}/{snapshot_id}"
+    staging_dir = f"{base_dir}/.{snapshot_id}.staging"
+
+    with publication_server.connection as connection:
+        connection.run(
+            " && ".join(
+                (
+                    f"mkdir -p {shlex.quote(base_dir)}",
+                    f"test ! -e {shlex.quote(final_dir)}",
+                    f"test ! -L {shlex.quote(final_dir)}",
+                    f"mkdir {shlex.quote(staging_dir)}",
+                )
+            )
+        )
+        try:
+            connection.put(
+                integration_archive,
+                f"{staging_dir}/integration-data.zip",
+            )
+            connection.put(
+                integration_manifest,
+                f"{staging_dir}/manifest.json",
+            )
+            connection.run(
+                " && ".join(
+                    (
+                        f"test -f {shlex.quote(f'{staging_dir}/integration-data.zip')}",
+                        f"test -f {shlex.quote(f'{staging_dir}/manifest.json')}",
+                        f"mv -- {shlex.quote(staging_dir)} {shlex.quote(final_dir)}",
+                    )
+                )
+            )
+        except Exception:
+            connection.run(f"rm -rf -- {shlex.quote(staging_dir)}", warn=True)
+            raise

@@ -107,6 +107,9 @@ The branch provides an opt-in integration-data mode that runs against a validate
 read-only snapshot instead of downloading source datasets. The snapshot is generated
 by the `integration_data` job and consumed by fixture adapter assets.
 
+See the [integration data guide](../docs/integration_data.md) for what the job
+downloads and produces, how to launch it, and how its output is configured.
+
 Set `BAG3D_INTEGRATION_DATA_HOST_DIR` to the directory containing the snapshot, then
 start the stack with the integration overlay:
 
