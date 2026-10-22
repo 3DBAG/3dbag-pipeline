@@ -79,7 +79,7 @@ def add_group_ids(macrotile_map):
         for source in macrotile_map[tile_tuple]["sources"]:
             for source_item in macrotile_map[tile_tuple]["sources"][source]:
                 group_id_parts.add((source, source_item["maxzoom"]))
-        group_id = tuple(sorted(list(group_id_parts)))
+        group_id = tuple(sorted(group_id_parts))
         macrotile_map[tile_tuple]["group_id"] = group_id
 
 
@@ -95,7 +95,7 @@ def get_aggregation_tiles_dfs(candidate, macrotile_map):
     if len(group_ids) == 0:
         return []
     if len(group_ids) == 1:
-        group_id = list(group_ids)[0]
+        group_id = next(iter(group_ids))
         maxzoom = 0
         for part in group_id:
             maxzoom = max(maxzoom, part[1])
@@ -109,7 +109,7 @@ def get_aggregation_tiles_dfs(candidate, macrotile_map):
 
 def get_aggregation_tiles(macrotile_map):
     candidates = set({})
-    for tile_tuple in macrotile_map.keys():
+    for tile_tuple in macrotile_map:
         candidates.add(
             mercantile.parent(
                 mercantile.Tile(x=tile_tuple[0], y=tile_tuple[1], z=utils.macrotile_z),

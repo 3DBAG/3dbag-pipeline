@@ -105,6 +105,7 @@ dependencies = [
     { name = "pgutils" },
     { name = "psycopg", extra = ["binary"] },
     { name = "requests" },
+    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
@@ -119,6 +120,7 @@ requires-dist = [
     { name = "pgutils", git = "https://github.com/balazsdukai/pgutils.git?rev=2026.1017" },
     { name = "psycopg", extras = ["binary"], specifier = "~=3.3.2" },
     { name = "requests", specifier = "==2.34.2" },
+    { name = "sqlalchemy", specifier = "<2.1" },
 ]
 
 [package.metadata.requires-dev]

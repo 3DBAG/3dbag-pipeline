@@ -1,14 +1,15 @@
 """Opt-in offline acceptance test with real PROJ grids and local GDAL."""
 
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 
-from dagster import DagsterInstance
 import mercantile
 import numpy as np
 import pytest
 import rasterio
+from dagster import DagsterInstance
+from pmtiles.reader import MmapSource, all_tiles
 from rasterio.transform import from_origin
 from rasterio.warp import transform_bounds
 
@@ -16,7 +17,6 @@ from bag3d.terrain import downloads
 from bag3d.terrain.code_location import defs
 from bag3d.terrain.state import file_record, read_manifest, save_manifest
 from bag3d.terrain.tiles import decode
-from pmtiles.reader import MmapSource, all_tiles
 
 
 @pytest.mark.integration

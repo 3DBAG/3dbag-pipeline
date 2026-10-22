@@ -1,12 +1,12 @@
 # Derived from Mapterhorn, Copyright (c) 2025, mapterhorn. BSD-3-Clause.
 # See LICENSE and the package MAPTERHORN_PROVENANCE.json.
-from concurrent.futures import ThreadPoolExecutor
-from io import BytesIO
 import fcntl
 import gzip
 import json
 import mmap
 import os
+from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
 
 import mercantile
 import numpy as np
@@ -124,11 +124,11 @@ def export(
     if not archives:
         raise ValueError(f"No bundled PMTiles archives found in {input_dir}")
     signatures = [
-        dict(
-            path=str(path.resolve()),
-            size=path.stat().st_size,
-            mtime_ns=path.stat().st_mtime_ns,
-        )
+        {
+            "path": str(path.resolve()),
+            "size": path.stat().st_size,
+            "mtime_ns": path.stat().st_mtime_ns,
+        }
         for path in archives
     ]
 
@@ -178,7 +178,7 @@ def export(
     with (output_dir / ".tile-export.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         state_path = output_dir / ".tile-export.json"
-        fingerprint = dict(version=1, archives=signatures)
+        fingerprint = {"version": 1, "archives": signatures}
         if clip_bounds is not None:
             fingerprint["bounds"] = clip_bounds
             fingerprint["complete_static_pyramid"] = 1
@@ -281,25 +281,25 @@ def export(
                 bounds = merge_bounds(bounds, zoom_bounds)
         if clip_bounds is not None:
             bounds = list(clip_bounds)
-        tilejson = dict(
-            tilejson="3.0.0",
-            name=name,
-            scheme="xyz",
-            encoding=encoding,
-            tileSize=tile_size,
-            minzoom=minzoom,
-            maxzoom=maxzoom,
-            bounds=bounds,
-            center=[
+        tilejson = {
+            "tilejson": "3.0.0",
+            "name": name,
+            "scheme": "xyz",
+            "encoding": encoding,
+            "tileSize": tile_size,
+            "minzoom": minzoom,
+            "maxzoom": maxzoom,
+            "bounds": bounds,
+            "center": [
                 (bounds[0] + bounds[2]) / 2,
                 (bounds[1] + bounds[3]) / 2,
                 min(10, maxzoom),
             ],
-            tiles=[f"{url}/{{z}}/{{x}}/{{y}}.{extension}"],
-            attribution=attribution_override
+            "tiles": [f"{url}/{{z}}/{{x}}/{{y}}.{extension}"],
+            "attribution": attribution_override
             if attribution_override is not None
             else " | ".join(attributions),
-        )
+        }
         atomic_write(
             output_dir / "tilejson.json",
             (json.dumps(tilejson, indent=2) + "\n").encode(),

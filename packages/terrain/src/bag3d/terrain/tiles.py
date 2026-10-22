@@ -1,21 +1,21 @@
 """Offline Mapterhorn covering, reprojection, terrain encoding and overviews."""
 
-from contextlib import ExitStack
-from io import BytesIO
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from contextlib import ExitStack
+from io import BytesIO
+from pathlib import Path
 
 import imagecodecs
 import mercantile
 import numpy as np
+import rasterio
 from PIL import Image
 from pmtiles.reader import MmapSource, Reader, all_tiles
 from pmtiles.tile import Compression, TileType, tileid_to_zxy, zxy_to_tileid
 from pmtiles.writer import Writer
-import rasterio
 from rasterio.windows import Window
 
 from ._mapterhorn import covering
@@ -489,7 +489,7 @@ def bundle(root: Path, overviews_path: Path) -> Path:
     for name, members in sorted(groups.items()):
         target = directory / f"{name}.pmtiles"
 
-        def produce():
+        def produce(members=members, target=target):
             def tiles():
                 with ExitStack() as stack:
                     readers = {}
