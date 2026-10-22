@@ -135,6 +135,7 @@ test:
 	uv --project packages/export run pytest packages/export/tests/ -v || FAILED=1; \
 	uv --project packages/floors_estimation run pytest packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run pytest packages/party_walls/tests/ -v || FAILED=1; \
+	uv --project packages/terrain run pytest packages/terrain/tests/ -v || FAILED=1; \
 	exit $$FAILED
 
 test_coverage:
@@ -145,6 +146,7 @@ test_coverage:
 	uv --project packages/export run coverage run --source=packages/export/src --data-file=.coverage.export -m pytest packages/export/tests/ -v || FAILED=1; \
 	uv --project packages/floors_estimation run coverage run --source=packages/floors_estimation/src --data-file=.coverage.floors_estimation -m pytest packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run coverage run --source=packages/party_walls/src --data-file=.coverage.party_walls -m pytest packages/party_walls/tests/ -v || FAILED=1; \
+	uv --project packages/terrain run coverage run --source=packages/terrain/src --data-file=.coverage.terrain -m pytest packages/terrain/tests/ -v || FAILED=1; \
 	echo ""; \
 	echo "=== Coverage per package ==="; \
 	echo ""; \
@@ -162,6 +164,9 @@ test_coverage:
 	echo ""; \
 	echo "--- party_walls ---"; \
 	uv --project packages/party_walls run coverage report --data-file=.coverage.party_walls; \
+	echo ""; \
+	echo "--- terrain ---"; \
+	uv --project packages/terrain run coverage report --data-file=.coverage.terrain; \
 	exit $$FAILED
 
 test_report:
@@ -186,6 +191,8 @@ lint:
 	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
 	echo "Type check: party_walls"; \
 	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
+	echo "Type check: terrain"; \
+	uv --project packages/terrain run pyright --project packages/terrain || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
@@ -202,6 +209,7 @@ local_venv:
 	uv --project packages/export sync
 	uv --project packages/floors_estimation sync
 	uv --project packages/party_walls sync
+	uv --project packages/terrain sync
 
 local_dev:
 	uv run dagster dev -w tests/dagster_home/workspace.yaml

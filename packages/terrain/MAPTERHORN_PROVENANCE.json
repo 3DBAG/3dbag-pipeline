@@ -1,0 +1,154 @@
+{
+  "repository": "https://github.com/mapterhorn/mapterhorn",
+  "base_commit": "7111a39e57bd76cbccd19cca37a07eb201e50bdf",
+  "includes_uncommitted_changes": true,
+  "files": [
+    {
+      "source": "pipelines/source_fill_nodata_meters.py",
+      "sha256": "2cd1dee0231e18e7d173620e495ba56ee5b4fbb943d61863c044401fd3e4959d",
+      "destination": "src/bag3d/terrain/_mapterhorn/fill.py",
+      "symbols": [
+        "fill_file"
+      ]
+    },
+    {
+      "source": "pipelines/source_nap_to_ellipsoid.py",
+      "sha256": "c16adb23896a58ab269d19481bf16449d8c9d23b75f22133300e86a28e34fa3e",
+      "destination": "src/bag3d/terrain/_mapterhorn/heights.py",
+      "symbols": [
+        "GRIDS",
+        "TRANSFORMER",
+        "VERSION",
+        "convert_file",
+        "init_worker",
+        "make_transformer"
+      ]
+    },
+    {
+      "source": "pipelines/source_glo30_nl.py",
+      "sha256": "df2c3b09971be69508561c8be9bb8b188d0ac96cba8d9b6071cfb896be31e013",
+      "destination": "src/bag3d/terrain/_mapterhorn/fallback.py",
+      "symbols": [
+        "GRID",
+        "TRANSFORMER",
+        "convert_cell",
+        "init_worker"
+      ]
+    },
+    {
+      "source": "pipelines/aggregation_covering.py",
+      "sha256": "9b476b083c38f1a4d2f13036bd02d33306283f64fffe944f1b6f7edf80bb611d",
+      "destination": "src/bag3d/terrain/_mapterhorn/covering.py",
+      "symbols": [
+        "add_group_ids",
+        "bounds_intersect",
+        "bounds_intersect_no_anitmeridian_crossing",
+        "get_aggregation_tiles",
+        "get_aggregation_tiles_dfs",
+        "get_intersecting_tiles_dfs",
+        "get_mercator_resolutions",
+        "get_smallest_overzoom",
+        "split_at_antimeridian"
+      ]
+    },
+    {
+      "source": "pipelines/aggregation_merge.py",
+      "sha256": "54601d590be9fdede2ef16360d2eba6bb04bea2c1b9d8514466c3179e892d3c1",
+      "destination": "src/bag3d/terrain/_mapterhorn/merge.py",
+      "symbols": [
+        "merge"
+      ]
+    },
+    {
+      "source": "pipelines/bundle_to_xyz.py",
+      "sha256": "2166381634965c0e02d0b2256cc877749751adb09ca0b42727f9939210eac597",
+      "destination": "src/bag3d/terrain/_mapterhorn/export.py",
+      "symbols": [
+        "atomic_write",
+        "complete_xyz_pyramid",
+        "export",
+        "merge_bounds",
+        "overzoom_parent"
+      ]
+    },
+    {
+      "source": "pipelines/utils.py",
+      "sha256": "f7af0ff937b441649a08ebf273c27c434203d152e6254d61431fc5ebbeaba7cf",
+      "destination": "src/bag3d/terrain/_mapterhorn/codec.py",
+      "symbols": [
+        "get_rounded_elevation_data",
+        "save_terrarium_tile"
+      ]
+    },
+    {
+      "source": "pipelines/regenerate_nl_water.py",
+      "sha256": "72266adde1eec9ef8b4dba13686a3f1e459cac017a914111b3561b0e2cd71269",
+      "destination": null
+    },
+    {
+      "source": "pipelines/aggregation_reproject.py",
+      "sha256": "085ac4362d30fa4d71d94a8f97a5ae9e13faf4c29e05400c24f9df0171a58232",
+      "destination": null
+    },
+    {
+      "source": "pipelines/aggregation_tile.py",
+      "sha256": "17323f576567abb05f514023d25f218d284be9364dbe59b024534cffbf845810",
+      "destination": null
+    },
+    {
+      "source": "pipelines/downsampling_run.py",
+      "sha256": "2f610299bd8b7ca9cb4e453de0f37f39e8b2aea80f158c54516124d6e7bebf87",
+      "destination": null
+    },
+    {
+      "source": "pipelines/bundle.py",
+      "sha256": "5f35d1f4ec461101e79d6613e29234e6bc3292ded1f46b1a7518b2881dde982a",
+      "destination": null
+    },
+    {
+      "source": "source-catalog/nl5m/file_list_spec.json",
+      "sha256": "d76ec44e4eaa392587ec0b41bd481101c059525f1cdb5e90f150481e3b02f76e",
+      "destination": null
+    },
+    {
+      "source": "source-catalog/nl5m/Justfile",
+      "sha256": "a248a645cc5b9b2b1458ce07dec5dd1f217a3e81f36b283bed53112d435be2bd",
+      "destination": null
+    },
+    {
+      "source": "source-catalog/glo30/file_list.txt",
+      "sha256": "4598ddf4c052e095b5518e0aa28bb9a3cb3fbb3542a8c8d31a53524274454240",
+      "destination": null
+    },
+    {
+      "source": "NL_3DBAG_VIEWER_NOTES.md",
+      "sha256": "49e807d9c21f47430f7cfb3bcfb2b43f70e764044df155da239faa8359f80b22",
+      "destination": null
+    }
+  ],
+  "derived_data": [
+    {
+      "destination": "src/bag3d/terrain/data/ahn5m.json",
+      "sha256": "d76ec44e4eaa392587ec0b41bd481101c059525f1cdb5e90f150481e3b02f76e"
+    },
+    {
+      "destination": "src/bag3d/terrain/data/glo30-LICENSE.pdf",
+      "sha256": "9cd37d37ea654bbcaf0a2e059e6a3a5b5f76072824d8dd860ccf274ada8951bd"
+    },
+    {
+      "destination": "src/bag3d/terrain/data/glo30-nl.txt",
+      "sha256": "1c7654f2247cd514ebf8fdafe3dfac8b06287ed0cee2e3e323e5a04c4dce56bd"
+    },
+    {
+      "destination": "src/bag3d/terrain/data/nl5m-LICENSE.pdf",
+      "sha256": "c05d62f2be1d532bf453aaee834594863fc76ed9cc2d6d2d3acf0a611f1e5880"
+    }
+  ],
+  "adaptations": [
+    "CLI orchestration replaced by Dagster stages with explicit input paths and content checkpoints",
+    "Source preparation downloads separated from offline filling and height conversion",
+    "Source-priority blending and Terrarium rounding retained",
+    "PMTiles public Writer API replaces custom bundler header assembly",
+    "XYZ exporter worker limit passed explicitly; content manifests validate resumed synthesized tiles"
+  ]
+}
