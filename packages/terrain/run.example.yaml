@@ -1,0 +1,10 @@
+resources:
+  file_store:
+    config:
+      root_dir: /tmp/bag3d-terrain-data
+  terrain:
+    config:
+      bounds: [4.35, 52.0, 4.38, 52.025]
+      interpolation_radius_m: 500
+      workers: 4
+      base_url: http://localhost:8001
