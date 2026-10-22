@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "bag3d-common",
     "dagster~=1.13.15",
+    "dagster-postgres~=0.29.15",
     "imagecodecs>=2025.3.30",
     "mercantile~=1.2.1",
     "numpy>=2.2.6,<3",

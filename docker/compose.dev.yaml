@@ -51,6 +51,16 @@ services:
       - ../packages/underpasses/tests:/opt/3dbag-pipeline/packages/underpasses/tests
       - /var/run/docker.sock:/var/run/docker.sock
 
+  bag3d-terrain:
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ../3dbag-manifest.json:/opt/3dbag-pipeline/3dbag-manifest.json:ro
+      - ../packages/common/src:/opt/3dbag-pipeline/packages/common/src
+      - ../packages/terrain/src:/opt/3dbag-pipeline/packages/terrain/src
+      - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
+      - ../packages/terrain/tests:/opt/3dbag-pipeline/packages/terrain/tests
+
   bag3d-party-walls:
     volumes:
       - bag3d-data-pipeline:/data/volume

@@ -20,3 +20,7 @@ load_from:
       host: bag3d-underpasses
       port: 4004
       location_name: "underpasses"
+  - grpc_server:
+      host: bag3d-terrain
+      port: 4005
+      location_name: "terrain"

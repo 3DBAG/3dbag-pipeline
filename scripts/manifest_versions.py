@@ -57,6 +57,7 @@ PIPELINE_IMAGES = {
     "floors-estimation": "BAG3D_FLOORS_ESTIMATION_IMAGE",
     "party-walls": "BAG3D_PARTY_WALLS_IMAGE",
     "underpasses": "BAG3D_UNDERPASSES_IMAGE",
+    "terrain": "BAG3D_TERRAIN_IMAGE",
     "export": "BAG3D_EXPORT_IMAGE",
     "dagster": "BAG3D_DAGSTER_IMAGE",
 }
