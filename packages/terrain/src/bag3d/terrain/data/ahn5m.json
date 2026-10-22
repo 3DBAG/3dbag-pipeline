@@ -1,0 +1,7 @@
+{
+    "catalogs": [
+      "https://api.ellipsis-drive.com/v3/ogc/features/65945b69-81df-4270-97f0-f029033154c1/collections",
+      "https://api.ellipsis-drive.com/v3/ogc/features/0820faae-5240-499b-8486-cf406433cf71/collections"
+    ],
+    "property": "Maaiveldmodel (DTM) 5m"
+}

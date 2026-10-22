@@ -69,6 +69,9 @@ tag = true
 push = true
 
 [tool.bumpver.file_patterns]
+"packages/underpasses/pyproject.toml" = [
+    'version = "{version}"',
+]
 "pyproject.toml" = [
     'current_version = "{version}"',
     'version = "{version}"',
@@ -83,5 +86,8 @@ push = true
     'version = "{version}"',
 ]
 "packages/party_walls/pyproject.toml" = [
+    'version = "{version}"',
+]
+"packages/terrain/pyproject.toml" = [
     'version = "{version}"',
 ]

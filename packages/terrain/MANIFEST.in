@@ -1,0 +1,4 @@
+include LICENSE-APACHE LICENSE-MIT NOTICE MAPTERHORN_PROVENANCE.json
+recursive-include src/bag3d/terrain/data *
+recursive-include src/bag3d/terrain/defs *.yaml
+include src/bag3d/terrain/_mapterhorn/LICENSE

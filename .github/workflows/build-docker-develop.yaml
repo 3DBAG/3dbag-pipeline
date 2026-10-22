@@ -68,6 +68,18 @@ jobs:
             TOOLS_IMAGE=${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE }}
           push: true
           tags: ${{ steps.manifest.outputs.BAG3D_PARTY_WALLS_IMAGE }}
+      - name: Build and push underpasses
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./docker/pipeline/bag3d-underpasses.dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          build-args: |
+            JOBS=2
+            VERSION=${{ steps.manifest.outputs.BAG3D_PIPELINE_VERSION }}
+            TOOLS_IMAGE=${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE }}
+          push: true
+          tags: ${{ steps.manifest.outputs.BAG3D_UNDERPASSES_IMAGE }}
       - name: Build and push export
         uses: docker/build-push-action@v6
         with:

@@ -1,0 +1,121 @@
+# Derived from Mapterhorn, Copyright (c) 2025, mapterhorn. BSD-3-Clause.
+# See LICENSE and the package MAPTERHORN_PROVENANCE.json.
+from pathlib import Path
+
+import numpy as np
+import rasterio
+from scipy import ndimage
+
+
+def merge(tiff_filepaths, output_path, buffer_pixels):
+
+    if len(tiff_filepaths) == 1:
+        Path(tiff_filepaths[0]).replace(output_path)
+        return
+
+    tile_size = 512
+    overlap = buffer_pixels
+    with rasterio.env.Env(GDAL_CACHEMAX=256), rasterio.open(tiff_filepaths[0]) as src:
+        height = src.height
+        width = src.width
+        profile = src.profile
+
+        profile.update(
+            tiled=True,
+            blockxsize=512,
+            blockysize=512,
+            compress="LERC",
+            max_z_error=0.001,
+        )
+
+        with rasterio.open(output_path, "w", **profile) as dst:
+            for y in range(0, height, tile_size):
+                for x in range(0, width, tile_size):
+                    y_start = max(0, y - overlap)
+                    y_end = min(height, y + tile_size + overlap)
+                    x_start = max(0, x - overlap)
+                    x_end = min(width, x + tile_size + overlap)
+
+                    window = rasterio.windows.Window(
+                        x_start, y_start, x_end - x_start, y_end - y_start
+                    )
+
+                    merged_tile = None
+                    with rasterio.open(tiff_filepaths[0]) as src:
+                        merged_tile = np.nan_to_num(
+                            src.read(1, window=window), nan=-9999
+                        )
+
+                    filled_from_start = -9999 not in merged_tile
+
+                    if not filled_from_start:
+                        binary_mask = (merged_tile != -9999).astype("int32")
+                        eroded = ndimage.binary_erosion(binary_mask)
+                        boundary_tile = binary_mask.astype(bool) & ~eroded
+
+                        for tiff_filepath in tiff_filepaths[1:]:
+                            current_tile = None
+                            with rasterio.open(tiff_filepath) as src:
+                                current_tile = np.nan_to_num(
+                                    src.read(1, window=window), nan=-9999
+                                )
+
+                            copy_mask = (merged_tile == -9999) & (current_tile != -9999)
+                            merged_tile[copy_mask] = current_tile[copy_mask]
+
+                            if -9999 not in merged_tile:
+                                break
+
+                            binary_mask = (merged_tile != -9999).astype("int32")
+                            eroded = ndimage.binary_erosion(binary_mask)
+                            boundary_tile |= binary_mask.astype(bool) & ~eroded
+
+                        boundary_tile[0, :] = 0
+                        boundary_tile[-1, :] = 0
+                        boundary_tile[:, 0] = 0
+                        boundary_tile[:, -1] = 0
+
+                        binary_mask = (merged_tile != -9999).astype("int32")
+                        eroded = ndimage.binary_erosion(binary_mask)
+                        boundary_tile &= eroded.astype(bool)
+
+                        if 1 in boundary_tile:
+                            merged_tile[merged_tile == -9999] = 0
+                            truncate = 4
+                            sigma = max(int(overlap / truncate) - 1, 1)
+                            boundary_tile_blurred = ndimage.gaussian_filter(
+                                boundary_tile.astype(float),
+                                sigma=sigma,
+                                truncate=truncate,
+                            )
+                            boundary_tile_blurred /= 1.0 / (np.sqrt(2 * np.pi) * sigma)
+                            boundary_tile_blurred = np.clip(boundary_tile_blurred, 0, 1)
+                            boundary_tile_blurred = (
+                                3 * boundary_tile_blurred**2
+                                - 2 * boundary_tile_blurred**3
+                            )
+                            merged_tile_blurred = ndimage.gaussian_filter(
+                                merged_tile, sigma=sigma, truncate=truncate
+                            )
+                            merged_tile = (
+                                boundary_tile_blurred * merged_tile_blurred
+                                + (1 - boundary_tile_blurred) * merged_tile
+                            )
+
+                    crop_y_start = overlap if y > 0 else 0
+                    crop_y_end = merged_tile.shape[0] - (
+                        overlap if y_end < height else 0
+                    )
+                    crop_x_start = overlap if x > 0 else 0
+                    crop_x_end = merged_tile.shape[1] - (
+                        overlap if x_end < width else 0
+                    )
+
+                    output_window = rasterio.windows.Window(
+                        x, y, crop_x_end - crop_x_start, crop_y_end - crop_y_start
+                    )
+                    dst.write(
+                        merged_tile[crop_y_start:crop_y_end, crop_x_start:crop_x_end],
+                        1,
+                        window=output_window,
+                    )
