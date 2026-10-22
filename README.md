@@ -35,6 +35,7 @@ Additionally, this organization makes it easier to install and test the workflow
 - [`core`](index_core.md): Workflow for producing the core of the 3D BAG data set.
 - [`party_walls`](index_party_walls.md): Workflow for calculating the party walls.
 - [`floors-estimation`](index_floors_estimation.md): Workflow for estimating the number of floors.
+- [`terrain`](index_terrain.md): Netherlands AHN 5 m terrain tiles with water-gap fixes for the viewer.
 
 ## Deployment
 

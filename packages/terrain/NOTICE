@@ -1,0 +1,8 @@
+3DBAG terrain workflow
+
+This package contains code derived from Mapterhorn:
+Copyright (c) 2025, mapterhorn
+Licensed under BSD-3-Clause; see src/bag3d/terrain/_mapterhorn/LICENSE.
+Source snapshot and local adaptations: MAPTERHORN_PROVENANCE.json.
+
+AHN and Copernicus data notices are included in src/bag3d/terrain/data/.

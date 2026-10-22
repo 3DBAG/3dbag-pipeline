@@ -190,6 +190,12 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
 
 
 def __getattr__(name: str):
+    if name == "resource_defs":
+        definitions = resources_by_deployment(
+            os.getenv("DAGSTER_DEPLOYMENT", "default")
+        )
+        globals()[name] = definitions
+        return definitions
     if name in {"CityIndexResource", "open_ready_index"}:
         from bag3d.common.resources.cjindex import CityIndexResource, open_ready_index
 
@@ -201,7 +207,3 @@ def __getattr__(name: str):
         )
         return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-env_name = os.getenv("DAGSTER_DEPLOYMENT", "default")
-resource_defs = resources_by_deployment(env_name)
