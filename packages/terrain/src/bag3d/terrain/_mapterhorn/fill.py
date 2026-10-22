@@ -12,11 +12,11 @@ from rasterio.merge import merge
 
 def fill_file(task):
     source, output, neighbors, distance, fingerprint = task
-    tags = dict(
-        HEIGHT_REFERENCE="NAP",
-        FILL_RADIUS_M=str(distance),
-        FILL_INPUT_SHA256=fingerprint,
-    )
+    tags = {
+        "HEIGHT_REFERENCE": "NAP",
+        "FILL_RADIUS_M": str(distance),
+        "FILL_INPUT_SHA256": fingerprint,
+    }
     if output.exists():
         with rasterio.open(output) as existing:
             if all(existing.tags().get(k) == v for k, v in tags.items()):
@@ -72,22 +72,22 @@ def fill_file(task):
             filled[raw_valid] = raw.data[raw_valid]
             filled[~np.isfinite(filled)] = -9999
             missing = int(np.count_nonzero(filled == -9999))
-            profile = dict(
-                driver="COG",
-                width=original.width,
-                height=original.height,
-                count=1,
-                dtype="float32",
-                crs=original.crs,
-                transform=original.transform,
-                nodata=-9999,
-                BLOCKSIZE=512,
-                OVERVIEWS="NONE",
-                BIGTIFF="IF_NEEDED",
-                COMPRESS="LERC",
-                MAX_Z_ERROR=0.001,
-                NUM_THREADS=1,
-            )
+            profile = {
+                "driver": "COG",
+                "width": original.width,
+                "height": original.height,
+                "count": 1,
+                "dtype": "float32",
+                "crs": original.crs,
+                "transform": original.transform,
+                "nodata": -9999,
+                "BLOCKSIZE": 512,
+                "OVERVIEWS": "NONE",
+                "BIGTIFF": "IF_NEEDED",
+                "COMPRESS": "LERC",
+                "MAX_Z_ERROR": 0.001,
+                "NUM_THREADS": 1,
+            }
             with rasterio.open(temporary, "w", **profile) as dst:
                 dst.write(filled, 1)
                 dst.update_tags(**tags, REMAINING_NODATA_PIXELS=str(missing))

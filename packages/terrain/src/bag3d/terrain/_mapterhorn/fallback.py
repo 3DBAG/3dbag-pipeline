@@ -3,8 +3,8 @@
 import os
 
 import numpy as np
-from pyproj import Transformer, network
 import rasterio
+from pyproj import Transformer, network
 from rasterio.transform import from_origin
 from rasterio.windows import Window
 
@@ -25,14 +25,14 @@ def init_worker(grid):
 
 def convert_cell(task):
     lat, lon, source, output, grid_hash = task
-    tags = dict(
-        HEIGHT_REFERENCE="ellipsoidal",
-        HEIGHT_CRS="EPSG:4979",
-        INPUT_HEIGHT_REFERENCE="EGM2008 (EPSG:3855)",
-        HEIGHT_CONVERSION="egm2008-ellipsoid-v1",
-        HEIGHT_GRID_SHA256=grid_hash,
-        SOURCE="GLO-30" if source else "Copernicus ocean convention",
-    )
+    tags = {
+        "HEIGHT_REFERENCE": "ellipsoidal",
+        "HEIGHT_CRS": "EPSG:4979",
+        "INPUT_HEIGHT_REFERENCE": "EGM2008 (EPSG:3855)",
+        "HEIGHT_CONVERSION": "egm2008-ellipsoid-v1",
+        "HEIGHT_GRID_SHA256": grid_hash,
+        "SOURCE": "GLO-30" if source else "Copernicus ocean convention",
+    }
     if source:
         stat = source.stat()
         tags.update(
@@ -53,22 +53,22 @@ def convert_cell(task):
         if src
         else from_origin(lon - 1 / 4800, lat + 1 + 1 / 7200, 1 / 2400, 1 / 3600)
     )
-    profile = dict(
-        driver="COG",
-        width=width,
-        height=height,
-        count=1,
-        dtype="float32",
-        crs="EPSG:4326",
-        transform=transform,
-        nodata=-9999,
-        BLOCKSIZE=512,
-        OVERVIEWS="NONE",
-        COMPRESS="LERC",
-        MAX_Z_ERROR=0.001,
-        NUM_THREADS=1,
-        BIGTIFF="IF_NEEDED",
-    )
+    profile = {
+        "driver": "COG",
+        "width": width,
+        "height": height,
+        "count": 1,
+        "dtype": "float32",
+        "crs": "EPSG:4326",
+        "transform": transform,
+        "nodata": -9999,
+        "BLOCKSIZE": 512,
+        "OVERVIEWS": "NONE",
+        "COMPRESS": "LERC",
+        "MAX_Z_ERROR": 0.001,
+        "NUM_THREADS": 1,
+        "BIGTIFF": "IF_NEEDED",
+    }
     temporary = output.with_name(f".{output.stem}.{os.getpid()}.tmp.tif")
     try:
         with (

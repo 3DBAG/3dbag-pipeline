@@ -1,12 +1,12 @@
 """Durable manifests and content-based checkpoints, independent of Dagster."""
 
-from collections.abc import Callable, Iterable
-from contextlib import contextmanager
 import fcntl
 import hashlib
 import json
-from pathlib import Path
 import tempfile
+from collections.abc import Callable, Iterable
+from contextlib import contextmanager
+from pathlib import Path
 
 
 def digest_file(path: Path) -> str:

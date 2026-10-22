@@ -1,10 +1,10 @@
 """Offline AHN preparation and height conversion using Mapterhorn algorithms."""
 
-from concurrent.futures import ProcessPoolExecutor
 import math
 import multiprocessing
-from pathlib import Path
 import re
+from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -108,22 +108,22 @@ def normalize_file(task):
                     raise ValueError("AHN normalization requires north-up 5 m rasters")
                 import numpy as np
 
-                profile: dict[str, Any] = dict(
-                    driver="COG",
-                    width=raster.width,
-                    height=raster.height,
-                    count=1,
-                    dtype="float32",
-                    crs="EPSG:28992",
-                    transform=raster.transform,
-                    nodata=-9999,
-                    BLOCKSIZE=512,
-                    OVERVIEWS="NONE",
-                    COMPRESS="LERC",
-                    MAX_Z_ERROR=0.001,
-                    NUM_THREADS=1,
-                    BIGTIFF="IF_NEEDED",
-                )
+                profile: dict[str, Any] = {
+                    "driver": "COG",
+                    "width": raster.width,
+                    "height": raster.height,
+                    "count": 1,
+                    "dtype": "float32",
+                    "crs": "EPSG:28992",
+                    "transform": raster.transform,
+                    "nodata": -9999,
+                    "BLOCKSIZE": 512,
+                    "OVERVIEWS": "NONE",
+                    "COMPRESS": "LERC",
+                    "MAX_Z_ERROR": 0.001,
+                    "NUM_THREADS": 1,
+                    "BIGTIFF": "IF_NEEDED",
+                }
                 # Only horizontal metadata is assigned; valid NAP values are unchanged.
                 with rasterio.open(temporary, "w", **profile) as destination:
                     for _, window in raster.block_windows(1):

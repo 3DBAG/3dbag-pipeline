@@ -1,7 +1,7 @@
 import os
 
-from bag3d.common.resources.files import FileStoreResource
 import dagster as dg
+from bag3d.common.resources.files import FileStoreResource
 
 from bag3d.terrain import assets
 from bag3d.terrain.jobs import all_jobs

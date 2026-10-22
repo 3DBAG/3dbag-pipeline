@@ -1,10 +1,10 @@
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
-from dagster import AssetKey, Definitions
 import pytest
+from dagster import AssetKey, Definitions
 
 from bag3d.terrain.code_location import defs
 from bag3d.terrain.jobs import DOWNLOAD_ASSETS
@@ -47,6 +47,7 @@ Definitions.validate_loadable(defs)
     env["DAGSTER_DEPLOYMENT"] = "production"
     result = subprocess.run(
         [sys.executable, "-c", script],
+        check=False,
         cwd=tmp_path,
         env=env,
         capture_output=True,
@@ -83,6 +84,7 @@ def test_workers_and_url_do_not_change_processing_identity():
 
 def test_python_file_workspace_entrypoint():
     from dagster._core.code_pointer import load_python_file
+
     from bag3d.terrain import code_location
 
     module = load_python_file(
