@@ -20,3 +20,9 @@ load_from:
       location_name: export_py_312_virtual_env
       executable_path: packages/export/.venv/bin/python
       working_directory: packages/export
+
+  - python_file:
+      relative_path: ../../packages/underpasses/src/bag3d/underpasses/code_location.py
+      location_name: underpasses_py_312_virtual_env
+      executable_path: packages/underpasses/.venv/bin/python
+      working_directory: packages/underpasses

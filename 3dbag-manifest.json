@@ -9,6 +9,7 @@
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
     "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },
     "party-walls": { "repository": "3dgi/3dbag-pipeline-party-walls" },
+    "underpasses": { "repository": "3dgi/3dbag-pipeline-underpasses" },
     "export": { "repository": "3dgi/3dbag-pipeline-export" },
     "dagster": { "repository": "3dgi/3dbag-pipeline-dagster" }
   },
@@ -156,6 +157,14 @@
       "allow_partial_failure": false,
       "jobs": [
         { "job": "preprocessing", "code_location": "core" }
+      ]
+    },
+    {
+      "name": "underpasses",
+      "display_name": "underpasses",
+      "allow_partial_failure": false,
+      "jobs": [
+        { "job": "underpasses", "code_location": "underpasses" }
       ]
     },
     {
