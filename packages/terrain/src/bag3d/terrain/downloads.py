@@ -115,12 +115,35 @@ def selection_bounds(bounds, radius_m):
     )
 
 
+def ahn_collections(client, catalog_url: str) -> list[str]:
+    """Resolve active item URLs rather than pinning replaceable layer UUIDs."""
+    response = client.get(catalog_url, timeout=(30, 120))
+    response.raise_for_status()
+    collections = response.json()["collections"]
+    if not collections:
+        raise ValueError(f"AHN catalog returned no collections: {catalog_url}")
+    urls = []
+    for collection in collections:
+        items = [
+            link["href"] for link in collection["links"] if link.get("rel") == "items"
+        ]
+        if len(items) != 1:
+            raise ValueError(f"Expected one items link in AHN collection: {collection}")
+        urls.append(urljoin(response.url, items[0]))
+    return urls
+
+
 def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
     specification = json.loads((DATA / "ahn5m.json").read_text())
     selection = selection_bounds(bounds, radius_m)
     entries = {}
     with session() as client:
-        for collection in specification["collections"]:
+        collections = [
+            collection
+            for catalog_url in specification["catalogs"]
+            for collection in ahn_collections(client, catalog_url)
+        ]
+        for collection in collections:
             url = collection
             params = (
                 {"bbox": ",".join(str(v) for v in selection)} if selection else None
@@ -133,7 +156,13 @@ def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
                 response = client.get(url, params=params, timeout=(30, 120))
                 response.raise_for_status()
                 payload = response.json()
-                for feature in payload["features"]:
+                features = payload["features"]
+                # Ellipsis emits a next link back to page one on its empty final
+                # page (and a placeholder numberMatched). Empty means complete;
+                # retain cycle detection for nonempty pages that really loop.
+                if not features:
+                    break
+                for feature in features:
                     source = feature["properties"][specification["property"]]
                     if not isinstance(source, str) or not source.startswith("https://"):
                         raise ValueError(f"Invalid AHN DTM URL: {source!r}")

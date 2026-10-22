@@ -129,7 +129,7 @@
   "derived_data": [
     {
       "destination": "src/bag3d/terrain/data/ahn5m.json",
-      "sha256": "d76ec44e4eaa392587ec0b41bd481101c059525f1cdb5e90f150481e3b02f76e"
+      "sha256": "a4dbfa673a0ea6ef2b195f187ddac9f1435f78c4dff8554adb2b319dd8ef6a98"
     },
     {
       "destination": "src/bag3d/terrain/data/glo30-LICENSE.pdf",
@@ -149,6 +149,7 @@
     "Source preparation downloads separated from offline filling and height conversion",
     "Source-priority blending and Terrarium rounding retained",
     "PMTiles public Writer API replaces custom bundler header assembly",
-    "XYZ exporter worker limit passed explicitly; content manifests validate resumed synthesized tiles"
+    "XYZ exporter worker limit passed explicitly; content manifests validate resumed synthesized tiles",
+    "AHN item endpoints are discovered from current collection listings rather than pinned layer UUIDs; empty final pages terminate pagination even when the provider emits a next link"
   ]
 }
