@@ -1,16 +1,16 @@
 """Network acquisition only. Raster processing never calls this module."""
 
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
 import json
 import math
-from pathlib import Path
 import re
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+from pathlib import Path
 from urllib.parse import urljoin
 
 import rasterio
-from rasterio.warp import transform_bounds
 import requests
+from rasterio.warp import transform_bounds
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 

@@ -145,6 +145,7 @@
     }
   ],
   "adaptations": [
+    "Imported modules use repository lint conventions for imports, literals and context managers; numerical algorithms are retained",
     "CLI orchestration replaced by Dagster stages with explicit input paths and content checkpoints",
     "Source preparation downloads separated from offline filling and height conversion",
     "Source-priority blending and Terrarium rounding retained",

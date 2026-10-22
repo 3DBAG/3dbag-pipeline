@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 
 import numpy as np
-from pyproj import Transformer, network
 import rasterio
+from pyproj import Transformer, network
 from rasterio.windows import Window
 
 GRIDS = ("nl_nsgi_rdtrans2018.tif", "nl_nsgi_nlgeo2018.tif")
@@ -70,59 +70,61 @@ def convert_file(task):
             raise ValueError(
                 f"Output does not match this input/conversion: {output}; use --overwrite"
             )
-        profile = dict(
-            driver="COG",
-            width=src.width,
-            height=src.height,
-            count=1,
-            dtype="float32",
-            crs="EPSG:28992",
-            transform=src.transform,
-            nodata=-9999,
-            BLOCKSIZE=512,
-            OVERVIEWS="NONE",
-            BIGTIFF="IF_NEEDED",
-            COMPRESS="LERC",
-            MAX_Z_ERROR=0.001,
-            NUM_THREADS=1,
-        )
+        profile = {
+            "driver": "COG",
+            "width": src.width,
+            "height": src.height,
+            "count": 1,
+            "dtype": "float32",
+            "crs": "EPSG:28992",
+            "transform": src.transform,
+            "nodata": -9999,
+            "BLOCKSIZE": 512,
+            "OVERVIEWS": "NONE",
+            "BIGTIFF": "IF_NEEDED",
+            "COMPRESS": "LERC",
+            "MAX_Z_ERROR": 0.001,
+            "NUM_THREADS": 1,
+        }
         temporary = output.with_name(f".{output.stem}.{os.getpid()}.tmp.tif")
         try:
-            with rasterio.Env(GDAL_CACHEMAX=64 * 1024 * 1024):
-                with rasterio.open(temporary, "w", **profile) as dst:
-                    # Arbitrary source block layouts still use bounded memory.
-                    for row in range(0, src.height, 512):
-                        for col in range(0, src.width, 512):
-                            window = Window(
-                                col,
-                                row,
-                                min(512, src.width - col),
-                                min(512, src.height - row),
+            with (
+                rasterio.Env(GDAL_CACHEMAX=64 * 1024 * 1024),
+                rasterio.open(temporary, "w", **profile) as dst,
+            ):
+                # Arbitrary source block layouts still use bounded memory.
+                for row in range(0, src.height, 512):
+                    for col in range(0, src.width, 512):
+                        window = Window(
+                            col,
+                            row,
+                            min(512, src.width - col),
+                            min(512, src.height - row),
+                        )
+                        data = src.read(1, window=window, masked=True)
+                        valid = ~np.ma.getmaskarray(data) & np.isfinite(data.data)
+                        heights = np.full(data.shape, -9999, dtype=np.float32)
+                        if valid.any():
+                            rows, cols = np.nonzero(valid)
+                            rows = rows + row + 0.5
+                            cols = cols + col + 0.5
+                            affine = src.transform
+                            xs = affine.a * cols + affine.b * rows + affine.c
+                            ys = affine.d * cols + affine.e * rows + affine.f
+                            _, _, zs = TRANSFORMER.transform(
+                                xs,
+                                ys,
+                                data.data[valid].astype(np.float64),
+                                errcheck=True,
                             )
-                            data = src.read(1, window=window, masked=True)
-                            valid = ~np.ma.getmaskarray(data) & np.isfinite(data.data)
-                            heights = np.full(data.shape, -9999, dtype=np.float32)
-                            if valid.any():
-                                rows, cols = np.nonzero(valid)
-                                rows = rows + row + 0.5
-                                cols = cols + col + 0.5
-                                affine = src.transform
-                                xs = affine.a * cols + affine.b * rows + affine.c
-                                ys = affine.d * cols + affine.e * rows + affine.f
-                                _, _, zs = TRANSFORMER.transform(
-                                    xs,
-                                    ys,
-                                    data.data[valid].astype(np.float64),
-                                    errcheck=True,
+                            if not np.isfinite(zs).all():
+                                raise ValueError(
+                                    f"Nonfinite height transformation in {source}"
                                 )
-                                if not np.isfinite(zs).all():
-                                    raise ValueError(
-                                        f"Nonfinite height transformation in {source}"
-                                    )
-                                heights[valid] = zs
-                            dst.write(heights, 1, window=window)
-                    dst.update_tags(**tags)
-                    dst.set_band_description(1, "Ellipsoidal terrain elevation (m)")
+                            heights[valid] = zs
+                        dst.write(heights, 1, window=window)
+                dst.update_tags(**tags)
+                dst.set_band_description(1, "Ellipsoidal terrain elevation (m)")
             temporary.replace(output)
         finally:
             temporary.unlink(missing_ok=True)
