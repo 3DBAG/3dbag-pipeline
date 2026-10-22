@@ -10,7 +10,26 @@ The workflow has its own environment and code location. It needs no building
 reconstruction, point clouds, database, running cache downloader, sibling
 Mapterhorn checkout, or serving infrastructure.
 
-## Install and run locally
+## Run in the Docker development UI
+
+From the repository root, run:
+
+```bash
+make docker_dev
+```
+
+This builds the `bag3d-terrain` code-server image and registers the `terrain`
+code location in the Docker workspace. Refresh the UI after Compose finishes.
+The location exposes the `terrain_download`, `terrain_process` and `terrain`
+jobs and the `terrain` asset group. The development overlay mounts its source
+directory like the other workflow packages.
+
+The webserver and daemon mount the repository workspace file over the persistent
+Dagster-home volume, so existing volumes cannot hide a newly added location.
+No volume recreation is needed. For troubleshooting, inspect the `bag3d-terrain`
+service logs and the location status under Deployment / Code locations.
+
+## Install and run locally without Docker
 
 Use Python 3.12 or later and `uv`. Install GDAL command-line tools with the COG
 driver and LERC codec (`gdalbuildvrt`, `gdalwarp`, `gdal_translate`). Rasterio and

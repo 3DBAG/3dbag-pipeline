@@ -9,6 +9,7 @@
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
     "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },
     "party-walls": { "repository": "3dgi/3dbag-pipeline-party-walls" },
+    "terrain": { "repository": "3dgi/3dbag-pipeline-terrain" },
     "export": { "repository": "3dgi/3dbag-pipeline-export" },
     "dagster": { "repository": "3dgi/3dbag-pipeline-dagster" }
   },
