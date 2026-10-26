@@ -9,7 +9,12 @@ from bag3d.common.resources.executables import TylerResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.specs.core import CityJSONLocation, GpkgLocation, Ogc3dTilesLocation
+from bag3d.specs.core import (
+    CityJSONLocation,
+    GpkgLocation,
+    ObjLocation,
+    Ogc3dTilesLocation,
+)
 from dagster import (
     AssetIn,
     AssetKey,
@@ -35,7 +40,8 @@ def generate_tyler_config(
     data_format: TylerOutputFormat,
     locations: tuple[CityJSONLocation]
     | tuple[GpkgLocation]
-    | tuple[Ogc3dTilesLocation],
+    | tuple[Ogc3dTilesLocation]
+    | tuple[ObjLocation],
     export_dir: Path,
 ) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
@@ -78,7 +84,7 @@ def generate_tyler_config(
         # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
         data_format_temp_override = "ogc3dtiles"
         attributes = specs.applies_to(
-            data_format=data_format_temp_override, locations=locations
+            data_format=data_format_temp_override, locations=(location,)
         )
         for a_name, a_spec in attributes:
             cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
@@ -91,6 +97,14 @@ def generate_tyler_config(
                 "--gpkg-split-lod",
                 "--gpkg-include-semantics",
                 "--gpkg-include-hierarchy",
+                "--lod-building",
+                "0",
+                "--lod-building-part",
+                "1.2",
+                "--lod-building-part",
+                "1.3",
+                "--lod-building-part",
+                "2.2",
             ]
         )
     elif data_format == TylerOutputFormat.CITYJSON:
@@ -98,14 +112,33 @@ def generate_tyler_config(
         cli_params.extend(
             [
                 f"--output={output_dir}",
+                "--lod-building",
+                "0",
+                "--lod-building-part",
+                "1.2",
+                "--lod-building-part",
+                "1.3",
+                "--lod-building-part",
+                "2.2",
             ]
         )
     elif data_format == TylerOutputFormat.OBJ:
+        if len(locations) > 1:
+            raise ValueError(
+                "Can only generate tyler config for obj for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
+            )
+        location = locations[0]
+        if not isinstance(location, ObjLocation):
+            raise ValueError(
+                "With data_format 'obj' the location must be a single ObjLocation."
+            )
         output_dir = export_dir
         cli_params.extend(
             [
                 f"--output={output_dir}",
                 "--object-type=BuildingPart",
+                f"--lod-building-part={location.lod}",
+                f"--output-suffix=lod{location.lod.replace('.', '')}",
             ]
         )
     else:
@@ -290,7 +323,7 @@ def merged_quadtree(reconstruction_output_gpkg: Path) -> Path:
     code_version=tool_versions.get_version("tyler"),
     pool="tyler",
 )
-def reconstruction_output_obj(
+def reconstruction_output_obj_lod12(
     config: TylerConfig,
     metadata,
     tyler: TylerResource,
@@ -298,7 +331,7 @@ def reconstruction_output_obj(
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
 ) -> Path:
-    """Tiles for distribution OBJ format.
+    """Tiles for distribution, in OBJ format, LoD1.2 BuildingPart.
     Generated with tyler."""
     with metadata.open("r") as fo:
         metadata_lineage = json.load(fo)
@@ -311,7 +344,69 @@ def reconstruction_output_obj(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(),
+        locations=(ObjLocation.lod12,),
+        verbose=config.verbose,
+    )
+
+
+@asset(
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
+    code_version=tool_versions.get_version("tyler"),
+    pool="tyler",
+)
+def reconstruction_output_obj_lod13(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+) -> Path:
+    """Tiles for distribution, in OBJ format, LoD1.3 BuildingPart.
+    Generated with tyler."""
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(
+        data_format=TylerOutputFormat.OBJ,
+        file_store=file_store,
+        version=version,
+        specs=specs,
+        tyler=tyler,
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
+        locations=(ObjLocation.lod13,),
+        verbose=config.verbose,
+    )
+
+
+@asset(
+    deps={AssetKey(("floors_estimation", "save_cjfiles"))},
+    code_version=tool_versions.get_version("tyler"),
+    pool="tyler",
+)
+def reconstruction_output_obj_lod22(
+    config: TylerConfig,
+    metadata,
+    tyler: TylerResource,
+    file_store: FileStoreResource,
+    version: ReleaseVersionResource,
+    specs: Specs3DBAGResource,
+) -> Path:
+    """Tiles for distribution, in OBJ format, LoD2.2 BuildingPart.
+    Generated with tyler."""
+    with metadata.open("r") as fo:
+        metadata_lineage = json.load(fo)
+    version_3dbag = metadata_lineage["identificationInfo"]["citation"]["edition"]
+    return reconstruction_output_tiles_func(
+        data_format=TylerOutputFormat.OBJ,
+        file_store=file_store,
+        version=version,
+        specs=specs,
+        tyler=tyler,
+        version_3dbag=version_3dbag,
+        rayon_num_threads=config.concurrency,
+        locations=(ObjLocation.lod22,),
         verbose=config.verbose,
     )
 

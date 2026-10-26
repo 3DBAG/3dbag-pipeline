@@ -20,8 +20,13 @@ from bag3d.export.assets.export.archive import CompressionConfig, compressed_til
 from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.tile import (
     TylerConfig,
+    TylerOutputFormat,
+    generate_tyler_config,
     merged_quadtree,
     reconstruction_output_gpkg,
+    reconstruction_output_obj_lod12,
+    reconstruction_output_obj_lod13,
+    reconstruction_output_obj_lod22,
 )
 
 VERSION = "test_version"
@@ -347,3 +352,58 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     assert gpkg_output == tmp_path / "stages" / "export" / VERSION
     assert quadtree_output == gpkg_output / "debug" / "quadtree.tsv"
     assert quadtree_output.is_file()
+
+
+def test_reconstruction_output_obj_lods(tmp_path):
+    """The OBJ assets run tyler with the correct LoD parameters."""
+    from bag3d.specs.core import ObjLocation
+
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
+    )
+
+    specs = MagicMock()
+    export_dir = tmp_path / "stages" / "export" / VERSION
+
+    # Test generate_tyler_config for each LoD
+    for loc, expected_lod in [
+        (ObjLocation.lod12, "1.2"),
+        (ObjLocation.lod13, "1.3"),
+        (ObjLocation.lod22, "2.2"),
+    ]:
+        params, out_dir = generate_tyler_config(
+            specs=specs,
+            data_format=TylerOutputFormat.OBJ,
+            locations=(loc,),
+            export_dir=export_dir,
+        )
+        assert out_dir == export_dir
+        assert f"--format={TylerOutputFormat.OBJ}" in params
+        assert f"--output={export_dir}" in params
+        assert "--object-type=BuildingPart" in params
+        assert f"--lod-building-part={expected_lod}" in params
+
+    # Test asset functions
+    ran_commands = []
+    runner = MagicMock()
+    runner.run.side_effect = lambda cmd, **kwargs: ran_commands.append(cmd)
+    tyler = SimpleNamespace(runner=runner)
+
+    for asset_func, expected_lod in [
+        (reconstruction_output_obj_lod12, "1.2"),
+        (reconstruction_output_obj_lod13, "1.3"),
+        (reconstruction_output_obj_lod22, "2.2"),
+    ]:
+        out = asset_func(
+            TylerConfig(concurrency=1),
+            metadata_path,
+            tyler,
+            file_store,
+            version,
+            specs,
+        )
+        assert out == export_dir
+        assert any(f"--lod-building-part={expected_lod}" in cmd for cmd in ran_commands)
