@@ -571,8 +571,14 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
         if (properties := feature.get("properties")) and (
             file_url := properties.get("file")
         ):
+            sha256 = properties.get("sha256")
+            # Skip entries without a published checksum so the asset only
+            # contains str -> str (and tiles without a checksum are still
+            # downloaded, see match_sha).
+            if not sha256:
+                continue
             filename = file_url.split("/")[-1]
-            checksums[filename] = properties.get("sha256")
+            checksums[filename] = sha256
     return checksums
 
 
@@ -717,18 +723,19 @@ def match_sha(
     Returns:
         True on matching hashes
     """
-    if not sha_reference[fpath.name]:
+    ref_sha = sha_reference.get(fpath.name)
+    if not ref_sha:
         # this check if for ensuring that new AHN5 tiles which do not have a
         # checksum yet will still be downloaded.
         logger.info(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
         return True
-    elif hash_hexdigest == sha_reference[fpath.name]:
+    elif hash_hexdigest == ref_sha:
         logger.info(format_laz_log(fpath, f"{hash_name} OK"))
         return True
     else:  # pragma: no cover
         logger.info(
             format_laz_log(
-                fpath, f"{hash_name}: {hash_hexdigest} != {sha_reference[fpath.name]}"
+                fpath, f"{hash_name}: {hash_hexdigest} != {ref_sha}"
             )
         )
         return False
