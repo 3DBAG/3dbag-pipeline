@@ -45,3 +45,12 @@ coverage-report.md
 
 # Misc
 TODO*
+*.python-version
+*.vscode/
+*.venv/
+*.tmp_dagster_home*
+.python-version
+.vscode
+
+10-148-336.ifc/
+zzz_ginas_scripts/

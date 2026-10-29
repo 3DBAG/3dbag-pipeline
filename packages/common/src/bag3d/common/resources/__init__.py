@@ -36,7 +36,7 @@ logger = get_dagster_logger()
 class DagsterDeployment(StrEnum):
     DEFAULT = "default"
     PRODUCTION = "production"
-    FEATURE = "feature"
+    DEVELOP = "develop"
     PYTEST = "pytest"
     STAGING = "staging"
 
@@ -47,7 +47,7 @@ class DagsterDeployment(StrEnum):
             {
                 cls.PRODUCTION,
                 cls.PYTEST,
-                cls.FEATURE,
+                cls.DEVELOP,
                 cls.STAGING,
             }
         )
