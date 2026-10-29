@@ -114,7 +114,11 @@ def test_full_workflow_cross_location_inputs_reruns_and_ids(database_fixture, tm
     def source_bgt() -> PostgresTableIdentifier:
         return bgt
 
-    sources = [AssetSpec(source_bag.key), AssetSpec(source_bgt.key)]
+    sources = [
+        AssetSpec(source_bag.key),
+        AssetSpec(source_bgt.key),
+        AssetSpec(["intermediary", "bag_adjacency"]),
+    ]
     target = PostgresTableIdentifier(schema, "geometries")
     with DagsterInstance.local_temp(str(tmp_path)) as instance:
         # Materialize sources separately: underpasses loads their identifiers
@@ -137,7 +141,17 @@ def test_full_workflow_cross_location_inputs_reruns_and_ids(database_fixture, tm
                 [*all_assets, *sources],
                 instance=instance,
                 resources={"computation_db": resource},
-                selection=AssetSelection.groups("underpasses"),
+                selection=AssetSelection.assets(
+                    *[
+                        ["underpasses", name]
+                        for name in (
+                            "bag_bgt_join",
+                            "bag_minus_bgt",
+                            "snapped_differences",
+                            "geometries",
+                        )
+                    ]
+                ),
                 run_config=config,
             )
             assert result.success
