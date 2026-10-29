@@ -30,6 +30,7 @@ dependencies = [
     "fabric~=3.2.2",
     "cityjson-index==0.11.0",
     "cityjson-lib==0.11.0",
+    "SQLAlchemy<2.1",
 ]
 
 [tool.uv]
