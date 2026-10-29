@@ -33,5 +33,22 @@ def test_asset_dependencies():
             "bag_minus_bgt",
             "snapped_differences",
             "geometries",
+            "edges",
+            "extended_geometries",
+            "skipped_underpasses",
         )
     }
+
+
+def test_edge_dependencies_and_coupled_outputs():
+    graph = defs.resolve_asset_graph()
+    assert graph.get(AssetKey(["underpasses", "edges"])).parent_keys == {
+        AssetKey(["underpasses", "geometries"]),
+        AssetKey(["underpasses", "bag_bgt_join"]),
+        AssetKey(["intermediary", "bag_adjacency"]),
+    }
+    for name in ("extended_geometries", "skipped_underpasses"):
+        assert graph.get(AssetKey(["underpasses", name])).parent_keys == {
+            AssetKey(["underpasses", "edges"]),
+            AssetKey(["underpasses", "geometries"]),
+        }

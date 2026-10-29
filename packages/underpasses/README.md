@@ -13,7 +13,8 @@ boxes, and unions matching BGT polygons per building. All matching BGT relative
 height levels are included, preserving the experiment's behavior. Core's
 `intermediary/bag_bgt_join` has different relative-height filtering and is not used.
 
-The `underpasses` job materializes four assets in order:
+The detection portion of the `underpasses` job materializes four assets in order;
+edge classification and offset follow them:
 
 1. `underpasses/bag_bgt_join`: BAG footprints and unioned BGT footprints.
 2. `underpasses/bag_minus_bgt`: BAG minus BGT, retaining differences that survive
@@ -100,3 +101,36 @@ Unit tests run offline. To also run isolated PostGIS tests, set
 `BAG3D_UNDERPASSES_TEST_DSN` to a disposable test database connection string. Tests
 create unique schemas and remove them during cleanup; they never use production
 BAG/BGT or underpasses tables.
+
+## Edge classification and selective offset
+
+After detection, `underpasses/edges` classifies boundaries as `interior`,
+`exterior`, or `shared`. It consumes `intermediary/bag_adjacency` through the
+shared IO manager and uses neighbours' **BGT** footprints from `bag_bgt_join`.
+Materialize the core preprocessing job before running this extended workflow.
+Classification defaults are `grid_size: 0.001` and `snap_tolerance: 0.03` metres.
+Hole boundaries are interior edges.
+
+The `offset_edges` computation produces two coupled assets:
+`underpasses/extended_geometries` and `underpasses/skipped_underpasses`.
+Exterior boundaries move by `offset_distance: 0.05` metres by default;
+interior/shared boundaries remain on their fixed supporting lines. The offset
+uses the experiment's boolean-patch strategy with `tolerance: 0.001` metres.
+Signed finite distances are supported; zero requests the validated original
+polygon. Override these settings under `ops.offset_edges.config` in run config.
+Both new stages also accept `concurrency` and `chunk_size` as above.
+
+`edges` stores an integer `edge_id`, original `underpass_id`, full BAG
+`identificatie`, `edge_type`, and `geom geometry(LineString,28992)`.
+`extended_geometries` stores `identificatie`, `underpass_id`, `offset_distance`,
+and `geom geometry(Polygon,28992)`. `skipped_underpasses` stores `identificatie`,
+`underpass_id`, `skip_reason`, and `skipped_at`. Offset tables are keyed by the
+building/underpass pair. IDs from detection are preserved.
+
+Every detected underpass gets an offset polygon or a skip record. Known skips
+include `no_movable_edges`, `invalid_input_polygon`, `geometry_offset_failed`,
+`edge_matching_failed`, and `value_error`. A failed nonzero offset never silently
+returns the original polygon. Unexpected errors fail the stage and roll back
+both table replacements. Tables are rebuilt on reruns to avoid stale IDs and
+settings; successes and skips materialize together. Metadata reports processed,
+written, and skipped counts and a breakdown of skip reasons.

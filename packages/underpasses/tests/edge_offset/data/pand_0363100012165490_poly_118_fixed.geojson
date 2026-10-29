@@ -1,0 +1,37 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "identificatie": "NL.IMBAG.Pand.0363100012165490",
+        "underpass_id": 118
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [
+              122326.813,
+              486210.999
+            ],
+            [
+              122316.701,
+              486239.744
+            ]
+          ],
+          [
+            [
+              122316.701,
+              486239.744
+            ],
+            [
+              122317.973,
+              486240.193
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
