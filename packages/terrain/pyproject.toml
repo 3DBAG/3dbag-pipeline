@@ -29,6 +29,9 @@ dependencies = [
 [dependency-groups]
 dev = ["pytest>=9.0.3", "coverage~=7.13.4", "pyright>=1.1", "dagster-dg-cli~=1.13.15", "dagster-webserver~=1.13.15", "ruff~=0.15.1"]
 
+[tool.uv]
+constraint-dependencies = ["graphql-core>=3.2.12"]
+
 [tool.uv.sources]
 bag3d-common = { path = "../common", editable = true }
 

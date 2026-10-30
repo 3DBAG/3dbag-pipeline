@@ -6,6 +6,9 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+constraints = [{ name = "graphql-core", specifier = ">=3.2.12" }]
+
 [[package]]
 name = "affine"
 version = "3.0.1"
