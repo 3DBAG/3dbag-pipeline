@@ -23,6 +23,7 @@ dependencies = [
     "scipy>=1.15.3,<2",
     "SQLAlchemy<2.1",  # Keep Dagster storage on the compatible psycopg2 default driver.
     "certifi>=2026.10.19",
+    "urllib3>=2.8.0",
 ]
 
 [dependency-groups]

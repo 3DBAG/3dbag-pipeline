@@ -16,7 +16,7 @@ constraints = [
     { name = "pymdown-extensions", specifier = ">=11.0.1" },
     { name = "requests", specifier = ">=2.33.0" },
     { name = "sqlalchemy", specifier = "<2.1" },
-    { name = "urllib3", specifier = ">=2.7.0" },
+    { name = "urllib3", specifier = ">=2.8.0" },
 ]
 
 [[package]]

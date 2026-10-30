@@ -157,6 +157,7 @@ dependencies = [
     { name = "requests" },
     { name = "scipy" },
     { name = "sqlalchemy" },
+    { name = "urllib3" },
 ]
 
 [package.dev-dependencies]
@@ -185,6 +186,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.33.0" },
     { name = "scipy", specifier = ">=1.15.3,<2" },
     { name = "sqlalchemy", specifier = "<2.1" },
+    { name = "urllib3", specifier = ">=2.8.0" },
 ]
 
 [package.metadata.requires-dev]
