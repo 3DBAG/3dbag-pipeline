@@ -88,6 +88,24 @@ check_exe_help() {
   fi
 }
 
+# Reconstruction requires Roofer's native underpass input interface.
+check_roofer_underpasses() {
+  local help option
+  if ! help=$(bin/roofer --help-all 2>&1); then
+    printf "[${RED}FAIL${NC}]...roofer underpass options (help failed)\n"
+    all_ok=1
+    return
+  fi
+  for option in underpass-source underpass-id-attribute underpass-height-attribute underpass-default-height; do
+    if ! printf '%s\n' "$help" | grep -q -- "--$option"; then
+      printf "[${RED}FAIL${NC}]...roofer missing --%s\n" "$option"
+      all_ok=1
+      return
+    fi
+  done
+  printf "[${GREEN}OK${NC}].....roofer underpass options\n"
+}
+
 # check if proj is installed properly and if the proj.db layout is correct
 check_proj() {
   version=$(bin/proj 2>&1 | sed -n 's/^Rel\. \([0-9.]*\).*/\1/p' | head -1)
@@ -103,6 +121,7 @@ check_proj() {
 check_exe "tyler"
 check_exe "tyler-db"
 check_exe "roofer"
+check_roofer_underpasses
 check_proj
 check_exe "ogr2ogr"
 check_exe "ogrinfo"
@@ -115,4 +134,4 @@ check_exe_lastools "las2las64"
 check_exe_lastools "lasindex64"
 check_exe_lastools "lasinfo64"
 
-exit #$all_ok
+exit "$all_ok"

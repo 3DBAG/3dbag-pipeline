@@ -1,3 +1,5 @@
+import json
+import os
 import time
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -8,17 +10,19 @@ from bag3d.common.resources import NlTransform, tool_versions
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import RooferResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.dagster import format_date
 from dagster import (
     AssetExecutionContext,
     AssetIn,
+    AssetKey,
     Config,
     Failure,
     StaticPartitionsDefinition,
     asset,
     get_dagster_logger,
 )
-from pgutils import PostgresTableIdentifier
+from psycopg.conninfo import make_conninfo
 from psycopg.sql import SQL
 from pydantic import Field
 
@@ -78,6 +82,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "metadata_ahn4_index": AssetIn(key_prefix="ahn"),
         "metadata_ahn5_index": AssetIn(key_prefix="ahn"),
         "metadata_ahn6_index": AssetIn(key_prefix="ahn"),
+        "underpass_heights": AssetIn(key=AssetKey(["underpasses", "heights"])),
         "tiles": AssetIn(key_prefix="input"),
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
@@ -99,34 +104,35 @@ def reconstructed_building_models(
     metadata_ahn4_index,
     metadata_ahn5_index,
     metadata_ahn6_index,
+    underpass_heights: PostgresTableIdentifier,
 ) -> None:
     """Generate the 3D building models by running the reconstruction sequentially
     within one partition.
     Runs roofer."""
 
-    roofer_toml, output_dir, tile_view = create_roofer_config(
-        context,
-        computation_db=computation_db,
-        file_store=file_store,
-        nl_transform=nl_transform,
-        reconstruction_input=reconstruction_input,
-        index=index,
-        tiles=tiles,
-        metadata_ahn3=metadata_ahn3_index,
-        metadata_ahn4=metadata_ahn4_index,
-        metadata_ahn5=metadata_ahn5_index,
-        metadata_ahn6=metadata_ahn6_index,
-    )
-
-    logger.info(f"{roofer_toml=}")
-    logger.info(f"{tile_view=}")
-
+    tile_view = PostgresTableIdentifier(tiles.schema, f"t_{context.partition_key}")
+    underpass_view = PostgresTableIdentifier(tiles.schema, f"u_{context.partition_key}")
     try:
+        roofer_toml, output_dir, tile_view = create_roofer_config(
+            context,
+            computation_db=computation_db,
+            file_store=file_store,
+            nl_transform=nl_transform,
+            reconstruction_input=reconstruction_input,
+            index=index,
+            tiles=tiles,
+            metadata_ahn3=metadata_ahn3_index,
+            metadata_ahn4=metadata_ahn4_index,
+            metadata_ahn5=metadata_ahn5_index,
+            metadata_ahn6=metadata_ahn6_index,
+            underpass_heights=underpass_heights,
+        )
         result = roofer.runner.run(
             f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
             exe_name="roofer",
             local_path=roofer_toml,
             logger=logger,
+            env=roofer_environment(computation_db),
         )
         logger.debug(f"{result.returncode=}")
         if not result.success or "error" in result.stdout.lower():
@@ -135,8 +141,33 @@ def reconstructed_building_models(
     finally:
         if config.drop_views:
             computation_db.connection.send_query(
-                SQL("DROP VIEW {tile_view}"), query_params={"tile_view": tile_view}
+                SQL("DROP VIEW IF EXISTS {underpass_view}, {tile_view}"),
+                query_params={"underpass_view": underpass_view, "tile_view": tile_view},
             )
+
+
+def roofer_environment(database):
+    env = os.environ.copy()
+    password = database.password
+    if password is None:
+        password = (database.other_params or {}).get("password")
+    if password is not None:
+        env["PGPASSWORD"] = password
+    return env
+
+
+def ogr_source(database, table, geometry=None):
+    parameters = dict(database.other_params or {})
+    parameters.pop("password", None)
+    dsn = make_conninfo(
+        host=database.host,
+        port=database.port,
+        dbname=database.dbname,
+        user=database.user,
+        **parameters,
+    )
+    suffix = f"({geometry})" if geometry else ""
+    return f"PG:{dsn} tables={table}{suffix}"
 
 
 def create_roofer_config(
@@ -151,9 +182,14 @@ def create_roofer_config(
     metadata_ahn4,
     metadata_ahn5,
     metadata_ahn6,
+    underpass_heights: PostgresTableIdentifier,
 ):
     toml_template = """
-    polygon-source = "{footprint_file}"
+    polygon-source = {footprint_file}
+    underpass-source = {underpass_source}
+    underpass-id-attribute = "identificatie"
+    underpass-height-attribute = "underpass_candidate_elevations"
+    underpass-default-height = 2.5
     id-attribute = "identificatie"
     force-lod11-attribute = "b3_kas_warenhuis"
     yoc-attribute = "oorspronkelijkbouwjaar"
@@ -296,10 +332,25 @@ def create_roofer_config(
             "tile_id": tile_id,
         },
     )
+    # Match building IDs rather than clipping extended underpass polygons.
+    # NULL estimates deliberately reach Roofer for its floor-relative fallback.
+    underpass_view = PostgresTableIdentifier(tiles.schema, f"u_{tile_id}")
+    computation_db.connection.send_query(
+        SQL("""CREATE OR REPLACE VIEW {underpass_view} AS
+        SELECT h.* FROM {heights} h
+        WHERE EXISTS (SELECT 1 FROM {tile_view} f
+                      WHERE f.identificatie = h.identificatie)"""),
+        query_params={
+            "underpass_view": underpass_view,
+            "heights": underpass_heights,
+            "tile_view": tile_view,
+        },
+    )
     output_dir = file_store.stage_dir("reconstruction").joinpath(tile_id)
     output_dir.mkdir(exist_ok=True, parents=True)
     output_toml = toml_template.format(
-        footprint_file=f"PG:{computation_db.connection.dsn} tables={tile_view}",
+        footprint_file=json.dumps(ogr_source(computation_db, tile_view)),
+        underpass_source=json.dumps(ogr_source(computation_db, underpass_view, "geom")),
         ahn3_files=laz_files_ahn3,
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,
