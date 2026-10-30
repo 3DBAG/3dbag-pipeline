@@ -3,7 +3,7 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.07.30.1",
+      "version": "2026.10.30.1",
       "digest": "sha256:055d02c5ea9ed23945e2f96725a1637e0d9fc66c68b78b92148ce953ba8c22c5"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
@@ -40,7 +40,7 @@
       "version": "develop",
       "image": {
         "repository": "docker.io/3dgi/roofer",
-        "digest": "sha256:629664023211e08976839427608a21ca8ac780c553549fd28b6903411719185c"
+        "digest": "sha256:7fbb42eb0ea0c03f667162d6378539cb2cf4124ddce9bda431f8e4d8af6b5da6"
       },
       "type": "docker",
       "display_name": "roofer",
