@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 import requests
-
 from bag3d.terrain import downloads
 from bag3d.terrain.state import read_manifest, save_manifest
 
@@ -148,6 +147,57 @@ def test_initial_empty_collection_does_not_follow_its_next_link(tmp_path, monkey
     catalog = read_manifest(downloads.ahn_catalog(tmp_path, None, 500))
     assert len(catalog["sources"]) == 1
     assert len(calls) == 4
+
+
+def test_unavailable_dtm_entries_keep_pagination_and_other_collection(
+    tmp_path, monkeypatch, caplog
+):
+    replies = catalog_responses() + [
+        Response({"features": [feature("https://source/ahn5.tif")]}),
+        Response(
+            {
+                "features": [feature(""), feature(None)],
+                "links": [{"rel": "next", "href": "?page=2"}],
+            },
+            url="https://catalog.example/ahn6/current/items",
+        ),
+        Response({"features": [feature("https://source/ahn6.tif")]}),
+    ]
+    calls = mock_session(monkeypatch, replies)
+    catalog = read_manifest(downloads.ahn_catalog(tmp_path, None, 500))
+    assert [source["url"] for source in catalog["sources"]] == [
+        "https://source/ahn5.tif",
+        "https://source/ahn6.tif",
+    ]
+    assert len(calls) == 5
+    assert calls[-1][0] == "https://catalog.example/ahn6/current/items?page=2"
+    assert "Skipped 2 AHN entries without a 5 m DTM URL" in caplog.text
+    assert "https://catalog.example/ahn6/current/items" in caplog.text
+
+
+def test_only_unavailable_dtms_does_not_publish_catalog(tmp_path, monkeypatch):
+    mock_session(
+        monkeypatch,
+        catalog_responses()
+        + [
+            Response({"features": [feature("")]}),
+            Response({"features": [feature(None)]}),
+        ],
+    )
+    with pytest.raises(ValueError, match="returned no input rasters"):
+        downloads.ahn_catalog(tmp_path, None, 500)
+    assert not list((tmp_path / "catalogs").glob("*.json"))
+
+
+@pytest.mark.parametrize("source", ["http://source/tile.tif", "not a URL", 0, False])
+def test_invalid_dtm_url_still_fails(tmp_path, monkeypatch, source):
+    mock_session(
+        monkeypatch,
+        catalog_responses() + [Response({"features": [feature(source)]})],
+    )
+    with pytest.raises(ValueError, match="Invalid AHN DTM URL"):
+        downloads.ahn_catalog(tmp_path, None, 500)
+    assert not list((tmp_path / "catalogs").glob("*.json"))
 
 
 def test_nonempty_pagination_cycle_still_fails(tmp_path, monkeypatch):

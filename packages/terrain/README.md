@@ -119,6 +119,9 @@ AHN5 and AHN6 item endpoints are resolved from their current collection listings
 because the provider replaces layer UUIDs. An empty feature page ends pagination
 even if the API includes a `next` link back to the beginning; nonempty pagination
 cycles still fail rather than publishing an incomplete catalog.
+Entries with an empty or null 5 m DTM URL are skipped with a warning: AHN6 can
+list a tile's point cloud before publishing its DTM. Pagination continues past
+these entries. Malformed URLs and selections with no available rasters still fail.
 
 Bounding-box selection includes neighboring AHN inputs for interpolation and
 source transitions. The output extent is the requested box, or the AHN source

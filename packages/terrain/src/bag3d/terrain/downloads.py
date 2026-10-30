@@ -1,6 +1,7 @@
 """Network acquisition only. Raster processing never calls this module."""
 
 import json
+import logging
 import math
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,7 @@ from .state import (
 
 DATA = Path(__file__).parent / "data"
 GRID_NAMES = ("nl_nsgi_rdtrans2018.tif", "nl_nsgi_nlgeo2018.tif", "us_nga_egm08_25.tif")
+logger = logging.getLogger(__name__)
 
 
 def session() -> requests.Session:
@@ -149,6 +151,7 @@ def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
                 {"bbox": ",".join(str(v) for v in selection)} if selection else None
             )
             visited = set()
+            unavailable = 0
             while url:
                 if url in visited:
                     raise ValueError(f"Cyclic AHN pagination: {url}")
@@ -164,6 +167,11 @@ def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
                     break
                 for feature in features:
                     source = feature["properties"][specification["property"]]
+                    # AHN6 includes tiles whose point cloud is available before
+                    # the 5 m DTM is published. Keep paging past those entries.
+                    if source is None or source == "":
+                        unavailable += 1
+                        continue
                     if not isinstance(source, str) or not source.startswith("https://"):
                         raise ValueError(f"Invalid AHN DTM URL: {source!r}")
                     entries[source] = {"url": source, "collection": collection}
@@ -174,6 +182,12 @@ def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
                 ]
                 url = urljoin(response.url, following[0]) if following else None
                 params = None
+            if unavailable:
+                logger.warning(
+                    "Skipped %s AHN entries without a 5 m DTM URL in %s",
+                    unavailable,
+                    collection,
+                )
     if not entries:
         raise ValueError("The AHN 5 m catalog returned no input rasters")
     catalog = {
