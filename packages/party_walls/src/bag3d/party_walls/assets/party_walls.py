@@ -83,7 +83,7 @@ def _find_building_part_id(feature: dict[str, Any]) -> str | None:
 
 def _tile_id_from_source_path(
     source_path: str | Path,
-    reconstruction_root: Path,
+    models_root: Path,
 ) -> str:
     """Derive the output tile id from an indexed feature source path.
 
@@ -93,7 +93,7 @@ def _tile_id_from_source_path(
     """
     source = Path(source_path)
     try:
-        rel_path = source.relative_to(reconstruction_root)
+        rel_path = source.relative_to(models_root)
     except ValueError:
         rel_path = source
 
@@ -293,7 +293,7 @@ def building_surfaces(
         logger.warning("No packages found in reconstruction index, skipping.")
         return []
 
-    reconstruction_root = file_store.stage_dir("reconstruction")
+    models_root = Path(reconstruction_index.dataset_dir)
 
     # Collect package refs and resolve provenance once per page.
     features_index: dict[str, cityjson_index.PackageRef] = {}
@@ -329,7 +329,7 @@ def building_surfaces(
         defaultdict(list)
     )
     for pand_id, ref in features_index.items():
-        tile_id = _tile_id_from_source_path(source_paths[pand_id], reconstruction_root)
+        tile_id = _tile_id_from_source_path(source_paths[pand_id], models_root)
         tiles_with_buildings[tile_id].append((pand_id, ref))
     tile_grouping_s = perf_counter() - tile_grouping_start
 
