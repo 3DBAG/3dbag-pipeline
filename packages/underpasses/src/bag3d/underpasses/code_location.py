@@ -18,7 +18,7 @@ defs = Definitions(
     resources=resource_defs,
     assets=[
         *all_assets,
-        AssetSpec(["intermediary", "bag_adjacency"]),
+        AssetSpec(["input", "intermediary", "bag_adjacency"]),
         AssetSpec(["bag", "bag_pandactueelbestaand"]),
         AssetSpec(["bgt", "bgt_pandactueelbestaand"]),
     ],
