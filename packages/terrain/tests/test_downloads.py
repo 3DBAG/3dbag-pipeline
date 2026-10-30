@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import requests
+
 from bag3d.terrain import downloads
 from bag3d.terrain.state import read_manifest, save_manifest
 
