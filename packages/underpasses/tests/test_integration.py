@@ -117,7 +117,7 @@ def test_full_workflow_cross_location_inputs_reruns_and_ids(database_fixture, tm
     sources = [
         AssetSpec(source_bag.key),
         AssetSpec(source_bgt.key),
-        AssetSpec(["intermediary", "bag_adjacency"]),
+        AssetSpec(["input", "intermediary", "bag_adjacency"]),
     ]
     target = PostgresTableIdentifier(schema, "geometries")
     with DagsterInstance.local_temp(str(tmp_path)) as instance:

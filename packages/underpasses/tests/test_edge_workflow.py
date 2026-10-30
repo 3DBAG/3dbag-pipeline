@@ -67,7 +67,7 @@ def test_complete_job_and_atomic_offset_outputs(
     def bgt_source():
         return bgt
 
-    @asset(key=["intermediary", "bag_adjacency"])
+    @asset(key=["input", "intermediary", "bag_adjacency"])
     def adjacency_source():
         return adjacency
 
