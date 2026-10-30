@@ -88,3 +88,6 @@ push = true
 "packages/party_walls/pyproject.toml" = [
     'version = "{version}"',
 ]
+"packages/terrain/pyproject.toml" = [
+    'version = "{version}"',
+]

@@ -178,6 +178,59 @@ services:
           path: ../packages/floors_estimation/uv.lock
           target: /opt/3dbag-pipeline/packages/floors_estimation/uv.lock
 
+  bag3d-terrain:
+    platform: linux/amd64
+    build:
+      context: ../
+      dockerfile: docker/pipeline/bag3d-terrain.dockerfile
+      args:
+        VERSION: ${BAG3D_PIPELINE_VERSION}
+        TOOLS_IMAGE: ${BAG3D_TOOLS_IMAGE}
+    image: ${BAG3D_TERRAIN_IMAGE}
+    pull_policy: build
+    container_name: 3dbag-pipeline-terrain-${BAG3D_PIPELINE_VERSION}
+    healthcheck:
+      test: ["CMD-SHELL", "dagster api grpc-health-check -p 4005"]
+      interval: 2s
+      retries: 10
+    restart: always
+    environment:
+      DAGSTER_CURRENT_IMAGE: ${BAG3D_TERRAIN_IMAGE}
+    env_file:
+      - ./.env
+    volumes:
+      - bag3d-data-pipeline:/data/volume
+      - bag3d-dagster-home:/opt/dagster/dagster_home
+    networks:
+      - bag3d-network
+    depends_on:
+      dagster-postgresql:
+        condition: service_healthy
+        restart: true
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../packages/common/src
+          target: /opt/3dbag-pipeline/packages/common/src
+        - action: sync+restart
+          path: ../packages/terrain/src
+          target: /opt/3dbag-pipeline/packages/terrain/src
+        - action: sync+restart
+          path: ../packages/common/tests
+          target: /opt/3dbag-pipeline/packages/common/tests
+        - action: sync+restart
+          path: ../packages/terrain/tests
+          target: /opt/3dbag-pipeline/packages/terrain/tests
+        - action: rebuild
+          path: ../packages/common/pyproject.toml
+          target: /opt/3dbag-pipeline/packages/common/pyproject.toml
+        - action: rebuild
+          path: ../packages/terrain/pyproject.toml
+          target: /opt/3dbag-pipeline/packages/terrain/pyproject.toml
+        - action: rebuild
+          path: ../packages/terrain/uv.lock
+          target: /opt/3dbag-pipeline/packages/terrain/uv.lock
+
   bag3d-party-walls:
     platform: linux/amd64
     build:
@@ -289,6 +342,8 @@ services:
     volumes: # Make docker client accessible so we can terminate containers from the webserver
       - /var/run/docker.sock:/var/run/docker.sock
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      # The named Dagster-home volume can contain an older workspace file.
+      - ./dagster/workspace.yaml:/opt/dagster/dagster_home/workspace.yaml:ro
     networks:
       - bag3d-network
     depends_on:
@@ -302,6 +357,9 @@ services:
         condition: service_healthy
         restart: true
       bag3d-party-walls:
+        condition: service_healthy
+        restart: true
+      bag3d-terrain:
         condition: service_healthy
         restart: true
       bag3d-export:
@@ -325,6 +383,7 @@ services:
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
       - bag3d-dagster-home:/opt/dagster/dagster_home
+      - ./dagster/workspace.yaml:/opt/dagster/dagster_home/workspace.yaml:ro
     networks:
       - bag3d-network
     depends_on:
@@ -338,6 +397,9 @@ services:
         condition: service_healthy
         restart: true
       bag3d-party-walls:
+        condition: service_healthy
+        restart: true
+      bag3d-terrain:
         condition: service_healthy
         restart: true
       bag3d-export:

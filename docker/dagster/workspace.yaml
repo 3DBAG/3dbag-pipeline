@@ -16,3 +16,7 @@ load_from:
       host: bag3d-export
       port: 4003
       location_name: "export"
+  - grpc_server:
+      host: bag3d-terrain
+      port: 4005
+      location_name: "terrain"

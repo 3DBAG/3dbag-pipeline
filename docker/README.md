@@ -61,6 +61,12 @@ The Dockerfile is `docker/pipeline/bag3d-party-walls.dockerfile`.
 Image for running the dagster webserver and daemon.
 The Dockerfile is `docker/dagster/Dockerfile`.
 
+The `terrain` workflow runs in its own `bag3d-terrain` code-server service on
+port 4005, using `docker/pipeline/bag3d-terrain.dockerfile`. It is included in
+`make docker_dev` and the Docker workspace, with source mounts for live editing.
+The webserver and daemon mount `docker/dagster/workspace.yaml` directly so a
+previously created Dagster-home volume cannot retain an outdated location list.
+
 ## How to run the services
 
 To run the services in `docker/compose.yaml`, do the following steps.
