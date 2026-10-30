@@ -62,6 +62,7 @@ nav:
     - floors_estimation: index_floors_estimation.md
     - party_walls: index_party_walls.md
     - terrain: index_terrain.md
+    - underpasses: index_underpasses.md
   - Architecture Decisions:
     - adr/0001-ahn-checksum-automation-strategy.md
     - adr/0002-independent-package-environments.md

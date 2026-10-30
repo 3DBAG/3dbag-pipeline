@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "spike_2",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+"xy_coordinate_resolution": 1e-06,
+"features": [
+{ "type": "Feature", "properties": { "identificatie": "NL.IMBAG.Pand.0363100012165490", "underpass_id": 118 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 122328.296, 486211.532 ], [ 122326.813, 486210.999 ], [ 122316.701, 486239.744 ], [ 122317.973, 486240.193 ], [ 122318.117, 486240.244 ], [ 122328.296, 486211.532 ] ] ] } }
+]
+}

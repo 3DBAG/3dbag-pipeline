@@ -34,6 +34,7 @@ Additionally, this organization makes it easier to install and test the workflow
 - [`common`](index_common.md): The common package used by the workflow packages.
 - [`core`](index_core.md): Workflow for producing the core of the 3D BAG data set.
 - [`party_walls`](index_party_walls.md): Workflow for calculating the party walls.
+- [`underpasses`](index_underpasses.md): Workflow for detecting 2D underpass polygons from BAG and BGT.
 - [`floors-estimation`](index_floors_estimation.md): Workflow for estimating the number of floors.
 - [`terrain`](index_terrain.md): Netherlands AHN 5 m terrain tiles with water-gap fixes for the viewer.
 
