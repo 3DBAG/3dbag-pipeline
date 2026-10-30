@@ -42,7 +42,7 @@ class EdgeOffsetConfig(EdgeExecutionConfig):
     tolerance: float = Field(default=0.001, gt=0, allow_inf_nan=False)
 
 
-@asset(ins={"bag_adjacency": AssetIn(key=["intermediary", "bag_adjacency"])})
+@asset(ins={"bag_adjacency": AssetIn(key=["input", "intermediary", "bag_adjacency"])})
 def edges(
     context: AssetExecutionContext,
     config: EdgeClassificationConfig,

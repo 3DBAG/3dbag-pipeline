@@ -105,7 +105,7 @@ BAG/BGT or underpasses tables.
 ## Edge classification and selective offset
 
 After detection, `underpasses/edges` classifies boundaries as `interior`,
-`exterior`, or `shared`. It consumes `intermediary/bag_adjacency` through the
+`exterior`, or `shared`. It consumes `input/intermediary/bag_adjacency` through the
 shared IO manager and uses neighbours' **BGT** footprints from `bag_bgt_join`.
 Materialize the core preprocessing job before running this extended workflow.
 Classification defaults are `grid_size: 0.001` and `snap_tolerance: 0.03` metres.
@@ -134,3 +134,15 @@ returns the original polygon. Unexpected errors fail the stage and roll back
 both table replacements. Tables are rebuilt on reruns to avoid stale IDs and
 settings; successes and skips materialize together. Metadata reports processed,
 written, and skipped counts and a breakdown of skip reasons.
+
+Before the first classification run, materialize core's
+`input/intermediary/bag_adjacency` with its missing upstream assets. It produces
+`reconstruction_input.bag_adjacency` and stores the table identifier under the
+same fully prefixed asset key in shared Dagster storage. The database table alone
+is insufficient for the filesystem IO manager to load this input.
+
+If classification previously failed while loading `bag_adjacency`, deploy the
+corrected code location, materialize that core prerequisite, and then select
+`underpasses/edges`, `underpasses/extended_geometries`, and
+`underpasses/skipped_underpasses`. Existing detection outputs can be reused;
+there is no need to rerun detection or change national-data mode.
