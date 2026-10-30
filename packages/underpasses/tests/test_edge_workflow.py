@@ -71,7 +71,32 @@ def test_complete_job_and_atomic_offset_outputs(
     def adjacency_source():
         return adjacency
 
-    sources = [bag_source, bgt_source, adjacency_source]
+    @asset(key=["input", "intermediary", "bag_bgt_join"])
+    def source_bag_bgt_join() -> PostgresTableIdentifier:
+        target = PostgresTableIdentifier(schema, "bag_bgt_join")
+        with connect(dsn) as conn:
+            conn.execute(SQL("DROP TABLE IF EXISTS {}").format(target.id))
+            conn.execute(
+                SQL("""
+                CREATE TABLE {} AS
+                SELECT
+                    bag.identificatie::text AS identificatie,
+                    ST_Multi(bag.geometrie)::geometry(MultiPolygon, 28992) AS bag_geometrie,
+                    ST_Multi(ST_UnaryUnion(ST_Collect(bgt.geometrie)))::geometry(MultiPolygon, 28992)
+                        AS bgt_geometrie
+                FROM {} bag
+                JOIN {} bgt
+                    ON bgt.identificatiebagpnd = SUBSTRING(bag.identificatie FROM 15)
+                    AND bag.geometrie && bgt.geometrie
+                GROUP BY bag.identificatie, bag.geometrie
+                """).format(target.id, bag.id, bgt.id)
+            )
+            conn.execute(
+                SQL("ALTER TABLE {} ADD PRIMARY KEY (identificatie)").format(target.id)
+            )
+        return target
+
+    sources = [bag_source, bgt_source, adjacency_source, source_bag_bgt_join]
     specs = [AssetSpec(source.key) for source in sources]
     target = PostgresTableIdentifier(schema, "extended_geometries")
     skipped = PostgresTableIdentifier(schema, "skipped_underpasses")

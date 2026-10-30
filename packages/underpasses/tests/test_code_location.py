@@ -33,6 +33,7 @@ def test_asset_dependencies():
             "edges",
             "extended_geometries",
             "skipped_underpasses",
+            "heights",
         )
     }
 
@@ -77,3 +78,11 @@ def test_adjacency_input_matches_core_package_registration(monkeypatch):
     assert adjacency in graph.get(AssetKey(["underpasses", "edges"])).parent_keys
     assert graph.get(adjacency).is_materializable is False
     assert not graph.has(AssetKey(["intermediary", "bag_adjacency"]))
+
+
+def test_enrichment_dependencies():
+    graph = defs.resolve_asset_graph()
+    assert graph.get(AssetKey(["underpasses", "heights"])).parent_keys == {
+        AssetKey(["underpasses", "extended_geometries"]),
+        AssetKey(["terrain", "ahn_filled"]),
+    }

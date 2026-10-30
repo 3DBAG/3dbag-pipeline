@@ -3,7 +3,7 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.11.03.1",
+      "version": "2026.11.05.1",
       "digest": "sha256:8253d0f91680fea1f2bbe8df2e7963902f2f00a75add4db4e82d207f33a318d2"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
@@ -41,7 +41,7 @@
       "version": "develop",
       "image": {
         "repository": "docker.io/3dgi/roofer",
-        "digest": "sha256:c60f1d2f8f27f7e18150389efe4a29aee0881a364381e11465f5d12714d06b8f"
+        "digest": "sha256:a5992e6d538a597feb250d1c1586f0866edd2b8b484f7eadfed3e8fef3a501b8"
       },
       "type": "docker",
       "display_name": "roofer",
@@ -158,6 +158,14 @@
       "allow_partial_failure": false,
       "jobs": [
         { "job": "preprocessing", "code_location": "core" }
+      ]
+    },
+    {
+      "name": "terrain_ahn",
+      "display_name": "Filled AHN terrain (NAP)",
+      "allow_partial_failure": false,
+      "jobs": [
+        { "job": "terrain_ahn", "code_location": "terrain" }
       ]
     },
     {

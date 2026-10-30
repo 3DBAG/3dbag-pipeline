@@ -91,6 +91,15 @@ The final materialization reports a manifest under
 metadata for the eventual HTTP server; this package does not start or configure
 a server. The viewer should use Terrarium encoding and the generated TileJSON.
 
+## Underpass height input
+
+The `terrain_ahn` job selects `ahn_catalog`, `ahn_download`, `ahn_rasters`, and
+`ahn_filled`. It prepares the native 5 m RD/NAP rasters needed by underpass height
+estimation without generating the viewer pyramid. The `underpasses/heights`
+asset consumes the materialized `ahn_filled` manifest through the shared Dagster
+IO manager. Its per-polygon P90 sampler runs offline on these rasters. Run both
+code locations with the same file-store and instance-artifact mounts.
+
 ## Asset flow
 
 All keys have the `terrain/` prefix:

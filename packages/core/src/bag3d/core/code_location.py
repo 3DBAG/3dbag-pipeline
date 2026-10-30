@@ -3,6 +3,7 @@ from os import getenv
 from bag3d.common.resources import DagsterDeployment, resource_defs
 from dagster import (
     AssetSelection,
+    AssetSpec,
     AutomationConditionSensorDefinition,
     DefaultSensorStatus,
     Definitions,
@@ -39,6 +40,7 @@ all_assets = [
     *input_assets,
     *reconstruction_assets,
     *integration_data_assets,
+    AssetSpec(["underpasses", "heights"]),
 ]
 
 all_jobs = [

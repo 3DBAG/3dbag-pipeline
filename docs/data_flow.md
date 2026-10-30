@@ -5,6 +5,10 @@ The main pipeline stages pass data through the file system via **stage directori
 ## Stage directory pipeline
 
 ```
+underpasses.heights (street lidar + terrain/ahn_filled NAP rasters)
+        |
+        |  Roofer reconstruction with underpass carving
+        v
 stages/reconstruction/{z}/{x}/{y}/<tile>.city.jsonl
         |
         |  party_walls.building_surfaces (opens/refreshes the cityjson-index index; pages PackageRefs with keyset cursors; reads package CityModels and DB: bag_adjacency)
@@ -41,6 +45,17 @@ stages/export/{version}/
 
 The `reconstructed_building_models_nl` asset (partitioned by tile) runs Roofer and writes tile-level CityJSONSeq data below `stages/reconstruction/{z}/{x}/{y}/`. The index exposes individual package references without requiring consumers to know the source file layout.
 
+### Underpasses
+
+The `terrain_ahn` job prepares the `terrain/ahn_filled` manifest and native 5 m
+RD/NAP rasters independently of reconstruction. The underpasses job precedes
+Roofer: detect polygons, classify/offset edges, and estimate ceiling elevations.
+Roofer carves LoD 2.2 during reconstruction. Height results live in `underpasses.heights`; the
+reconstructed model corpus lives in `stages/reconstruction/` and is exposed through
+`reconstruction_index`. Underpass heights are prepared before reconstruction.
+Roofer consumes measured NAP ceiling elevations and uses 2.5 m above the floor
+for NULL estimates. This requires Roofer's updated NULL-height fallback support.
+
 ### Party walls
 
 `building_surfaces` opens (or refreshes) a `cityjson-index` SQLite index over `stages/reconstruction/` directly. Stage handoff remains file-based, while feature discovery and reads use paged `PackageRef` objects. The asset queries the `bag_adjacency` database table, computes shared walls per building via multiprocessing, and writes one strict CityJSONSeq file per tile to `stages/party_walls/{tile_id}/`. Each worker opens its own index instance.
@@ -67,6 +82,9 @@ stages/
 |   +-- {z}/{x}/{y}/
 |       +-- {tile}.city.jsonl
 |       +-- roofer.toml
++-- underpasses/
+|   +-- {z}/{x}/{y}/
+|       +-- {tile}.city.jsonl
 +-- party_walls/
 |   +-- {tile_id}/
 |       +-- {tile_leaf}.city.jsonl

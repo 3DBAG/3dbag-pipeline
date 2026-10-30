@@ -33,6 +33,22 @@ def _make_feature_bytes(pand_id: str) -> bytes:
         },
         "vertices": [],
     }
+    content["CityObjects"][f"{pand_id}-0"] = {
+        "type": "BuildingPart",
+        "parents": [pand_id],
+        "geometry": [
+            {
+                "type": "Solid",
+                "lod": "2.2",
+                "boundaries": [[[[0, 1, 2]]]],
+                "semantics": {
+                    "surfaces": [{"type": "OuterCeilingSurface"}],
+                    "values": [[0]],
+                },
+            }
+        ],
+    }
+    content["vertices"] = [[0, 0, 2500], [1000, 0, 2500], [0, 1000, 2500]]
     return json.dumps(content).encode()
 
 
@@ -162,7 +178,17 @@ def test_reconstruction_to_party_walls(tmp_path, monkeypatch):
         attrs = feature["CityObjects"][pand_id]["attributes"]
         assert attrs["b3_opp_scheidingsmuur"] == 12.5
         assert attrs["b3_opp_buitenmuur"] == 8.0
+        geometry = feature["CityObjects"][f"{pand_id}-0"]["geometry"][0]
+        assert geometry["semantics"]["surfaces"] == [{"type": "OuterCeilingSurface"}]
 
     # shared_walls was called for both buildings (verified via output file content above;
     # call-count cannot be asserted directly with ProcessPoolExecutor since worker
     # mutations to the local list are not visible in the parent process)
+
+
+def test_party_walls_depends_on_roofer_output():
+    from dagster import AssetKey
+
+    parents = building_surfaces.asset_deps[building_surfaces.key]
+    assert AssetKey(["reconstruction", "reconstructed_building_models"]) in parents
+    assert AssetKey(["underpasses", "building_models"]) not in parents

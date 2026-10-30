@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bag3d-underpasses"
 version = "2026.11.03"
-description = "Workflow for detecting 2D underpasses from BAG and BGT building footprints."
+description = "Underpass detection and lidar ceiling estimation for Roofer."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
@@ -26,6 +26,7 @@ dependencies = [
     "shapely~=2.1.2",
     "psycopg[binary]~=3.3.2",
     "bag3d-common",
+    "underpass-tools==0.2.0",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
 ]
 
@@ -43,6 +44,7 @@ dev = [
 # Need this block here so that ruff includes this package's files. The ruff config is in the root pyproject.toml file.
 
 [tool.uv.sources]
+underpass-tools = { url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.2.0/underpass_tools-0.2.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl" }
 bag3d-common = { path = "../common", editable = true}
 
 [tool.pytest.ini_options]

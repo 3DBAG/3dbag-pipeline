@@ -33,7 +33,8 @@ Install independently with `uv --project packages/underpasses sync`. Run
 `make local_dev`, or start the standard Docker Compose stack. The Docker code
 location `underpasses` serves gRPC on port 4004. Materialize the BAG and BGT input
 assets first, then launch the `underpasses` job. The manifest's pipeline stage
-runs after preprocessing, which materializes these inputs.
+runs after reconstruction and the filled AHN terrain job. Preprocessing supplies
+the BAG, BGT, and adjacency inputs.
 
 The package uses the shared `computation_db` resource and its existing
 `BAG3D_PG_*` environment configuration. It needs no separate database credentials
@@ -73,8 +74,9 @@ rerun. Avoid overlapping runs that rebuild the same tables.
 
 ## Output
 
-Results remain in the computation database; reconstruction and export do not
-consume them in this integration.
+The detection and height results remain in the computation database. Roofer
+incorporates them into its reconstructed CityJSON corpus, which feeds party-wall
+analysis, floor estimation, and export.
 
 | Column | Type |
 | --- | --- |
@@ -143,3 +145,67 @@ corrected code location, materialize that core prerequisite, and then select
 `underpasses/edges`, `underpasses/extended_geometries`, and
 `underpasses/skipped_underpasses`. Existing detection outputs can be reused;
 there is no need to rerun detection or change national-data mode.
+
+## Heights for Roofer reconstruction
+
+The complete job runs before Roofer. `underpasses/heights` consumes
+`underpasses/extended_geometries` and the manifest returned by
+`terrain/ahn_filled`. The separate `terrain_ahn` job prepares the four AHN stages
+without generating viewer tiles. Its filled 5 m rasters retain NAP elevations;
+viewer terrain tiles use ellipsoidal heights and are not inputs to this job.
+
+Heights are rebuilt atomically in `underpasses.heights`, with the same building /
+underpass key and geometry as the offset table. Columns include a nullable scalar
+`underpass_candidate_elevations` (absolute NAP metres), terrain elevation,
+confidence, source, status, timestamp, and JSON diagnostics including the terrain
+manifest SHA-256. Every offset polygon gets a result, including polygons outside
+lidar coverage. Missing terrain never produces unfiltered lidar peaks.
+
+Set `BAG3D_STREETLIDAR_INDEX` to the GeoPackage index (with a `location` field)
+and `BAG3D_STREETLIDAR_ROOT` to its LAZ root, or set `index` and `pointcloud_root`
+in the heights asset config. Both must be supplied together; leaving both unset
+explicitly produces heuristic results for all polygons. Lidar XYZ must use RD New
+and NAP. Containers must be able to read these paths; mount external lidar data
+into the underpasses service when it is outside the shared data volume.
+
+The default profile follows the experiment: 500 m spatial grid, 16 batch workers,
+5 point-in-polygon workers and 1 height worker per batch, with 3 Rayon threads.
+These are launch settings, and can be reduced for smaller machines. Chunk size is
+one million points and each polygon has a ten-million-point memory limit. Crops
+remain in memory. Terrain sampling uses native-grid P90, pixel centres within the
+polygon, intersecting pixels when no centre exists, and first-valid raster order
+in overlaps. Peaks within 2 m of terrain are excluded. Native-grid sampling can
+differ numerically from the previous Web Mercator tile sampling.
+
+Roofer consumes `underpasses/heights` during each reconstruction partition. A
+per-tile view selects all polygons matching the tile's building IDs, preserving
+holes and multiple underpasses per building. `underpass_candidate_elevations`
+contains absolute NAP ceiling elevations; NULL values are passed through to
+Roofer, which uses `underpass-default-height = 2.5` above the building floor only
+for those values. Measured elevations are used directly. This requires Roofer's
+updated NULL-height fallback support.
+
+The resulting corpus lives in `stages/reconstruction/` and party-wall processing
+reads it through `reconstruction_index`. Roofer owns ceiling semantics and
+geometry diagnostics; the old carving reports and custom surface provenance are
+retired. Historical `stages/underpasses/` data is unused.
+
+The height implementation is installed from the prebuilt Linux x86_64 wheel in
+[`3DBAG/underpass-tools` v0.2.0](https://github.com/3DBAG/underpass-tools/releases/tag/v0.2.0).
+The release URL is pinned in `pyproject.toml`; the lockfile records its SHA-256.
+The wheel bundles the Zig point-in-polygon shared library, so local installation,
+CI lint/tests, and the pipeline image build need no Zig compiler. This dependency
+targets Linux x86_64; it is used by the pipeline's Python 3.12 CI and Docker images.
+Upstream tool tests run in the tool repository; the pipeline retains its adapter
+and PostGIS tests. Optional PostGIS tests use `BAG3D_UNDERPASSES_TEST_DSN` and
+exercise height results and transactional rollback.
+
+Materialize preprocessing and `terrain/ahn_filled`, then run the `underpasses` job
+before reconstructing and regenerating downstream outputs. Avoid overlapping
+complete jobs because detection and height assets replace shared database tables.
+
+The tools-image manifest pins Roofer by digest. Build and publish the updated tools
+image before building dependent pipeline images, then record its registry digest
+through the existing tools-image workflow. The new tools tag must not be consumed
+with the previous tools-image digest. If Roofer's NULL-height fallback ships in a
+replacement image, update its Roofer digest and rebuild the tools image as well.

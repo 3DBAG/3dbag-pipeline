@@ -83,3 +83,11 @@ services:
       - ../packages/common/tests:/opt/3dbag-pipeline/packages/common/tests
       - ../packages/export/tests:/opt/3dbag-pipeline/packages/export/tests
       - /var/run/docker.sock:/var/run/docker.sock
+
+  dagster-webserver:
+    volumes:
+      - ./dagster/workspace.yaml:/opt/dagster/dagster_home/workspace.yaml:ro
+
+  dagster-daemon:
+    volumes:
+      - ./dagster/workspace.yaml:/opt/dagster/dagster_home/workspace.yaml:ro

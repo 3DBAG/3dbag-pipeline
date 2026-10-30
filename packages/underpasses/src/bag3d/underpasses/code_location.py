@@ -4,6 +4,7 @@ from bag3d.common.resources import resource_defs
 from dagster import AssetsDefinition, AssetSpec, Definitions, load_assets_from_modules
 
 from bag3d.underpasses.assets import edges, underpasses
+from bag3d.underpasses.components import UnderpassEnrichmentComponent
 from bag3d.underpasses.jobs import job_underpasses
 
 all_assets = [
@@ -18,6 +19,8 @@ defs = Definitions(
     resources=resource_defs,
     assets=[
         *all_assets,
+        *(UnderpassEnrichmentComponent().build_defs().assets or []),
+        AssetSpec(["terrain", "ahn_filled"]),
         AssetSpec(["input", "intermediary", "bag_adjacency"]),
         AssetSpec(["input", "intermediary", "bag_bgt_join"]),
         AssetSpec(["bag", "bag_pandactueelbestaand"]),
