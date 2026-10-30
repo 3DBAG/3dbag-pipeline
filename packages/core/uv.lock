@@ -15,6 +15,7 @@ constraints = [
     { name = "idna", specifier = ">=3.15" },
     { name = "lxml", specifier = ">=6.1.0" },
     { name = "mako", specifier = ">=1.4.2" },
+    { name = "multidict", specifier = ">=6.9.1" },
     { name = "paramiko", specifier = ">=5.0.0" },
     { name = "pygments", specifier = ">=2.20.0" },
     { name = "requests", specifier = ">=2.33.0" },
