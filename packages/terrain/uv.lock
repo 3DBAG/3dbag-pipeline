@@ -7,7 +7,10 @@ resolution-markers = [
 ]
 
 [manifest]
-constraints = [{ name = "graphql-core", specifier = ">=3.2.12" }]
+constraints = [
+    { name = "filelock", specifier = ">=4.2.1" },
+    { name = "graphql-core", specifier = ">=3.2.12" },
+]
 
 [[package]]
 name = "affine"
