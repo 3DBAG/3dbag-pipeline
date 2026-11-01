@@ -1,6 +1,6 @@
 [project]
 name = "3dbag-pipeline"
-version = "2026.07.29"
+version = "2026.11.01"
 description = "Development requirements of the 3DBAG pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -57,7 +57,7 @@ reportPrivateImportUsage = false
 reportUnnecessaryTypeIgnoreComment = "warning"
 
 [tool.bumpver]
-current_version = "2026.07.29"
+current_version = "2026.11.01"
 version_pattern = "YYYY.0M.0D"
 commit_message = "bump version {old_version} -> {new_version}"
 tag_message = "{new_version}"
