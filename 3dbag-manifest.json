@@ -4,7 +4,7 @@
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
       "version": "2026.10.31.1",
-      "digest": "sha256:055d02c5ea9ed23945e2f96725a1637e0d9fc66c68b78b92148ce953ba8c22c5"
+      "digest": "sha256:3ffcab666b79436aea042e110d6c5e1969b7401897480e3510a8996605636382"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
     "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },
