@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: write
-
+  pull-requests: write
 concurrency:
   group: tools-image-publish-develop
   cancel-in-progress: false
@@ -70,6 +70,7 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v3
       - name: Require an unused tools image tag
+        if: github.event_name != 'workflow_dispatch'
         env:
           TOOLS_IMAGE_TAG: ${{ steps.manifest.outputs.BAG3D_TOOLS_IMAGE_TAG }}
         run: |
@@ -101,6 +102,7 @@ jobs:
         env:
           TOOLS_DIGEST: ${{ steps.build.outputs.digest }}
           TOOLS_VERSION: ${{ steps.manifest.outputs.TOOLS_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -109,4 +111,11 @@ jobs:
           python3 scripts/manifest_versions.py check
           git add 3dbag-manifest.json
           git commit -m "pin tools image ${TOOLS_VERSION}"
-          git push origin develop
+          BRANCH="tools-image-digest-${TOOLS_VERSION}"
+          git checkout -b "$BRANCH"
+          git push origin "$BRANCH"
+          gh pr create --base develop --head "$BRANCH" \
+            --title "pin tools image ${TOOLS_VERSION}" \
+            --body "Automated digest pin for tools image \`${TOOLS_VERSION}\` published by this workflow run." \
+            || true
+          gh pr merge "$BRANCH" --auto --squash || true
