@@ -30,8 +30,6 @@ URL_LAZ_SHA = {
     3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
 }
 
-URL_LAZ_SHA[6] = URL_LAZ_SHA[6]
-
 
 def _tile_batch(tile_id: str) -> str:
     """Compute the 10×10 km batch id for a 1×1 km AHN6 tile id.
