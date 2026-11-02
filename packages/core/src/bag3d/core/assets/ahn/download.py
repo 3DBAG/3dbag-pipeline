@@ -35,7 +35,7 @@ logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
-    6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
+    6: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
     4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
     3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
@@ -130,7 +130,7 @@ class LAZDownload:
         self.hash_hexdigest = sha.hexdigest()
 
     def validate(
-        self, sha_reference: Mapping[str, str], sha_func: HashChunkwise
+        self, sha_reference: Mapping[str, str | None], sha_func: HashChunkwise
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
         self.compute_sha(sha_func=sha_func)
@@ -167,25 +167,25 @@ class BatchLAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn3() -> dict[str, str]:
+def sha256_ahn3() -> dict[str, str | None]:
     """Download the SHA256 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn4() -> dict[str, str]:
+def sha256_ahn4() -> dict[str, str | None]:
     """Download the SHA256 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn5() -> dict[str, str]:
+def sha256_ahn5() -> dict[str, str | None]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn6() -> dict[str, str]:
+def sha256_ahn6() -> dict[str, str | None]:
     """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=6)
 
@@ -215,7 +215,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn3: dict[str, str],
+    sha256_ahn3: dict[str, str | None],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -285,7 +285,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn4: dict[str, str],
+    sha256_ahn4: dict[str, str | None],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -358,7 +358,7 @@ def laz_files_ahn5(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn5: dict[str, str],
+    sha256_ahn5: dict[str, str | None],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -429,7 +429,7 @@ def laz_files_ahn6(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn6: dict[str, str],
+    sha256_ahn6: dict[str, str | None],
     tile_index_ahn6: dict[str, dict[str, Any]],
 ) -> Output[BatchLAZDownload]:
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
@@ -550,7 +550,7 @@ def laz_files_ahn6(
     )
 
 
-def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str | None]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
 
@@ -560,8 +560,9 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
         ahn_version (int): The version of AHN.
 
     Returns:
-        Mapping[str, str]: A dictionary where the keys are filenames and the values
-            are their corresponding SHA-256 checksums.
+        Mapping[str, str | None]: A dictionary where the keys are filenames and the
+            values are their corresponding SHA-256 checksums (or None when the AHN
+            feed does not publish one yet).
     """
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
@@ -710,7 +711,7 @@ def download_laz(
 
 
 def match_sha(
-    fpath: Path, sha_reference: Mapping[str, str], hash_name: str, hash_hexdigest: str
+    fpath: Path, sha_reference: Mapping[str, str | None], hash_name: str, hash_hexdigest: str
 ) -> bool:
     """Verify the SHA of a file against a reference.
 
@@ -734,6 +735,12 @@ def match_sha(
         return True
     else:  # pragma: no cover
         logger.info(
+<<<<<<< Updated upstream
             format_laz_log(fpath, f"{hash_name}: {hash_hexdigest} != {ref_sha}")
+=======
+            format_laz_log(
+                fpath, f"{hash_name}: {hash_hexdigest} != {ref_sha}"
+            )
+>>>>>>> Stashed changes
         )
         return False
