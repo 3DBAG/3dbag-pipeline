@@ -27,16 +27,22 @@ AHN6_INDEX_URL = (
 )
 
 
+def _tile_batch(tile_id: str) -> str:
+    """Compute the 10×10 km batch id for a 1×1 km AHN6 tile id.
+
+    Tile ids are *not* zero-padded in the AHN6 index (e.g. ``58000_431000``
+    vs ``150000_431000``), so we cannot reconstruct them by formatting a
+    coordinate range. Instead, derive the batch from each tile id and filter.
+    """
+    x, y = tile_id.split("_")
+    bx = (int(x) // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+    by = (int(y) // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+    return f"{bx:06d}_{by:06d}"
+
+
 def tiles_in_batch(batch_id: str) -> list[str]:
     """Return all 1×1 km tile IDs within a 10×10 km batch block."""
-    bx = int(batch_id.split("_")[0])
-    by = int(batch_id.split("_")[1])
-    return [
-        f"{x:06d}_{y:06d}"
-        for x in range(bx, bx + BATCH_KM * 1000, 1000)
-        for y in range(by, by + BATCH_KM * 1000, 1000)
-        if f"{x:06d}_{y:06d}" in AHN6_TILE_IDS
-    ]
+    return [t for t in AHN6_TILE_IDS if _tile_batch(t) == batch_id]
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
