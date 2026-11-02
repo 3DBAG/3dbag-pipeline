@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "bag3d-underpasses"
-version = "2026.7.29"
+version = "2026.11.1"
 source = { editable = "." }
 dependencies = [
     { name = "bag3d-common" },

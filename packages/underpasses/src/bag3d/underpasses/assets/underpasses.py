@@ -76,7 +76,9 @@ def bag_minus_bgt(
 @asset(
     ins={
         "bag_minus_bgt": AssetIn(key=AssetKey(["underpasses", "bag_minus_bgt"])),
-        "bag_bgt_join": AssetIn(key=AssetKey(["input", "intermediary", "bag_bgt_join"])),
+        "bag_bgt_join": AssetIn(
+            key=AssetKey(["input", "intermediary", "bag_bgt_join"])
+        ),
     },
     op_tags={"compute_kind": "python"},
 )
