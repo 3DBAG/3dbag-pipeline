@@ -291,7 +291,9 @@ def test_sensor_triggers_only_changed_partitions():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2),
+            patch(
+                "bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2
+            ),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
@@ -325,7 +327,9 @@ def test_sensor_triggers_multiple_versions_independently():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn4"]))
         )
         with (
-            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2),
+            patch(
+                "bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2
+            ),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
