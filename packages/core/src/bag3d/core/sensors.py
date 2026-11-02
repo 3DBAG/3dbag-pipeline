@@ -15,10 +15,11 @@ from dagster import (
 
 from bag3d.core.assets.ahn.core import (
     BATCH_KM,
+    URL_LAZ_SHA,
     download_ahn6_index,
     download_ahn_pc_index,
 )
-from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
+from bag3d.core.assets.ahn.download import get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
 

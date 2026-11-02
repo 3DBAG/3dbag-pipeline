@@ -30,7 +30,7 @@ URL_LAZ_SHA = {
     3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
 }
 
-AHN6_INDEX_URL = URL_LAZ_SHA[6]
+URL_LAZ_SHA[6] = URL_LAZ_SHA[6]
 
 
 def _tile_batch(tile_id: str) -> str:
@@ -79,33 +79,6 @@ def validate_new_ahn6_tile_ids(index: dict) -> None:
             f"New in index: {feature_set - AHN6_TILE_IDS}, "
             f"Removed: {AHN6_TILE_IDS - feature_set}"
         )
-
-
-def invert_geometry_coordinates(geometry):
-    """Invert x and y coordinates in the JSON geometry."""
-    if geometry["type"] == "Polygon":
-        inverted_coords = []
-        for ring in geometry["coordinates"]:
-            inverted_ring = [[coord[1], coord[0]] for coord in ring]
-            inverted_coords.append(inverted_ring)
-        return {"type": "Polygon", "coordinates": inverted_coords}
-    elif geometry["type"] == "MultiPolygon":
-        inverted_coords = []
-        for polygon in geometry["coordinates"]:
-            inverted_polygon = []
-            for ring in polygon:
-                inverted_ring = [[coord[1], coord[0]] for coord in ring]
-                inverted_polygon.append(inverted_ring)
-            inverted_coords.append(inverted_polygon)
-        return {"type": "MultiPolygon", "coordinates": inverted_coords}
-    elif geometry["type"] == "Point":
-        return {
-            "type": "Point",
-            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]],
-        }
-    else:
-        # Return original geometry for unsupported types
-        return geometry
 
 
 def _pc_tile_id(filename: str) -> str:
@@ -166,12 +139,12 @@ def download_ahn6_index(
 ) -> dict[str, dict[str, str | None] | None]:
     """Download the AHN6 KM COPC tile index with checksums.
 
-    Fetches the GeoJSON from AHN6_INDEX_URL and extracts each feature's
+    Fetches the GeoJSON from URL_LAZ_SHA[6] and extracts each feature's
     file URL and SHA256 checksum. Returns a dict keyed by tile ID.
     """
-    logger.info(f"Downloading AHN6 tile index from {AHN6_INDEX_URL}")
+    logger.info(f"Downloading AHN6 tile index from {URL_LAZ_SHA[6]}")
     try:
-        resp = requests.get(AHN6_INDEX_URL, timeout=120)
+        resp = requests.get(URL_LAZ_SHA[6], timeout=120)
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:  # noqa: BLE001

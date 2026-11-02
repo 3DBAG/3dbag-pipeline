@@ -590,7 +590,6 @@ def _is_http_url(url: str | None) -> bool:
 def download_ahn_laz(
     fpath: Path,
     url_laz: str | None = None,
-    url_base: str | None = None,
     verify_ssl: bool = False,
     nr_retries: int = 5,
     force_download: bool = False,
@@ -602,21 +601,14 @@ def download_ahn_laz(
         force_download: Force downloading the file even if it exists on disk.
         nr_retries: The number of retries to download the file.
         fpath: Path to the LAZ file that may exist locally. If not it will be downloaded.
-        url_laz: Complete URL of the file to download. If provided, 'url_base' is
-            ignored.
-        url_base (str): Base URL for the file to be downloaded.
+        url_laz: Complete URL of the file to download.
         verify_ssl (bool): Whether to verify the SSL certificate of the URL.
 
     Returns:
         A LAZDownload file
     """
 
-    if url_laz is not None:
-        url = url_laz
-    elif url_base is not None:
-        url = f"{url_base}/{fpath.name}"
-    else:
-        url = None
+    url = url_laz
 
     # Local (no-network) guard: a missing/malformed URL can never succeed, so fail
     # clearly here instead of burning the downloader's retries. HTTP 403/404 and
@@ -671,15 +663,6 @@ def download_ahn_laz(
 def download_laz(
     file_size, fpath, is_new, nr_retries, success, url, url_laz, verify_ssl
 ):
-    if url is None:
-        url_laz = None
-        fpath_download = Path()
-        success = False
-        is_new = False
-        file_size = 0.0
-        logger.error("Cannot download from url with value None")
-        return file_size, fpath, is_new, success, url_laz
-
     fpath_download = Path()
     for i in range(nr_retries):
         fpath_download = download_file(

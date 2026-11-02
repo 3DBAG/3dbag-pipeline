@@ -3,11 +3,8 @@ from unittest.mock import patch
 import pytest
 from dagster import Failure
 
-from bag3d.core.assets.ahn.download import (
-    URL_LAZ_SHA,
-    download_ahn_laz,
-    get_checksums,
-)
+from bag3d.core.assets.ahn.core import URL_LAZ_SHA
+from bag3d.core.assets.ahn.download import download_ahn_laz, get_checksums
 
 
 def test_get_checksums_parses_sha256_payload():

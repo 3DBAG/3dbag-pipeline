@@ -12,9 +12,8 @@ from dagster import (
     build_multi_asset_sensor_context,
 )
 
-from bag3d.core.assets.ahn.core import download_ahn_pc_index
+from bag3d.core.assets.ahn.core import URL_LAZ_SHA, download_ahn_pc_index
 from bag3d.core.assets.ahn.download import (
-    URL_LAZ_SHA,
     LAZDownload,
     LazFilesConfig,
     get_checksums,

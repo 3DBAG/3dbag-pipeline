@@ -35,7 +35,6 @@ class MetadataConfig(Config):
     force: bool = Field(
         default=True, description="Force the re-compute of the metadata."
     )
-    verbose: bool = Field(default=False, description="Output stdout/stderr from pdal")
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))
@@ -164,7 +163,6 @@ def metadata_ahn6(
     total = len(tiles)
     processed = 0
     failed = 0
-    skipped = 0
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
     insert_time = Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam")))
@@ -230,12 +228,12 @@ def metadata_ahn6(
     if processed == 0 and total > 0:
         logger.warning(
             f"Batch {batch_id}: 0 of {total} tiles produced metadata "
-            f"({failed} failed, {skipped} skipped). No rows inserted."
+            f"({failed} failed). No rows inserted."
         )
     else:
         logger.info(
             f"Batch {batch_id}: {processed} processed, "
-            f"{failed} failed, {skipped} skipped of {total} tiles"
+            f"{failed} failed of {total} tiles"
         )
 
     return Output(
