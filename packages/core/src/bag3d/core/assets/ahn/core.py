@@ -22,7 +22,7 @@ _batch_ids = sorted(
 partition_definition_ahn6_batches = StaticPartitionsDefinition(_batch_ids)
 
 AHN6_INDEX_URL = (
-    "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/"
+    "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/"
     "AHN6_KM_PC_COPC.json"
 )
 

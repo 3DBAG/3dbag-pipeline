@@ -35,7 +35,7 @@ logger = get_dagster_logger("ahn.download")
 
 # AHN LAZ file with checksums.
 URL_LAZ_SHA = {
-    6: "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
+    6: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
     5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
     4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
     3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
@@ -130,7 +130,7 @@ class LAZDownload:
         self.hash_hexdigest = sha.hexdigest()
 
     def validate(
-        self, sha_reference: Mapping[str, str], sha_func: HashChunkwise
+        self, sha_reference: Mapping[str, str | None], sha_func: HashChunkwise
     ) -> bool:
         """Compare the SHA of the local file to the provided reference."""
         self.compute_sha(sha_func=sha_func)
@@ -560,8 +560,9 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
         ahn_version (int): The version of AHN.
 
     Returns:
-        Mapping[str, str]: A dictionary where the keys are filenames and the values
-            are their corresponding SHA-256 checksums.
+        Mapping[str, str]: A dictionary where the keys are filenames and the
+            values are their corresponding SHA-256 checksums. Entries without a
+            published checksum are skipped.
     """
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
@@ -710,7 +711,10 @@ def download_laz(
 
 
 def match_sha(
-    fpath: Path, sha_reference: Mapping[str, str], hash_name: str, hash_hexdigest: str
+    fpath: Path,
+    sha_reference: Mapping[str, str | None],
+    hash_name: str,
+    hash_hexdigest: str,
 ) -> bool:
     """Verify the SHA of a file against a reference.
 
@@ -727,7 +731,7 @@ def match_sha(
     if not ref_sha:
         # this check if for ensuring that new AHN5 tiles which do not have a
         # checksum yet will still be downloaded.
-        logger.info(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
+        logger.warning(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
         return True
     elif hash_hexdigest == ref_sha:
         logger.info(format_laz_log(fpath, f"{hash_name} OK"))
