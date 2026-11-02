@@ -1,7 +1,7 @@
 """Core pipeline logic for underpass detection.
 
 Implements the 4-step SQL pipeline as Python/Shapely operations:
-  1. bag_bgt_join: union BGT geometries per BAG identificatie (SQL)
+  1. bag_bgt_join: provided by core's intermediary package (external input)
   2. bag_minus_bgt: difference with double buffer filtering
   3. snapped_differences: double snapping + intersection of differences
   4. final_filter: dump to single polygons + double buffer filter + ID assignment

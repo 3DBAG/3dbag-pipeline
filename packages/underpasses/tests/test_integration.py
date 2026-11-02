@@ -114,16 +114,44 @@ def test_full_workflow_cross_location_inputs_reruns_and_ids(database_fixture, tm
     def source_bgt() -> PostgresTableIdentifier:
         return bgt
 
+    @asset(key=["input", "intermediary", "bag_bgt_join"])
+    def source_bag_bgt_join() -> PostgresTableIdentifier:
+        target = PostgresTableIdentifier(schema, "bag_bgt_join")
+        with connect(dsn) as conn:
+            conn.execute(SQL("DROP TABLE IF EXISTS {}").format(target.id))
+            conn.execute(
+                SQL("""
+                CREATE TABLE {} AS
+                SELECT
+                    bag.identificatie::text AS identificatie,
+                    ST_Multi(bag.geometrie)::geometry(MultiPolygon, 28992) AS bag_geometrie,
+                    ST_Multi(ST_UnaryUnion(ST_Collect(bgt.geometrie)))::geometry(MultiPolygon, 28992)
+                        AS bgt_geometrie
+                FROM {} bag
+                JOIN {} bgt
+                    ON bgt.identificatiebagpnd = SUBSTRING(bag.identificatie FROM 15)
+                    AND bag.geometrie && bgt.geometrie
+                GROUP BY bag.identificatie, bag.geometrie
+                """).format(target.id, bag.id, bgt.id)
+            )
+            conn.execute(
+                SQL("ALTER TABLE {} ADD PRIMARY KEY (identificatie)").format(target.id)
+            )
+        return target
+
     sources = [
         AssetSpec(source_bag.key),
         AssetSpec(source_bgt.key),
         AssetSpec(["input", "intermediary", "bag_adjacency"]),
+        AssetSpec(source_bag_bgt_join.key),
     ]
     target = PostgresTableIdentifier(schema, "geometries")
     with DagsterInstance.local_temp(str(tmp_path)) as instance:
         # Materialize sources separately: underpasses loads their identifiers
         # through the instance filesystem IO manager, as separate locations do.
-        assert materialize([source_bag, source_bgt], instance=instance).success
+        assert materialize(
+            [source_bag, source_bgt, source_bag_bgt_join], instance=instance
+        ).success
         baseline = None
         for chunk_size, concurrency in ((1, 1), (2, 2), (1000, 4)):
             config = {
@@ -145,7 +173,6 @@ def test_full_workflow_cross_location_inputs_reruns_and_ids(database_fixture, tm
                     *[
                         ["underpasses", name]
                         for name in (
-                            "bag_bgt_join",
                             "bag_minus_bgt",
                             "snapped_differences",
                             "geometries",
