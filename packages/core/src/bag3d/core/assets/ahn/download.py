@@ -1,4 +1,3 @@
-import json
 import random
 import time
 import warnings
@@ -11,7 +10,7 @@ from typing import Any
 
 import urllib3
 from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.utils.requests import download_as_str, download_file
+from bag3d.common.utils.requests import download_file
 from dagster import (
     AssetExecutionContext,
     AutomationCondition,
@@ -550,37 +549,6 @@ def laz_files_ahn6(
             "failed": failed,
         },
     )
-
-
-def get_checksums(
-    url_map: Mapping[int, str], ahn_version: int
-) -> dict[str, str | None]:
-    """
-    Get the AHN LAZ file checksums for the given AHN version.
-
-    Args:
-        url_map (Mapping[int, str]): A mapping between AHN versions as keys and
-            their corresponding checksum file URL as values.
-        ahn_version (int): The version of AHN.
-
-    Returns:
-        Mapping[str, str | None]: A dictionary where the keys are filenames and the
-            values are their corresponding SHA-256 checksums. If no checksum is
-            provided for a file, the value will be None.
-    """
-    url = url_map[ahn_version]
-    _hashes = download_as_str(url)
-    checksums = {}
-    # We have a GeoJSON FeatureCollection
-    for feature in json.loads(_hashes)["features"]:
-        if (properties := feature.get("properties")) and (
-            file_url := properties.get("file")
-        ):
-            filename = file_url.split("/")[-1]
-            # Store None when the index does not publish a checksum, so the
-            # tile is still accepted (see match_sha) and processed downstream.
-            checksums[filename] = properties.get("sha256")
-    return checksums
 
 
 def _is_http_url(url: str | None) -> bool:

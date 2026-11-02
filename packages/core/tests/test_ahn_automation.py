@@ -185,9 +185,12 @@ TILE_INDEX = {
     "01cz1": {"url": "https://example.com/C_01CZ1.LAZ", "sha256": "aaa111"},
     "50cn2": {"url": "https://example.com/C_50CN2.LAZ", "sha256": "bbb222"},
 }
+TILE_INDEX_V2 = {
+    "01cz1": {"url": "https://example.com/C_01CZ1.LAZ", "sha256": "ccc333"},
+    "50cn2": {"url": "https://example.com/C_50CN2.LAZ", "sha256": "bbb222"},
+}
 
 CHECKSUMS_V1 = {"C_01CZ1.LAZ": "aaa111", "C_50CN2.LAZ": "bbb222"}
-CHECKSUMS_V2 = {"C_01CZ1.LAZ": "ccc333", "C_50CN2.LAZ": "bbb222"}  # 01cz1 changed
 
 
 def test_build_filename_to_tile_id():
@@ -230,7 +233,6 @@ def test_sensor_establishes_baseline_on_first_run():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V1),
             patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
         ):
             # First run: no cursor → baseline establishment
@@ -258,7 +260,6 @@ def test_sensor_skips_when_checksums_unchanged():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V1),
             patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
         ):
             ctx = dg.build_multi_asset_sensor_context(
@@ -280,7 +281,7 @@ def test_sensor_skips_when_checksums_unchanged():
 def test_sensor_triggers_only_changed_partitions():
     """Sensor emits a RunRequest only for tiles whose checksum changed.
 
-    CHECKSUMS_V2 has 01cz1 changed and 50cn2 unchanged, so exactly one
+    TILE_INDEX_V2 has 01cz1 changed and 50cn2 unchanged, so exactly one
     RunRequest should be emitted targeting partition '01cz1' on job 'ahn3'.
     """
     sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
@@ -290,8 +291,7 @@ def test_sensor_triggers_only_changed_partitions():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V2),
-            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
+            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
@@ -325,8 +325,7 @@ def test_sensor_triggers_multiple_versions_independently():
             dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn4"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V2),
-            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
+            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[

@@ -134,7 +134,7 @@ def download_ahn_pc_index(
 
 def download_ahn6_index(
     with_geom: bool = False,
-) -> dict[str, dict[str, str | None] | None]:
+) -> dict[str, dict[str, Any] | None]:
     """Download the AHN6 KM COPC tile index with checksums.
 
     Fetches the GeoJSON from URL_LAZ_SHA[6] and extracts each feature's

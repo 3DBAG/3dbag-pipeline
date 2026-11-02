@@ -15,11 +15,9 @@ from dagster import (
 
 from bag3d.core.assets.ahn.core import (
     BATCH_KM,
-    URL_LAZ_SHA,
     download_ahn6_index,
     download_ahn_pc_index,
 )
-from bag3d.core.assets.ahn.download import get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
 
@@ -136,11 +134,17 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 if tile_index is None:
                     context.log.warning("Failed to download AHN tile index")
                     continue
-                try:
-                    checksums = get_checksums(URL_LAZ_SHA, ahn_version=version)
-                except Exception:  # noqa: BLE001
-                    context.log.warning(f"Failed to read checksums for AHN{version}")
-                    continue
+
+                # Checksums are embedded in the tile index; derive the
+                # filename -> sha256 mapping from the same download.
+                checksums: dict[str, str | None] = {}
+                for entry in tile_index.values():
+                    if not entry:
+                        continue
+                    url = entry.get("url")
+                    if not url:
+                        continue
+                    checksums[url.split("/")[-1]] = entry.get("sha256")
 
                 filename_to_tile = _build_filename_to_tile_id(
                     tile_index, cfg["url_key"]

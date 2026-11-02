@@ -1,29 +1,22 @@
 from unittest.mock import patch
 
-import dagster as dg
 import pytest
 from bag3d.common.testing import build_asset_context_for
 from dagster import (
-    AssetKey,
-    AssetMaterialization,
     Failure,
     IntMetadataValue,
     Output,
-    build_multi_asset_sensor_context,
 )
 
-from bag3d.core.assets.ahn.core import URL_LAZ_SHA, download_ahn_pc_index
+from bag3d.core.assets.ahn.core import download_ahn_pc_index
 from bag3d.core.assets.ahn.download import (
     LAZDownload,
     LazFilesConfig,
-    get_checksums,
     laz_files_ahn3,
     laz_files_ahn4,
     laz_files_ahn5,
     laz_files_ahn6,
 )
-from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5
-from bag3d.core.sensors import ahn_checksum_sensor
 
 MOCK_AHN_INDEX = {
     "01cz1": {
@@ -33,23 +26,6 @@ MOCK_AHN_INDEX = {
     }
 }
 
-MOCK_AHN5_RESPONSE = {
-    "features": [
-        {
-            "properties": {
-                "file": "https://example.com/2023_C_01CZ1.LAZ",
-                "sha256": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611",
-            }
-        }
-    ]
-}
-
-MOCK_AHN34_RESPONSE = (
-    '{"features": ['
-    '{"properties": {"file": "https://example.com/C_01CZ1.LAZ", '
-    '"sha256": "56c731a1814dd73c79a0a5347f8a04c7"}}'
-    "]}"
-)
 MOCK_AHN_PC_RESPONSE = {
     "features": [
         {
@@ -99,24 +75,6 @@ def test_download_ahn_pc_index_geometry_mocked():
         tiles = download_ahn_pc_index(3, with_geom=True)
 
     assert tiles == MOCK_AHN_INDEX
-
-
-@pytest.mark.parametrize(
-    "ahn_version",
-    (3, 4, 5, 6),
-    ids=("ahn3", "ahn4", "ahn5", "ahn6"),
-)
-def test_get_checksums(ahn_version):
-    payload = (
-        MOCK_AHN34_RESPONSE
-        if ahn_version in (3, 4)
-        else '{"features": [{"properties": {"file": "https://example.com/2023_C_01CZ1.LAZ", "sha256": "abc"}}]}'
-    )
-    with patch("bag3d.core.assets.ahn.download.download_as_str", return_value=payload):
-        checksums = get_checksums(URL_LAZ_SHA, ahn_version=ahn_version)
-
-    assert len(checksums) == 1
-    assert next(iter(checksums.values())) is not None
 
 
 def _mock_laz_download(tmp_path, filename: str) -> LAZDownload:
@@ -356,37 +314,3 @@ def test_laz_files_ahn6_skips_tile_with_null_url(resources_ahn, tmp_path):
         "not found in tile index" in str(call.args[0])
         for call in warning_mock.call_args_list
     )
-
-
-def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
-    defs = dg.Definitions(jobs=[job_ahn3, job_ahn4, job_ahn5])
-    sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
-    initial_cursor = '{"ahn3": {"C_01CZ1.LAZ": "aaa111"}}'
-
-    with dg.DagsterInstance.ephemeral() as inst:
-        inst.report_runless_asset_event(
-            AssetMaterialization(asset_key=AssetKey(["ahn", "tile_index_ahn3"]))
-        )
-        with (
-            patch(
-                "bag3d.core.sensors.get_checksums",
-                return_value={"C_UNKNOWN.LAZ": "bbb222"},
-            ),
-            patch(
-                "bag3d.core.sensors.download_ahn_pc_index", return_value=MOCK_AHN_INDEX
-            ),
-        ):
-            ctx = build_multi_asset_sensor_context(
-                monitored_assets=[
-                    AssetKey(["ahn", "tile_index_ahn3"]),
-                    AssetKey(["ahn", "tile_index_ahn4"]),
-                    AssetKey(["ahn", "tile_index_ahn5"]),
-                ],
-                instance=inst,
-                cursor=initial_cursor,
-                definitions=defs,
-            )
-            result = sensor(ctx)
-
-    assert isinstance(result, dg.SkipReason)
-    assert "No checksum changes detected" in (result.skip_message or "")
