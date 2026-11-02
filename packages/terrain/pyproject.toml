@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bag3d-terrain"
-version = "2026.07.29"
+version = "2026.11.01"
 description = "Netherlands AHN terrain tiles for the 3DBAG viewer"
 readme = "README.md"
 requires-python = ">=3.12"
