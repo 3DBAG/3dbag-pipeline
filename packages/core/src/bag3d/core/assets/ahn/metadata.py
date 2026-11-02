@@ -152,10 +152,13 @@ def metadata_ahn6(
     """
     batch_id = context.partition_key
     tiles = tiles_in_batch(batch_id)
-    if not tiles:
-        return Output({"batch": batch_id, "processed": 0, "total": 0})
-
     logger = get_dagster_logger()
+    if not tiles:
+        logger.warning(
+            f"Batch {batch_id}: no tiles in AHN6_TILE_IDS for this batch. "
+            "No metadata will be stored."
+        )
+        return Output({"batch": batch_id, "processed": 0, "total": 0})
     conn = computation_db.connection
     metadata_table = metadata_table_ahn6.id
     total = len(tiles)
@@ -165,6 +168,13 @@ def metadata_ahn6(
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
     insert_time = Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam")))
+
+    if not laz_files_ahn6.tiles:
+        logger.warning(
+            f"Batch {batch_id}: no downloaded LAZ files available in "
+            f"laz_files_ahn6 (all {total} tiles failed or had no index entry). "
+            "No metadata will be stored for this batch."
+        )
 
     for tile_id, laz_download in laz_files_ahn6.tiles.items():
         if not laz_download.success:
@@ -215,11 +225,18 @@ def metadata_ahn6(
             )
         )
         processed += 1
+        logger.info(f"AHN6 tile {tile_id}: metadata loaded into {metadata_table}")
 
-    logger.info(
-        f"Batch {batch_id}: {processed} processed, "
-        f"{failed} failed, {skipped} skipped of {total} tiles"
-    )
+    if processed == 0 and total > 0:
+        logger.warning(
+            f"Batch {batch_id}: 0 of {total} tiles produced metadata "
+            f"({failed} failed, {skipped} skipped). No rows inserted."
+        )
+    else:
+        logger.info(
+            f"Batch {batch_id}: {processed} processed, "
+            f"{failed} failed, {skipped} skipped of {total} tiles"
+        )
 
     return Output(
         {"batch": batch_id, "processed": processed, "total": total},

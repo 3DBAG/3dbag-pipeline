@@ -170,10 +170,20 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                             if partition_key in emitted_batches:
                                 continue
                             emitted_batches.add(partition_key)
-                            run_key = f"ahn{version}-{partition_key}-{new_hash[:8]}"
+                            if new_hash:
+                                run_key = f"ahn{version}-{partition_key}-{new_hash[:8]}"
+                            else:
+                                # No published checksum: key on the tile id so
+                                # different tiles don't collide in the run key.
+                                run_key = (
+                                    f"ahn{version}-{partition_key}-{tile_id}-nohash"
+                                )
                         else:
                             partition_key = tile_id
-                            run_key = f"ahn{version}-{tile_id}-{new_hash[:8]}"
+                            if new_hash:
+                                run_key = f"ahn{version}-{tile_id}-{new_hash[:8]}"
+                            else:
+                                run_key = f"ahn{version}-{tile_id}-nohash"
 
                         run_requests.append(
                             RunRequest(
