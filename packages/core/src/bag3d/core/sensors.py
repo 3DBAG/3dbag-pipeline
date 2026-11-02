@@ -13,7 +13,11 @@ from dagster import (
     multi_asset_sensor,
 )
 
-from bag3d.core.assets.ahn.core import BATCH_KM, download_ahn6_index, download_ahn_index
+from bag3d.core.assets.ahn.core import (
+    BATCH_KM,
+    download_ahn6_index,
+    download_ahn_pc_index,
+)
 from bag3d.core.assets.ahn.download import URL_LAZ_SHA, get_checksums
 from bag3d.core.jobs import job_ahn3, job_ahn4, job_ahn5, job_ahn6
 
@@ -28,22 +32,24 @@ class _AhnVersionConfig(TypedDict):
 _AHN_VERSIONS: dict[int, _AhnVersionConfig] = {
     3: {
         "job_name": "ahn3",
-        "asset_key": AssetKey(["ahn", "sha256_ahn3"]),
-        "url_key": "AHN3_LAZ",
+        # AHN checksums are embedded in the per-version tile index.
+        "asset_key": AssetKey(["ahn", "tile_index_ahn3"]),
+        "url_key": "url",
     },
     4: {
         "job_name": "ahn4",
-        "asset_key": AssetKey(["ahn", "sha256_ahn4"]),
-        "url_key": "AHN4_LAZ",
+        "asset_key": AssetKey(["ahn", "tile_index_ahn4"]),
+        "url_key": "url",
     },
     5: {
         "job_name": "ahn5",
-        "asset_key": AssetKey(["ahn", "sha256_ahn5"]),
-        "url_key": "AHN5_LAZ",
+        "asset_key": AssetKey(["ahn", "tile_index_ahn5"]),
+        "url_key": "url",
     },
     6: {
         "job_name": "ahn6",
-        "asset_key": AssetKey(["ahn", "sha256_ahn6"]),
+        # AHN6 checksums are embedded in the tile index.
+        "asset_key": AssetKey(["ahn", "tile_index_ahn6"]),
         "url_key": "url",
     },
 }
@@ -53,8 +59,8 @@ def _build_filename_to_tile_id(tile_index: dict, url_key: str) -> dict[str, str]
     """Build {filename: tile_id} mapping from tile_index for a specific AHN version.
 
     Each AHN version may have a different filename convention in its download URLs.
-    The tile_index maps tile_id -> {"AHN3_LAZ": url, ...}, and the filename is
-    the last path component of the URL.
+    The tile_index maps tile_id -> {"url": ..., "sha256": ..., "geometry": ...},
+    and the filename is the last path component of the URL.
     """
     mapping = {}
     for tile_id, info in tile_index.items():
@@ -68,8 +74,8 @@ def _build_filename_to_tile_id(tile_index: dict, url_key: str) -> dict[str, str]
 def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition:
     """Factory that returns the AHN checksum sensor with the given default status.
 
-    The sensor watches for new materializations of the checksum assets (sha256_ahn3,
-    sha256_ahn4, sha256_ahn5, sha256_ahn6). When triggered, it downloads the tile
+    The sensor watches for new materializations of the tile index assets
+    (tile_index_ahn3, tile_index_ahn4, tile_index_ahn5, tile_index_ahn6). When triggered, it downloads the tile
     index to build a filename to tile_id mapping, reads the checksums, compares
     against previously stored checksums in the cursor, and triggers partition runs
     only for tiles whose checksum has changed.
@@ -91,10 +97,10 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
 
         @multi_asset_sensor(
             monitored_assets=[
-                AssetKey(["ahn", "sha256_ahn3"]),
-                AssetKey(["ahn", "sha256_ahn4"]),
-                AssetKey(["ahn", "sha256_ahn5"]),
-                AssetKey(["ahn", "sha256_ahn6"]),
+                AssetKey(["ahn", "tile_index_ahn3"]),
+                AssetKey(["ahn", "tile_index_ahn4"]),
+                AssetKey(["ahn", "tile_index_ahn5"]),
+                AssetKey(["ahn", "tile_index_ahn6"]),
             ],
             jobs=[job_ahn3, job_ahn4, job_ahn5, job_ahn6],
             default_status=default_status,
@@ -123,8 +129,8 @@ def ahn_checksum_sensor(default_status: DefaultSensorStatus) -> SensorDefinition
                 if version == 6:
                     tile_index = download_ahn6_index(with_geom=False)
                 else:
-                    # Load tile index for filename→tile_id mapping (no geometry needed)
-                    tile_index = download_ahn_index(with_geom=False)
+                    # Load per-version tile index for filename→tile_id mapping.
+                    tile_index = download_ahn_pc_index(version, with_geom=False)
 
                 if tile_index is None:
                     context.log.warning("Failed to download AHN tile index")

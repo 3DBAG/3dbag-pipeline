@@ -23,8 +23,9 @@ from dagster import (
 )
 
 from bag3d.core.assets.ahn.core import (
+    URL_LAZ_SHA,
     download_ahn6_index,
-    download_ahn_index,
+    download_ahn_pc_index,
     format_laz_log,
     partition_definition_ahn,
     partition_definition_ahn6_batches,
@@ -32,14 +33,6 @@ from bag3d.core.assets.ahn.core import (
 )
 
 logger = get_dagster_logger("ahn.download")
-
-# AHN LAZ file with checksums.
-URL_LAZ_SHA = {
-    6: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
-    5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
-    4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
-    3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
-}
 
 
 class HashChunkwise:
@@ -167,38 +160,26 @@ class BatchLAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn3() -> dict[str, str | None]:
-    """Download the SHA256 sums that are calculated by PDOK for the AHN3 LAZ files."""
-    return get_checksums(URL_LAZ_SHA, ahn_version=3)
+def tile_index_ahn3() -> dict[str, dict[str, Any] | None] | None:
+    """AHN3 tile index: download URL, sha256 checksum and tile geometry."""
+    return download_ahn_pc_index(3, with_geom=True)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn4() -> dict[str, str | None]:
-    """Download the SHA256 sums that are calculated by PDOK for the AHN4 LAZ files."""
-    return get_checksums(URL_LAZ_SHA, ahn_version=4)
+def tile_index_ahn4() -> dict[str, dict[str, Any] | None] | None:
+    """AHN4 tile index: download URL, sha256 checksum and tile geometry."""
+    return download_ahn_pc_index(4, with_geom=True)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn5() -> dict[str, str | None]:
-    """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
-    return get_checksums(URL_LAZ_SHA, ahn_version=5)
-
-
-@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn6() -> dict[str, str | None]:
-    """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
-    return get_checksums(URL_LAZ_SHA, ahn_version=6)
-
-
-@asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def tile_index_ahn() -> dict[str, dict[str, Any] | None] | None:
-    """The AHN tile index, including the tile geometry and the file download links."""
-    return download_ahn_index(with_geom=True)
+def tile_index_ahn5() -> dict[str, dict[str, Any] | None] | None:
+    """AHN5 tile index: download URL, sha256 checksum and tile geometry."""
+    return download_ahn_pc_index(5, with_geom=True)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
 def tile_index_ahn6() -> dict[str, dict[str, Any] | None] | None:
-    """The AHN6 tile index, including the tile geometry and the file download links."""
+    """AHN6 tile index: download URL, sha256 checksum and tile geometry."""
     return download_ahn6_index(with_geom=True)
 
 
@@ -215,8 +196,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn3: dict[str, str | None],
-    tile_index_ahn,
+    tile_index_ahn3: dict[str, dict[str, Any]],
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
 
@@ -226,7 +206,13 @@ def laz_files_ahn3(
     """
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN3/as_downloaded/LAZ")
-    url_laz = tile_index_ahn[tile_id]["AHN3_LAZ"]
+    sha256_reference: dict[str, str | None] = {
+        e["url"].split("/")[-1]: e.get("sha256")
+        for e in tile_index_ahn3.values()
+        if e and e.get("url")
+    }
+    entry = tile_index_ahn3.get(tile_id)
+    url_laz = entry.get("url") if entry else None
     if not url_laz:
         raise Failure(
             f"AHN3 download URL is None or empty in the tile index for tile {tile_id}"
@@ -248,7 +234,7 @@ def laz_files_ahn3(
     lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
+            sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -267,7 +253,7 @@ def laz_files_ahn3(
                     fpath=fpath, url_laz=url_laz, verify_ssl=verify_ssl
                 )
             second_validation = lazdownload.validate(
-                sha_reference=sha256_ahn3, sha_func=HashChunkwise("sha256")
+                sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -285,8 +271,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn4: dict[str, str | None],
-    tile_index_ahn,
+    tile_index_ahn4: dict[str, dict[str, Any]],
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
 
@@ -297,7 +282,13 @@ def laz_files_ahn4(
     tile_id = context.partition_key
 
     laz_dir = pointcloud_store.create_subdir("AHN4/as_downloaded/LAZ")
-    url_laz = tile_index_ahn[tile_id]["AHN4_LAZ"]
+    sha256_reference: dict[str, str | None] = {
+        e["url"].split("/")[-1]: e.get("sha256")
+        for e in tile_index_ahn4.values()
+        if e and e.get("url")
+    }
+    entry = tile_index_ahn4.get(tile_id)
+    url_laz = entry.get("url") if entry else None
     if not url_laz:
         raise Failure(
             f"AHN4 download URL is None or empty in the tile index for tile {tile_id}"
@@ -319,7 +310,7 @@ def laz_files_ahn4(
     lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
+            sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
         )
 
         # Let's try to re-download the file once
@@ -340,7 +331,7 @@ def laz_files_ahn4(
                     verify_ssl=verify_ssl,
                 )
             second_validation = lazdownload.validate(
-                sha_reference=sha256_ahn4, sha_func=HashChunkwise("sha256")
+                sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -358,8 +349,7 @@ def laz_files_ahn5(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn5: dict[str, str | None],
-    tile_index_ahn,
+    tile_index_ahn5: dict[str, dict[str, Any]],
 ) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
 
@@ -368,7 +358,13 @@ def laz_files_ahn5(
     """
     tile_id = context.partition_key
     laz_dir = pointcloud_store.create_subdir("AHN5/as_downloaded/LAZ")
-    url_laz = tile_index_ahn[tile_id]["AHN5_LAZ"]
+    sha256_reference: dict[str, str | None] = {
+        e["url"].split("/")[-1]: e.get("sha256")
+        for e in tile_index_ahn5.values()
+        if e and e.get("url")
+    }
+    entry = tile_index_ahn5.get(tile_id)
+    url_laz = entry.get("url") if entry else None
     if not url_laz:
         raise Failure(
             f"AHN5 download URL is None or empty in the tile index for tile {tile_id}"
@@ -390,7 +386,7 @@ def laz_files_ahn5(
     lazdownload.compute_sha(HashChunkwise("sha256"))
     if config.check_hash:
         first_validation = lazdownload.validate(
-            sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+            sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
         )
         # Let's try to re-download the file once
         if not first_validation:
@@ -410,7 +406,7 @@ def laz_files_ahn5(
                     verify_ssl=verify_ssl,
                 )
             second_validation = lazdownload.validate(
-                sha_reference=sha256_ahn5, sha_func=HashChunkwise("sha256")
+                sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
             )
             if not second_validation:
                 logger.warning(format_laz_log(fpath, "Checksum failed"))
@@ -429,7 +425,6 @@ def laz_files_ahn6(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn6: dict[str, str | None],
     tile_index_ahn6: dict[str, dict[str, Any]],
 ) -> Output[BatchLAZDownload]:
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
@@ -451,6 +446,14 @@ def laz_files_ahn6(
 
     laz_dir = pointcloud_store.create_subdir("AHN6/as_downloaded/LAZ")
     total = len(tiles)
+
+    # Checksums are embedded in the tile index; build the filename -> sha256
+    # reference used by match_sha without a second download.
+    sha256_reference: dict[str, str | None] = {
+        entry["url"].split("/")[-1]: entry.get("sha256")
+        for entry in tile_index_ahn6.values()
+        if entry and entry.get("url")
+    }
 
     batch_tiles: dict[str, LAZDownload] = {}
     downloaded = 0
@@ -485,7 +488,7 @@ def laz_files_ahn6(
             lazdownload.compute_sha(HashChunkwise("sha256"))
             if config.check_hash:
                 first_validation = lazdownload.validate(
-                    sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                    sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
                 )
                 if not first_validation:
                     logger.info(
@@ -506,7 +509,7 @@ def laz_files_ahn6(
                             verify_ssl=verify_ssl,
                         )
                     second_validation = lazdownload.validate(
-                        sha_reference=sha256_ahn6, sha_func=HashChunkwise("sha256")
+                        sha_reference=sha256_reference, sha_func=HashChunkwise("sha256")
                     )
                     if not second_validation:
                         logger.warning(format_laz_log(fpath, "Checksum failed"))

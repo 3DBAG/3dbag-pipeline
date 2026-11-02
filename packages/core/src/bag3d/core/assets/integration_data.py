@@ -493,7 +493,7 @@ def _download_ahn_tiles(
     minx, miny, maxx, maxy = _aoi_bbox(geofilter)
     for tile_id in selected:
         entry = index[tile_id]
-        url = entry.get("url") if version == 6 else entry.get(f"AHN{version}_LAZ")
+        url = entry.get("url")
         if not url:
             continue
         with tempfile.TemporaryDirectory(dir=target) as temp_dir:
@@ -524,17 +524,17 @@ def _download_ahn_tiles(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
+    ins={"tile_index_ahn3": AssetIn(key=AssetKey(["ahn", "tile_index_ahn3"]))},
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn3(
     config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
-    tile_index_ahn,
+    tile_index_ahn3,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
-        tile_index_ahn,
+        tile_index_ahn3,
         3,
         integration_data_store.path / "pointclouds",
         config.geofilter,
@@ -544,17 +544,17 @@ def integration_ahn3(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
+    ins={"tile_index_ahn4": AssetIn(key=AssetKey(["ahn", "tile_index_ahn4"]))},
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn4(
     config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
-    tile_index_ahn,
+    tile_index_ahn4,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
-        tile_index_ahn,
+        tile_index_ahn4,
         4,
         integration_data_store.path / "pointclouds",
         config.geofilter,
@@ -564,17 +564,17 @@ def integration_ahn4(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"]))},
+    ins={"tile_index_ahn5": AssetIn(key=AssetKey(["ahn", "tile_index_ahn5"]))},
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn5(
     config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
-    tile_index_ahn,
+    tile_index_ahn5,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
-        tile_index_ahn,
+        tile_index_ahn5,
         5,
         integration_data_store.path / "pointclouds",
         config.geofilter,
@@ -806,12 +806,10 @@ def _validate_and_return(
         "extract_cbs_buurtkaart": AssetIn(
             key=AssetKey(["cbs", "extract_cbs_buurtkaart"])
         ),
-        "tile_index_ahn": AssetIn(key=AssetKey(["ahn", "tile_index_ahn"])),
+        "tile_index_ahn3": AssetIn(key=AssetKey(["ahn", "tile_index_ahn3"])),
+        "tile_index_ahn4": AssetIn(key=AssetKey(["ahn", "tile_index_ahn4"])),
+        "tile_index_ahn5": AssetIn(key=AssetKey(["ahn", "tile_index_ahn5"])),
         "tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"])),
-        "sha256_ahn3": AssetIn(key=AssetKey(["ahn", "sha256_ahn3"])),
-        "sha256_ahn4": AssetIn(key=AssetKey(["ahn", "sha256_ahn4"])),
-        "sha256_ahn5": AssetIn(key=AssetKey(["ahn", "sha256_ahn5"])),
-        "sha256_ahn6": AssetIn(key=AssetKey(["ahn", "sha256_ahn6"])),
     },
 )
 def integration_manifest(
@@ -830,12 +828,10 @@ def integration_manifest(
     extract_top10nl,
     extract_cbs_key_figures,
     extract_cbs_buurtkaart,
-    tile_index_ahn,
+    tile_index_ahn3,
+    tile_index_ahn4,
+    tile_index_ahn5,
     tile_index_ahn6,
-    sha256_ahn3,
-    sha256_ahn4,
-    sha256_ahn5,
-    sha256_ahn6,
     gdal: GDALResource,
     lastools: LASToolsResource,
 ) -> Path:
@@ -886,9 +882,9 @@ def integration_manifest(
     }
     partitions: dict[str, Any] = {}
     for version, index in (
-        (3, tile_index_ahn),
-        (4, tile_index_ahn),
-        (5, tile_index_ahn),
+        (3, tile_index_ahn3),
+        (4, tile_index_ahn4),
+        (5, tile_index_ahn5),
     ):
         version_dir = root / "pointclouds" / f"AHN{version}"
         partitions[str(version)] = {
@@ -934,12 +930,18 @@ def integration_manifest(
         "validation": validation,
         "sources": sources,
         "ahn": {
-            "indexes": {"3": tile_index_ahn, "6": tile_index_ahn6},
+            # Checksums are embedded in the per-version tile indexes.
+            "indexes": {
+                "3": tile_index_ahn3,
+                "4": tile_index_ahn4,
+                "5": tile_index_ahn5,
+                "6": tile_index_ahn6,
+            },
             "checksums": {
-                "3": sha256_ahn3,
-                "4": sha256_ahn4,
-                "5": sha256_ahn5,
-                "6": sha256_ahn6,
+                "3": tile_index_ahn3,
+                "4": tile_index_ahn4,
+                "5": tile_index_ahn5,
+                "6": tile_index_ahn6,
             },
             "partitions": partitions,
         },

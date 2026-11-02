@@ -68,7 +68,7 @@ def metadata_ahn3(
     config: MetadataConfig,
     laz_files_ahn3,
     metadata_table_ahn3,
-    tile_index_ahn,
+    tile_index_ahn3,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -80,7 +80,7 @@ def metadata_ahn3(
         config,
         laz_files_ahn3,
         metadata_table_ahn3,
-        tile_index_ahn,
+        tile_index_ahn3,
         computation_db,
         pdal,
     )
@@ -92,7 +92,7 @@ def metadata_ahn4(
     config: MetadataConfig,
     laz_files_ahn4,
     metadata_table_ahn4,
-    tile_index_ahn,
+    tile_index_ahn4,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -104,7 +104,7 @@ def metadata_ahn4(
         config,
         laz_files_ahn4,
         metadata_table_ahn4,
-        tile_index_ahn,
+        tile_index_ahn4,
         computation_db,
         pdal,
     )
@@ -116,7 +116,7 @@ def metadata_ahn5(
     config: MetadataConfig,
     laz_files_ahn5,
     metadata_table_ahn5,
-    tile_index_ahn,
+    tile_index_ahn5,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -128,7 +128,7 @@ def metadata_ahn5(
         config,
         laz_files_ahn5,
         metadata_table_ahn5,
-        tile_index_ahn,
+        tile_index_ahn5,
         computation_db,
         pdal,
     )
@@ -332,7 +332,7 @@ def compute_load_metadata(
             `laz_files_ahn*` asset.
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
-        tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
+        tile_index_ahn_pdok (dict): Per-version tile index (url, sha256, geometry).
         computation_db (DatabaseResource): Database connection resource.
         pdal (PDALResource): PDAL resource for executing pdal info.
 
@@ -356,13 +356,16 @@ def compute_load_metadata(
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
 
+    tile_entry = tile_index_ahn_pdok.get(tile_id) if tile_index_ahn_pdok else None
+    boundary_geom = tile_entry.get("geometry") if tile_entry else None
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),
         "hash": Literal(f"{laz_files_ahn.hash_name}:{laz_files_ahn.hash_hexdigest}"),
         "insert_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
         "pdal_info": Jsonb(out_info),
-        "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"])),
+        "boundary": Literal(json.dumps(boundary_geom) if boundary_geom else None),
     }
     query = SQL("""
         INSERT INTO {metadata_table}(
