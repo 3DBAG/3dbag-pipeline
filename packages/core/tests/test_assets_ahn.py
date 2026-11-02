@@ -346,9 +346,7 @@ def test_laz_files_ahn6_skips_tile_with_null_url(resources_ahn, tmp_path):
             laz_files_ahn6, partition_key="150000_460000"
         ) as context,
     ):
-        res = laz_files_ahn6(
-            context, config, resources_ahn["file_store"], tile_index
-        )
+        res = laz_files_ahn6(context, config, resources_ahn["file_store"], tile_index)
 
     assert isinstance(res, Output)
     failed = res.metadata["failed"]
@@ -375,7 +373,9 @@ def test_ahn_checksum_sensor_skips_unknown_filename_mapping():
                 "bag3d.core.sensors.get_checksums",
                 return_value={"C_UNKNOWN.LAZ": "bbb222"},
             ),
-            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=MOCK_AHN_INDEX),
+            patch(
+                "bag3d.core.sensors.download_ahn_pc_index", return_value=MOCK_AHN_INDEX
+            ),
         ):
             ctx = build_multi_asset_sensor_context(
                 monitored_assets=[

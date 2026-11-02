@@ -23,7 +23,6 @@ from dagster import (
 )
 
 from bag3d.core.assets.ahn.core import (
-    URL_LAZ_SHA,
     download_ahn6_index,
     download_ahn_pc_index,
     format_laz_log,

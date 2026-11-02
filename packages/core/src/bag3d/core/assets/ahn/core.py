@@ -113,7 +113,7 @@ def _pc_tile_id(filename: str) -> str:
 
     ``C_01CZ1.LAZ`` -> ``01cz1`` and ``2023_C_01CZ1.LAZ`` -> ``01cz1``.
     """
-    name = filename[:-4] if filename.endswith(".LAZ") else filename
+    name = filename.removesuffix(".LAZ")
     if "_C_" in name:
         return name.split("_C_")[-1].lower()
     if name.startswith("C_"):
