@@ -35,6 +35,7 @@ class MetadataConfig(Config):
     force: bool = Field(
         default=True, description="Force the re-compute of the metadata."
     )
+    verbose: bool = Field(default=False, description="Output stdout/stderr from pdal")
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 9 * *"))

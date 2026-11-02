@@ -17,6 +17,10 @@ class LasIndexConfig(Config):
         default=False,
         description="Force re-index the file, even if it is already indexed.",
     )
+    verbose: bool = Field(
+        default=False,
+        description="Output stdout/stderr from lasindex",
+    )
 
 
 def run_lasindex(
