@@ -167,25 +167,25 @@ class BatchLAZDownload:
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn3() -> dict[str, str | None]:
+def sha256_ahn3() -> dict[str, str]:
     """Download the SHA256 sums that are calculated by PDOK for the AHN3 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=3)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn4() -> dict[str, str | None]:
+def sha256_ahn4() -> dict[str, str]:
     """Download the SHA256 sums that are calculated by PDOK for the AHN4 LAZ files."""
     return get_checksums(URL_LAZ_SHA, ahn_version=4)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn5() -> dict[str, str | None]:
+def sha256_ahn5() -> dict[str, str]:
     """Download the SHA256 sums for the AHN5 LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=5)
 
 
 @asset(automation_condition=AutomationCondition.on_cron("0 0 1 * *"))
-def sha256_ahn6() -> dict[str, str | None]:
+def sha256_ahn6() -> dict[str, str]:
     """Download the SHA256 sums and URLs for the AHN6 COPC.LAZ files, provided by AHN."""
     return get_checksums(URL_LAZ_SHA, ahn_version=6)
 
@@ -215,7 +215,7 @@ def laz_files_ahn3(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn3: dict[str, str | None],
+    sha256_ahn3: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN3 LAZ files as they are downloaded from PDOK.
@@ -285,7 +285,7 @@ def laz_files_ahn4(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn4: dict[str, str | None],
+    sha256_ahn4: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN4 LAZ files as they are downloaded from PDOK.
@@ -358,7 +358,7 @@ def laz_files_ahn5(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn5: dict[str, str | None],
+    sha256_ahn5: dict[str, str],
     tile_index_ahn,
 ) -> Output[LAZDownload]:
     """AHN5 LAZ files as they are downloaded from PDOK.
@@ -429,7 +429,7 @@ def laz_files_ahn6(
     context: AssetExecutionContext,
     config: LazFilesConfig,
     pointcloud_store: FileStoreResource,
-    sha256_ahn6: dict[str, str | None],
+    sha256_ahn6: dict[str, str],
     tile_index_ahn6: dict[str, dict[str, Any]],
 ) -> Output[BatchLAZDownload]:
     """Download AHN6 COPC pointclouds on the 1x1 km tile grid.
@@ -550,7 +550,7 @@ def laz_files_ahn6(
     )
 
 
-def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str | None]:
+def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str]:
     """
     Get the AHN LAZ file checksums for the given AHN version.
 
@@ -560,9 +560,9 @@ def get_checksums(url_map: Mapping[int, str], ahn_version: int) -> dict[str, str
         ahn_version (int): The version of AHN.
 
     Returns:
-        Mapping[str, str | None]: A dictionary where the keys are filenames and the
-            values are their corresponding SHA-256 checksums (or None when the AHN
-            feed does not publish one yet).
+        Mapping[str, str]: A dictionary where the keys are filenames and the
+            values are their corresponding SHA-256 checksums. Entries without a
+            published checksum are skipped.
     """
     url = url_map[ahn_version]
     _hashes = download_as_str(url)
@@ -711,7 +711,10 @@ def download_laz(
 
 
 def match_sha(
-    fpath: Path, sha_reference: Mapping[str, str | None], hash_name: str, hash_hexdigest: str
+    fpath: Path,
+    sha_reference: Mapping[str, str | None],
+    hash_name: str,
+    hash_hexdigest: str,
 ) -> bool:
     """Verify the SHA of a file against a reference.
 
@@ -728,19 +731,13 @@ def match_sha(
     if not ref_sha:
         # this check if for ensuring that new AHN5 tiles which do not have a
         # checksum yet will still be downloaded.
-        logger.info(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
+        logger.warning(format_laz_log(fpath, f"{hash_name} doesn't have a hash"))
         return True
     elif hash_hexdigest == ref_sha:
         logger.info(format_laz_log(fpath, f"{hash_name} OK"))
         return True
     else:  # pragma: no cover
         logger.info(
-<<<<<<< Updated upstream
             format_laz_log(fpath, f"{hash_name}: {hash_hexdigest} != {ref_sha}")
-=======
-            format_laz_log(
-                fpath, f"{hash_name}: {hash_hexdigest} != {ref_sha}"
-            )
->>>>>>> Stashed changes
         )
         return False
