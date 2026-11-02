@@ -6,22 +6,19 @@ footprints. This package adapts `underpass_detection_2d` from
 
 ## Inputs and algorithm
 
-The first asset consumes the existing `bag/bag_pandactueelbestaand` and
-`bgt/bgt_pandactueelbestaand` table identifiers. It matches the BGT BAG number to
-the BAG identifier after its 14-character prefix, requires overlapping bounding
-boxes, and unions matching BGT polygons per building. All matching BGT relative
-height levels are included, preserving the experiment's behavior. Core's
-`intermediary/bag_bgt_join` has different relative-height filtering and is not used.
+The detection stage now consumes core's `input/intermediary/bag_bgt_join` asset
+instead of materializing its own BAG/BGT join. That table matches the BGT BAG
+number to the BAG identifier after its 14-character prefix, unions matching BGT
+polygons per building, and applies core's relative-height filtering.
 
-The detection portion of the `underpasses` job materializes four assets in order;
+The detection portion of the `underpasses` job materializes three assets in order;
 edge classification and offset follow them:
 
-1. `underpasses/bag_bgt_join`: BAG footprints and unioned BGT footprints.
-2. `underpasses/bag_minus_bgt`: BAG minus BGT, retaining differences that survive
+1. `underpasses/bag_minus_bgt`: BAG minus BGT, retaining differences that survive
    erosion and dilation (the double-buffer test).
-3. `underpasses/snapped_differences`: intersect the two differences obtained by
+2. `underpasses/snapped_differences`: intersect the two differences obtained by
    snapping BAG to BGT and BGT to BAG, for buildings surviving the previous stage.
-4. `underpasses/geometries`: split results into polygons, repeat the double-buffer
+3. `underpasses/geometries`: split results into polygons, repeat the double-buffer
    test on each polygon, and assign sequential integer IDs.
 
 The buffering is a filter: output polygons retain their original boundaries.
