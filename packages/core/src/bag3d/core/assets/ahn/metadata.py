@@ -232,8 +232,7 @@ def metadata_ahn6(
         )
     else:
         logger.info(
-            f"Batch {batch_id}: {processed} processed, "
-            f"{failed} failed of {total} tiles"
+            f"Batch {batch_id}: {processed} processed, {failed} failed of {total} tiles"
         )
 
     return Output(
