@@ -68,7 +68,7 @@ def metadata_ahn3(
     config: MetadataConfig,
     laz_files_ahn3,
     metadata_table_ahn3,
-    tile_index_ahn,
+    tile_index_ahn3,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -80,7 +80,7 @@ def metadata_ahn3(
         config,
         laz_files_ahn3,
         metadata_table_ahn3,
-        tile_index_ahn,
+        tile_index_ahn3,
         computation_db,
         pdal,
     )
@@ -92,7 +92,7 @@ def metadata_ahn4(
     config: MetadataConfig,
     laz_files_ahn4,
     metadata_table_ahn4,
-    tile_index_ahn,
+    tile_index_ahn4,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -104,7 +104,7 @@ def metadata_ahn4(
         config,
         laz_files_ahn4,
         metadata_table_ahn4,
-        tile_index_ahn,
+        tile_index_ahn4,
         computation_db,
         pdal,
     )
@@ -116,7 +116,7 @@ def metadata_ahn5(
     config: MetadataConfig,
     laz_files_ahn5,
     metadata_table_ahn5,
-    tile_index_ahn,
+    tile_index_ahn5,
     computation_db: DatabaseResource,
     pdal: PDALResource,
 ) -> Output[None]:
@@ -128,7 +128,7 @@ def metadata_ahn5(
         config,
         laz_files_ahn5,
         metadata_table_ahn5,
-        tile_index_ahn,
+        tile_index_ahn5,
         computation_db,
         pdal,
     )
@@ -152,19 +152,28 @@ def metadata_ahn6(
     """
     batch_id = context.partition_key
     tiles = tiles_in_batch(batch_id)
-    if not tiles:
-        return Output({"batch": batch_id, "processed": 0, "total": 0})
-
     logger = get_dagster_logger()
+    if not tiles:
+        logger.warning(
+            f"Batch {batch_id}: no tiles in AHN6_TILE_IDS for this batch. "
+            "No metadata will be stored."
+        )
+        return Output({"batch": batch_id, "processed": 0, "total": 0})
     conn = computation_db.connection
     metadata_table = metadata_table_ahn6.id
     total = len(tiles)
     processed = 0
     failed = 0
-    skipped = 0
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
     insert_time = Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam")))
+
+    if not laz_files_ahn6.tiles:
+        logger.warning(
+            f"Batch {batch_id}: no downloaded LAZ files available in "
+            f"laz_files_ahn6 (all {total} tiles failed or had no index entry). "
+            "No metadata will be stored for this batch."
+        )
 
     for tile_id, laz_download in laz_files_ahn6.tiles.items():
         if not laz_download.success:
@@ -215,11 +224,17 @@ def metadata_ahn6(
             )
         )
         processed += 1
+        logger.info(f"AHN6 tile {tile_id}: metadata loaded into {metadata_table}")
 
-    logger.info(
-        f"Batch {batch_id}: {processed} processed, "
-        f"{failed} failed, {skipped} skipped of {total} tiles"
-    )
+    if processed == 0 and total > 0:
+        logger.warning(
+            f"Batch {batch_id}: 0 of {total} tiles produced metadata "
+            f"({failed} failed). No rows inserted."
+        )
+    else:
+        logger.info(
+            f"Batch {batch_id}: {processed} processed, {failed} failed of {total} tiles"
+        )
 
     return Output(
         {"batch": batch_id, "processed": processed, "total": total},
@@ -315,7 +330,7 @@ def compute_load_metadata(
             `laz_files_ahn*` asset.
         metadata_table_ahn (PostgresTableIdentifier): The metadata database table
             indentifier.
-        tile_index_ahn_pdok (dict): Downloaded with `download_ahn_index`.
+        tile_index_ahn_pdok (dict): Per-version tile index (url, sha256, geometry).
         computation_db (DatabaseResource): Database connection resource.
         pdal (PDALResource): PDAL resource for executing pdal info.
 
@@ -339,13 +354,16 @@ def compute_load_metadata(
 
     set_json_dumps(dumps=partial(json.dumps, ensure_ascii=False))
 
+    tile_entry = tile_index_ahn_pdok.get(tile_id) if tile_index_ahn_pdok else None
+    boundary_geom = tile_entry.get("geometry") if tile_entry else None
+
     query_params = {
         "metadata_table": metadata_table_ahn.id,
         "tile_id": Literal(tile_id),
         "hash": Literal(f"{laz_files_ahn.hash_name}:{laz_files_ahn.hash_hexdigest}"),
         "insert_time": Literal(datetime.now(tz=pytz.timezone("Europe/Amsterdam"))),
         "pdal_info": Jsonb(out_info),
-        "boundary": Literal(json.dumps(tile_index_ahn_pdok[tile_id]["geometry"])),
+        "boundary": Literal(json.dumps(boundary_geom) if boundary_geom else None),
     }
     query = SQL("""
         INSERT INTO {metadata_table}(
