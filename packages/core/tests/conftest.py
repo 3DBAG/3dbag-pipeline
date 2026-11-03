@@ -51,47 +51,50 @@ def resources_ahn(database, file_store):
     }
 
 
-@pytest.fixture(scope="session")
-def sha256_ahn3_fix():
-    yield {
-        "C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"
-    }
+_AHN_GEOMETRY_FIX = {
+    "type": "Polygon",
+    "coordinates": [
+        [
+            [140000.0, 600000.0],
+            [140000.0, 606250.0],
+            [145000.0, 606250.0],
+            [145000.0, 600000.0],
+            [140000.0, 600000.0],
+        ]
+    ],
+    "geometry_name": "shape",
+}
 
 
 @pytest.fixture(scope="session")
-def sha256_ahn4_fix():
-    yield {
-        "C_01CZ1.LAZ": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e"
-    }
-
-
-@pytest.fixture(scope="session")
-def sha256_ahn5_fix():
-    yield {
-        "2023_C_01CZ1.LAZ": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611"
-    }
-
-
-@pytest.fixture(scope="session")
-def tile_index_ahn_fix():
+def tile_index_ahn3_fix():
     yield {
         "01cz1": {
-            "AHN3_LAZ": "https://basisdata.nl/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
-            "AHN4_LAZ": "https://basisdata.nl/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
-            "AHN5_LAZ": "https://basisdata.nl/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [140000.0001043251, 600000.0005214083],
-                        [140000.00010435135, 606250.0005244487],
-                        [145000.0001086861, 606250.0005244645],
-                        [145000.0001086705, 600000.0005214227],
-                        [140000.0001043251, 600000.0005214083],
-                    ]
-                ],
-                "geometry_name": "shape",
-            },
+            "url": "https://fsn1.your-objectstorage.com/hwh-ahn/AHN3/LAZ/C_01CZ1.LAZ",
+            "sha256": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e",
+            "geometry": _AHN_GEOMETRY_FIX,
+        }
+    }
+
+
+@pytest.fixture(scope="session")
+def tile_index_ahn4_fix():
+    yield {
+        "01cz1": {
+            "url": "https://fsn1.your-objectstorage.com/hwh-ahn/ahn4/01_LAZ/C_01CZ1.LAZ",
+            "sha256": "45f9916a50d8aa3dcb045966b782fb0d4899ace700ebcd63a77bd9c6bb505e8e",
+            "geometry": _AHN_GEOMETRY_FIX,
+        }
+    }
+
+
+@pytest.fixture(scope="session")
+def tile_index_ahn5_fix():
+    yield {
+        "01cz1": {
+            "url": "https://fsn1.your-objectstorage.com/hwh-ahn/AHN5/01_LAZ/2023_C_01CZ1.LAZ",
+            "sha256": "067541da253de88eef78c580a1ff6396c7ec3e3833cc0843a2fac4270b625611",
+            "geometry": _AHN_GEOMETRY_FIX,
         }
     }
 

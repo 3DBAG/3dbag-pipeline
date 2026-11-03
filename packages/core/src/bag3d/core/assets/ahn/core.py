@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import requests
 from dagster import StaticPartitionsDefinition, get_dagster_logger
@@ -21,22 +22,31 @@ _batch_ids = sorted(
 )
 partition_definition_ahn6_batches = StaticPartitionsDefinition(_batch_ids)
 
-AHN6_INDEX_URL = (
-    "https://basisdata.nl/hwh-portal/20230609_tmp/links/nationaal/Nederland/"
-    "AHN6_KM_PC_COPC.json"
-)
+# AHN LAZ index files containing file URL, sha256 checksum and tile geometry.
+URL_LAZ_SHA = {
+    6: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN6_KM_PC_COPC.json",
+    5: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN5_PC.json",
+    4: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN4_PC.json",
+    3: "https://fsn1.your-objectstorage.com/hwh-portal/20230609_tmp/links/nationaal/Nederland/AHN3_PC.json",
+}
+
+
+def _tile_batch(tile_id: str) -> str:
+    """Compute the 10×10 km batch id for a 1×1 km AHN6 tile id.
+
+    Tile ids are *not* zero-padded in the AHN6 index (e.g. ``58000_431000``
+    vs ``150000_431000``), so we cannot reconstruct them by formatting a
+    coordinate range. Instead, derive the batch from each tile id and filter.
+    """
+    x, y = tile_id.split("_")
+    bx = (int(x) // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+    by = (int(y) // (BATCH_KM * 1000)) * (BATCH_KM * 1000)
+    return f"{bx:06d}_{by:06d}"
 
 
 def tiles_in_batch(batch_id: str) -> list[str]:
     """Return all 1×1 km tile IDs within a 10×10 km batch block."""
-    bx = int(batch_id.split("_")[0])
-    by = int(batch_id.split("_")[1])
-    return [
-        f"{x:06d}_{y:06d}"
-        for x in range(bx, bx + BATCH_KM * 1000, 1000)
-        for y in range(by, by + BATCH_KM * 1000, 1000)
-        if f"{x:06d}_{y:06d}" in AHN6_TILE_IDS
-    ]
+    return [t for t in AHN6_TILE_IDS if _tile_batch(t) == batch_id]
 
 
 def format_laz_log(fpath: Path, msg: str) -> str:
@@ -44,12 +54,13 @@ def format_laz_log(fpath: Path, msg: str) -> str:
     return f"{fpath.stem}{'.' * 5}{msg}"
 
 
-def validate_new_ahn_tile_ids(features: dict) -> None:
-    feature_set = {f["properties"]["AHN"].lower() for f in features}
-    if len(feature_set ^ AHN_TILE_IDS) > 0:
+def validate_new_ahn_tile_ids(tile_ids: set[str]) -> None:
+    diff = tile_ids ^ AHN_TILE_IDS
+    if len(diff) > 0:
         logger.warning(
-            "Received AHN tile list has diverged from the one used, list must be updated"
-            f"Difference: {feature_set ^ AHN_TILE_IDS}"
+            "Received AHN tile list has diverged from the one used, list must be updated. "
+            f"New in index: {tile_ids - AHN_TILE_IDS}, "
+            f"Removed: {AHN_TILE_IDS - tile_ids}"
         )
 
 
@@ -68,107 +79,70 @@ def validate_new_ahn6_tile_ids(index: dict) -> None:
         )
 
 
-def invert_geometry_coordinates(geometry):
-    """Invert x and y coordinates in the JSON geometry."""
-    if geometry["type"] == "Polygon":
-        inverted_coords = []
-        for ring in geometry["coordinates"]:
-            inverted_ring = [[coord[1], coord[0]] for coord in ring]
-            inverted_coords.append(inverted_ring)
-        return {"type": "Polygon", "coordinates": inverted_coords}
-    elif geometry["type"] == "MultiPolygon":
-        inverted_coords = []
-        for polygon in geometry["coordinates"]:
-            inverted_polygon = []
-            for ring in polygon:
-                inverted_ring = [[coord[1], coord[0]] for coord in ring]
-                inverted_polygon.append(inverted_ring)
-            inverted_coords.append(inverted_polygon)
-        return {"type": "MultiPolygon", "coordinates": inverted_coords}
-    elif geometry["type"] == "Point":
-        return {
-            "type": "Point",
-            "coordinates": [geometry["coordinates"][1], geometry["coordinates"][0]],
-        }
-    else:
-        # Return original geometry for unsupported types
-        return geometry
+def _pc_tile_id(filename: str) -> str:
+    """Derive the RD tile id from an AHN3/4/5 file name.
 
-
-def download_ahn_index(
-    with_geom: bool = False,
-) -> dict[str, dict[str, str | None] | None] | None:
-    """Downloads the AHN 3/4/5 tile index.
-    Args:
-        with_geom: If False, request only the AHN tile ids. Else also request the
-            tile boundaries as geojson.
-    Returns:
-        A dict of {tile id: dict of links and geometry}. If not ``with_geom``, then value of the links is None.
+    ``C_01CZ1.LAZ`` -> ``01cz1`` and ``2023_C_01CZ1.LAZ`` -> ``01cz1``.
     """
+    name = filename.removesuffix(".LAZ")
+    if "_C_" in name:
+        return name.split("_C_")[-1].lower()
+    if name.startswith("C_"):
+        return name[2:].lower()
+    return name.lower()
 
-    service_url = (
-        "https://api.ellipsis-drive.com/v3/ogc/wfs/a9d410ad-a2f6-404c-948a-fdf6b43e77a6"
-    )
-    params_features = {
-        "request": "GetFeature",
-        "service": "WFS",
-        "preferCoordinatesForWfsT11": "true",
-        "srsname": "EPSG:28992",
-        "version": "1.1.0",
-        "requestedEpsg": "28992",
-        "outputFormat": "application/json",
-        "CountDefault": "2000",
-        "typeName": "layerId_05931403-2510-43af-9cc3-f60a066d4482",
-    }
-    logger.info(f"Downloading the AHN tile boundaries from {service_url}")
 
-    features = {}
+def download_ahn_pc_index(
+    version: int,
+    with_geom: bool = True,
+) -> dict[str, dict[str, Any] | None] | None:
+    """Download an AHN3/4/5 tile index from the fsn1 ``PC.json``.
 
-    response = requests.get(url=service_url + "/query", params=params_features)
-    if response.status_code == 200:
-        r_json = response.json()
-    else:  # pragma: no cover
-        response.raise_for_status()
-        return
-    returned_features = r_json.get("features")
-    validate_new_ahn_tile_ids(returned_features)
-    if returned_features is None or len(returned_features) == 0:
-        logger.error(
-            "The response did not contain a 'features' member or had 0 features."
-        )
-        return features
-    else:
-        if with_geom:
-            for f in returned_features:
-                features[f["properties"]["AHN"].lower()] = {
-                    "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
-                    "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
-                    "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
-                    "geometry": invert_geometry_coordinates(f["geometry"]),
-                }
-        else:
-            for f in returned_features:
-                features[f["properties"]["AHN"].lower()] = {
-                    "AHN3_LAZ": f["properties"]["AHN3 puntenwolk"],
-                    "AHN4_LAZ": f["properties"]["AHN4 puntenwolk"],
-                    "AHN5_LAZ": f["properties"]["AHN5 puntenwolk"],
-                    "geometry": None,
-                }
+    Each feature provides the LAZ download URL, the SHA256 checksum and the tile
+    geometry, so a single download replaces the old PDOK tile index and the
+    separate checksum assets. The fsn1 geometry is already ordered
+    ``[easting, northing]`` (unlike the PDOK WFS response), so no inversion is
+    applied.
+    """
+    url = URL_LAZ_SHA[version]
+    logger.info(f"Downloading AHN{version} tile index from {url}")
+    try:
+        resp = requests.get(url, timeout=120)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"Failed to download AHN{version} index: {exc}")
+        return {}
 
+    features: dict[str, dict[str, Any] | None] = {}
+    for f in data.get("features", []):
+        props = f.get("properties", {})
+        file_url = props.get("file")
+        if not file_url:
+            continue
+        tile_id = _pc_tile_id(file_url.split("/")[-1])
+        features[tile_id] = {
+            "url": file_url,
+            "sha256": props.get("sha256"),
+            "geometry": f.get("geometry") if with_geom else None,
+        }
+
+    validate_new_ahn_tile_ids(set(features))
+    logger.info(f"AHN{version} index: {len(features)} tiles")
     return features
 
 
 def download_ahn6_index(
     with_geom: bool = False,
-) -> dict[str, dict[str, str | None] | None]:
+) -> dict[str, dict[str, Any] | None]:
     """Download the AHN6 KM COPC tile index with checksums.
 
-    Fetches the GeoJSON from AHN6_INDEX_URL and extracts each feature's
+    Fetches the GeoJSON from URL_LAZ_SHA[6] and extracts each feature's
     file URL and SHA256 checksum. Returns a dict keyed by tile ID.
     """
-    logger.info(f"Downloading AHN6 tile index from {AHN6_INDEX_URL}")
+    logger.info(f"Downloading AHN6 tile index from {URL_LAZ_SHA[6]}")
     try:
-        resp = requests.get(AHN6_INDEX_URL, timeout=120)
+        resp = requests.get(URL_LAZ_SHA[6], timeout=120)
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:  # noqa: BLE001
@@ -194,6 +168,7 @@ def download_ahn6_index(
         tile_id = parts[1]
         features[tile_id] = {
             "url": file_url,
+            "sha256": props.get("sha256"),
             "geometry": f.get("geometry") if with_geom else None,
         }
 

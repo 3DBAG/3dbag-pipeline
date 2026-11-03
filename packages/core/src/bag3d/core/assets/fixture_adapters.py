@@ -261,41 +261,24 @@ def _ahn(store, version):
     return dict(value)
 
 
-@asset(name="tile_index_ahn", key_prefix="ahn", group_name="ahn")
-def fixture_tile_index_ahn(integration_data_store: FileStoreResource):
+@asset(name="tile_index_ahn3", key_prefix="ahn", group_name="ahn")
+def fixture_tile_index_ahn3(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 3)
+
+
+@asset(name="tile_index_ahn4", key_prefix="ahn", group_name="ahn")
+def fixture_tile_index_ahn4(integration_data_store: FileStoreResource):
+    return _ahn(integration_data_store, 4)
+
+
+@asset(name="tile_index_ahn5", key_prefix="ahn", group_name="ahn")
+def fixture_tile_index_ahn5(integration_data_store: FileStoreResource):
+    return _ahn(integration_data_store, 5)
 
 
 @asset(name="tile_index_ahn6", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn6(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 6)
-
-
-def _checks(store, version):
-    value = _m(store).value["ahn"]["checksums"].get(str(version))
-    if not isinstance(value, Mapping):
-        raise TypeError(f"Fixture AHN{version} checksums are missing")
-    return {str(k): str(v) for k, v in value.items()}
-
-
-@asset(name="sha256_ahn3", key_prefix="ahn", group_name="ahn")
-def fixture_sha256_ahn3(integration_data_store: FileStoreResource):
-    return _checks(integration_data_store, 3)
-
-
-@asset(name="sha256_ahn4", key_prefix="ahn", group_name="ahn")
-def fixture_sha256_ahn4(integration_data_store: FileStoreResource):
-    return _checks(integration_data_store, 4)
-
-
-@asset(name="sha256_ahn5", key_prefix="ahn", group_name="ahn")
-def fixture_sha256_ahn5(integration_data_store: FileStoreResource):
-    return _checks(integration_data_store, 5)
-
-
-@asset(name="sha256_ahn6", key_prefix="ahn", group_name="ahn")
-def fixture_sha256_ahn6(integration_data_store: FileStoreResource):
-    return _checks(integration_data_store, 6)
 
 
 def _laz(store, version, tile, pointcloud_store):
@@ -411,12 +394,10 @@ fixture_assets = [
     fixture_extract_top10nl,
     fixture_extract_cbs_key_figures,
     fixture_extract_cbs_buurtkaart,
-    fixture_tile_index_ahn,
+    fixture_tile_index_ahn3,
+    fixture_tile_index_ahn4,
+    fixture_tile_index_ahn5,
     fixture_tile_index_ahn6,
-    fixture_sha256_ahn3,
-    fixture_sha256_ahn4,
-    fixture_sha256_ahn5,
-    fixture_sha256_ahn6,
     fixture_laz_files_ahn3,
     fixture_laz_files_ahn4,
     fixture_laz_files_ahn5,
