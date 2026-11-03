@@ -20,14 +20,12 @@ from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
-AOI_WKT = "POLYGON ((121967 485750, 123354 485750, 123354 486550, 121967 486550, 121967 485750))"
+AOI_WKT = "POLYGON ((140100 485750, 141500 485750, 141500 486550, 140100 486550, 140100 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
-    "121000_485000",
-    "121000_486000",
-    "122000_485000",
-    "122000_486000",
-    "123000_485000",
-    "123000_486000",
+    "140000_485000",
+    "140000_486000",
+    "141000_485000",
+    "141000_486000",
 ]
 _NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 _EXTENT = re.compile(
