@@ -50,9 +50,17 @@ jobs:
               while (Date.now() < deadline) {
                 const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers});
                 transition('Admin run', `${run.status} / ${run.conclusion || 'pending'}`, link);
-                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-                  owner, repo, run_id, per_page: 100, headers
-                });
+                let jobs = [];
+                try {
+                  jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                    owner, repo, run_id, per_page: 100, headers
+                  });
+                } catch (error) {
+                  // A newly queued dispatch can exist before its jobs endpoint.
+                  // Keep observing the returned run ID; never dispatch it again.
+                  if (error.status !== 404) throw error;
+                  transition('Admin job details', 'not available yet', link);
+                }
                 for (const job of jobs) {
                   transition(`Job ${job.id} ${job.name}`, `${job.status} / ${job.conclusion || 'pending'}`, job.html_url);
                   for (const step of job.steps || []) {

@@ -37,3 +37,9 @@ never consumed. Missing files, size mismatches and checksum mismatches still fai
 
 Fixture adapters retain the ordinary source op names as well as their asset
 keys, so the same runner configuration remains valid in fixture mode.
+
+GitHub can return `404` for job details immediately after accepting a dispatch.
+The observer continues polling the exact returned admin run ID when those details
+are unavailable. The run's terminal conclusion still determines the source result;
+this never submits another computation. Other observation errors retain the
+unresolved-result reporting and inspection requirement.
