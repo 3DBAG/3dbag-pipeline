@@ -252,6 +252,24 @@ def filter_bag_extract(
     destination.mkdir(parents=True, exist_ok=True)
     for source_file in source.iterdir():
         target = destination / source_file.name
+        if source_file.is_dir():
+            # Parallel BAG staging expands layer archives and may remove the ZIP.
+            # Rebuild the archive expected by the fixture loader from those files.
+            archive_name = source_file.name + ".zip"
+            if (source / archive_name).is_file():
+                continue
+            copy_layer = re.search(r"(?:NUM|OPR|RELATIE)", source_file.name.upper())
+            with ZipFile(destination / archive_name, "w", ZIP_DEFLATED) as target_zip:
+                for member_path in source_file.rglob("*"):
+                    if not member_path.is_file():
+                        continue
+                    name = member_path.relative_to(source_file).as_posix()
+                    data = member_path.read_bytes()
+                    if not copy_layer:
+                        data = _filter_bag_member(data, aoi, name)
+                    if data is not None:
+                        target_zip.writestr(name, data)
+            continue
         if source_file.suffix.lower() != ".zip":
             shutil.copy2(source_file, target)
             continue
