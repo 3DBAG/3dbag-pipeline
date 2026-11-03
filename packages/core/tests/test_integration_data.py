@@ -1,8 +1,11 @@
+from types import SimpleNamespace
+from unittest.mock import Mock
 from zipfile import ZipFile
 
 import pytest
+from bag3d.common.resources.executables import CommandResult
 
-from bag3d.core.assets.integration_data import filter_bag_extract
+from bag3d.core.assets.integration_data import _validate_outputs, filter_bag_extract
 
 DELIVERY = (
     b'<Leveringsdocument xmlns="urn:bag:test">'
@@ -94,3 +97,108 @@ def test_filter_bag_extract_rejects_legacy_expanded_layer(tmp_path):
         filter_bag_extract(source, destination, "08102026")
 
     assert not (destination / "9999VBO08102026.zip").exists()
+
+
+@pytest.fixture
+def validate_pointclouds(tmp_path):
+    bag = tmp_path / "bag"
+    bag.mkdir()
+    bgt = tmp_path / "bgt.zip"
+    top10nl = tmp_path / "top10nl.zip"
+    for path, member in ((bgt, "bgt_pand.gml"), (top10nl, "top10nl_gebouw.gml")):
+        with ZipFile(path, "w") as archive:
+            archive.writestr(member, b"<root/>")
+    gdal = SimpleNamespace(
+        runner=Mock(run=Mock(return_value=CommandResult(0, "Extent: (1, 2) - (3, 4)")))
+    )
+    lastools = SimpleNamespace(
+        runner=Mock(
+            run=Mock(
+                return_value=CommandResult(0, "min x y z: 1 2 0\nmax x y z: 3 4 5\n")
+            )
+        )
+    )
+
+    def validate(roots):
+        return _validate_outputs(
+            tmp_path,
+            bag,
+            bgt,
+            top10nl,
+            tmp_path / "buurtkaart.gpkg",
+            roots,
+            (0, 0, 10, 10),
+            gdal,
+            lastools,
+        )
+
+    return validate, lastools.runner.run
+
+
+@pytest.mark.parametrize("roots_kind", ["repeated", "overlapping", "aliased"])
+def test_validate_outputs_validates_each_pointcloud_once(
+    tmp_path, validate_pointclouds, roots_kind
+):
+    validate, run = validate_pointclouds
+    pointclouds = tmp_path / "pointclouds"
+    paths = [pointclouds / "AHN3" / "tile.laz", pointclouds / "AHN4" / "tile.LAS"]
+    # Create files in reverse order to check deterministic validation order.
+    for path in reversed(paths):
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"pointcloud")
+    (pointclouds / "ignore.txt").write_text("not a pointcloud")
+    (pointclouds / "directory.laz").mkdir()
+    roots = [pointclouds] * 4
+    if roots_kind == "overlapping":
+        roots = [pointclouds / "AHN4", pointclouds, pointclouds / "AHN3"]
+    elif roots_kind == "aliased":
+        alias = tmp_path / "alias"
+        alias.symlink_to(pointclouds, target_is_directory=True)
+        roots = [pointclouds, alias]
+
+    result = validate(iter(roots))
+
+    assert [call.kwargs["local_path"] for call in run.call_args_list] == paths
+    assert result["extents"]["pointclouds"] == {
+        str(path.relative_to(tmp_path)): [1.0, 2.0, 3.0, 4.0] for path in paths
+    }
+    assert len(result["extents"]["vectors"]) == 3
+
+
+def test_validate_outputs_handles_empty_pointcloud_roots(
+    tmp_path, validate_pointclouds
+):
+    validate, run = validate_pointclouds
+    pointclouds = tmp_path / "pointclouds"
+    pointclouds.mkdir()
+
+    assert validate([pointclouds] * 4)["extents"]["pointclouds"] == {}
+    run.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("command_result", "error", "message"),
+    [
+        (CommandResult(1, "", "failed"), RuntimeError, "lasinfo failed"),
+        (CommandResult(0, "ERROR: invalid file"), RuntimeError, "lasinfo failed"),
+        (CommandResult(0, "min x y z: 1 2 0"), RuntimeError, "no complete XY bounds"),
+        (
+            CommandResult(0, "min x y z: 1 2 0\nmax x y z: 100 100 5\n"),
+            ValueError,
+            "outside the AOI",
+        ),
+    ],
+)
+def test_validate_outputs_rejects_invalid_pointclouds(
+    tmp_path, validate_pointclouds, command_result, error, message
+):
+    validate, run = validate_pointclouds
+    pointclouds = tmp_path / "pointclouds"
+    pointclouds.mkdir()
+    (pointclouds / "tile.laz").write_bytes(b"pointcloud")
+    run.return_value = command_result
+
+    with pytest.raises(error, match=message):
+        validate([pointclouds] * 4)
+
+    run.assert_called_once()
