@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from bag3d.common.resources.files import FileStoreResource
-from dagster import AssetExecutionContext, Output, asset
+from dagster import AssetExecutionContext, AssetKey, Output, asset
 
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
@@ -45,11 +45,12 @@ def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
     if path.is_dir():
         if not isinstance(files, Mapping):
             raise ValueError("Fixture manifest must contain a file mapping")
-        for child in path.rglob("*"):
-            if child.is_file() and str(child.relative_to(root)) not in files:
-                raise ValueError(
-                    f"Fixture manifest does not declare required file {child.relative_to(root)!s}"
-                )
+        prefix = relative.rstrip("/") + "/"
+        declared = [name for name in files if name.startswith(prefix)]
+        if not declared:
+            raise ValueError(f"Fixture manifest declares no files in {relative!r}")
+        for name in declared:
+            _verify(root, manifest, name)
         return
     if not isinstance(files, Mapping) or relative not in files:
         raise ValueError(
@@ -181,9 +182,13 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     }
-    if actual != set(files):
-        raise ValueError("Integration-data manifest file list does not match snapshot")
-    for relative in actual:
+    if missing := set(files) - actual:
+        raise ValueError(
+            f"Integration-data snapshot is missing files: {sorted(missing)}"
+        )
+    # The directory may retain files from an older extract. The manifest is the
+    # authority: verify every declared file and never consume undeclared extras.
+    for relative in files:
         _verify(root, manifest, relative)
     for name, source in sources.items():
         if not isinstance(source, Mapping) or not isinstance(source.get("path"), str):
@@ -207,39 +212,58 @@ def _path(m, name):
 
 
 def _writable_fixture_copy(
-    file_store: FileStoreResource, source: Path, relative: str
+    file_store: FileStoreResource, manifest: FixtureManifest, relative: str
 ) -> Path:
+    source = manifest.path(relative)
     destination = Path(file_store.root_dir) / "fixture-inputs" / relative
     if source.is_dir():
         shutil.rmtree(destination, ignore_errors=True)
-        shutil.copytree(source, destination)
+        destination.mkdir(parents=True)
+        prefix = relative.rstrip("/") + "/"
+        for name in manifest.value["files"]:
+            if name.startswith(prefix):
+                target = destination / Path(name).relative_to(relative)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(manifest.path(name), target)
     else:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
     return destination
 
 
-@asset(name="extract_bag", key_prefix="bag", group_name="bag")
+def _fixture_asset(*, name: str, key_prefix: str, **kwargs):
+    # Applying the key prefix after definition preserves the original op name.
+    # Runner run-config addresses these ops by name, independently of asset keys.
+    def decorate(fn):
+        definition = asset(name=name, **kwargs)(fn)
+        return definition.with_attributes(
+            asset_key_replacements={definition.key: AssetKey([key_prefix, name])}
+        )
+
+    return decorate
+
+
+@_fixture_asset(name="extract_bag", key_prefix="bag", group_name="bag")
 def fixture_extract_bag(
     integration_data_store: FileStoreResource, file_store: FileStoreResource
 ):
     m = _m(integration_data_store)
     s = _src(m, "bag")
-    extract = _writable_fixture_copy(file_store, _path(m, "bag"), "bag")
+    extract = _writable_fixture_copy(file_store, m, _src(m, "bag")["path"])
     return Output((extract, dict(s["metadata"]), str(s["shortdate"])))
 
 
-@asset(name="extract_bgt", key_prefix="bgt", group_name="bgt")
+@_fixture_asset(name="extract_bgt", key_prefix="bgt", group_name="bgt")
 def fixture_extract_bgt(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "bgt")
 
 
-@asset(name="extract_top10nl", key_prefix="top10nl", group_name="top10nl")
+@_fixture_asset(name="extract_top10nl", key_prefix="top10nl", group_name="top10nl")
 def fixture_extract_top10nl(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "top10nl")
 
 
-@asset(name="extract_cbs_key_figures", key_prefix="cbs", group_name="cbs")
+@_fixture_asset(name="extract_cbs_key_figures", key_prefix="cbs", group_name="cbs")
 def fixture_extract_cbs_key_figures(integration_data_store: FileStoreResource):
     value = json.loads(
         _path(_m(integration_data_store), "cbs_key_figures").read_text(encoding="utf-8")
@@ -249,7 +273,7 @@ def fixture_extract_cbs_key_figures(integration_data_store: FileStoreResource):
     return value
 
 
-@asset(name="extract_cbs_buurtkaart", key_prefix="cbs", group_name="cbs")
+@_fixture_asset(name="extract_cbs_buurtkaart", key_prefix="cbs", group_name="cbs")
 def fixture_extract_cbs_buurtkaart(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "cbs_buurtkaart")
 
@@ -261,22 +285,22 @@ def _ahn(store, version):
     return dict(value)
 
 
-@asset(name="tile_index_ahn3", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn3", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn3(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 3)
 
 
-@asset(name="tile_index_ahn4", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn4", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn4(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 4)
 
 
-@asset(name="tile_index_ahn5", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn5", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn5(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 5)
 
 
-@asset(name="tile_index_ahn6", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn6", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn6(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 6)
 
@@ -344,19 +368,19 @@ def _adapter(version):
     return adapter
 
 
-fixture_laz_files_ahn3 = asset(
+fixture_laz_files_ahn3 = _fixture_asset(
     name="laz_files_ahn3",
     key_prefix="ahn",
     group_name="ahn",
     partitions_def=partition_definition_ahn,
 )(_adapter(3))
-fixture_laz_files_ahn4 = asset(
+fixture_laz_files_ahn4 = _fixture_asset(
     name="laz_files_ahn4",
     key_prefix="ahn",
     group_name="ahn",
     partitions_def=partition_definition_ahn,
 )(_adapter(4))
-fixture_laz_files_ahn5 = asset(
+fixture_laz_files_ahn5 = _fixture_asset(
     name="laz_files_ahn5",
     key_prefix="ahn",
     group_name="ahn",
@@ -364,7 +388,7 @@ fixture_laz_files_ahn5 = asset(
 )(_adapter(5))
 
 
-@asset(
+@_fixture_asset(
     name="laz_files_ahn6",
     key_prefix="ahn",
     group_name="ahn",

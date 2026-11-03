@@ -1,5 +1,4 @@
-
-## Gilfoyle merged-PR computation
+# Gilfoyle merged-PR computation
 
 A PR merged into `develop` triggers `.github/workflows/gilfoyle-compute.yml`.
 It dispatches the immutable merge SHA to admin's Gilfoyle workflow and observes
@@ -30,3 +29,11 @@ lost SSH, cancellation or timeout, inspect runner containers and Dagster activit
 before retrying: an observer ending does not establish that computation stopped.
 See the [admin runbook](https://github.com/3DBAG/3dbag-admin/blob/main/sysadmin/docs/gilfoyle-feature-deployment.md)
 for locking, cleanup and recovery.
+
+The snapshot directory may retain files from earlier extracts. Adapters verify
+every file declared by the manifest and copy only those declared files into
+the writable BAG input directory. Undeclared extras are left untouched and are
+never consumed. Missing files, size mismatches and checksum mismatches still fail.
+
+Fixture adapters retain the ordinary source op names as well as their asset
+keys, so the same runner configuration remains valid in fixture mode.
