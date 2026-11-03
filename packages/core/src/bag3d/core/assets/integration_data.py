@@ -39,6 +39,9 @@ _LAS_BOUND = re.compile(
 )
 _STAND_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?stand(?:\s|>)")
 _POS_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?pos(?:\s|>)")
+_BAG_LAYER_NAME = re.compile(
+    r"(?:\d{4}[A-Za-z]+|GEM-WPL-RELATIE-)(\d{8})(?:\.zip)?", re.IGNORECASE
+)
 _AOI_COORDINATE = re.compile(
     rb"(?:^|\s|>)(?:12[12]\d{3}|123[0-3]\d{2})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)"
 )
@@ -249,8 +252,16 @@ def filter_bag_extract(
     source: Path, destination: Path, geofilter: str = AOI_WKT
 ) -> Path:
     aoi = _aoi_bbox(geofilter)
+    delivery = etree.parse(str(source / "Leveringsdocument-BAG-Extract.xml"))
+    date = delivery.find(".//{*}StandTechnischeDatum")
+    if date is None or not date.text:
+        raise ValueError("BAG delivery metadata has no StandTechnischeDatum")
+    shortdate = datetime.strptime(date.text.strip(), "%Y-%m-%d").strftime("%d%m%Y")
     destination.mkdir(parents=True, exist_ok=True)
     for source_file in source.iterdir():
+        layer = _BAG_LAYER_NAME.fullmatch(source_file.name)
+        if layer and layer[1] != shortdate:
+            continue
         target = destination / source_file.name
         if source_file.is_dir():
             # Parallel BAG staging expands layer archives and may remove the ZIP.
@@ -284,6 +295,14 @@ def filter_bag_extract(
                 data = _filter_bag_member(source_zip.read(info), aoi, info.filename)
                 if data is not None:
                     target_zip.writestr(info, data)
+    # A reused fixture directory may still contain layers from an earlier run.
+    for target in destination.iterdir():
+        layer = _BAG_LAYER_NAME.fullmatch(target.name)
+        if layer and layer[1] != shortdate:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
     return destination
 
 

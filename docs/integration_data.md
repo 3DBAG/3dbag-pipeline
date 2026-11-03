@@ -35,6 +35,12 @@ every file declared by the manifest and copy only those declared files into
 the writable BAG input directory. Undeclared extras are left untouched and are
 never consumed. Missing files, size mismatches and checksum mismatches still fail.
 
+When building a snapshot, `integration_bag` selects dated layers using
+`StandTechnischeDatum` from `Leveringsdocument-BAG-Extract.xml`. It handles both
+ZIPs and expanded layer directories, skips other extract dates, and removes
+dated leftovers from its BAG fixture output after successful filtering. It leaves
+the source extract directory untouched.
+
 Fixture adapters retain the ordinary source op names as well as their asset
 keys, so the same runner configuration remains valid in fixture mode.
 
