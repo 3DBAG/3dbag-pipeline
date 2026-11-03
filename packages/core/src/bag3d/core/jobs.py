@@ -17,12 +17,10 @@ job_ahn_tile_index = define_asset_job(
     description="Get the tile index (bladwijzer) and the sha256 hashes of the LAZ files and "
     "create the tables for storing the metadata for AHN 3, 4, 5, and 6, so that "
     "the AHN jobs can be run.",
-    selection=AssetSelection.assets(["ahn", "tile_index_ahn"])
+    selection=AssetSelection.assets(["ahn", "tile_index_ahn3"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn4"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn5"])
     | AssetSelection.assets(["ahn", "tile_index_ahn6"])
-    | AssetSelection.assets(["ahn", "sha256_ahn3"])
-    | AssetSelection.assets(["ahn", "sha256_ahn4"])
-    | AssetSelection.assets(["ahn", "sha256_ahn5"])
-    | AssetSelection.assets(["ahn", "sha256_ahn6"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn3"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn4"])
     | AssetSelection.assets(["ahn", "metadata_table_ahn5"])
@@ -123,10 +121,8 @@ job_integration_data = define_asset_job(
     | AssetSelection.assets(["top10nl", "extract_top10nl"])
     | AssetSelection.assets(["cbs", "extract_cbs_key_figures"])
     | AssetSelection.assets(["cbs", "extract_cbs_buurtkaart"])
-    | AssetSelection.assets(["ahn", "tile_index_ahn"])
-    | AssetSelection.assets(["ahn", "tile_index_ahn6"])
-    | AssetSelection.assets(["ahn", "sha256_ahn3"])
-    | AssetSelection.assets(["ahn", "sha256_ahn4"])
-    | AssetSelection.assets(["ahn", "sha256_ahn5"])
-    | AssetSelection.assets(["ahn", "sha256_ahn6"]),
+    | AssetSelection.assets(["ahn", "tile_index_ahn3"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn4"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn5"])
+    | AssetSelection.assets(["ahn", "tile_index_ahn6"]),
 )

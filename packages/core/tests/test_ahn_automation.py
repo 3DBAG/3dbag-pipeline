@@ -2,7 +2,7 @@
 
 Part 1: Automation condition tests
     Verify that the on_cron() conditions on AHN root assets fire at the right time.
-    - sha256_ahn3, sha256_ahn4, sha256_ahn5, tile_index_ahn: 0 0 1 * * (midnight on 1st)
+    - tile_index_ahn3/4/5/6: 0 0 1 * * (midnight on 1st)
     - metadata_table_ahn3/4/5: 0 0 9 * * (midnight on 9th)
 
 Part 2: Sensor tests
@@ -55,20 +55,20 @@ AFTER_CRON_1ST = datetime.datetime(2026, 2, 1, 0, 1, tzinfo=utc)
 AFTER_CRON_9TH = datetime.datetime(2026, 2, 9, 0, 1, tzinfo=utc)
 
 # Asset keys with "ahn" key prefix as applied by asset_groups
-KEY_SHA256_AHN3 = dg.AssetKey(["ahn", "sha256_ahn3"])
-KEY_SHA256_AHN4 = dg.AssetKey(["ahn", "sha256_ahn4"])
-KEY_SHA256_AHN5 = dg.AssetKey(["ahn", "sha256_ahn5"])
-KEY_TILE_INDEX_AHN = dg.AssetKey(["ahn", "tile_index_ahn"])
+KEY_TILE_INDEX_AHN3 = dg.AssetKey(["ahn", "tile_index_ahn3"])
+KEY_TILE_INDEX_AHN4 = dg.AssetKey(["ahn", "tile_index_ahn4"])
+KEY_TILE_INDEX_AHN5 = dg.AssetKey(["ahn", "tile_index_ahn5"])
+KEY_TILE_INDEX_AHN6 = dg.AssetKey(["ahn", "tile_index_ahn6"])
 KEY_METADATA_TABLE_AHN3 = dg.AssetKey(["ahn", "metadata_table_ahn3"])
 KEY_METADATA_TABLE_AHN4 = dg.AssetKey(["ahn", "metadata_table_ahn4"])
 KEY_METADATA_TABLE_AHN5 = dg.AssetKey(["ahn", "metadata_table_ahn5"])
 
 # All unpartitioned AHN root keys (for pre-materialization baseline)
 ALL_AHN_UNPARTITIONED_KEYS = [
-    KEY_SHA256_AHN3,
-    KEY_SHA256_AHN4,
-    KEY_SHA256_AHN5,
-    KEY_TILE_INDEX_AHN,
+    KEY_TILE_INDEX_AHN3,
+    KEY_TILE_INDEX_AHN4,
+    KEY_TILE_INDEX_AHN5,
+    KEY_TILE_INDEX_AHN6,
     KEY_METADATA_TABLE_AHN3,
     KEY_METADATA_TABLE_AHN4,
     KEY_METADATA_TABLE_AHN5,
@@ -131,10 +131,10 @@ def test_ahn_checksum_roots_not_requested_before_tick(instance):
         evaluation_time=BEFORE_CRON_1ST,
     )
     requested = _requested_keys(result)
-    assert KEY_SHA256_AHN3 not in requested
-    assert KEY_SHA256_AHN4 not in requested
-    assert KEY_SHA256_AHN5 not in requested
-    assert KEY_TILE_INDEX_AHN not in requested
+    assert KEY_TILE_INDEX_AHN3 not in requested
+    assert KEY_TILE_INDEX_AHN4 not in requested
+    assert KEY_TILE_INDEX_AHN5 not in requested
+    assert KEY_TILE_INDEX_AHN6 not in requested
 
 
 def test_ahn_checksum_roots_requested_after_tick(instance_ahn_materialized):
@@ -151,10 +151,10 @@ def test_ahn_checksum_roots_requested_after_tick(instance_ahn_materialized):
         cursor=cursor,
     )
     requested = _requested_keys(result)
-    assert KEY_SHA256_AHN3 in requested
-    assert KEY_SHA256_AHN4 in requested
-    assert KEY_SHA256_AHN5 in requested
-    assert KEY_TILE_INDEX_AHN in requested
+    assert KEY_TILE_INDEX_AHN3 in requested
+    assert KEY_TILE_INDEX_AHN4 in requested
+    assert KEY_TILE_INDEX_AHN5 in requested
+    assert KEY_TILE_INDEX_AHN6 in requested
 
 
 def test_ahn_metadata_tables_requested_after_cron_tick(instance_ahn_materialized):
@@ -182,32 +182,21 @@ def test_ahn_metadata_tables_requested_after_cron_tick(instance_ahn_materialized
 
 # Shared test data
 TILE_INDEX = {
-    "01cz1": {
-        "AHN3_LAZ": "https://example.com/C_01CZ1.LAZ",
-        "AHN4_LAZ": "https://example.com/C_01CZ1.LAZ",
-        "AHN5_LAZ": "https://example.com/C_01CZ1_AHN5.LAZ",
-    },
-    "50cn2": {
-        "AHN3_LAZ": "https://example.com/C_50CN2.LAZ",
-        "AHN4_LAZ": "https://example.com/C_50CN2.LAZ",
-        "AHN5_LAZ": "https://example.com/C_50CN2_AHN5.LAZ",
-    },
+    "01cz1": {"url": "https://example.com/C_01CZ1.LAZ", "sha256": "aaa111"},
+    "50cn2": {"url": "https://example.com/C_50CN2.LAZ", "sha256": "bbb222"},
+}
+TILE_INDEX_V2 = {
+    "01cz1": {"url": "https://example.com/C_01CZ1.LAZ", "sha256": "ccc333"},
+    "50cn2": {"url": "https://example.com/C_50CN2.LAZ", "sha256": "bbb222"},
 }
 
 CHECKSUMS_V1 = {"C_01CZ1.LAZ": "aaa111", "C_50CN2.LAZ": "bbb222"}
-CHECKSUMS_V2 = {"C_01CZ1.LAZ": "ccc333", "C_50CN2.LAZ": "bbb222"}  # 01cz1 changed
 
 
 def test_build_filename_to_tile_id():
     """_build_filename_to_tile_id maps filenames to tile IDs correctly."""
-    result = _build_filename_to_tile_id(TILE_INDEX, "AHN3_LAZ")
+    result = _build_filename_to_tile_id(TILE_INDEX, "url")
     assert result == {"C_01CZ1.LAZ": "01cz1", "C_50CN2.LAZ": "50cn2"}
-
-
-def test_build_filename_to_tile_id_ahn5():
-    """_build_filename_to_tile_id uses the AHN5-specific filenames."""
-    result = _build_filename_to_tile_id(TILE_INDEX, "AHN5_LAZ")
-    assert result == {"C_01CZ1_AHN5.LAZ": "01cz1", "C_50CN2_AHN5.LAZ": "50cn2"}
 
 
 def test_sensor_skips_when_no_materializations():
@@ -216,9 +205,9 @@ def test_sensor_skips_when_no_materializations():
     with dg.DagsterInstance.ephemeral() as inst:
         ctx = dg.build_multi_asset_sensor_context(
             monitored_assets=[
-                dg.AssetKey(["ahn", "sha256_ahn3"]),
-                dg.AssetKey(["ahn", "sha256_ahn4"]),
-                dg.AssetKey(["ahn", "sha256_ahn5"]),
+                dg.AssetKey(["ahn", "tile_index_ahn3"]),
+                dg.AssetKey(["ahn", "tile_index_ahn4"]),
+                dg.AssetKey(["ahn", "tile_index_ahn5"]),
             ],
             instance=inst,
             definitions=SENSOR_DEFS,
@@ -241,18 +230,17 @@ def test_sensor_establishes_baseline_on_first_run():
     sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
     with dg.DagsterInstance.ephemeral() as inst:
         inst.report_runless_asset_event(
-            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "sha256_ahn3"]))
+            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V1),
-            patch("bag3d.core.sensors.download_ahn_index", return_value=TILE_INDEX),
+            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
         ):
             # First run: no cursor → baseline establishment
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
-                    dg.AssetKey(["ahn", "sha256_ahn3"]),
-                    dg.AssetKey(["ahn", "sha256_ahn4"]),
-                    dg.AssetKey(["ahn", "sha256_ahn5"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn3"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn4"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn5"]),
                 ],
                 instance=inst,
                 definitions=SENSOR_DEFS,
@@ -269,17 +257,16 @@ def test_sensor_skips_when_checksums_unchanged():
     initial_cursor = json.dumps({"ahn3": CHECKSUMS_V1})
     with dg.DagsterInstance.ephemeral() as inst:
         inst.report_runless_asset_event(
-            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "sha256_ahn3"]))
+            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V1),
-            patch("bag3d.core.sensors.download_ahn_index", return_value=TILE_INDEX),
+            patch("bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
-                    dg.AssetKey(["ahn", "sha256_ahn3"]),
-                    dg.AssetKey(["ahn", "sha256_ahn4"]),
-                    dg.AssetKey(["ahn", "sha256_ahn5"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn3"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn4"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn5"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
@@ -294,24 +281,25 @@ def test_sensor_skips_when_checksums_unchanged():
 def test_sensor_triggers_only_changed_partitions():
     """Sensor emits a RunRequest only for tiles whose checksum changed.
 
-    CHECKSUMS_V2 has 01cz1 changed and 50cn2 unchanged, so exactly one
+    TILE_INDEX_V2 has 01cz1 changed and 50cn2 unchanged, so exactly one
     RunRequest should be emitted targeting partition '01cz1' on job 'ahn3'.
     """
     sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
     initial_cursor = json.dumps({"ahn3": CHECKSUMS_V1})
     with dg.DagsterInstance.ephemeral() as inst:
         inst.report_runless_asset_event(
-            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "sha256_ahn3"]))
+            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V2),
-            patch("bag3d.core.sensors.download_ahn_index", return_value=TILE_INDEX),
+            patch(
+                "bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2
+            ),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
-                    dg.AssetKey(["ahn", "sha256_ahn3"]),
-                    dg.AssetKey(["ahn", "sha256_ahn4"]),
-                    dg.AssetKey(["ahn", "sha256_ahn5"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn3"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn4"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn5"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
@@ -328,25 +316,26 @@ def test_sensor_triggers_only_changed_partitions():
 
 
 def test_sensor_triggers_multiple_versions_independently():
-    """When both sha256_ahn3 and sha256_ahn4 are materialized with changes, RunRequests are emitted for each."""
+    """When both tile_index_ahn3 and tile_index_ahn4 are materialized with changes, RunRequests are emitted for each."""
     sensor = ahn_checksum_sensor(dg.DefaultSensorStatus.STOPPED)
     initial_cursor = json.dumps({"ahn3": CHECKSUMS_V1, "ahn4": CHECKSUMS_V1})
     with dg.DagsterInstance.ephemeral() as inst:
         inst.report_runless_asset_event(
-            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "sha256_ahn3"]))
+            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn3"]))
         )
         inst.report_runless_asset_event(
-            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "sha256_ahn4"]))
+            dg.AssetMaterialization(asset_key=dg.AssetKey(["ahn", "tile_index_ahn4"]))
         )
         with (
-            patch("bag3d.core.sensors.get_checksums", return_value=CHECKSUMS_V2),
-            patch("bag3d.core.sensors.download_ahn_index", return_value=TILE_INDEX),
+            patch(
+                "bag3d.core.sensors.download_ahn_pc_index", return_value=TILE_INDEX_V2
+            ),
         ):
             ctx = dg.build_multi_asset_sensor_context(
                 monitored_assets=[
-                    dg.AssetKey(["ahn", "sha256_ahn3"]),
-                    dg.AssetKey(["ahn", "sha256_ahn4"]),
-                    dg.AssetKey(["ahn", "sha256_ahn5"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn3"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn4"]),
+                    dg.AssetKey(["ahn", "tile_index_ahn5"]),
                 ],
                 instance=inst,
                 cursor=initial_cursor,
