@@ -1,9 +1,12 @@
-from types import SimpleNamespace
 from unittest.mock import Mock
 from zipfile import ZipFile
 
 import pytest
-from bag3d.common.resources.executables import CommandResult
+from bag3d.common.resources.executables import (
+    CommandResult,
+    GDALResource,
+    LASToolsResource,
+)
 
 from bag3d.core.assets.integration_data import _validate_outputs, filter_bag_extract
 
@@ -108,15 +111,17 @@ def validate_pointclouds(tmp_path):
     for path, member in ((bgt, "bgt_pand.gml"), (top10nl, "top10nl_gebouw.gml")):
         with ZipFile(path, "w") as archive:
             archive.writestr(member, b"<root/>")
-    gdal = SimpleNamespace(
-        runner=Mock(run=Mock(return_value=CommandResult(0, "Extent: (1, 2) - (3, 4)")))
+    gdal = Mock(
+        spec=GDALResource,
+        runner=Mock(run=Mock(return_value=CommandResult(0, "Extent: (1, 2) - (3, 4)"))),
     )
-    lastools = SimpleNamespace(
+    lastools = Mock(
+        spec=LASToolsResource,
         runner=Mock(
             run=Mock(
                 return_value=CommandResult(0, "min x y z: 1 2 0\nmax x y z: 3 4 5\n")
             )
-        )
+        ),
     )
 
     def validate(roots):
