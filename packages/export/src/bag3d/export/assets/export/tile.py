@@ -87,7 +87,7 @@ def generate_tyler_config(
             data_format=data_format_temp_override, locations=(location,)
         )
         for a_name, a_spec in attributes:
-            cli_params.append(f"--object-attributes={a_name}:{a_spec.type.as_geof()}")
+            cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
     elif data_format == TylerOutputFormat.GPKG:
         output_dir = export_dir
         cli_params.extend(
