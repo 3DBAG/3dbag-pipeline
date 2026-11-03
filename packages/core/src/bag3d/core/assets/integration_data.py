@@ -249,14 +249,9 @@ def _filter_bag_member(
 
 
 def filter_bag_extract(
-    source: Path, destination: Path, geofilter: str = AOI_WKT
+    source: Path, destination: Path, shortdate: str, geofilter: str = AOI_WKT
 ) -> Path:
     aoi = _aoi_bbox(geofilter)
-    delivery = etree.parse(str(source / "Leveringsdocument-BAG-Extract.xml"))
-    date = delivery.find(".//{*}StandTechnischeDatum")
-    if date is None or not date.text:
-        raise ValueError("BAG delivery metadata has no StandTechnischeDatum")
-    shortdate = datetime.strptime(date.text.strip(), "%Y-%m-%d").strftime("%d%m%Y")
     destination.mkdir(parents=True, exist_ok=True)
     for source_file in source.iterdir():
         layer = _BAG_LAYER_NAME.fullmatch(source_file.name)
@@ -264,23 +259,10 @@ def filter_bag_extract(
             continue
         target = destination / source_file.name
         if source_file.is_dir():
-            # Parallel BAG staging expands layer archives and may remove the ZIP.
-            # Rebuild the archive expected by the fixture loader from those files.
-            archive_name = source_file.name + ".zip"
-            if (source / archive_name).is_file():
-                continue
-            copy_layer = re.search(r"(?:NUM|OPR|RELATIE)", source_file.name.upper())
-            with ZipFile(destination / archive_name, "w", ZIP_DEFLATED) as target_zip:
-                for member_path in source_file.rglob("*"):
-                    if not member_path.is_file():
-                        continue
-                    name = member_path.relative_to(source_file).as_posix()
-                    data = member_path.read_bytes()
-                    if not copy_layer:
-                        data = _filter_bag_member(data, aoi, name)
-                    if data is not None:
-                        target_zip.writestr(name, data)
-            continue
+            raise ValueError(
+                f"Expected BAG layer ZIPs, found directory {source_file}. "
+                "Rematerialize extract_bag to create an intact snapshot."
+            )
         if source_file.suffix.lower() != ".zip":
             shutil.copy2(source_file, target)
             continue
@@ -395,9 +377,9 @@ def integration_bag(
     integration_data_store: FileStoreResource,
     extract_bag,
 ) -> Path:
-    source = Path(extract_bag[0] if isinstance(extract_bag, tuple) else extract_bag)
+    source, _, shortdate = extract_bag
     return filter_bag_extract(
-        source, integration_data_store.path / "bag", config.geofilter
+        Path(source), integration_data_store.path / "bag", shortdate, config.geofilter
     )
 
 
