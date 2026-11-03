@@ -766,37 +766,40 @@ def _validate_outputs(
 
     pointcloud_extents: dict[str, list[float]] = {}
     lastools_runner = lastools.runner
-    for pointcloud_root in ahn_roots:
+    # AHN assets share a pointcloud root; overlapping roots and aliases may also
+    # refer to the same file. Keep the original path for manifest labels.
+    pointcloud_files: dict[Path, Path] = {}
+    for pointcloud_root in dict.fromkeys(ahn_roots):
         for path in sorted(pointcloud_root.rglob("*")):
-            if path.suffix.lower() not in {".las", ".laz"}:
-                continue
-            result = lastools_runner.run(
-                "{exe} -i '{local_path}'", exe_name="lasinfo", local_path=path
+            if path.suffix.lower() in {".las", ".laz"} and path.is_file():
+                pointcloud_files.setdefault(path.resolve(), path)
+    for path in sorted(pointcloud_files.values()):
+        result = lastools_runner.run(
+            "{exe} -i '{local_path}'", exe_name="lasinfo", local_path=path
+        )
+        if result.returncode != 0 or bool(
+            re.search(
+                r"(?im)^\s*(?:error|fatal|critical)\b",
+                result.stdout + result.stderr,
             )
-            if result.returncode != 0 or bool(
-                re.search(
-                    r"(?im)^\s*(?:error|fatal|critical)\b",
-                    result.stdout + result.stderr,
-                )
-            ):
-                raise RuntimeError(
-                    f"lasinfo failed for {path}: {result.stderr or result.stdout}"
-                )
-            las_output = result.stdout + result.stderr
-            bounds = {
-                kind: (float(x), float(y))
-                for kind, x, y in _LAS_BOUND.findall(las_output)
-            }
-            if set(bounds) != {"min", "max"}:
-                raise RuntimeError(f"lasinfo returned no complete XY bounds for {path}")
-            extent = (
-                bounds["min"][0],
-                bounds["min"][1],
-                bounds["max"][0],
-                bounds["max"][1],
+        ):
+            raise RuntimeError(
+                f"lasinfo failed for {path}: {result.stderr or result.stdout}"
             )
-            _validate_extent(extent, allowed, str(path.relative_to(root)))
-            pointcloud_extents[str(path.relative_to(root))] = list(extent)
+        las_output = result.stdout + result.stderr
+        bounds = {
+            kind: (float(x), float(y)) for kind, x, y in _LAS_BOUND.findall(las_output)
+        }
+        if set(bounds) != {"min", "max"}:
+            raise RuntimeError(f"lasinfo returned no complete XY bounds for {path}")
+        extent = (
+            bounds["min"][0],
+            bounds["min"][1],
+            bounds["max"][0],
+            bounds["max"][1],
+        )
+        _validate_extent(extent, allowed, str(path.relative_to(root)))
+        pointcloud_extents[str(path.relative_to(root))] = list(extent)
     return {
         "buffer_metres": BUFFER_METRES,
         "extents": {"vectors": vector_extents, "pointclouds": pointcloud_extents},
