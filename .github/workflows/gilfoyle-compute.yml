@@ -1,0 +1,78 @@
+name: Compute merged pipeline on Gilfoyle
+run-name: Gilfoyle computation for PR ${{ github.event.pull_request.number }} (${{ github.event.pull_request.merge_commit_sha }})
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions: {}
+
+jobs:
+  compute:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      # No PR checkout or execution: only its immutable merge SHA crosses the boundary.
+      - name: Dispatch and observe the exact admin run
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}
+          retries: 0
+          script: |
+            const owner = '3DBAG', repo = '3dbag-admin';
+            const sha = context.payload.pull_request.merge_commit_sha;
+            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Expected full merge commit SHA');
+            const headers = {'X-GitHub-Api-Version': '2026-03-10'};
+            // The API response identifies this dispatch; never guess from a run listing.
+            // Do not retry an ambiguous POST: it may already have started computation.
+            const response = await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
+              owner, repo, workflow_id: 'gilfoyle-feature.yml', ref: 'main',
+              inputs: {operation: 'deploy-and-run', pipeline_sha: sha}, headers
+            });
+            const run_id = response.data.workflow_run_id;
+            if (!Number.isSafeInteger(run_id) || run_id <= 0) {
+              throw new Error('Dispatch returned no run ID; result unresolved. Inspect admin Actions before retrying.');
+            }
+            const link = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
+            core.info(`Pipeline ${sha}: ${link}`);
+            await core.summary.addLink(`Admin run ${run_id} for ${sha}`, link).addEOL().write();
+            const deadline = Date.now() + 355 * 60 * 1000;
+            const previous = new Map();
+            function transition(key, state, url) {
+              if (previous.get(key) !== state) {
+                core.info(`${key}: ${state}${url ? ` — ${url}` : ''}`);
+                previous.set(key, state);
+              }
+            }
+            try {
+              while (Date.now() < deadline) {
+                const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers});
+                transition('Admin run', `${run.status} / ${run.conclusion || 'pending'}`, link);
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                  owner, repo, run_id, per_page: 100, headers
+                });
+                for (const job of jobs) {
+                  transition(`Job ${job.id} ${job.name}`, `${job.status} / ${job.conclusion || 'pending'}`, job.html_url);
+                  for (const step of job.steps || []) {
+                    transition(`Job ${job.id} step ${step.number} ${step.name}`,
+                      `${step.status} / ${step.conclusion || 'pending'}`, `${job.html_url}#step:${step.number}:1`);
+                  }
+                }
+                if (run.status === 'completed') {
+                  const result = `Admin result: ${run.conclusion}. ${link}`;
+                  await core.summary.addRaw(result).addEOL().write();
+                  if (run.conclusion !== 'success') {
+                    core.setFailed(result + (run.conclusion === 'cancelled' ? ' Pending request may have been superseded.' : ''));
+                  }
+                  return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 30000));
+              }
+              throw new Error('Observation timeout');
+            } catch (error) {
+              const message = `Remote result unresolved: ${error.message}. ${link}. Observation ended; computation may still be running. Inspect runner containers and Dagster runs before retrying.`;
+              await core.summary.addRaw(message).addEOL().write();
+              core.setFailed(message);
+            }
