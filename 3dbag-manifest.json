@@ -40,7 +40,7 @@
       "version": "develop",
       "image": {
         "repository": "docker.io/3dgi/roofer",
-        "digest": "sha256:3bcaf13a022b7e1208e1d4ac28db4403e985dad90971e2f838b38ac9d6f2949e"
+        "digest": "sha256:c60f1d2f8f27f7e18150389efe4a29aee0881a364381e11465f5d12714d06b8f"
       },
       "type": "docker",
       "display_name": "roofer",
