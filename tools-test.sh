@@ -88,9 +88,22 @@ check_exe_help() {
   fi
 }
 
+# check if proj is installed properly and if the proj.db layout is correct
+check_proj() {
+  version=$(bin/proj 2>&1 | sed -n 's/^Rel\. \([0-9.]*\).*/\1/p' | head -1)
+  bin/projinfo EPSG:28992 &> /dev/null
+  if [ $? -eq 0 ] ; then
+    printf "[${GREEN}OK${NC}].....proj (${version})\n"
+  else
+    printf "[${RED}FAIL${NC}]...proj (${version}: proj.db layout mismatch)\n"
+    all_ok=1
+  fi
+}
+
 check_exe "tyler"
 check_exe "tyler-db"
 check_exe "roofer"
+check_proj
 check_exe "ogr2ogr"
 check_exe "ogrinfo"
 check_exe "pdal"
