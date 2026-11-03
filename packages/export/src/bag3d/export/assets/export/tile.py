@@ -54,13 +54,8 @@ def generate_tyler_config(
     Raises:
         ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Ogc3dTilesLocation)`.
     """
-    # Tyler expects "3dtiles" for the OGC 3D Tiles format, while the rest of
-    # the pipeline uses "ogc3dtiles" (Python identifiers cannot start with a digit).
-    format_value = (
-        "3dtiles" if data_format == TylerOutputFormat.OGC3DTILES else data_format
-    )
     cli_params = [
-        f"--format={format_value}",
+        f"--format={data_format}",
         "--qtree-capacity=280000",
     ]
     output_dir = None
@@ -92,7 +87,7 @@ def generate_tyler_config(
             data_format=data_format_temp_override, locations=(location,)
         )
         for a_name, a_spec in attributes:
-            cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
+            cli_params.append(f"--object-attributes={a_name}:{a_spec.type.as_geof()}")
     elif data_format == TylerOutputFormat.GPKG:
         output_dir = export_dir
         cli_params.extend(
