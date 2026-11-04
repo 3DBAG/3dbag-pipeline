@@ -10,6 +10,8 @@ from bag3d.common.utils.database import (
 from bag3d.common.utils.geodata import ogr2postgres
 from dagster import AutomationCondition, Output, asset, get_dagster_logger
 
+from bag3d.core.fixture_contract import NATIVE_GML
+
 SCHEMA_STAGE = "stage_bgt"
 SCHEMA_PROD = "bgt"
 
@@ -22,7 +24,7 @@ def stage_bgt_pand(
 ) -> Output[PostgresTableIdentifier]:
     """The BGT Pand layer, loaded as-is from the extract."""
     create_schema(computation_db, SCHEMA_STAGE, logger=logger)
-    xsd = "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd"
+    xsd = NATIVE_GML["bgt"]["xsd"]
     new_table = PostgresTableIdentifier(SCHEMA_STAGE, "pand")
     # Need to explicitly drop the table just in case (...couz GDAL...)
     drop_table(computation_db, new_table, logger=logger)

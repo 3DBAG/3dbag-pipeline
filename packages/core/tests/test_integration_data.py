@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import Mock
 from zipfile import ZipFile
 
@@ -110,10 +111,16 @@ def validate_pointclouds(tmp_path):
     top10nl = tmp_path / "top10nl.zip"
     for path, member in ((bgt, "bgt_pand.gml"), (top10nl, "top10nl_gebouw.gml")):
         with ZipFile(path, "w") as archive:
-            archive.writestr(member, b"<root/>")
+            archive.writestr(
+                member, (Path(__file__).parent / "data" / member).read_bytes()
+            )
     gdal = Mock(
         spec=GDALResource,
-        runner=Mock(run=Mock(return_value=CommandResult(0, "Extent: (1, 2) - (3, 4)"))),
+        runner=Mock(
+            run=Mock(
+                return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)")
+            )
+        ),
     )
     lastools = Mock(
         spec=LASToolsResource,
@@ -254,6 +261,9 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         **kwargs,
     )
     manifest = json.loads(manifest_path.read_text())
+    assert manifest["fixture_version"] == "3"
+    assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
+    assert manifest["clipping"]["vectors"]["top10nl"] == "pdok_aoi_whole_objects"
     assert manifest["ahn"]["partitions"] == {**expected, "6": {}}
     for partitions in expected.values():
         entry = partitions["25gn1"]
@@ -261,3 +271,145 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
             "size": entry["size"],
             "sha256": entry["sha256"],
         }
+
+
+@pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
+def test_native_fixture_preserves_entire_archive(tmp_path, dataset):
+    from types import SimpleNamespace
+    from bag3d.core.assets import integration_data
+
+    member = f"{dataset}_{'pand' if dataset == 'bgt' else 'gebouw'}.gml"
+    xml = (Path(__file__).parent / "data" / member).read_bytes()
+    source = tmp_path / "source.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr(member, xml)
+        archive.writestr("original-schema.xsd", b"original companion schema")
+    destination = tmp_path / "fixture" / dataset / f"{dataset}.zip"
+    destination.parent.mkdir(parents=True)
+    destination.write_bytes(b"previous fixture")
+    fn = getattr(integration_data, f"integration_{dataset}").op.compute_fn.decorated_fn
+    output = fn(
+        integration_data_store=SimpleNamespace(path=tmp_path / "fixture"),
+        **{f"extract_{dataset}": source},
+    )
+    assert output == destination
+    assert destination.read_bytes() == source.read_bytes()
+    with ZipFile(destination) as archive:
+        assert archive.read(member) == xml
+        assert archive.read("original-schema.xsd") == b"original companion schema"
+
+
+def test_native_copy_failure_preserves_previous_fixture(tmp_path, monkeypatch):
+    from bag3d.core.assets import integration_data
+
+    source = tmp_path / "source.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr("bgt_pand.gml", b"original")
+    target = tmp_path / "fixture.zip"
+    target.write_bytes(b"previous")
+
+    def fail(source, destination):
+        destination.write_bytes(b"partial")
+        raise OSError("copy interrupted")
+
+    monkeypatch.setattr(integration_data.shutil, "copyfile", fail)
+    with pytest.raises(OSError, match="interrupted"):
+        integration_data._copy_native_gml_archive(source, target, "bgt")
+    assert target.read_bytes() == b"previous"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["fixture.zip", "source.zip"]
+
+
+@pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
+def test_native_geometry_validation_uses_loader_schema(tmp_path, dataset):
+    from bag3d.core.assets.integration_data import _native_gml_extents
+    from bag3d.core.fixture_contract import NATIVE_GML
+
+    spec = NATIVE_GML[dataset]
+    member = f"{dataset}_{spec['layer'].lower()}.gml"
+    source = tmp_path / f"{dataset}.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr(member, (Path(__file__).parent / "data" / member).read_bytes())
+    runner = Mock(
+        run=Mock(
+            return_value=CommandResult(
+                0,
+                "Extent (label): (0, 0) - (0, 0)\nExtent (geometrie2d): (121960, 485740) - (122020, 486020)",
+            )
+        )
+    )
+    extents = _native_gml_extents(source, dataset, Mock(runner=runner))
+    assert extents[-1] == (121960, 485740, 122020, 486020)
+    for call in runner.run.call_args_list:
+        assert call.kwargs["kwargs"]["xsd"] == spec["xsd"]
+        assert call.kwargs["local_path"] == source
+    if dataset == "bgt":
+        assert len(extents) == 1  # The label point must not determine AOI overlap.
+
+
+@pytest.mark.parametrize(
+    "case", ["generic", "missing", "nil", "empty", "gdal_error", "null_geometry"]
+)
+def test_native_geometry_validation_rejects_bad_fixtures(tmp_path, case):
+    from bag3d.core.assets.integration_data import _native_gml_extents
+    from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
+
+    data = Path(__file__).parent / "data" / "bgt_pand.gml"
+    root = etree.fromstring(data.read_bytes())
+    geometry = root.find(".//{*}geometrie2d")
+    if case == "generic":
+        root = etree.fromstring(b"<root><Pand><geometryProperty/></Pand></root>")
+    elif case == "missing":
+        geometry.getparent().remove(geometry)
+    elif case == "nil":
+        geometry.set("{http://www.w3.org/2001/XMLSchema-instance}nil", "true")
+    elif case == "empty":
+        geometry.clear()
+    source = tmp_path / "bgt.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr("bgt_pand.gml", etree.tostring(root))
+    runner = Mock(
+        run=Mock(return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)"))
+    )
+    if case == "gdal_error":
+        runner.run.return_value = CommandResult(0, "", "ERROR 1: Invalid geometry")
+    elif case == "null_geometry":
+        runner.run.side_effect = [
+            runner.run.return_value,
+            CommandResult(1, "", "Geometry field geometrie2d has a NULL content"),
+        ]
+    with pytest.raises((ValueError, RuntimeError)):
+        _native_gml_extents(source, "bgt", Mock(runner=runner))
+
+
+def test_integration_job_supplies_aoi_for_manual_and_scheduled_runs():
+    import dagster as dg
+    from bag3d.common.testing.mock_resources import MOCK_RESOURCES
+    from bag3d.core.code_location import all_assets
+    from bag3d.core.jobs import job_integration_data, job_bgt
+    from bag3d.core.schedules import integration_data_schedule
+    from bag3d.core.assets.integration_data import AOI_WKT
+
+    defs = dg.Definitions(
+        assets=all_assets,
+        jobs=[job_integration_data, job_bgt],
+        schedules=[integration_data_schedule],
+        resources=MOCK_RESOURCES,
+    )
+    job = defs.resolve_job_def("integration_data")
+    for config in ({}, {"ops": {"integration_bag": {"config": {"cbs_year": "2024"}}}}):
+        resolved = dg.validate_run_config(job, config)
+        for op in ("extract_bgt", "extract_top10nl"):
+            assert resolved["ops"][op]["config"]["geofilter"] == AOI_WKT
+    with dg.build_schedule_context(repository_def=defs.get_repository_def()) as context:
+        result = integration_data_schedule.evaluate_tick(context)
+        assert result.run_requests
+        request = result.run_requests[0]
+    resolved = dg.validate_run_config(job, request.run_config)
+    assert resolved["ops"]["extract_bgt"]["config"]["geofilter"] == AOI_WKT
+    assert resolved["ops"]["extract_top10nl"]["config"]["geofilter"] == AOI_WKT
+    assert (
+        dg.validate_run_config(defs.resolve_job_def("bgt"), {})["ops"]["extract_bgt"][
+            "config"
+        ]["geofilter"]
+        is None
+    )

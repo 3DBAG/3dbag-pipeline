@@ -20,6 +20,13 @@ from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
+from bag3d.core.fixture_contract import (
+    FIXTURE_VERSION,
+    NATIVE_GML,
+    VECTOR_PROCESSING,
+    validate_native_extent,
+)
+
 AOI_WKT = "POLYGON ((121967 485750, 123354 485750, 123354 486550, 121967 486550, 121967 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
     "121000_485000",
@@ -300,33 +307,96 @@ def _archive_layer(source: Path, names: tuple[str, ...]) -> str:
     raise FileNotFoundError(f"Archive {source} does not contain one of {names}")
 
 
-def _clip_gml_archive(
-    source: Path,
-    destination: Path,
-    layer_names: tuple[str, ...],
-    output_name: str,
-    geofilter: str,
-    gdal: GDALResource,
-) -> Path:
-    _aoi_bbox(geofilter)
-    member = _archive_layer(source, layer_names)
+def _copy_native_gml_archive(source: Path, destination: Path, dataset: str) -> Path:
+    """Publish the PDOK archive unchanged; objects are selected at download time."""
+    _archive_layer(source, (f"{dataset}_{NATIVE_GML[dataset]['layer'].lower()}.gml",))
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
-        output = Path(temp_dir) / output_name
-        result = gdal.runner.run(
-            "{exe} -f GML -clipsrc '{aoi}' '{output}' '{input_path}'",
-            exe_name="ogr2ogr",
-            kwargs={
-                "aoi": geofilter,
-                "output": output,
-                "input_path": f"/vsizip/{source}/{member}",
-            },
-        )
-        if not result.success or not output.is_file():
-            raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
-        with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
-            archive.write(output, output_name)
+        output = Path(temp_dir) / destination.name
+        shutil.copyfile(source, output)
+        output.replace(destination)
     return destination
+
+
+def _native_gml_extents(
+    source: Path, dataset: str, gdal: GDALResource
+) -> list[tuple[float, ...]]:
+    """Check native geometry properties, then read extents using the loader's XSD."""
+    spec = NATIVE_GML[dataset]
+    member = _archive_layer(source, (f"{dataset}_{spec['layer'].lower()}.gml",))
+    feature_tag = f"{{{spec['namespace']}}}{spec['layer']}"
+    geometry_tag = f"{{{spec['namespace']}}}{spec['geometry']}"
+    count = 0
+    with ZipFile(source) as archive, archive.open(member) as stream:
+        for _, feature in etree.iterparse(
+            stream,
+            events=("end",),
+            tag=feature_tag,
+            resolve_entities=False,
+            no_network=True,
+        ):
+            count += 1
+            geometry = feature.find(geometry_tag)
+            positions = (
+                []
+                if geometry is None
+                else list(geometry.iter("{*}pos", "{*}posList", "{*}coordinates"))
+            )
+            if (
+                geometry is None
+                or geometry.get("{http://www.w3.org/2001/XMLSchema-instance}nil")
+                in {"true", "1"}
+                or not any((position.text or "").strip() for position in positions)
+            ):
+                identifier = feature.get(
+                    "{http://www.opengis.net/gml}id"
+                ) or feature.get("{http://www.opengis.net/gml/3.2}id")
+                raise ValueError(
+                    f"Missing native {spec['geometry']} in {source}: {identifier}"
+                )
+            # Release completed feature members as well as their geometry trees.
+            parent = feature.getparent()
+            feature.clear()
+            while parent is not None and parent.getprevious() is not None:
+                del parent.getparent()[0]
+    if not count:
+        raise ValueError(
+            f"No native {spec['layer']} objects in {source}; rematerialize the AOI extract"
+        )
+    result = gdal.runner.run(
+        "{exe} -ro -so -oo WRITE_GFS=NO -oo XSD='{xsd}' '/vsizip/{local_path}/{member}' {layer}",
+        exe_name="ogrinfo",
+        local_path=source,
+        kwargs={"xsd": spec["xsd"], "member": member, "layer": spec["layer"]},
+    )
+    if _command_has_gdal_error(result):
+        raise RuntimeError(
+            f"ogrinfo failed for {source}: {result.stderr or result.stdout}"
+        )
+    if dataset == "bgt":
+        # PGDump enforces the XSD's NOT NULL geometry without touching a database.
+        check = gdal.runner.run(
+            "{exe} -f PGDump /vsistdout/ -oo WRITE_GFS=NO -oo XSD='{xsd}' '/vsizip/{local_path}/{member}' {layer}",
+            exe_name="ogr2ogr",
+            local_path=source,
+            kwargs={"xsd": spec["xsd"], "member": member, "layer": spec["layer"]},
+        )
+        if _command_has_gdal_error(check):
+            raise ValueError(
+                f"Unreadable native geometrie2d in {source}: {check.stderr or check.stdout}"
+            )
+    # BGT has nine label-point fields; only the footprint determines AOI overlap.
+    output = result.stdout
+    if dataset == "bgt":
+        output = "\n".join(
+            line
+            for line in output.splitlines()
+            if line.startswith("Extent (geometrie2d):")
+        )
+    extents = [tuple(float(v) for v in match) for match in _EXTENT.findall(output)]
+    if not extents:
+        raise ValueError(f"No native geometry extent for {source}")
+    return extents
 
 
 def _copy_download(url: str, target_dir: Path) -> Path:
@@ -389,18 +459,11 @@ def integration_bag(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bgt(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_bgt,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
-        Path(extract_bgt),
-        integration_data_store.path / "bgt" / "bgt.zip",
-        ("bgt_pand.gml",),
-        "bgt_pand.gml",
-        config.geofilter,
-        gdal,
+    return _copy_native_gml_archive(
+        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip", "bgt"
     )
 
 
@@ -410,18 +473,13 @@ def integration_bgt(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_top10nl(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_top10nl,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
+    return _copy_native_gml_archive(
         Path(extract_top10nl),
         integration_data_store.path / "top10nl" / "top10nl.zip",
-        ("top10nl_gebouw.gml",),
-        "top10nl_gebouw.gml",
-        config.geofilter,
-        gdal,
+        "top10nl",
     )
 
 
@@ -743,17 +801,10 @@ def _validate_outputs(
                 list(extent) for extent in extents
             ]
 
-    for archive, layer_names in (
-        (bgt, ("bgt_pand.gml",)),
-        (top10nl, ("top10nl_gebouw.gml",)),
-    ):
-        member = _archive_layer(archive, layer_names)
-        with ZipFile(archive) as source_zip:
-            data = source_zip.read(member)
-        extents = [
-            _validate_and_return(extent, allowed, f"{archive}!{member}")
-            for extent in _ogrinfo_xml(gdal_runner, data, member)
-        ]
+    for archive, dataset in ((bgt, "bgt"), (top10nl, "top10nl")):
+        extents = _native_gml_extents(archive, dataset, gdal)
+        for extent in extents:
+            validate_native_extent(extent, aoi, str(archive))
         vector_extents[str(archive.relative_to(root))] = [
             list(extent) for extent in extents
         ]
@@ -936,7 +987,7 @@ def integration_manifest(
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
     manifest = {
-        "fixture_version": "2",
+        "fixture_version": FIXTURE_VERSION,
         "date": datetime.now(tz=UTC).date().isoformat(),
         "aoi": {
             "wkt": AOI_WKT,
@@ -945,7 +996,7 @@ def integration_manifest(
             "maxx": aoi[2],
             "maxy": aoi[3],
         },
-        "clipping": {"vectors": "gdal", "pointclouds": "las2las_keep_xy"},
+        "clipping": {"vectors": VECTOR_PROCESSING, "pointclouds": "las2las_keep_xy"},
         "validation": validation,
         "sources": sources,
         "ahn": {

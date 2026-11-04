@@ -11,6 +11,8 @@ from bag3d.common.utils.geodata import ogr2postgres
 from dagster import AutomationCondition, Output, asset, get_dagster_logger
 from psycopg.sql import SQL, Identifier
 
+from bag3d.core.fixture_contract import NATIVE_GML
+
 logger = get_dagster_logger("top10nl.load")
 
 
@@ -21,7 +23,7 @@ def stage_top10nl_gebouw(
     """The TOP10NL Gebouw layer, loaded as-is from the extract."""
     new_schema = "stage_top10nl"
     create_schema(computation_db, new_schema, logger=logger)
-    xsd = "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd"
+    xsd = NATIVE_GML["top10nl"]["xsd"]
     new_table = PostgresTableIdentifier(new_schema, "gebouw")
     # Need to explicitly drop the table just in case (...couz GDAL...)
     drop_table(computation_db, new_table, logger=logger)
