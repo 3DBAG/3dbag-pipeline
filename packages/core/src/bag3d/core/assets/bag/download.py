@@ -1,8 +1,10 @@
+import tempfile
 import zipfile
 from copy import deepcopy
 from datetime import UTC, datetime
 from logging import Logger
 from typing import LiteralString
+from uuid import uuid4
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import GDALResource
@@ -29,6 +31,18 @@ from psycopg.sql import SQL, Identifier
 from pydantic import Field
 
 logger = get_dagster_logger("bag.download")
+
+
+def _extract_bag_snapshot(archive: Path, root: Path) -> tuple[Path, dict, str]:
+    """Publish a complete, isolated snapshot without changing earlier extracts."""
+    root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".extract-", dir=root) as staging:
+        extract = Path(staging) / "extract"
+        unzip(archive, extract, remove=False)
+        metadata, shortdate = bagextract_metadata(logger, extract)
+        snapshot = root / f"{shortdate}-{uuid4().hex}"
+        extract.rename(snapshot)
+    return snapshot, metadata, shortdate
 
 
 _EMPTY_BAG_COLUMNS: dict[str, tuple[tuple[LiteralString, LiteralString], ...]] = {
@@ -114,8 +128,8 @@ def extract_bag(file_store: FileStoreResource) -> Output[tuple[Path, dict, str]]
 
     Extract URL: https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip
 
-    The lvbag-extract-nl.zip is a nested zip, and it is uncompressed one level in the
-    `extract_dir` directory, yielding the following tree:
+    The lvbag-extract-nl.zip is a nested zip, and it is uncompressed one level into
+    a unique snapshot directory under `lvbag-extract`, yielding the following tree:
 
     ```
     .
@@ -134,17 +148,19 @@ def extract_bag(file_store: FileStoreResource) -> Output[tuple[Path, dict, str]]
     ```
     """
     extract_url = "https://service.pdok.nl/kadaster/adressen/atom/v1_0/downloads/lvbag-extract-nl.zip"
-    extract_zip = file_store.path / "lvbag-extract-nl.zip"
-    extract_dir = file_store.path / "lvbag-extract"
-    # chunk_size: https://stackoverflow.com/a/23397581
-    download_file(extract_url, extract_zip, chunk_size=1024 * 1024)
-    unzip(extract_zip, extract_dir)
+    with tempfile.TemporaryDirectory(
+        prefix="bag-download-", dir=file_store.path
+    ) as temp:
+        extract_zip = Path(temp) / "lvbag-extract-nl.zip"
+        download_file(extract_url, extract_zip, chunk_size=1024 * 1024)
+        extract_dir, metadata, shortdate = _extract_bag_snapshot(
+            extract_zip, file_store.path / "lvbag-extract"
+        )
 
     extract_dir_size = 0
     for child in extract_dir.iterdir():
         extract_dir_size += child.stat().st_size / 1e6
 
-    metadata, shortdate = bagextract_metadata(logger, extract_dir)
     meta_ext = deepcopy(metadata)
     meta_ext["Extract Size [Mb]"] = round(extract_dir_size, 2)
     return Output(
@@ -287,7 +303,6 @@ def stage_bag_layer(
     metadata: dict,
     shortdate: str,
     extract_dir: Path,
-    remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
 ):
@@ -301,7 +316,6 @@ def stage_bag_layer(
         layer=layer,
         shortdate=shortdate,
         new_table=new_table,
-        remove_zip=remove_zip,
         with_parallel=with_parallel,
         geofilter=geofilter,
     )
@@ -317,17 +331,14 @@ def load_bag_layer(
     layer: str,
     shortdate: str,
     new_table: PostgresTableIdentifier,
-    remove_zip: bool = True,
     with_parallel: bool = False,
     geofilter: str | None = None,
 ) -> bool:
     """Load a single LVBAG Extract 2.0 layer into a PostgreSQL table with ogr2ogr.
     This function expects that the LVBAG Extract is uncompressed one level deep, as it
     is done by `extract_bag()`.
-    This function then further uncompresses the archive of the specified layer and
-    optionally uses `GNU Parallel` with `ogr2ogr` to load each XML file of the layer.
-    If `remove_zip` is True, the uncompressed layer (directory with XML files) is
-    deleted after the import.
+    Parallel loading expands the layer in a temporary sibling directory and cleans
+    it up after loading, including on failure. The source snapshot is preserved.
 
     Requires:
     - gnu parallel (if `with_parallel` is True)
@@ -339,7 +350,6 @@ def load_bag_layer(
         layer: Name of the layer to load (e.g. `Pand`).
         shortdate: Date of the LVBAG Extract, as it is stored in the `StandTechnischeDatum` of the Extract metadata, for example `08102022`.
         new_table: Name of the target database table.
-        remove_zip: Whether to remove the zipfile or not.
         with_parallel: Use GNU Parallel with ogr2ogr for loading.
         geofilter: WKT of the polygonal extent. Will be converted to a BBOX.
 
@@ -375,49 +385,59 @@ def load_bag_layer(
 
     # Create the ogr2ogr command. The order of parameters is important!
     if with_parallel:
-        # Decompress the layer archive
-        layer_zip = Path(f"{extract_dir}/9999{layer_id}{shortdate}.zip")
-        layer_dir = Path(f"{extract_dir}/9999{layer_id}{shortdate}")
-        unzip(layer_zip, layer_dir, remove=remove_zip)
-        # Create an empty layer for appending
-        cmd = [
-            "{exe}",
-            "-limit 0",
-            "-overwrite",
-            "-nln {new_table}",
-            "-lco UNLOGGED=ON",
-            "-lco SPATIAL_INDEX=NONE",
-        ]
-        cmd.append("-f PostgreSQL PG:'{dsn}'")
-        cmd.append(str(layer_dir))
-        cmd = " ".join(cmd)
-        result = gdal.runner.run(
-            cmd,
-            exe_name="ogr2ogr",
-            kwargs=kwargs,
-            local_path=extract_dir,
-            logger=logger,
-        )
-        if not result.success:
-            return False
-        # Parallel insert
-        cmd = [
-            'parallel --jobs 50% "{exe}',
-            "--config PG_USE_COPY=YES",
-            "-append",
-            "-nln {new_table}",
-            "-lco UNLOGGED=ON",
-            "-lco SPATIAL_INDEX=NONE",
-        ]
-        if geofilter:
-            bbox = bbox_from_wkt(geofilter)
-            if bbox is not None:
-                cmd.append("-spat {bbox}")
-                kwargs["bbox"] = " ".join(map(str, bbox))
-        cmd.append("-f PostgreSQL PG:'{dsn}'")
-        cmd.append('{{}}"')
-        cmd.append(f"::: {layer_dir}/*.xml")
-        cmd = " ".join(cmd)
+        with tempfile.TemporaryDirectory(
+            prefix=f"bag-stage-{layer_id}-", dir=extract_dir.parent
+        ) as staging:
+            # Decompress the layer archive
+            layer_dir = Path(staging)
+            unzip(layer_zip, layer_dir, remove=False)
+            # Create an empty layer for appending
+            cmd = [
+                "{exe}",
+                "-limit 0",
+                "-overwrite",
+                "-nln {new_table}",
+                "-lco UNLOGGED=ON",
+                "-lco SPATIAL_INDEX=NONE",
+            ]
+            cmd.append("-f PostgreSQL PG:'{dsn}'")
+            cmd.append("'{local_path}'")
+            cmd = " ".join(cmd)
+            result = gdal.runner.run(
+                cmd,
+                exe_name="ogr2ogr",
+                kwargs=kwargs,
+                local_path=layer_dir,
+                logger=logger,
+            )
+            if not result.success:
+                return False
+            # Parallel insert
+            cmd = [
+                'parallel --jobs 50% "{exe}',
+                "--config PG_USE_COPY=YES",
+                "-append",
+                "-nln {new_table}",
+                "-lco UNLOGGED=ON",
+                "-lco SPATIAL_INDEX=NONE",
+            ]
+            if geofilter:
+                bbox = bbox_from_wkt(geofilter)
+                if bbox is not None:
+                    cmd.append("-spat {bbox}")
+                    kwargs["bbox"] = " ".join(map(str, bbox))
+            cmd.append("-f PostgreSQL PG:'{dsn}'")
+            cmd.append('{{}}"')
+            cmd.append("::: '{local_path}'/*.xml")
+            cmd = " ".join(cmd)
+            result = gdal.runner.run(
+                cmd,
+                exe_name="ogr2ogr",
+                kwargs=kwargs,
+                local_path=layer_dir,
+                logger=logger,
+            )
+            return result.success
     else:
         if geofilter is not None:
             logger.error(

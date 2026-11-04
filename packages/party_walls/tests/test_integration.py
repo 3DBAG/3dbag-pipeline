@@ -15,6 +15,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from bag3d.common.resources.cjindex import CityIndexResource
+from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.testing import build_asset_context_for
+
 # ---------------------------------------------------------------------------
 # Detect whether the real building_surfaces library is installed.
 #
@@ -39,14 +43,13 @@ try:
 except ImportError:
     _HAS_BUILDING_SURFACES = False
 
-pytestmark = pytest.mark.skipif(
-    not _HAS_BUILDING_SURFACES, reason="building_surfaces not installed"
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not _HAS_BUILDING_SURFACES, reason="building_surfaces not installed"
+    ),
+]
 
-# Common imports that don't depend on building_surfaces
-from bag3d.common.resources.cjindex import CityIndexResource
-from bag3d.common.resources.files import FileStoreResource
-from bag3d.common.testing import build_asset_context_for
 
 # ---------------------------------------------------------------------------
 # Test data paths
