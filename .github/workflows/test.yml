@@ -1,0 +1,46 @@
+# Run all six offline package suites on PRs and branch pushes; retain coverage without PR write access.
+name: Test Unit
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop, master]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: '3.12'
+    - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
+    - name: Run tests with coverage
+      run: make test_coverage
+    - name: Generate coverage JSON
+      if: always()
+      run: |
+        for pkg in common core export floors_estimation party_walls terrain; do
+          uv --project packages/$pkg run --locked coverage json \
+            --data-file=.coverage.$pkg -o .coverage.$pkg.json
+        done
+    - name: Generate Markdown summary
+      if: always()
+      run: python3 scripts/coverage_report_md.py > coverage-report.md
+    - name: Add to job summary
+      if: always()
+      run: cat coverage-report.md >> "$GITHUB_STEP_SUMMARY"
+    - name: Upload coverage
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: coverage
+        include-hidden-files: true
+        path: |
+          coverage-report.md
+          .coverage.*

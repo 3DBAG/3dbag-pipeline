@@ -1,0 +1,67 @@
+# Manually release master after manifest/changelog validation; DEPLOY_KEY tag pushes trigger image publication.
+name: Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    name: Release master and open merge-back PR
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86
+      - name: Validate manifest metadata and changelog before mutations
+        id: manifest
+        run: |
+          set -euo pipefail
+          python3 scripts/manifest_versions.py check
+          version=$(python3 scripts/manifest_versions.py value pipeline)
+          python3 .github/scripts/parse_changelog.py "$version"
+          test -s RELEASE_NOTES.md
+          echo "VERSION=$version" >> "$GITHUB_OUTPUT"
+      - name: Push immutable release tag
+        env:
+          VERSION: ${{ steps.manifest.outputs.VERSION }}
+        run: |
+          set -euo pipefail
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.name 'github-actions[bot]'
+          if git rev-parse "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            test "$(git rev-parse "v$VERSION^{commit}")" = "$(git rev-parse HEAD)"
+          else
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+          fi
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        with:
+          tag_name: v${{ steps.manifest.outputs.VERSION }}
+          name: 3DBAG ${{ steps.manifest.outputs.VERSION }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+      - name: Create or reuse master to develop PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.manifest.outputs.VERSION }}
+        run: |
+          set -euo pipefail
+          pr=$(gh pr list --base develop --head master --state open --json number --jq '.[0].number // empty')
+          if test -z "$pr"; then
+            gh pr create --base develop --head master \
+              --title "Merge release $VERSION back to develop" --body-file RELEASE_NOTES.md
+          else
+            gh pr edit "$pr" --body-file RELEASE_NOTES.md
+          fi

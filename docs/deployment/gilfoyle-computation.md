@@ -1,6 +1,6 @@
 # Merged PR computation
 
-`.github/workflows/gilfoyle-compute.yml` dispatches admin's Gilfoyle workflow when
+`.github/workflows/integration.yml` dispatches admin's Gilfoyle workflow when
 a PR targeting `develop` closes as merged. It uses that PR's exact merge commit
 SHA. Direct pushes do not trigger it. Orchestration runs on a GitHub-hosted runner;
 admin executes through Kaiju and the existing Gilfoyle deployment account.

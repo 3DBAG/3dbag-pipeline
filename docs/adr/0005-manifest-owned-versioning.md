@@ -144,6 +144,6 @@ Rejected because they produce deployments that cannot be reconstructed from repo
 | makefile                                    | Manifest-derived Compose environment and sync/check integration                 |
 | docker/tools/Dockerfile                     | Immutable external-tool build arguments                                         |
 | docker/compose.yaml                         | Manifest-derived pipeline image names and tools base reference                  |
-| .github/workflows/build-docker-develop.yaml | Release-tagged pipeline image publishing                                        |
-| .github/workflows/build-docker-tools.yaml   | Independently versioned tools image publishing                                  |
-| .github/workflows/release.yaml              | Metadata synchronization and manifest-matching Git release                      |
+| .github/workflows/publish-images.yml | Release-tagged pipeline image publishing                                        |
+| .github/workflows/publish-tools.yml   | Independently versioned tools image publishing                                  |
+| .github/workflows/release.yml              | Metadata synchronization and manifest-matching Git release                      |

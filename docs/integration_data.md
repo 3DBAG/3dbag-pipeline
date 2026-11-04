@@ -1,6 +1,6 @@
 # Gilfoyle merged-PR computation
 
-A PR merged into `develop` triggers `.github/workflows/gilfoyle-compute.yml`.
+A PR merged into `develop` triggers `.github/workflows/integration.yml`.
 It dispatches the immutable merge SHA to admin's Gilfoyle workflow and observes
 the exact admin run ID returned by GitHub. The source workflow succeeds only
 when deployment, the complete computation through export, and scoped cleanup
