@@ -1,5 +1,11 @@
+from pathlib import Path
+
+import pytest
+from pgutils import PostgresTableIdentifier
+
 from bag3d.common.utils.geodata import (
     geojson_poly_to_wkt,
+    ogr2postgres,
     parse_ogrinfo,
 )
 
@@ -113,3 +119,63 @@ def test_geojson_poly_to_wkt():
         wkt
         == "POLYGON((45000 387500,45000 393750,50000 393750,50000 387500,45000 387500))"
     )
+
+
+class _FakeConnection:
+    dsn = "host=localhost dbname=test"
+
+
+class _FakeComputationDb:
+    connection = _FakeConnection()
+
+
+class _FakeOgrResult:
+    def __init__(self, success, stderr="", stdout=""):
+        self.success = success
+        self.stderr = stderr
+        self.stdout = stdout
+
+
+class _FakeOgrRunner:
+    def __init__(self, success, stderr="", stdout=""):
+        self._result = _FakeOgrResult(success, stderr, stdout)
+        self.command = None
+        self.kwargs = None
+
+    def run(self, command, *, exe_name=None, kwargs=None, local_path=None, logger=None):
+        self.command = command
+        self.kwargs = kwargs
+        return self._result
+
+
+def test_ogr2postgres_raises_on_failure():
+    runner = _FakeOgrRunner(False, stderr="null value in column ...")
+    with pytest.raises(RuntimeError, match="ogr2ogr failed"):
+        ogr2postgres(
+            gdal_runner=runner,  # type: ignore[arg-type]
+            dataset="bgt",
+            extract_path=Path("/tmp/extract"),
+            feature_type="pand",
+            xsd="http://example.com/test.xsd",
+            new_table=PostgresTableIdentifier("stage_bgt", "pand"),
+            computation_db=_FakeComputationDb(),  # type: ignore[arg-type]
+            where="geometrie2d IS NOT NULL",
+        )
+    assert runner.kwargs is not None
+    assert runner.kwargs["where_clause"] == '-where "geometrie2d IS NOT NULL" '
+
+
+def test_ogr2postgres_no_where_clause():
+    runner = _FakeOgrRunner(False, stderr="boom")
+    with pytest.raises(RuntimeError, match="ogr2ogr failed"):
+        ogr2postgres(
+            gdal_runner=runner,  # type: ignore[arg-type]
+            dataset="bgt",
+            extract_path=Path("/tmp/extract"),
+            feature_type="pand",
+            xsd="http://example.com/test.xsd",
+            new_table=PostgresTableIdentifier("stage_bgt", "pand"),
+            computation_db=_FakeComputationDb(),  # type: ignore[arg-type]
+        )
+    assert runner.kwargs is not None
+    assert runner.kwargs["where_clause"] == ""
