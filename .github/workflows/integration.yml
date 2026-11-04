@@ -1,7 +1,14 @@
-name: Compute merged pipeline on Gilfoyle
-run-name: Gilfoyle computation for PR ${{ github.event.pull_request.number }} (${{ github.event.pull_request.merge_commit_sha }})
+# Dispatch immutable merged or manually supplied SHAs to trusted admin main; observe only the returned run ID, with no computation retry.
+name: Integration tests
+run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.pull_request.merge_commit_sha }}
 
 on:
+  workflow_dispatch:
+    inputs:
+      pipeline_sha:
+        description: Full pipeline SHA reachable from develop
+        required: true
+        type: string
   pull_request:
     types: [closed]
     branches: [develop]
@@ -10,25 +17,27 @@ permissions: {}
 
 jobs:
   compute:
-    if: github.event.pull_request.merged == true
+    name: Fixture-backed dev computation
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       # No PR checkout or execution: only its immutable merge SHA crosses the boundary.
       - name: Dispatch and observe the exact admin run
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}
           retries: 0
           script: |
             const owner = '3DBAG', repo = '3dbag-admin';
-            const sha = context.payload.pull_request.merge_commit_sha;
-            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Expected full merge commit SHA');
+            const sha = context.eventName === 'workflow_dispatch'
+              ? context.payload.inputs.pipeline_sha : context.payload.pull_request.merge_commit_sha;
+            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Expected full pipeline SHA');
             const headers = {'X-GitHub-Api-Version': '2026-03-10'};
             // The API response identifies this dispatch; never guess from a run listing.
             // Do not retry an ambiguous POST: it may already have started computation.
             const response = await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
-              owner, repo, workflow_id: 'gilfoyle-feature.yml', ref: 'main',
+              owner, repo, workflow_id: 'pipeline-dev.yml', ref: 'main',
               inputs: {operation: 'deploy-and-run', pipeline_sha: sha}, headers
             });
             const run_id = response.data.workflow_run_id;
