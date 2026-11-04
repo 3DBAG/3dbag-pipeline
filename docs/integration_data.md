@@ -66,10 +66,9 @@ extraction configuration. The supported snapshot AOI remains the fixed `AOI_WKT`
 
 Version 3 snapshots copy the PDOK BGT and TOP10NL ZIPs unchanged. PDOK selects
 whole objects using the AOI; no local clipping or GML rewriting occurs. Building
-footprints can extend outside the AOI plus 10 m. Validation checks native
-geometry and AOI overlap using the production XSDs, while BAG, CBS and point
-clouds retain the existing containment checks. TOP10NL point buildings remain
-supported. Version 2 snapshots retain their original validation contract.
+footprints can extend outside the AOI plus 10 m. Validation uses generic GDAL extents, checks finite and ordered bounds,
+and requires each dataset’s combined extent to overlap the AOI. BAG, CBS and
+point clouds retain the existing containment checks. Version 2 snapshots retain their original validation contract.
 
 Upgrade pipeline, ctl and admin consumers before switching to a version 3
 snapshot. Regenerate the extracts with the job's AOI defaults and rebuild the
@@ -78,12 +77,3 @@ relabelled as version 3. Validate the replacement snapshot in an isolated
 deployment before switching consumers, retaining the previous snapshot for
 rollback. Failed GDAL imports now fail the staging asset instead of returning
 success with missing metadata.
-
-The native GML/PostGIS regression test requires `BAG3D_TEST_GDAL_BIN` (the
-directory containing `ogrinfo`, `ogr2ogr`, and `sozip`) and
-`BAG3D_TEST_POSTGRES_DSN` pointing to a disposable PostGIS database. It replaces
-staging/output tables in that database. Run it with:
-
-```sh
-packages/core/.venv/bin/python -m pytest packages/core/tests/test_native_gml_postgis.py
-```

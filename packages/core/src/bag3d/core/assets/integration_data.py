@@ -22,9 +22,8 @@ from pydantic import Field
 
 from bag3d.core.fixture_contract import (
     FIXTURE_VERSION,
-    NATIVE_GML,
     VECTOR_PROCESSING,
-    validate_native_extent,
+    validate_dataset_extents,
 )
 
 AOI_WKT = "POLYGON ((121967 485750, 123354 485750, 123354 486550, 121967 486550, 121967 485750))"
@@ -295,108 +294,14 @@ def filter_bag_extract(
     return destination
 
 
-def _archive_layer(source: Path, names: tuple[str, ...]) -> str:
-    with ZipFile(source) as archive:
-        members = archive.namelist()
-    for wanted in names:
-        for member in members:
-            if member.lower() == wanted.lower() or member.lower().endswith(
-                wanted.lower()
-            ):
-                return member
-    raise FileNotFoundError(f"Archive {source} does not contain one of {names}")
-
-
-def _copy_native_gml_archive(source: Path, destination: Path, dataset: str) -> Path:
+def _copy_archive(source: Path, destination: Path) -> Path:
     """Publish the PDOK archive unchanged; objects are selected at download time."""
-    _archive_layer(source, (f"{dataset}_{NATIVE_GML[dataset]['layer'].lower()}.gml",))
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
         output = Path(temp_dir) / destination.name
         shutil.copyfile(source, output)
         output.replace(destination)
     return destination
-
-
-def _native_gml_extents(
-    source: Path, dataset: str, gdal: GDALResource
-) -> list[tuple[float, ...]]:
-    """Check native geometry properties, then read extents using the loader's XSD."""
-    spec = NATIVE_GML[dataset]
-    member = _archive_layer(source, (f"{dataset}_{spec['layer'].lower()}.gml",))
-    feature_tag = f"{{{spec['namespace']}}}{spec['layer']}"
-    geometry_tag = f"{{{spec['namespace']}}}{spec['geometry']}"
-    count = 0
-    with ZipFile(source) as archive, archive.open(member) as stream:
-        for _, feature in etree.iterparse(
-            stream,
-            events=("end",),
-            tag=feature_tag,
-            resolve_entities=False,
-            no_network=True,
-        ):
-            count += 1
-            geometry = feature.find(geometry_tag)
-            positions = (
-                []
-                if geometry is None
-                else list(geometry.iter("{*}pos", "{*}posList", "{*}coordinates"))
-            )
-            if (
-                geometry is None
-                or geometry.get("{http://www.w3.org/2001/XMLSchema-instance}nil")
-                in {"true", "1"}
-                or not any((position.text or "").strip() for position in positions)
-            ):
-                identifier = feature.get(
-                    "{http://www.opengis.net/gml}id"
-                ) or feature.get("{http://www.opengis.net/gml/3.2}id")
-                raise ValueError(
-                    f"Missing native {spec['geometry']} in {source}: {identifier}"
-                )
-            # Release completed feature members as well as their geometry trees.
-            parent = feature.getparent()
-            feature.clear()
-            while parent is not None and parent.getprevious() is not None:
-                del parent.getparent()[0]
-    if not count:
-        raise ValueError(
-            f"No native {spec['layer']} objects in {source}; rematerialize the AOI extract"
-        )
-    result = gdal.runner.run(
-        "{exe} -ro -so -oo WRITE_GFS=NO -oo XSD='{xsd}' '/vsizip/{local_path}/{member}' {layer}",
-        exe_name="ogrinfo",
-        local_path=source,
-        kwargs={"xsd": spec["xsd"], "member": member, "layer": spec["layer"]},
-    )
-    if _command_has_gdal_error(result):
-        raise RuntimeError(
-            f"ogrinfo failed for {source}: {result.stderr or result.stdout}"
-        )
-    if dataset == "bgt":
-        # PGDump enforces the XSD's NOT NULL geometry without touching a database.
-        check = gdal.runner.run(
-            "{exe} -f PGDump /vsistdout/ -oo WRITE_GFS=NO -oo XSD='{xsd}' '/vsizip/{local_path}/{member}' {layer}",
-            exe_name="ogr2ogr",
-            local_path=source,
-            kwargs={"xsd": spec["xsd"], "member": member, "layer": spec["layer"]},
-        )
-        if _command_has_gdal_error(check):
-            raise ValueError(
-                f"Unreadable native geometrie2d in {source}: {check.stderr or check.stdout}"
-            )
-    # BGT has nine label-point fields; only the footprint determines AOI overlap.
-    output = result.stdout
-    if dataset == "bgt":
-        output = "\n".join(
-            line
-            for line in output.splitlines()
-            if line.startswith("Extent (geometrie2d):")
-        )
-    extents = [tuple(float(v) for v in match) for match in _EXTENT.findall(output)]
-    if not extents:
-        raise ValueError(f"No native geometry extent for {source}")
-    return extents
 
 
 def _copy_download(url: str, target_dir: Path) -> Path:
@@ -462,8 +367,8 @@ def integration_bgt(
     integration_data_store: FileStoreResource,
     extract_bgt,
 ) -> Path:
-    return _copy_native_gml_archive(
-        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip", "bgt"
+    return _copy_archive(
+        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip"
     )
 
 
@@ -476,10 +381,9 @@ def integration_top10nl(
     integration_data_store: FileStoreResource,
     extract_top10nl,
 ) -> Path:
-    return _copy_native_gml_archive(
+    return _copy_archive(
         Path(extract_top10nl),
         integration_data_store.path / "top10nl" / "top10nl.zip",
-        "top10nl",
     )
 
 
@@ -801,10 +705,9 @@ def _validate_outputs(
                 list(extent) for extent in extents
             ]
 
-    for archive, dataset in ((bgt, "bgt"), (top10nl, "top10nl")):
-        extents = _native_gml_extents(archive, dataset, gdal)
-        for extent in extents:
-            validate_native_extent(extent, aoi, str(archive))
+    for archive in (bgt, top10nl):
+        extents = _ogrinfo_extents(gdal_runner, archive)
+        validate_dataset_extents(extents, aoi, str(archive))
         vector_extents[str(archive.relative_to(root))] = [
             list(extent) for extent in extents
         ]

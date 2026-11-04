@@ -18,7 +18,7 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload, LAZDownload
 
-from bag3d.core.fixture_contract import VECTOR_PROCESSING, validate_native_extent
+from bag3d.core.fixture_contract import VECTOR_PROCESSING, validate_dataset_extents
 
 
 @dataclass(frozen=True)
@@ -135,24 +135,19 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                 raise ValueError("Native source paths must be distinct")
             native_paths.add(relative)
             if not extents["vectors"].get(relative):
-                raise ValueError(f"Missing native geometry extent for {dataset}")
+                raise ValueError(f"Missing dataset extent for {dataset}")
     for category in ("vectors", "pointclouds"):
         for name, values in extents[category].items():
             if not isinstance(name, str) or not isinstance(values, list):
                 raise TypeError("Invalid computed extent metadata")
             values_to_check = values if category == "vectors" else [values]
+            dataset_extents = []
             for extent in values_to_check:
                 if not isinstance(extent, list) or len(extent) != 4:
                     raise ValueError(f"Invalid computed extent metadata for {name}")
                 extent_values = tuple(float(value) for value in extent)
                 if category == "vectors" and name in native_paths:
-                    validate_native_extent(
-                        extent_values,
-                        tuple(
-                            float(aoi[key]) for key in ("minx", "miny", "maxx", "maxy")
-                        ),
-                        name,
-                    )
+                    dataset_extents.append(extent_values)
                     continue
                 if not (
                     bounds[0] <= extent_values[0]
@@ -163,6 +158,12 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                     raise ValueError(
                         f"Computed extent for {name} exceeds the AOI plus 10 m"
                     )
+            if category == "vectors" and name in native_paths:
+                validate_dataset_extents(
+                    dataset_extents,
+                    tuple(float(aoi[key]) for key in ("minx", "miny", "maxx", "maxy")),
+                    name,
+                )
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):

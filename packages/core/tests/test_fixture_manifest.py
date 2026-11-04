@@ -118,7 +118,7 @@ def test_v3_native_extent_follows_declared_source_path(tmp_path):
     del m["validation"]["extents"]["vectors"]["bgt"]
     validate(tmp_path, m)
     m["validation"]["extents"]["vectors"]["native.zip"] = []
-    with pytest.raises(ValueError, match="Missing native geometry extent"):
+    with pytest.raises(ValueError, match="Missing dataset extent"):
         validate(tmp_path, m)
 
 
@@ -126,4 +126,15 @@ def test_v3_rejects_legacy_processing_metadata(tmp_path):
     m = snapshot(tmp_path, "3")
     m["clipping"]["vectors"] = "gdal"
     with pytest.raises(ValueError, match="unsupported clipping"):
+        validate(tmp_path, m)
+
+
+@pytest.mark.parametrize("source", ["bgt", "top10nl"])
+def test_v3_checks_combined_dataset_extent(tmp_path, source):
+    m = snapshot(tmp_path, "3")
+    extents: list[list[float]] = [[-100, -100, -50, -50], [50, 50, 100, 100]]
+    m["validation"]["extents"]["vectors"][source] = extents
+    validate(tmp_path, m)
+    extents.append([float("nan"), 1, 2, 3])
+    with pytest.raises(ValueError, match="Invalid computed extent"):
         validate(tmp_path, m)
