@@ -18,7 +18,7 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload, LAZDownload
 
-FIXTURE_VERSION = "2"
+from bag3d.core.fixture_contract import VECTOR_PROCESSING, validate_dataset_extents
 
 
 @dataclass(frozen=True)
@@ -85,9 +85,10 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         raise ValueError(f"Invalid integration-data manifest: {path}") from exc
     if not isinstance(manifest, Mapping):
         raise TypeError("Integration-data manifest must contain a JSON object")
-    if str(manifest.get("fixture_version")) != FIXTURE_VERSION:
+    version = str(manifest.get("fixture_version"))
+    if version not in {"2", "3"}:
         raise ValueError(
-            f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected {FIXTURE_VERSION!r}"
+            f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected 2 or 3"
         )
     aoi = manifest.get("aoi")
     expected_aoi = {"wkt", "minx", "miny", "maxx", "maxy"}
@@ -96,7 +97,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     clipping = manifest.get("clipping")
     if (
         not isinstance(clipping, Mapping)
-        or clipping.get("vectors") != "gdal"
+        or clipping.get("vectors") != ("gdal" if version == "2" else VECTOR_PROCESSING)
         or clipping.get("pointclouds") != "las2las_keep_xy"
     ):
         raise ValueError("Integration-data manifest has unsupported clipping metadata")
@@ -118,15 +119,36 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         float(aoi["maxx"]) + 10.0,
         float(aoi["maxy"]) + 10.0,
     )
+    native_paths = set()
+    if version == "3":
+        sources = manifest.get("sources")
+        if not isinstance(sources, Mapping):
+            raise TypeError("Integration-data manifest is missing sources")
+        for dataset in ("bgt", "top10nl"):
+            source = sources.get(dataset)
+            if not isinstance(source, Mapping) or not isinstance(
+                source.get("path"), str
+            ):
+                raise ValueError(f"Missing native source path for {dataset}")
+            relative = source["path"]
+            if relative in native_paths:
+                raise ValueError("Native source paths must be distinct")
+            native_paths.add(relative)
+            if not extents["vectors"].get(relative):
+                raise ValueError(f"Missing dataset extent for {dataset}")
     for category in ("vectors", "pointclouds"):
         for name, values in extents[category].items():
             if not isinstance(name, str) or not isinstance(values, list):
                 raise TypeError("Invalid computed extent metadata")
             values_to_check = values if category == "vectors" else [values]
+            dataset_extents = []
             for extent in values_to_check:
                 if not isinstance(extent, list) or len(extent) != 4:
                     raise ValueError(f"Invalid computed extent metadata for {name}")
                 extent_values = tuple(float(value) for value in extent)
+                if category == "vectors" and name in native_paths:
+                    dataset_extents.append(extent_values)
+                    continue
                 if not (
                     bounds[0] <= extent_values[0]
                     and bounds[1] <= extent_values[1]
@@ -136,6 +158,12 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                     raise ValueError(
                         f"Computed extent for {name} exceeds the AOI plus 10 m"
                     )
+            if category == "vectors" and name in native_paths:
+                validate_dataset_extents(
+                    dataset_extents,
+                    tuple(float(aoi[key]) for key in ("minx", "miny", "maxx", "maxy")),
+                    name,
+                )
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):

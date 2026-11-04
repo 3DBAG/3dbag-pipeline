@@ -108,12 +108,13 @@ def validate_pointclouds(tmp_path):
     bag.mkdir()
     bgt = tmp_path / "bgt.zip"
     top10nl = tmp_path / "top10nl.zip"
-    for path, member in ((bgt, "bgt_pand.gml"), (top10nl, "top10nl_gebouw.gml")):
-        with ZipFile(path, "w") as archive:
-            archive.writestr(member, b"<root/>")
     gdal = Mock(
         spec=GDALResource,
-        runner=Mock(run=Mock(return_value=CommandResult(0, "Extent: (1, 2) - (3, 4)"))),
+        runner=Mock(
+            run=Mock(
+                return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)")
+            )
+        ),
     )
     lastools = Mock(
         spec=LASToolsResource,
@@ -254,6 +255,9 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         **kwargs,
     )
     manifest = json.loads(manifest_path.read_text())
+    assert manifest["fixture_version"] == "3"
+    assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
+    assert manifest["clipping"]["vectors"]["top10nl"] == "pdok_aoi_whole_objects"
     assert manifest["ahn"]["partitions"] == {**expected, "6": {}}
     for partitions in expected.values():
         entry = partitions["25gn1"]
@@ -261,3 +265,135 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
             "size": entry["size"],
             "sha256": entry["sha256"],
         }
+
+
+@pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
+def test_native_fixture_preserves_entire_archive(tmp_path, dataset):
+    from types import SimpleNamespace
+    from bag3d.core.assets import integration_data
+
+    member = "arbitrary/nested.data"
+    xml = b"arbitrary content"
+    source = tmp_path / "source.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr(member, xml)
+        archive.writestr("original-schema.xsd", b"original companion schema")
+    destination = tmp_path / "fixture" / dataset / f"{dataset}.zip"
+    destination.parent.mkdir(parents=True)
+    destination.write_bytes(b"previous fixture")
+    fn = getattr(integration_data, f"integration_{dataset}").op.compute_fn.decorated_fn
+    output = fn(
+        integration_data_store=SimpleNamespace(path=tmp_path / "fixture"),
+        **{f"extract_{dataset}": source},
+    )
+    assert output == destination
+    assert destination.read_bytes() == source.read_bytes()
+    with ZipFile(destination) as archive:
+        assert archive.read(member) == xml
+        assert archive.read("original-schema.xsd") == b"original companion schema"
+
+
+def test_native_copy_failure_preserves_previous_fixture(tmp_path, monkeypatch):
+    from bag3d.core.assets import integration_data
+
+    source = tmp_path / "source.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr("bgt_pand.gml", b"original")
+    target = tmp_path / "fixture.zip"
+    target.write_bytes(b"previous")
+
+    def fail(source, destination):
+        destination.write_bytes(b"partial")
+        raise OSError("copy interrupted")
+
+    monkeypatch.setattr(integration_data.shutil, "copyfile", fail)
+    with pytest.raises(OSError, match="interrupted"):
+        integration_data._copy_archive(source, target)
+    assert target.read_bytes() == b"previous"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["fixture.zip", "source.zip"]
+
+
+def test_integration_job_supplies_aoi_for_manual_and_scheduled_runs():
+    import dagster as dg
+    from bag3d.common.testing.mock_resources import MOCK_RESOURCES
+    from bag3d.core.code_location import all_assets
+    from bag3d.core.jobs import job_integration_data, job_bgt
+    from bag3d.core.schedules import integration_data_schedule
+    from bag3d.core.assets.integration_data import AOI_WKT
+
+    defs = dg.Definitions(
+        assets=all_assets,
+        jobs=[job_integration_data, job_bgt],
+        schedules=[integration_data_schedule],
+        resources=MOCK_RESOURCES,
+    )
+    job = defs.resolve_job_def("integration_data")
+    for config in ({}, {"ops": {"integration_bag": {"config": {"cbs_year": "2024"}}}}):
+        resolved = dg.validate_run_config(job, config)
+        for op in ("extract_bgt", "extract_top10nl"):
+            assert resolved["ops"][op]["config"]["geofilter"] == AOI_WKT
+    with dg.build_schedule_context(repository_def=defs.get_repository_def()) as context:
+        result = integration_data_schedule.evaluate_tick(context)
+        assert result.run_requests
+        request = result.run_requests[0]
+    resolved = dg.validate_run_config(job, request.run_config)
+    assert resolved["ops"]["extract_bgt"]["config"]["geofilter"] == AOI_WKT
+    assert resolved["ops"]["extract_top10nl"]["config"]["geofilter"] == AOI_WKT
+    assert (
+        dg.validate_run_config(defs.resolve_job_def("bgt"), {})["ops"]["extract_bgt"][
+            "config"
+        ]["geofilter"]
+        is None
+    )
+
+
+@pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
+@pytest.mark.parametrize(
+    "output,error",
+    [
+        (
+            "Extent: (-100, -100) - (-50, -50)\nExtent (other): (50, 50) - (100, 100)",
+            None,
+        ),
+        ("Extent: (100, 100) - (110, 110)", ValueError),
+        ("Extent: (5, 5) - (1, 1)", ValueError),
+        ("Extent: (1, 1) - (1e999, 5)", ValueError),
+        ("no extents", RuntimeError),
+    ],
+)
+def test_validate_outputs_uses_combined_generic_dataset_extent(
+    tmp_path, dataset, output, error
+):
+    bag = tmp_path / "bag"
+    bag.mkdir()
+    paths = {name: tmp_path / f"{name}.zip" for name in ("bgt", "top10nl")}
+
+    def inspect(*args, local_path, **kwargs):
+        return CommandResult(
+            0, output if local_path == paths[dataset] else "Extent: (1, 1) - (9, 9)"
+        )
+
+    gdal = Mock(runner=Mock(run=Mock(side_effect=inspect)))
+
+    def validate():
+        return _validate_outputs(
+            tmp_path,
+            bag,
+            paths["bgt"],
+            paths["top10nl"],
+            tmp_path / "cbs.gpkg",
+            [],
+            (0, 0, 10, 10),
+            gdal,
+            Mock(),
+        )
+
+    if error:
+        with pytest.raises(error, match="extent|Extent"):
+            validate()
+    else:
+        result = validate()
+        assert len(result["extents"]["vectors"][f"{dataset}.zip"]) == 2
+        for call in gdal.runner.run.call_args_list:
+            assert call.kwargs["exe_name"] == "ogrinfo"
+            assert "XSD" not in call.args[0]

@@ -219,7 +219,7 @@ def ogr2postgres(
     new_table: PostgresTableIdentifier,
     computation_db: DatabaseResource,
     logger: Logger | None = None,
-) -> dict | None:
+) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
 
     It was developed for loading the TOP10NL and BGT extracts that are downloaded from
@@ -255,8 +255,22 @@ def ogr2postgres(
         local_path=extract_path,
         logger=logger,
     )
-    if result.success:
-        return postgrestable_metadata(computation_db, new_table)
+    if not result.success or re.search(
+        r"(?im)^\s*(?:error|fatal|critical)\b", result.stdout + result.stderr
+    ):
+        diagnostics = result.stderr or result.stdout
+        dsn = computation_db.connection.dsn
+        diagnostics = diagnostics.replace(dsn, "<redacted connection>")
+        diagnostics = re.sub(
+            r"(?i)(password\s*=\s*)(?:'[^']*'|\"[^\"]*\"|[^\s]+)",
+            r"\1<redacted>",
+            diagnostics,
+        )
+        raise Failure(
+            description=f"ogr2ogr failed loading {dataset}.{feature_type} into {new_table} "
+            f"(exit {result.returncode}): {diagnostics}"
+        )
+    return postgrestable_metadata(computation_db, new_table)
 
 
 def pdal_info(

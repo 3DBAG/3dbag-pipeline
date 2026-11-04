@@ -16,7 +16,7 @@ b3d run dev "$pipeline_sha"
 
 The operation log records the executable version, full pipeline SHA, fixture
 path and manifest SHA-256. The dev checkout must include the integration
-Compose overlay. b3d accepts fixture version `"2"` or numeric `2`, checks the AOI
+Compose overlay. b3d accepts fixture versions `"2"`/`2` and `"3"`/`3`, checks the AOI
 and required AHN partitions, and loads manifest-derived runner overrides after
 the preset. The snapshot mounts read-only on core, Dagster webserver and daemon.
 An empty AHN6 selection stays empty. Persistent presets and the snapshot are
@@ -55,3 +55,25 @@ The observer continues polling the exact returned admin run ID when those detail
 are unavailable. The run's terminal conclusion still determines the source result;
 this never submits another computation. Other observation errors retain the
 unresolved-result reporting and inspection requirement.
+
+## Generating native integration snapshots
+
+Launch the `integration_data` job manually in Dagster or enable its monthly
+schedule. The job defaults supply `AOI_WKT` to both `extract_bgt` and
+`extract_top10nl`; manual job launches no longer require a separate AOI override.
+Individual asset materializations outside this job still require explicit
+extraction configuration. The supported snapshot AOI remains the fixed `AOI_WKT`.
+
+Version 3 snapshots copy the PDOK BGT and TOP10NL ZIPs unchanged. PDOK selects
+whole objects using the AOI; no local clipping or GML rewriting occurs. Building
+footprints can extend outside the AOI plus 10 m. Validation uses generic GDAL extents, checks finite and ordered bounds,
+and requires each dataset’s combined extent to overlap the AOI. BAG, CBS and
+point clouds retain the existing containment checks. Version 2 snapshots retain their original validation contract.
+
+Upgrade pipeline, ctl and admin consumers before switching to a version 3
+snapshot. Regenerate the extracts with the job's AOI defaults and rebuild the
+manifest; existing nationwide archives and rewritten fixtures must not be
+relabelled as version 3. Validate the replacement snapshot in an isolated
+deployment before switching consumers, retaining the previous snapshot for
+rollback. Failed GDAL imports now fail the staging asset instead of returning
+success with missing metadata.
