@@ -4,7 +4,7 @@ services:
   bag3d-core:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data-new
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
@@ -13,7 +13,7 @@ services:
   dagster-daemon:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data-new
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
@@ -22,7 +22,7 @@ services:
   dagster-webserver:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: /data/3DBAG/pipeline/integration-data-new
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
