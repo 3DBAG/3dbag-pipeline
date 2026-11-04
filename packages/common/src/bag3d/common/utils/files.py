@@ -1,8 +1,7 @@
 """Working with file inputs and outputs"""
 
 import csv
-import os
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from pathlib import Path
 from zipfile import ZipFile
 

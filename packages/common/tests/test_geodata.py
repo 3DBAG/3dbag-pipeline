@@ -4,7 +4,6 @@ from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.geodata import (
     geojson_poly_to_wkt,
-    ogr2postgres,
     parse_ogrinfo,
 )
 

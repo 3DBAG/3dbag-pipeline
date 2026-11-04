@@ -8,6 +8,7 @@ from dagster import (
     TableSchema,
 )
 
+
 def get_run_id(context: AssetExecutionContext, short=True):
     """Return the Run ID from the execution context.
 
@@ -41,5 +42,3 @@ def format_date(input_date: date, version: bool = True) -> str:
         return input_date.strftime("%Y.%m.%d")
     else:
         return input_date.strftime("%Y-%m-%d")
-
-
