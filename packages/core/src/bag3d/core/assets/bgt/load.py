@@ -33,6 +33,7 @@ def stage_bgt_pand(
         feature_type="pand",
         extract_path=extract_bgt,
         new_table=new_table,
+        where="geometrie2d IS NOT NULL",
         logger=logger,
         computation_db=computation_db,
     )
