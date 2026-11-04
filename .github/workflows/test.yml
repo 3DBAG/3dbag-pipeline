@@ -1,5 +1,5 @@
 # Run all six offline package suites on PRs and branch pushes; retain coverage without PR write access.
-name: Unit tests
+name: Test Unit
 on:
   pull_request:
     branches: [develop, master]

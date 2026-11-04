@@ -1,5 +1,5 @@
 # Publish changed tools inputs from develop or manually; tags are immutable and digest PRs use a dedicated automation token for unattended CI.
-name: Publish tools
+name: Publish Images Tools
 
 on:
   push:

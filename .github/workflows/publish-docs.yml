@@ -1,5 +1,5 @@
 # Publish the existing documentation site only from develop; serialize publication.
-name: Publish docs
+name: Docs
 on:
   push:
     branches: [develop]

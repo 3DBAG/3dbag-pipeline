@@ -1,5 +1,5 @@
 # Publish all six images on release tag pushes; require tag and manifest version agreement before publication.
-name: Publish images
+name: Publish Images Packages
 
 on:
   push:

@@ -1,5 +1,5 @@
 # Dispatch immutable merged or manually supplied SHAs to trusted admin main; observe only the returned run ID, with no computation retry.
-name: Integration tests
+name: Test Integration
 run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.pull_request.merge_commit_sha }}
 
 on:
