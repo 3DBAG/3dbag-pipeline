@@ -911,18 +911,15 @@ def integration_manifest(
         version_dir = root / "pointclouds" / f"AHN{version}"
         partitions[str(version)] = {
             tile_id: {
-                "path": rel(version_dir / Path(entry[f"AHN{version}_LAZ"]).name),
-                "url": entry[f"AHN{version}_LAZ"],
-                "size": (version_dir / Path(entry[f"AHN{version}_LAZ"]).name)
-                .stat()
-                .st_size,
+                "path": rel(version_dir / Path(entry["url"]).name),
+                "url": entry["url"],
+                "size": (version_dir / Path(entry["url"]).name).stat().st_size,
                 "sha256": hashlib.sha256(
-                    (version_dir / Path(entry[f"AHN{version}_LAZ"]).name).read_bytes()
+                    (version_dir / Path(entry["url"]).name).read_bytes()
                 ).hexdigest(),
             }
             for tile_id, entry in index.items()
-            if entry.get(f"AHN{version}_LAZ")
-            and (version_dir / Path(entry[f"AHN{version}_LAZ"]).name).is_file()
+            if entry.get("url") and (version_dir / Path(entry["url"]).name).is_file()
         }
     partitions["6"] = {}
     for tile_id, entry in tile_index_ahn6.items():

@@ -207,3 +207,57 @@ def test_validate_outputs_rejects_invalid_pointclouds(
         validate([pointclouds] * 4)
 
     run.assert_called_once()
+
+
+def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    from types import SimpleNamespace
+    from typing import Any, cast
+
+    from bag3d.core.assets import integration_data
+
+    # Current indexes use "url" for every AHN version. Include an unselected
+    # tile to ensure the manifest only declares files present in this fixture.
+    indexes = {}
+    expected = {}
+    for version in (3, 4, 5):
+        path = tmp_path / "pointclouds" / f"AHN{version}" / "C_25GN1.LAZ"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(f"clipped AHN{version}".encode())
+        indexes[version] = {
+            "25gn1": {"url": f"https://example.test/AHN{version}/{path.name}"},
+            "01cz1": {"url": f"https://example.test/AHN{version}/C_01CZ1.LAZ"},
+        }
+        expected[str(version)] = {
+            "25gn1": {
+                "path": str(path.relative_to(tmp_path)),
+                "url": indexes[version]["25gn1"]["url"],
+                "size": path.stat().st_size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+        }
+    monkeypatch.setattr(integration_data, "_validate_outputs", lambda *args: {})
+    generate = cast(
+        Any, integration_data.integration_manifest.op.compute_fn
+    ).decorated_fn
+    sources = ("bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart")
+    kwargs = {f"integration_{name}": tmp_path / name for name in sources}
+    kwargs.update({f"extract_{name}": None for name in sources})
+    kwargs.update({f"integration_ahn{version}": tmp_path for version in (3, 4, 5, 6)})
+    kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
+    manifest_path = generate(
+        integration_data_store=SimpleNamespace(path=tmp_path),
+        tile_index_ahn6={},
+        gdal=None,
+        lastools=None,
+        **kwargs,
+    )
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["ahn"]["partitions"] == {**expected, "6": {}}
+    for partitions in expected.values():
+        entry = partitions["25gn1"]
+        assert manifest["files"][entry["path"]] == {
+            "size": entry["size"],
+            "sha256": entry["sha256"],
+        }
