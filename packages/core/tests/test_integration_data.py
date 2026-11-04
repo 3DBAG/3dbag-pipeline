@@ -213,6 +213,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     import hashlib
     import json
     from types import SimpleNamespace
+    from typing import Any, cast
 
     from bag3d.core.assets import integration_data
 
@@ -237,7 +238,9 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
             }
         }
     monkeypatch.setattr(integration_data, "_validate_outputs", lambda *args: {})
-    generate = integration_data.integration_manifest.op.compute_fn.decorated_fn
+    generate = cast(
+        Any, integration_data.integration_manifest.op.compute_fn
+    ).decorated_fn
     sources = ("bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart")
     kwargs = {f"integration_{name}": tmp_path / name for name in sources}
     kwargs.update({f"extract_{name}": None for name in sources})
