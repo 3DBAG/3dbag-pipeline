@@ -20,6 +20,12 @@ from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
+from bag3d.core.fixture_contract import (
+    FIXTURE_VERSION,
+    VECTOR_PROCESSING,
+    validate_dataset_extents,
+)
+
 AOI_WKT = "POLYGON ((140100 485750, 141500 485750, 141500 486550, 140100 486550, 140100 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
     "140000_485000",
@@ -286,44 +292,13 @@ def filter_bag_extract(
     return destination
 
 
-def _archive_layer(source: Path, names: tuple[str, ...]) -> str:
-    with ZipFile(source) as archive:
-        members = archive.namelist()
-    for wanted in names:
-        for member in members:
-            if member.lower() == wanted.lower() or member.lower().endswith(
-                wanted.lower()
-            ):
-                return member
-    raise FileNotFoundError(f"Archive {source} does not contain one of {names}")
-
-
-def _clip_gml_archive(
-    source: Path,
-    destination: Path,
-    layer_names: tuple[str, ...],
-    output_name: str,
-    geofilter: str,
-    gdal: GDALResource,
-) -> Path:
-    _aoi_bbox(geofilter)
-    member = _archive_layer(source, layer_names)
+def _copy_archive(source: Path, destination: Path) -> Path:
+    """Publish the PDOK archive unchanged; objects are selected at download time."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
-        output = Path(temp_dir) / output_name
-        result = gdal.runner.run(
-            "{exe} -f GML -clipsrc '{aoi}' '{output}' '{input_path}'",
-            exe_name="ogr2ogr",
-            kwargs={
-                "aoi": geofilter,
-                "output": output,
-                "input_path": f"/vsizip/{source}/{member}",
-            },
-        )
-        if not result.success or not output.is_file():
-            raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
-        with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
-            archive.write(output, output_name)
+        output = Path(temp_dir) / destination.name
+        shutil.copyfile(source, output)
+        output.replace(destination)
     return destination
 
 
@@ -387,18 +362,11 @@ def integration_bag(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bgt(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_bgt,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
-        Path(extract_bgt),
-        integration_data_store.path / "bgt" / "bgt.zip",
-        ("bgt_pand.gml",),
-        "bgt_pand.gml",
-        config.geofilter,
-        gdal,
+    return _copy_archive(
+        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip"
     )
 
 
@@ -408,18 +376,12 @@ def integration_bgt(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_top10nl(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_top10nl,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
+    return _copy_archive(
         Path(extract_top10nl),
         integration_data_store.path / "top10nl" / "top10nl.zip",
-        ("top10nl_gebouw.gml",),
-        "top10nl_gebouw.gml",
-        config.geofilter,
-        gdal,
     )
 
 
@@ -741,17 +703,9 @@ def _validate_outputs(
                 list(extent) for extent in extents
             ]
 
-    for archive, layer_names in (
-        (bgt, ("bgt_pand.gml",)),
-        (top10nl, ("top10nl_gebouw.gml",)),
-    ):
-        member = _archive_layer(archive, layer_names)
-        with ZipFile(archive) as source_zip:
-            data = source_zip.read(member)
-        extents = [
-            _validate_and_return(extent, allowed, f"{archive}!{member}")
-            for extent in _ogrinfo_xml(gdal_runner, data, member)
-        ]
+    for archive in (bgt, top10nl):
+        extents = _ogrinfo_extents(gdal_runner, archive)
+        validate_dataset_extents(extents, aoi, str(archive))
         vector_extents[str(archive.relative_to(root))] = [
             list(extent) for extent in extents
         ]
@@ -934,7 +888,7 @@ def integration_manifest(
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
     manifest = {
-        "fixture_version": "2",
+        "fixture_version": FIXTURE_VERSION,
         "date": datetime.now(tz=UTC).date().isoformat(),
         "aoi": {
             "wkt": AOI_WKT,
@@ -943,7 +897,7 @@ def integration_manifest(
             "maxx": aoi[2],
             "maxy": aoi[3],
         },
-        "clipping": {"vectors": "gdal", "pointclouds": "las2las_keep_xy"},
+        "clipping": {"vectors": VECTOR_PROCESSING, "pointclouds": "las2las_keep_xy"},
         "validation": validation,
         "sources": sources,
         "ahn": {

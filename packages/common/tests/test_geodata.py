@@ -1,8 +1,7 @@
 from pathlib import Path
 
-import pytest
-from pgutils import PostgresTableIdentifier
-
+from bag3d.common.types import PostgresTableIdentifier
+from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.utils.geodata import (
     geojson_poly_to_wkt,
     ogr2postgres,
@@ -121,61 +120,53 @@ def test_geojson_poly_to_wkt():
     )
 
 
-class _FakeConnection:
-    dsn = "host=localhost dbname=test"
+def test_ogr2postgres_success_returns_metadata(monkeypatch):
+    from unittest.mock import Mock
+    from bag3d.common.utils import geodata
+    from bag3d.common.resources.executables import CommandResult
+
+    database = Mock(
+        spec=DatabaseResource, connection=Mock(dsn="dbname=test password=secret")
+    )
+    runner = Mock(run=Mock(return_value=CommandResult(0, "loaded")))
+    metadata = Mock(return_value={"rows": 1})
+    monkeypatch.setattr(geodata, "postgrestable_metadata", metadata)
+    table = PostgresTableIdentifier("stage_bgt", "pand")
+    result = geodata.ogr2postgres(
+        runner, "bgt", Path("/tmp/bgt.zip"), "pand", "schema.xsd", table, database
+    )
+    assert result == {"rows": 1}
+    metadata.assert_called_once_with(database, table)
 
 
-class _FakeComputationDb:
-    connection = _FakeConnection()
+def test_ogr2postgres_failure_raises_without_metadata_or_credentials(monkeypatch):
+    from unittest.mock import Mock
+    import pytest
+    from dagster import Failure
+    from bag3d.common.utils import geodata
+    from bag3d.common.resources.executables import CommandResult
 
-
-class _FakeOgrResult:
-    def __init__(self, success, stderr="", stdout=""):
-        self.success = success
-        self.stderr = stderr
-        self.stdout = stdout
-
-
-class _FakeOgrRunner:
-    def __init__(self, success, stderr="", stdout=""):
-        self._result = _FakeOgrResult(success, stderr, stdout)
-        self.command = None
-        self.kwargs = None
-
-    def run(self, command, *, exe_name=None, kwargs=None, local_path=None, logger=None):
-        self.command = command
-        self.kwargs = kwargs
-        return self._result
-
-
-def test_ogr2postgres_raises_on_failure():
-    runner = _FakeOgrRunner(False, stderr="null value in column ...")
-    with pytest.raises(RuntimeError, match="ogr2ogr failed"):
-        ogr2postgres(
-            gdal_runner=runner,  # type: ignore[arg-type]
-            dataset="bgt",
-            extract_path=Path("/tmp/extract"),
-            feature_type="pand",
-            xsd="http://example.com/test.xsd",
-            new_table=PostgresTableIdentifier("stage_bgt", "pand"),
-            computation_db=_FakeComputationDb(),  # type: ignore[arg-type]
-            where="geometrie2d IS NOT NULL",
-        )
-    assert runner.kwargs is not None
-    assert runner.kwargs["where_clause"] == '-where "geometrie2d IS NOT NULL" '
-
-
-def test_ogr2postgres_no_where_clause():
-    runner = _FakeOgrRunner(False, stderr="boom")
-    with pytest.raises(RuntimeError, match="ogr2ogr failed"):
-        ogr2postgres(
-            gdal_runner=runner,  # type: ignore[arg-type]
-            dataset="bgt",
-            extract_path=Path("/tmp/extract"),
-            feature_type="pand",
-            xsd="http://example.com/test.xsd",
-            new_table=PostgresTableIdentifier("stage_bgt", "pand"),
-            computation_db=_FakeComputationDb(),  # type: ignore[arg-type]
-        )
-    assert runner.kwargs is not None
-    assert runner.kwargs["where_clause"] == ""
+    dsn = "dbname=test password=secret"
+    database = Mock(spec=DatabaseResource, connection=Mock(dsn=dsn))
+    metadata = Mock()
+    monkeypatch.setattr(geodata, "postgrestable_metadata", metadata)
+    table = PostgresTableIdentifier("stage_bgt", "pand")
+    for result in (
+        CommandResult(1, "", f"COPY failed: {dsn}"),
+        CommandResult(0, "", 'ERROR 1: password="secret"'),
+        CommandResult(0, "ERROR: null geometrie2d", ""),
+    ):
+        runner = Mock(run=Mock(return_value=result))
+        with pytest.raises(Failure) as error:
+            geodata.ogr2postgres(
+                runner,
+                "bgt",
+                Path("/tmp/bgt.zip"),
+                "pand",
+                "schema.xsd",
+                table,
+                database,
+            )
+        assert str(table) in str(error.value)
+        assert "secret" not in str(error.value)
+    metadata.assert_not_called()
