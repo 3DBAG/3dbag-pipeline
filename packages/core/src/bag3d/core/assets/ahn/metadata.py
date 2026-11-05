@@ -31,7 +31,7 @@ from bag3d.core.assets.ahn.download import BatchLAZDownload
 class MetadataConfig(Config):
     """Configuration for AHN metadata assets."""
 
-    all: bool = Field(default=True, description="Run `pdal info` with `--all`.")
+    all: bool = Field(default=False, description="Run `pdal info` with `--all`.")
     force: bool = Field(
         default=True, description="Force the re-compute of the metadata."
     )

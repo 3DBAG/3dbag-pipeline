@@ -63,7 +63,11 @@ def ogrinfo(
 
     info = {}
     for feature_type in feature_types:
-        kwargs = {"xsd": xsd, "dataset": dataset, "feature_type": feature_type}
+        kwargs = {
+            "xsd": xsd,
+            "dataset": dataset,
+            "feature_type": feature_type,
+        }
         result = gdal_runner.run(
             cmd,
             exe_name="ogrinfo",
@@ -218,6 +222,7 @@ def ogr2postgres(
     xsd: str,
     new_table: PostgresTableIdentifier,
     computation_db: DatabaseResource,
+    where: str | None = None,
     logger: Logger | None = None,
 ) -> dict:
     """ogr2ogr a layer from zipped data extract from GML into Postgres.
@@ -239,7 +244,8 @@ def ogr2postgres(
         Runs :py:func:`postgrestable_metadata` on return and returns a dict of metadata
         of the ``new_table`` loaded with data.
     """
-    cmd = '{exe} --config PG_USE_COPY=YES -overwrite -nln {new_table} -oo XSD="{xsd}" -oo WRITE_GFS=NO -lco UNLOGGED=ON -lco SPATIAL_INDEX=NONE -lco GEOMETRY_NAME=wkb_geometry -f PostgreSQL PG:"{dsn}" /vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}'
+    where_clause = f'-where "{where}" ' if where else ""
+    cmd = '{exe} --config PG_USE_COPY=YES -overwrite -nln {new_table} {where_clause}-oo XSD="{xsd}" -oo WRITE_GFS=NO -lco UNLOGGED=ON -lco SPATIAL_INDEX=NONE -lco GEOMETRY_NAME=wkb_geometry -f PostgreSQL PG:"{dsn}" /vsizip/{local_path}/{dataset}_{feature_type}.gml {feature_type}'
 
     kwargs = {
         "new_table": new_table,
@@ -247,6 +253,7 @@ def ogr2postgres(
         "dsn": computation_db.connection.dsn,
         "xsd": xsd,
         "dataset": dataset,
+        "where_clause": where_clause,
     }
     result = gdal_runner.run(
         cmd,

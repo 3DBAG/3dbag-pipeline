@@ -8,7 +8,11 @@ from bag3d.common.resources.executables import (
     LASToolsResource,
 )
 
-from bag3d.core.assets.integration_data import _validate_outputs, filter_bag_extract
+from bag3d.core.assets.integration_data import (
+    _native_archive_extents,
+    _validate_outputs,
+    filter_bag_extract,
+)
 
 DELIVERY = (
     b'<Leveringsdocument xmlns="urn:bag:test">'
@@ -24,8 +28,8 @@ def test_filter_bag_extract_filters_archive(tmp_path):
     source.mkdir()
     xml = (
         b'<root xmlns:gml="http://www.opengis.net/gml">'
-        b'<stand id="inside"><gml:pos>122000 486000 0</gml:pos></stand>'
-        b'<stand id="outside"><gml:pos>140000 500000 0</gml:pos></stand>'
+        b'<stand id="inside"><gml:pos>141000 486000 0</gml:pos></stand>'
+        b'<stand id="outside"><gml:pos>122000 486000 0</gml:pos></stand>'
         b"</root>"
     )
     with ZipFile(source / f"{layer.name}.zip", "w") as archive:
@@ -208,6 +212,26 @@ def test_validate_outputs_rejects_invalid_pointclouds(
         validate([pointclouds] * 4)
 
     run.assert_called_once()
+
+
+def test_native_archive_extents_uses_vsizip_and_xsd(tmp_path):
+    """Native BGT/TOP10NL archives must be read via /vsizip/ with the dataset XSD."""
+    archive = tmp_path / "bgt.zip"
+    runner = Mock(
+        run=Mock(return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)"))
+    )
+
+    extents = _native_archive_extents(runner, archive)
+
+    assert extents == [(1.0, 2.0, 3.0, 4.0)]
+    call = runner.run.call_args
+    assert call.kwargs["local_path"] == archive
+    assert call.kwargs["exe_name"] == "ogrinfo"
+    assert call.kwargs["kwargs"]["member"] == "bgt_pand.gml"
+    assert call.kwargs["kwargs"]["feature_type"] == "pand"
+    assert call.kwargs["kwargs"]["xsd"].startswith("http")
+    assert "XSD=" in call.args[0]
+    assert "/vsizip/" in call.args[0]
 
 
 def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
@@ -396,4 +420,3 @@ def test_validate_outputs_uses_combined_generic_dataset_extent(
         assert len(result["extents"]["vectors"][f"{dataset}.zip"]) == 2
         for call in gdal.runner.run.call_args_list:
             assert call.kwargs["exe_name"] == "ogrinfo"
-            assert "XSD" not in call.args[0]

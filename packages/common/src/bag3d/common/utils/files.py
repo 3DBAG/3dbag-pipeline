@@ -1,14 +1,12 @@
 """Working with file inputs and outputs"""
 
 import csv
-import os
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from pathlib import Path
 from zipfile import ZipFile
 
 from dagster import get_dagster_logger
 
-from bag3d.common.resources import DagsterDeployment, FileStoreResource
 from bag3d.common.types import ExportResult
 
 
@@ -75,39 +73,3 @@ def check_export_results(
                         obj_paths=obj_paths,
                         wkt=row["wkt"],
                     )
-
-
-def get_export_tile_ids() -> Sequence[str]:
-    """Get the IDs of the distribution tiles from the file system.
-    It reads the `quadtree.tsv` output from *tyler* and extracts the IDs of the
-    leaf tiles.
-
-    Returns:
-        List of tile IDs
-    """
-    tileids = []
-
-    deployment = os.getenv("DAGSTER_DEPLOYMENT", "default")
-    version = os.getenv("BAG3D_RELEASE_VERSION", "test_version")
-
-    # Only pytest runs use the integration_party_walls/file_store subdirectory
-    if deployment.lower() == DagsterDeployment.PYTEST:
-        root_dir = (
-            Path(os.getenv("BAG3D_FILESTORE", "/data/volume"))
-            / "integration_party_walls/file_store"
-        )
-    else:
-        root_dir = Path(os.getenv("BAG3D_FILESTORE", "/data"))
-
-    file_resource = FileStoreResource(root_dir=str(root_dir))
-    export_dir = file_resource.stage_dir("export") / version
-
-    path_quadtree_tsv = export_dir.joinpath("debug", "quadtree.tsv")
-    if path_quadtree_tsv.exists():
-        tileids = [
-            er.tile_id for er in check_export_results(path_quadtree_tsv, export_dir)
-        ]
-    else:
-        raise FileNotFoundError(f"File not found: {path_quadtree_tsv}")
-
-    return tileids
