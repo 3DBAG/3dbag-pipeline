@@ -27,6 +27,8 @@ dependencies = [
     "lxml~=6.1.1",
     "bag3d-common",
     "certifi>=2026.10.19",
+    "cjio==0.9.0",
+    "ifcopenshell",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "fabric~=3.2",
     "paramiko",
@@ -59,4 +61,8 @@ filterwarnings = [
     "ignore:The `__fields__` attribute is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20",
     "ignore:.*UnresolvedAssetJobDefinition.*:UserWarning",
     "ignore:.*data_version.*beta.*:dagster_shared.utils.warnings.BetaWarning",
+    # cjio 0.9 deprecations (pinned for the vendored IFC converter)
+    "ignore:cityjson.models module will be deprecated.*:DeprecationWarning",
+    "ignore:cityjson.load_from_j.*:DeprecationWarning",
+    "ignore:datetime.datetime.utcnow.*:DeprecationWarning",
 ]

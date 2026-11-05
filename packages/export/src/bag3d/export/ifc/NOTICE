@@ -1,0 +1,33 @@
+Provenance and licensing for the ``bag3d.export.ifc`` package
+=============================================================
+
+This package contains the CityJSON-to-IFC conversion logic used by the
+3DBAG pipeline's IFC export.
+
+Vendored files
+--------------
+
+The following files are a modified version of the ``ifccityjson`` converter
+from IfcOpenShell (https://github.com/IfcOpenShell/IfcOpenShell), as adapted
+for 3DBAG by the IFC3DBAG project (https://github.com/tudelft3d/IFC3DBAG):
+
+- ``geometry.py``      - copied from IfcOpenShell, modified
+- ``cityjson2ifc.py``  - copied from IfcOpenShell, modified (see below)
+
+Both files are licensed under the GNU Lesser General Public License
+(LGPL), version 3 or (at your option) any later version. See their file
+headers and http://www.gnu.org/licenses/ for the license text.
+
+Copyright:
+- 2021 Laurens J.N. Oostwegel <l.oostwegel@gmail.com>
+- 2023 Balázs Dukai <balazs.dukai@3dgi.nl>
+
+
+New files (Apache-2.0 / MIT, this repository)
+--------------------------------------------
+
+- ``convert.py`` - refactored conversion driver (see above). Uses ``cjio``
+  0.9.x as a library dependency for CityJSON parsing and the object model
+  (``cityjson.reader``, ``load_from_j``, ``get_cityobjects``).
+
+- ``__init__.py`` - package exports.
