@@ -130,47 +130,48 @@ docker_prune_cache:
 test:
 	@set -o pipefail; \
 	FAILED=0; \
-	uv --project packages/common run pytest packages/common/tests/ -v || FAILED=1; \
-	uv --project packages/core run pytest packages/core/tests/ -v || FAILED=1; \
-	uv --project packages/export run pytest packages/export/tests/ -v || FAILED=1; \
-	uv --project packages/floors_estimation run pytest packages/floors_estimation/tests/ -v || FAILED=1; \
-	uv --project packages/party_walls run pytest packages/party_walls/tests/ -v || FAILED=1; \
-	uv --project packages/terrain run pytest packages/terrain/tests/ -v || FAILED=1; \
-	uv --project packages/underpasses run pytest packages/underpasses/tests/ -v || FAILED=1; \
+	uv --project packages/common run --locked pytest -m 'not integration' packages/common/tests/ -v || FAILED=1; \
+	uv --project packages/core run --locked pytest -m 'not integration' packages/core/tests/ -v || FAILED=1; \
+	uv --project packages/export run --locked pytest -m 'not integration' packages/export/tests/ -v || FAILED=1; \
+	uv --project packages/floors_estimation run --locked pytest -m 'not integration' packages/floors_estimation/tests/ -v || FAILED=1; \
+	uv --project packages/party_walls run --locked pytest -m 'not integration' packages/party_walls/tests/ -v || FAILED=1; \
+	uv --project packages/terrain run --locked pytest -m 'not integration' packages/terrain/tests/ -v || FAILED=1; \
+	uv --project packages/underpasses run --locked pytest -m 'not integration' packages/underpasses/tests/ -v || FAILED=1; \
 	exit $$FAILED
 
 test_coverage:
 	@set -o pipefail; \
 	FAILED=0; \
-	uv --project packages/common run coverage run --source=packages/common/src --data-file=.coverage.common -m pytest packages/common/tests/ -v || FAILED=1; \
-	uv --project packages/core run coverage run --source=packages/core/src --data-file=.coverage.core -m pytest packages/core/tests/ -v || FAILED=1; \
-	uv --project packages/export run coverage run --source=packages/export/src --data-file=.coverage.export -m pytest packages/export/tests/ -v || FAILED=1; \
-	uv --project packages/floors_estimation run coverage run --source=packages/floors_estimation/src --data-file=.coverage.floors_estimation -m pytest packages/floors_estimation/tests/ -v || FAILED=1; \
-	uv --project packages/party_walls run coverage run --source=packages/party_walls/src --data-file=.coverage.party_walls -m pytest packages/party_walls/tests/ -v || FAILED=1; \
-	uv --project packages/terrain run coverage run --source=packages/terrain/src --data-file=.coverage.terrain -m pytest packages/terrain/tests/ -v || FAILED=1; \
-	uv --project packages/underpasses run coverage run --source=packages/underpasses/src --data-file=.coverage.underpasses -m pytest packages/underpasses/tests/ -v || FAILED=1; \
+	uv --project packages/common run --locked coverage run --source=packages/common/src --data-file=.coverage.common -m pytest -m 'not integration' packages/common/tests/ -v || FAILED=1; \
+	uv --project packages/core run --locked coverage run --source=packages/core/src --data-file=.coverage.core -m pytest -m 'not integration' packages/core/tests/ -v || FAILED=1; \
+	uv --project packages/export run --locked coverage run --source=packages/export/src --data-file=.coverage.export -m pytest -m 'not integration' packages/export/tests/ -v || FAILED=1; \
+	uv --project packages/floors_estimation run --locked coverage run --source=packages/floors_estimation/src --data-file=.coverage.floors_estimation -m pytest -m 'not integration' packages/floors_estimation/tests/ -v || FAILED=1; \
+	uv --project packages/party_walls run --locked coverage run --source=packages/party_walls/src --data-file=.coverage.party_walls -m pytest -m 'not integration' packages/party_walls/tests/ -v || FAILED=1; \
+	uv --project packages/terrain run --locked coverage run --source=packages/terrain/src --data-file=.coverage.terrain -m pytest -m 'not integration' packages/terrain/tests/ -v || FAILED=1; \
+	uv --project packages/underpasses run --locked coverage run --source=packages/underpasses/src --data-file=.coverage.underpasses -m pytest -m 'not integration' packages/underpasses/tests/ -v || FAILED=1; \
 	echo ""; \
 	echo "=== Coverage per package ==="; \
 	echo ""; \
 	echo "--- common ---"; \
-	uv --project packages/common run coverage report --data-file=.coverage.common; \
+	uv --project packages/common run --locked coverage report --data-file=.coverage.common; \
 	echo ""; \
 	echo "--- core ---"; \
-	uv --project packages/core run coverage report --data-file=.coverage.core; \
+	uv --project packages/core run --locked coverage report --data-file=.coverage.core; \
 	echo ""; \
 	echo "--- export ---"; \
-	uv --project packages/export run coverage report --data-file=.coverage.export; \
+	uv --project packages/export run --locked coverage report --data-file=.coverage.export; \
 	echo ""; \
 	echo "--- floors_estimation ---"; \
-	uv --project packages/floors_estimation run coverage report --data-file=.coverage.floors_estimation; \
+	uv --project packages/floors_estimation run --locked coverage report --data-file=.coverage.floors_estimation; \
 	echo ""; \
 	echo "--- party_walls ---"; \
-	uv --project packages/party_walls run coverage report --data-file=.coverage.party_walls; \
+	uv --project packages/party_walls run --locked coverage report --data-file=.coverage.party_walls; \
 	echo ""; \
 	echo "--- terrain ---"; \
-	uv --project packages/terrain run coverage report --data-file=.coverage.terrain; \
+	uv --project packages/terrain run --locked coverage report --data-file=.coverage.terrain; \
+	echo ""; \
 	echo "--- underpasses ---"; \
-	uv --project packages/underpasses run coverage report --data-file=.coverage.underpasses; \
+	uv --project packages/underpasses run --locked coverage report --data-file=.coverage.underpasses; \
 	exit $$FAILED
 
 test_report:
@@ -181,29 +182,29 @@ lint:
 	echo "Manifest version check"; \
 	python3 scripts/manifest_versions.py check; \
 	echo "Format check"; \
-	uv tool run ruff format --check ./packages; \
+	uv run --locked --only-group lint ruff format --check ./packages; \
 	echo "Syntax and style"; \
-	uv tool run ruff check ./packages; \
+	uv run --locked --only-group lint ruff check ./packages; \
 	FAILED=0; \
 	echo "Type check: common"; \
-	uv --project packages/common run pyright packages/common || FAILED=1; \
+	uv --project packages/common run --locked pyright packages/common || FAILED=1; \
 	echo "Type check: core"; \
-	uv --project packages/core run pyright packages/core || FAILED=1; \
+	uv --project packages/core run --locked pyright packages/core || FAILED=1; \
 	echo "Type check: export"; \
-	uv --project packages/export run pyright packages/export || FAILED=1; \
+	uv --project packages/export run --locked pyright packages/export || FAILED=1; \
 	echo "Type check: floors_estimation"; \
-	uv --project packages/floors_estimation run pyright packages/floors_estimation || FAILED=1; \
+	uv --project packages/floors_estimation run --locked pyright packages/floors_estimation || FAILED=1; \
 	echo "Type check: party_walls"; \
-	uv --project packages/party_walls run pyright packages/party_walls || FAILED=1; \
+	uv --project packages/party_walls run --locked pyright packages/party_walls || FAILED=1; \
 	echo "Type check: terrain"; \
-	uv --project packages/terrain run pyright --project packages/terrain || FAILED=1; \
+	uv --project packages/terrain run --locked pyright --project packages/terrain || FAILED=1; \
 	echo "Type check: underpasses"; \
-	uv --project packages/underpasses run pyright packages/underpasses || FAILED=1; \
+	uv --project packages/underpasses run --locked pyright packages/underpasses || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
-	uv tool run ruff format ./packages 
-	uv tool run ruff check --fix ./packages
+	uv run --locked --only-group lint ruff format ./packages
+	uv run --locked --only-group lint ruff check --fix ./packages
 
 local_install_uv:
 	curl -LsSf https://astral.sh/uv/install.sh | sh

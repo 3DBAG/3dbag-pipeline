@@ -4,27 +4,27 @@ services:
   bag3d-core:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/volume/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
-        target: /data/volume/integration-data
+        target: ${BAG3D_INTEGRATION_DATA_DIR}
         read_only: true
   dagster-daemon:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/volume/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
-        target: /data/volume/integration-data
+        target: ${BAG3D_INTEGRATION_DATA_DIR}
         read_only: true
   dagster-webserver:
     environment:
       BAG3D_INPUT_MODE: integration_data
-      BAG3D_INTEGRATION_DATA_DIR: /data/volume/integration-data
+      BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
-        target: /data/volume/integration-data
+        target: ${BAG3D_INTEGRATION_DATA_DIR}
         read_only: true
