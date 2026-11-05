@@ -1,6 +1,6 @@
-# Dispatch immutable merged or manually supplied SHAs to trusted admin main; observe only the returned run ID, with no computation retry.
+# Validate queued merge SHAs through trusted admin main; observe the exact run without retrying computation.
 name: Test Integration
-run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.pull_request.merge_commit_sha }}
+run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.merge_group.head_sha || github.sha }}
 
 on:
   workflow_dispatch:
@@ -10,35 +10,46 @@ on:
         required: true
         type: string
   pull_request:
-    types: [closed]
     branches: [develop]
+  merge_group:
+    types: [checks_requested]
 
 permissions: {}
 
 jobs:
   compute:
     name: Fixture-backed dev computation
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: github.event_name != 'merge_group' || github.event.merge_group.base_ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      # No PR checkout or execution: only its immutable merge SHA crosses the boundary.
+      # Required checks must pass on the PR before GitHub admits it to the queue.
+      # The expensive computation runs only on the queue's combined commit.
+      - name: Defer computation until queued after review
+        if: github.event_name == 'pull_request'
+        run: echo 'Integration computation will run in the merge queue after approval.'
+      # No local checkout: only an immutable SHA and its queue ref cross the boundary.
       - name: Dispatch and observe the exact admin run
+        if: github.event_name != 'pull_request'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}
           retries: 0
           script: |
             const owner = '3DBAG', repo = '3dbag-admin';
-            const sha = context.eventName === 'workflow_dispatch'
-              ? context.payload.inputs.pipeline_sha : context.payload.pull_request.merge_commit_sha;
+            const queued = context.eventName === 'merge_group';
+            const sha = queued ? context.payload.merge_group.head_sha : context.payload.inputs.pipeline_sha;
+            const pipeline_ref = queued ? context.payload.merge_group.head_ref : '';
             if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Expected full pipeline SHA');
+            if (queued && !pipeline_ref.startsWith('refs/heads/gh-readonly-queue/develop/')) {
+              throw new Error('Expected a develop merge queue ref');
+            }
             const headers = {'X-GitHub-Api-Version': '2026-03-10'};
             // The API response identifies this dispatch; never guess from a run listing.
             // Do not retry an ambiguous POST: it may already have started computation.
             const response = await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
               owner, repo, workflow_id: 'pipeline-dev.yml', ref: 'main',
-              inputs: {operation: 'deploy-and-run', pipeline_sha: sha}, headers
+              inputs: {operation: 'deploy-and-run', pipeline_sha: sha, ...(queued ? {pipeline_ref} : {})}, headers
             });
             const run_id = response.data.workflow_run_id;
             if (!Number.isSafeInteger(run_id) || run_id <= 0) {

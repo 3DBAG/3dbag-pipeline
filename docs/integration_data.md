@@ -1,10 +1,13 @@
-# Gilfoyle merged-PR computation
+# Gilfoyle merge-queue computation
 
-A PR merged into `develop` triggers `.github/workflows/integration.yml`.
-It dispatches the immutable merge SHA to admin's Gilfoyle workflow and observes
+After review, a maintainer queues a PR targeting `develop`. The merge queue
+triggers `.github/workflows/integration.yml` before merging.
+It dispatches the immutable queue SHA to admin's Gilfoyle workflow and observes
 the exact admin run ID returned by GitHub. The source workflow succeeds only
 when deployment, the complete computation through export, and scoped cleanup
-all succeed. Follow the linked admin run for operation output.
+all succeed. A failure blocks the merge. Follow the linked admin run for operation
+output. See the [merge gate rollout](deployment/gilfoyle-computation.md) for the
+required repository rules and companion admin receiver change.
 
 Gilfoyle's workflow selects the existing snapshot explicitly:
 
