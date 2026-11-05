@@ -51,6 +51,17 @@ _AOI_COORDINATE = re.compile(
 )
 BUFFER_METRES = 10.0
 
+_NATIVE_VECTOR_DATASETS = {
+    "bgt": {
+        "feature_type": "pand",
+        "xsd": "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
+    },
+    "top10nl": {
+        "feature_type": "gebouw",
+        "xsd": "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
+    },
+}
+
 
 class IntegrationDataConfig(Config):
     geofilter: str = Field(default=AOI_WKT)
@@ -615,6 +626,38 @@ def _ogrinfo_xml(
         return _ogrinfo_extents(gdal_runner, path, require_extent)
 
 
+def _native_archive_extents(
+    gdal_runner: Any, archive: Path
+) -> list[tuple[float, float, float, float]]:
+    """Compute the extent of a native BGT/TOP10NL archive.
+
+    Mirrors ``extract_bgt``/``extract_top10nl``: ``ogrinfo`` cannot open a ``.zip``
+    directly, so the GML is opened through ``/vsizip/`` with the dataset XSD.
+    """
+    dataset = archive.stem
+    config = _NATIVE_VECTOR_DATASETS[dataset]
+    feature_type = config["feature_type"]
+    xsd = config["xsd"]
+    member = f"{dataset}_{feature_type}.gml"
+    result = gdal_runner.run(
+        '{exe} -so -al -oo XSD="{xsd}" -oo WRITE_GFS=NO '
+        "/vsizip/{local_path}/{member} {feature_type}",
+        exe_name="ogrinfo",
+        kwargs={"xsd": xsd, "member": member, "feature_type": feature_type},
+        local_path=archive,
+    )
+    if _command_has_gdal_error(result):
+        raise RuntimeError(
+            f"ogrinfo failed for {archive}: {result.stderr or result.stdout}"
+        )
+    extents: list[tuple[float, float, float, float]] = []
+    for min_x, min_y, max_x, max_y in _EXTENT.findall(result.stdout):
+        extents.append((float(min_x), float(min_y), float(max_x), float(max_y)))
+    if not extents:
+        raise RuntimeError(f"ogrinfo returned no extent for {archive}")
+    return extents
+
+
 def _nested_bag_xml(data: bytes, prefix: str = "") -> Iterable[tuple[str, bytes]]:
     with ZipFile(BytesIO(data)) as archive:
         for info in archive.infolist():
@@ -704,7 +747,7 @@ def _validate_outputs(
             ]
 
     for archive in (bgt, top10nl):
-        extents = _ogrinfo_extents(gdal_runner, archive)
+        extents = _native_archive_extents(gdal_runner, archive)
         validate_dataset_extents(extents, aoi, str(archive))
         vector_extents[str(archive.relative_to(root))] = [
             list(extent) for extent in extents
