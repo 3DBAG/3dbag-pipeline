@@ -218,9 +218,7 @@ def test_native_archive_extents_uses_vsizip_and_xsd(tmp_path):
     """Native BGT/TOP10NL archives must be read via /vsizip/ with the dataset XSD."""
     archive = tmp_path / "bgt.zip"
     runner = Mock(
-        run=Mock(
-            return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)")
-        )
+        run=Mock(return_value=CommandResult(0, "Extent (geometrie2d): (1, 2) - (3, 4)"))
     )
 
     extents = _native_archive_extents(runner, archive)
