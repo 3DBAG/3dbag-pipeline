@@ -20,14 +20,18 @@ from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
 from pydantic import Field
 
-AOI_WKT = "POLYGON ((121967 485750, 123354 485750, 123354 486550, 121967 486550, 121967 485750))"
+from bag3d.core.fixture_contract import (
+    FIXTURE_VERSION,
+    VECTOR_PROCESSING,
+    validate_dataset_extents,
+)
+
+AOI_WKT = "POLYGON ((140100 485750, 141500 485750, 141500 486550, 140100 486550, 140100 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
-    "121000_485000",
-    "121000_486000",
-    "122000_485000",
-    "122000_486000",
-    "123000_485000",
-    "123000_486000",
+    "140000_485000",
+    "140000_486000",
+    "141000_485000",
+    "141000_486000",
 ]
 _NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 _EXTENT = re.compile(
@@ -39,10 +43,24 @@ _LAS_BOUND = re.compile(
 )
 _STAND_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?stand(?:\s|>)")
 _POS_TAG = re.compile(rb"<(?:[A-Za-z_][\w.-]*:)?pos(?:\s|>)")
+_BAG_LAYER_NAME = re.compile(
+    r"(?:\d{4}[A-Za-z]+|GEM-WPL-RELATIE-)(\d{8})(?:\.zip)?", re.IGNORECASE
+)
 _AOI_COORDINATE = re.compile(
-    rb"(?:^|\s|>)(?:12[12]\d{3}|123[0-3]\d{2})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)"
+    rb"(?:^|\s|>)(?:14[01]\d{3})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)"
 )
 BUFFER_METRES = 10.0
+
+_NATIVE_VECTOR_DATASETS = {
+    "bgt": {
+        "feature_type": "pand",
+        "xsd": "http://register.geostandaarden.nl/gmlapplicatieschema/imgeo/2.1.1/imgeo-simple.xsd",
+    },
+    "top10nl": {
+        "feature_type": "gebouw",
+        "xsd": "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
+    },
+}
 
 
 class IntegrationDataConfig(Config):
@@ -246,12 +264,20 @@ def _filter_bag_member(
 
 
 def filter_bag_extract(
-    source: Path, destination: Path, geofilter: str = AOI_WKT
+    source: Path, destination: Path, shortdate: str, geofilter: str = AOI_WKT
 ) -> Path:
     aoi = _aoi_bbox(geofilter)
     destination.mkdir(parents=True, exist_ok=True)
     for source_file in source.iterdir():
+        layer = _BAG_LAYER_NAME.fullmatch(source_file.name)
+        if layer and layer[1] != shortdate:
+            continue
         target = destination / source_file.name
+        if source_file.is_dir():
+            raise ValueError(
+                f"Expected BAG layer ZIPs, found directory {source_file}. "
+                "Rematerialize extract_bag to create an intact snapshot."
+            )
         if source_file.suffix.lower() != ".zip":
             shutil.copy2(source_file, target)
             continue
@@ -266,47 +292,24 @@ def filter_bag_extract(
                 data = _filter_bag_member(source_zip.read(info), aoi, info.filename)
                 if data is not None:
                     target_zip.writestr(info, data)
+    # A reused fixture directory may still contain layers from an earlier run.
+    for target in destination.iterdir():
+        layer = _BAG_LAYER_NAME.fullmatch(target.name)
+        if layer and layer[1] != shortdate:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
     return destination
 
 
-def _archive_layer(source: Path, names: tuple[str, ...]) -> str:
-    with ZipFile(source) as archive:
-        members = archive.namelist()
-    for wanted in names:
-        for member in members:
-            if member.lower() == wanted.lower() or member.lower().endswith(
-                wanted.lower()
-            ):
-                return member
-    raise FileNotFoundError(f"Archive {source} does not contain one of {names}")
-
-
-def _clip_gml_archive(
-    source: Path,
-    destination: Path,
-    layer_names: tuple[str, ...],
-    output_name: str,
-    geofilter: str,
-    gdal: GDALResource,
-) -> Path:
-    _aoi_bbox(geofilter)
-    member = _archive_layer(source, layer_names)
+def _copy_archive(source: Path, destination: Path) -> Path:
+    """Publish the PDOK archive unchanged; objects are selected at download time."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
-        output = Path(temp_dir) / output_name
-        result = gdal.runner.run(
-            "{exe} -f GML -clipsrc '{aoi}' '{output}' '{input_path}'",
-            exe_name="ogr2ogr",
-            kwargs={
-                "aoi": geofilter,
-                "output": output,
-                "input_path": f"/vsizip/{source}/{member}",
-            },
-        )
-        if not result.success or not output.is_file():
-            raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
-        with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
-            archive.write(output, output_name)
+        output = Path(temp_dir) / destination.name
+        shutil.copyfile(source, output)
+        output.replace(destination)
     return destination
 
 
@@ -358,9 +361,9 @@ def integration_bag(
     integration_data_store: FileStoreResource,
     extract_bag,
 ) -> Path:
-    source = Path(extract_bag[0] if isinstance(extract_bag, tuple) else extract_bag)
+    source, _, shortdate = extract_bag
     return filter_bag_extract(
-        source, integration_data_store.path / "bag", config.geofilter
+        Path(source), integration_data_store.path / "bag", shortdate, config.geofilter
     )
 
 
@@ -370,18 +373,11 @@ def integration_bag(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bgt(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_bgt,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
-        Path(extract_bgt),
-        integration_data_store.path / "bgt" / "bgt.zip",
-        ("bgt_pand.gml",),
-        "bgt_pand.gml",
-        config.geofilter,
-        gdal,
+    return _copy_archive(
+        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip"
     )
 
 
@@ -391,18 +387,12 @@ def integration_bgt(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_top10nl(
-    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_top10nl,
-    gdal: GDALResource,
 ) -> Path:
-    return _clip_gml_archive(
+    return _copy_archive(
         Path(extract_top10nl),
         integration_data_store.path / "top10nl" / "top10nl.zip",
-        ("top10nl_gebouw.gml",),
-        "top10nl_gebouw.gml",
-        config.geofilter,
-        gdal,
     )
 
 
@@ -636,6 +626,38 @@ def _ogrinfo_xml(
         return _ogrinfo_extents(gdal_runner, path, require_extent)
 
 
+def _native_archive_extents(
+    gdal_runner: Any, archive: Path
+) -> list[tuple[float, float, float, float]]:
+    """Compute the extent of a native BGT/TOP10NL archive.
+
+    Mirrors ``extract_bgt``/``extract_top10nl``: ``ogrinfo`` cannot open a ``.zip``
+    directly, so the GML is opened through ``/vsizip/`` with the dataset XSD.
+    """
+    dataset = archive.stem
+    config = _NATIVE_VECTOR_DATASETS[dataset]
+    feature_type = config["feature_type"]
+    xsd = config["xsd"]
+    member = f"{dataset}_{feature_type}.gml"
+    result = gdal_runner.run(
+        '{exe} -so -al -oo XSD="{xsd}" -oo WRITE_GFS=NO '
+        "/vsizip/{local_path}/{member} {feature_type}",
+        exe_name="ogrinfo",
+        kwargs={"xsd": xsd, "member": member, "feature_type": feature_type},
+        local_path=archive,
+    )
+    if _command_has_gdal_error(result):
+        raise RuntimeError(
+            f"ogrinfo failed for {archive}: {result.stderr or result.stdout}"
+        )
+    extents: list[tuple[float, float, float, float]] = []
+    for min_x, min_y, max_x, max_y in _EXTENT.findall(result.stdout):
+        extents.append((float(min_x), float(min_y), float(max_x), float(max_y)))
+    if not extents:
+        raise RuntimeError(f"ogrinfo returned no extent for {archive}")
+    return extents
+
+
 def _nested_bag_xml(data: bytes, prefix: str = "") -> Iterable[tuple[str, bytes]]:
     with ZipFile(BytesIO(data)) as archive:
         for info in archive.infolist():
@@ -724,17 +746,9 @@ def _validate_outputs(
                 list(extent) for extent in extents
             ]
 
-    for archive, layer_names in (
-        (bgt, ("bgt_pand.gml",)),
-        (top10nl, ("top10nl_gebouw.gml",)),
-    ):
-        member = _archive_layer(archive, layer_names)
-        with ZipFile(archive) as source_zip:
-            data = source_zip.read(member)
-        extents = [
-            _validate_and_return(extent, allowed, f"{archive}!{member}")
-            for extent in _ogrinfo_xml(gdal_runner, data, member)
-        ]
+    for archive in (bgt, top10nl):
+        extents = _native_archive_extents(gdal_runner, archive)
+        validate_dataset_extents(extents, aoi, str(archive))
         vector_extents[str(archive.relative_to(root))] = [
             list(extent) for extent in extents
         ]
@@ -747,37 +761,40 @@ def _validate_outputs(
 
     pointcloud_extents: dict[str, list[float]] = {}
     lastools_runner = lastools.runner
-    for pointcloud_root in ahn_roots:
+    # AHN assets share a pointcloud root; overlapping roots and aliases may also
+    # refer to the same file. Keep the original path for manifest labels.
+    pointcloud_files: dict[Path, Path] = {}
+    for pointcloud_root in dict.fromkeys(ahn_roots):
         for path in sorted(pointcloud_root.rglob("*")):
-            if path.suffix.lower() not in {".las", ".laz"}:
-                continue
-            result = lastools_runner.run(
-                "{exe} -i '{local_path}'", exe_name="lasinfo", local_path=path
+            if path.suffix.lower() in {".las", ".laz"} and path.is_file():
+                pointcloud_files.setdefault(path.resolve(), path)
+    for path in sorted(pointcloud_files.values()):
+        result = lastools_runner.run(
+            "{exe} -i '{local_path}'", exe_name="lasinfo", local_path=path
+        )
+        if result.returncode != 0 or bool(
+            re.search(
+                r"(?im)^\s*(?:error|fatal|critical)\b",
+                result.stdout + result.stderr,
             )
-            if result.returncode != 0 or bool(
-                re.search(
-                    r"(?im)^\s*(?:error|fatal|critical)\b",
-                    result.stdout + result.stderr,
-                )
-            ):
-                raise RuntimeError(
-                    f"lasinfo failed for {path}: {result.stderr or result.stdout}"
-                )
-            las_output = result.stdout + result.stderr
-            bounds = {
-                kind: (float(x), float(y))
-                for kind, x, y in _LAS_BOUND.findall(las_output)
-            }
-            if set(bounds) != {"min", "max"}:
-                raise RuntimeError(f"lasinfo returned no complete XY bounds for {path}")
-            extent = (
-                bounds["min"][0],
-                bounds["min"][1],
-                bounds["max"][0],
-                bounds["max"][1],
+        ):
+            raise RuntimeError(
+                f"lasinfo failed for {path}: {result.stderr or result.stdout}"
             )
-            _validate_extent(extent, allowed, str(path.relative_to(root)))
-            pointcloud_extents[str(path.relative_to(root))] = list(extent)
+        las_output = result.stdout + result.stderr
+        bounds = {
+            kind: (float(x), float(y)) for kind, x, y in _LAS_BOUND.findall(las_output)
+        }
+        if set(bounds) != {"min", "max"}:
+            raise RuntimeError(f"lasinfo returned no complete XY bounds for {path}")
+        extent = (
+            bounds["min"][0],
+            bounds["min"][1],
+            bounds["max"][0],
+            bounds["max"][1],
+        )
+        _validate_extent(extent, allowed, str(path.relative_to(root)))
+        pointcloud_extents[str(path.relative_to(root))] = list(extent)
     return {
         "buffer_metres": BUFFER_METRES,
         "extents": {"vectors": vector_extents, "pointclouds": pointcloud_extents},
@@ -889,18 +906,15 @@ def integration_manifest(
         version_dir = root / "pointclouds" / f"AHN{version}"
         partitions[str(version)] = {
             tile_id: {
-                "path": rel(version_dir / Path(entry[f"AHN{version}_LAZ"]).name),
-                "url": entry[f"AHN{version}_LAZ"],
-                "size": (version_dir / Path(entry[f"AHN{version}_LAZ"]).name)
-                .stat()
-                .st_size,
+                "path": rel(version_dir / Path(entry["url"]).name),
+                "url": entry["url"],
+                "size": (version_dir / Path(entry["url"]).name).stat().st_size,
                 "sha256": hashlib.sha256(
-                    (version_dir / Path(entry[f"AHN{version}_LAZ"]).name).read_bytes()
+                    (version_dir / Path(entry["url"]).name).read_bytes()
                 ).hexdigest(),
             }
             for tile_id, entry in index.items()
-            if entry.get(f"AHN{version}_LAZ")
-            and (version_dir / Path(entry[f"AHN{version}_LAZ"]).name).is_file()
+            if entry.get("url") and (version_dir / Path(entry["url"]).name).is_file()
         }
     partitions["6"] = {}
     for tile_id, entry in tile_index_ahn6.items():
@@ -917,7 +931,7 @@ def integration_manifest(
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
     manifest = {
-        "fixture_version": "2",
+        "fixture_version": FIXTURE_VERSION,
         "date": datetime.now(tz=UTC).date().isoformat(),
         "aoi": {
             "wkt": AOI_WKT,
@@ -926,7 +940,7 @@ def integration_manifest(
             "maxx": aoi[2],
             "maxy": aoi[3],
         },
-        "clipping": {"vectors": "gdal", "pointclouds": "las2las_keep_xy"},
+        "clipping": {"vectors": VECTOR_PROCESSING, "pointclouds": "las2las_keep_xy"},
         "validation": validation,
         "sources": sources,
         "ahn": {

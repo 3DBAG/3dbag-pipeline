@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from bag3d.common.resources.files import FileStoreResource
-from dagster import AssetExecutionContext, Output, asset
+from dagster import AssetExecutionContext, AssetKey, Output, asset
 
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
@@ -18,7 +18,7 @@ from bag3d.core.assets.ahn.core import (
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload, LAZDownload
 
-FIXTURE_VERSION = "2"
+from bag3d.core.fixture_contract import VECTOR_PROCESSING, validate_dataset_extents
 
 
 @dataclass(frozen=True)
@@ -45,11 +45,12 @@ def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
     if path.is_dir():
         if not isinstance(files, Mapping):
             raise ValueError("Fixture manifest must contain a file mapping")
-        for child in path.rglob("*"):
-            if child.is_file() and str(child.relative_to(root)) not in files:
-                raise ValueError(
-                    f"Fixture manifest does not declare required file {child.relative_to(root)!s}"
-                )
+        prefix = relative.rstrip("/") + "/"
+        declared = [name for name in files if name.startswith(prefix)]
+        if not declared:
+            raise ValueError(f"Fixture manifest declares no files in {relative!r}")
+        for name in declared:
+            _verify(root, manifest, name)
         return
     if not isinstance(files, Mapping) or relative not in files:
         raise ValueError(
@@ -84,9 +85,10 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         raise ValueError(f"Invalid integration-data manifest: {path}") from exc
     if not isinstance(manifest, Mapping):
         raise TypeError("Integration-data manifest must contain a JSON object")
-    if str(manifest.get("fixture_version")) != FIXTURE_VERSION:
+    version = str(manifest.get("fixture_version"))
+    if version not in {"2", "3"}:
         raise ValueError(
-            f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected {FIXTURE_VERSION!r}"
+            f"Unsupported integration-data fixture version {manifest.get('fixture_version')!r}; expected 2 or 3"
         )
     aoi = manifest.get("aoi")
     expected_aoi = {"wkt", "minx", "miny", "maxx", "maxy"}
@@ -95,7 +97,7 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
     clipping = manifest.get("clipping")
     if (
         not isinstance(clipping, Mapping)
-        or clipping.get("vectors") != "gdal"
+        or clipping.get("vectors") != ("gdal" if version == "2" else VECTOR_PROCESSING)
         or clipping.get("pointclouds") != "las2las_keep_xy"
     ):
         raise ValueError("Integration-data manifest has unsupported clipping metadata")
@@ -117,15 +119,36 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         float(aoi["maxx"]) + 10.0,
         float(aoi["maxy"]) + 10.0,
     )
+    native_paths = set()
+    if version == "3":
+        sources = manifest.get("sources")
+        if not isinstance(sources, Mapping):
+            raise TypeError("Integration-data manifest is missing sources")
+        for dataset in ("bgt", "top10nl"):
+            source = sources.get(dataset)
+            if not isinstance(source, Mapping) or not isinstance(
+                source.get("path"), str
+            ):
+                raise ValueError(f"Missing native source path for {dataset}")
+            relative = source["path"]
+            if relative in native_paths:
+                raise ValueError("Native source paths must be distinct")
+            native_paths.add(relative)
+            if not extents["vectors"].get(relative):
+                raise ValueError(f"Missing dataset extent for {dataset}")
     for category in ("vectors", "pointclouds"):
         for name, values in extents[category].items():
             if not isinstance(name, str) or not isinstance(values, list):
                 raise TypeError("Invalid computed extent metadata")
             values_to_check = values if category == "vectors" else [values]
+            dataset_extents = []
             for extent in values_to_check:
                 if not isinstance(extent, list) or len(extent) != 4:
                     raise ValueError(f"Invalid computed extent metadata for {name}")
                 extent_values = tuple(float(value) for value in extent)
+                if category == "vectors" and name in native_paths:
+                    dataset_extents.append(extent_values)
+                    continue
                 if not (
                     bounds[0] <= extent_values[0]
                     and bounds[1] <= extent_values[1]
@@ -135,6 +158,12 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                     raise ValueError(
                         f"Computed extent for {name} exceeds the AOI plus 10 m"
                     )
+            if category == "vectors" and name in native_paths:
+                validate_dataset_extents(
+                    dataset_extents,
+                    tuple(float(aoi[key]) for key in ("minx", "miny", "maxx", "maxy")),
+                    name,
+                )
     sources = manifest.get("sources")
     required = {"bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart"}
     if not isinstance(sources, Mapping):
@@ -181,9 +210,13 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
         for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     }
-    if actual != set(files):
-        raise ValueError("Integration-data manifest file list does not match snapshot")
-    for relative in actual:
+    if missing := set(files) - actual:
+        raise ValueError(
+            f"Integration-data snapshot is missing files: {sorted(missing)}"
+        )
+    # The directory may retain files from an older extract. The manifest is the
+    # authority: verify every declared file and never consume undeclared extras.
+    for relative in files:
         _verify(root, manifest, relative)
     for name, source in sources.items():
         if not isinstance(source, Mapping) or not isinstance(source.get("path"), str):
@@ -207,39 +240,58 @@ def _path(m, name):
 
 
 def _writable_fixture_copy(
-    file_store: FileStoreResource, source: Path, relative: str
+    file_store: FileStoreResource, manifest: FixtureManifest, relative: str
 ) -> Path:
+    source = manifest.path(relative)
     destination = Path(file_store.root_dir) / "fixture-inputs" / relative
     if source.is_dir():
         shutil.rmtree(destination, ignore_errors=True)
-        shutil.copytree(source, destination)
+        destination.mkdir(parents=True)
+        prefix = relative.rstrip("/") + "/"
+        for name in manifest.value["files"]:
+            if name.startswith(prefix):
+                target = destination / Path(name).relative_to(relative)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(manifest.path(name), target)
     else:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
     return destination
 
 
-@asset(name="extract_bag", key_prefix="bag", group_name="bag")
+def _fixture_asset(*, name: str, key_prefix: str, **kwargs):
+    # Applying the key prefix after definition preserves the original op name.
+    # Runner run-config addresses these ops by name, independently of asset keys.
+    def decorate(fn):
+        definition = asset(name=name, **kwargs)(fn)
+        return definition.with_attributes(
+            asset_key_replacements={definition.key: AssetKey([key_prefix, name])}
+        )
+
+    return decorate
+
+
+@_fixture_asset(name="extract_bag", key_prefix="bag", group_name="bag")
 def fixture_extract_bag(
     integration_data_store: FileStoreResource, file_store: FileStoreResource
 ):
     m = _m(integration_data_store)
     s = _src(m, "bag")
-    extract = _writable_fixture_copy(file_store, _path(m, "bag"), "bag")
+    extract = _writable_fixture_copy(file_store, m, _src(m, "bag")["path"])
     return Output((extract, dict(s["metadata"]), str(s["shortdate"])))
 
 
-@asset(name="extract_bgt", key_prefix="bgt", group_name="bgt")
+@_fixture_asset(name="extract_bgt", key_prefix="bgt", group_name="bgt")
 def fixture_extract_bgt(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "bgt")
 
 
-@asset(name="extract_top10nl", key_prefix="top10nl", group_name="top10nl")
+@_fixture_asset(name="extract_top10nl", key_prefix="top10nl", group_name="top10nl")
 def fixture_extract_top10nl(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "top10nl")
 
 
-@asset(name="extract_cbs_key_figures", key_prefix="cbs", group_name="cbs")
+@_fixture_asset(name="extract_cbs_key_figures", key_prefix="cbs", group_name="cbs")
 def fixture_extract_cbs_key_figures(integration_data_store: FileStoreResource):
     value = json.loads(
         _path(_m(integration_data_store), "cbs_key_figures").read_text(encoding="utf-8")
@@ -249,7 +301,7 @@ def fixture_extract_cbs_key_figures(integration_data_store: FileStoreResource):
     return value
 
 
-@asset(name="extract_cbs_buurtkaart", key_prefix="cbs", group_name="cbs")
+@_fixture_asset(name="extract_cbs_buurtkaart", key_prefix="cbs", group_name="cbs")
 def fixture_extract_cbs_buurtkaart(integration_data_store: FileStoreResource):
     return _path(_m(integration_data_store), "cbs_buurtkaart")
 
@@ -261,22 +313,22 @@ def _ahn(store, version):
     return dict(value)
 
 
-@asset(name="tile_index_ahn3", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn3", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn3(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 3)
 
 
-@asset(name="tile_index_ahn4", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn4", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn4(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 4)
 
 
-@asset(name="tile_index_ahn5", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn5", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn5(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 5)
 
 
-@asset(name="tile_index_ahn6", key_prefix="ahn", group_name="ahn")
+@_fixture_asset(name="tile_index_ahn6", key_prefix="ahn", group_name="ahn")
 def fixture_tile_index_ahn6(integration_data_store: FileStoreResource):
     return _ahn(integration_data_store, 6)
 
@@ -344,19 +396,19 @@ def _adapter(version):
     return adapter
 
 
-fixture_laz_files_ahn3 = asset(
+fixture_laz_files_ahn3 = _fixture_asset(
     name="laz_files_ahn3",
     key_prefix="ahn",
     group_name="ahn",
     partitions_def=partition_definition_ahn,
 )(_adapter(3))
-fixture_laz_files_ahn4 = asset(
+fixture_laz_files_ahn4 = _fixture_asset(
     name="laz_files_ahn4",
     key_prefix="ahn",
     group_name="ahn",
     partitions_def=partition_definition_ahn,
 )(_adapter(4))
-fixture_laz_files_ahn5 = asset(
+fixture_laz_files_ahn5 = _fixture_asset(
     name="laz_files_ahn5",
     key_prefix="ahn",
     group_name="ahn",
@@ -364,7 +416,7 @@ fixture_laz_files_ahn5 = asset(
 )(_adapter(5))
 
 
-@asset(
+@_fixture_asset(
     name="laz_files_ahn6",
     key_prefix="ahn",
     group_name="ahn",

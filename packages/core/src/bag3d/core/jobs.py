@@ -1,5 +1,7 @@
 from dagster import AssetSelection, define_asset_job
 
+from bag3d.core.assets.integration_data import AOI_WKT
+
 job_bgt = define_asset_job(
     name="bgt",
     description="Load the latest BGT Pand layer.",
@@ -114,6 +116,12 @@ job_reconstruct_debug = define_asset_job(
 
 job_integration_data = define_asset_job(
     name="integration_data",
+    config={
+        "ops": {
+            "extract_bgt": {"config": {"geofilter": AOI_WKT}},
+            "extract_top10nl": {"config": {"geofilter": AOI_WKT}},
+        }
+    },
     description="Refresh the AOI-specific native-format integration-data fixtures.",
     selection=AssetSelection.groups("integration_data")
     | AssetSelection.assets(["bag", "extract_bag"])

@@ -122,7 +122,11 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "integration_data_store": FileStoreResource(
                 root_dir=os.getenv(
                     "BAG3D_INTEGRATION_DATA_DIR",
-                    str(Path(os.environ["BAG3D_FILESTORE"]) / "integration-data"),
+                    str(
+                        Path(os.environ["BAG3D_FILESTORE"])
+                        / "pipeline"
+                        / "integration-data"
+                    ),
                 )
             ),
             "computation_db": DatabaseResource(
