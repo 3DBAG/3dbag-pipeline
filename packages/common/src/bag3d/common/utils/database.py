@@ -104,13 +104,34 @@ def postgrestable_metadata(
     # null count
     null_count = conn.count_nulls(table)
     # head
-    head = conn.get_head(table, md=True, shorten=23)
+    # pgutils' Markdown formatter slices values before converting them to text,
+    # which fails for JSON objects returned as dictionaries by psycopg.
+    records = conn.get_head(table, md=False)
+    head = _table_head_md(fields, records)
     return {
         "Database.Schema.Table": f"{conn.dbname}.{table}",
         "Rows": row_count,
-        "Head": MarkdownMetadataValue(head if isinstance(head, str) else ""),
+        "Head": MarkdownMetadataValue(head),
         "Summary": MarkdownMetadataValue(summary_md(fields, null_count)),
     }
+
+
+def _table_head_md(fields, records):
+    columns = [name for name, _ in fields]
+    lines = [
+        "| " + " | ".join(columns) + " |",
+        "| " + " | ".join("---" for _ in columns) + " |",
+    ]
+    for record in records:
+        values = (
+            str(record[column])[:24]
+            .replace("|", r"\|")
+            .replace("\r", " ")
+            .replace("\n", " ")
+            for column in columns
+        )
+        lines.append("| " + " | ".join(values) + " |")
+    return "\n".join(lines)
 
 
 def drop_table(computation_db: DatabaseResource, new_table, logger: Logger):

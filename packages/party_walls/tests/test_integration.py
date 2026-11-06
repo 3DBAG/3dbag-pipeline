@@ -195,7 +195,7 @@ def test_building_surfaces_integration(
     # afterward so the stub-relying unit tests are unaffected.
     monkeypatch.setattr(_pw_mod, "shared_walls", _real_shared_walls)
 
-    reconstruction_dir = integration_file_store.stage_dir("reconstruction")
+    reconstruction_dir = integration_file_store.stage_dir("underpasses")
     resource = CityIndexResource(dataset_dir=str(reconstruction_dir))
 
     config = PartyWallsConfig(concurrency=4, profile=True)
