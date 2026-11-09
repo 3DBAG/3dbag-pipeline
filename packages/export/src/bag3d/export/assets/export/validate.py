@@ -1,13 +1,14 @@
-import ast
 import csv
+import gzip
+import hashlib
 import json
 import re
-from collections.abc import Generator
+import shutil
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
-from enum import Enum
 from os import getenv
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from bag3d.common.resources.executables import (
     CommandRunner,
@@ -17,85 +18,18 @@ from bag3d.common.resources.executables import (
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.specs.core import CityJSONLocation, GpkgLocation
 from dagster import AssetIn, AssetKey, Config, asset, get_dagster_logger
 from pydantic import Field
 
+from bag3d.export.assets.export.attributes import (
+    AttributeValidationResults,
+    cityobject_validate_attributes,
+    gpkg_validate_attributes,
+)
+from bag3d.export.assets.export.inspect_geopackage import inspect_geopackage
+from bag3d.export.assets.export.inspect_tiles import inspect_tileset
+
 logger = get_dagster_logger("export.validate")
-
-
-class AttributeValidationOutcome(Enum):
-    """Types of outcomes that can happen during attribute validation.
-
-    Possible outcomes and corresponding error codes:
-
-    - NO_ERROR (0): The attribute complies with the specs.
-    - BUILDING_EXTRA_ATTRIBUTES (1): The building object has attributes that is should not have.
-    - BUILDING_MISSING_ATTRIBUTES (2): The building object is some attributes that are prescribed by the specs.
-    - SURFACE_EXTRA_ATTRIBUTES (3): The surface object has attributes that is should not have.
-    - SURFACE_MISSING_ATTRIBUTES (4): The surface object is some attributes that are prescribed by the specs.
-    - INCORRECT_DATA_TYPE (5): The data type of the attribute does not match the specs.
-    - INCORRECT_NULLABLE (6): The nullability of the attribute does not match the specs.
-    """
-
-    OK = 0
-    BUILDING_EXTRA_ATTRIBUTES = 1
-    BUILDING_MISSING_ATTRIBUTES = 2
-    SURFACE_EXTRA_ATTRIBUTES = 3
-    SURFACE_MISSING_ATTRIBUTES = 4
-    INCORRECT_DATA_TYPE = 5
-    INCORRECT_NULLABLE = 6
-
-    @classmethod
-    def is_error(cls, outcome: "AttributeValidationOutcome") -> bool:
-        """Whether the AttributeValidationError represents an error or not."""
-        return outcome != cls.OK
-
-
-@dataclass(frozen=True)
-class AttributeValidationResultOne:
-    """The result of the attribute validation for one attribute.
-    Includes the attribute name and the error.
-
-    Attributes:
-        attribute_name (str): The name of the attribute.
-        outcome (AttributeValidationOutcome): The validation outcome.
-    """
-
-    attribute_name: str
-    outcome: AttributeValidationOutcome
-
-
-@dataclass
-class AttributeValidationResults:
-    """The aggregated result of attribute validations for many attributes.
-
-    Attributes:
-        results (dict[str, set[AttributeValidationResultOne]]): Map of attribute name, validation results for the attribute.
-    """
-
-    results: dict[str, set[AttributeValidationResultOne]] = field(default_factory=dict)
-
-    def all_ok(self) -> bool:
-        """Are there any errors in the results?"""
-        return len(self.results) == 0
-
-    def add_error(self, result: AttributeValidationResultOne) -> None:
-        """Add a single validation result, only if the result is an error."""
-        if AttributeValidationOutcome.is_error(result.outcome):
-            # The attribute name can be a comma-separated list of attribute names in
-            # case of many missing attributes
-            for a_name in result.attribute_name.split(","):
-                if validation_res := self.results.get(a_name):
-                    validation_res.add(result)
-                else:
-                    self.results[a_name] = {result}
-
-    def __repr__(self):
-        def get_value(x: AttributeValidationResultOne) -> int:
-            return x.outcome.value
-
-        return f"{ {k: list(map(get_value, v)) for k, v in self.results.items()} }"
 
 
 @dataclass
@@ -260,92 +194,6 @@ class TileResults:
         }
 
 
-def cityobject_validate_attributes(
-    specs: Specs3DBAGResource, co: dict
-) -> Generator[AttributeValidationResultOne, None, None]:
-    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
-
-    Args:
-        specs (Specs3DBAGResource): The 3DBAG specifications
-        co (dict): A single CityObject
-    Returns:
-        A list of `AttributeValidationResultOne`.
-    """
-    # CityObject attributes
-    if co_attributes := co.get("attributes"):
-        building_attributes = dict(
-            specs.applies_to(
-                data_format="cityjson",
-                locations=(CityJSONLocation.from_string(co["type"]),),
-            )
-        )
-        co_diff_specs = set(co_attributes).difference(building_attributes)
-        if len(co_diff_specs) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(co_diff_specs),
-                outcome=AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES,
-            )
-
-        specs_diff_co = set(building_attributes).difference(co_attributes)
-        if len(specs_diff_co) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(specs_diff_co),
-                outcome=AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES,
-            )
-        for specs_attr in building_attributes.values():
-            if (co_attr := co_attributes.get(specs_attr.name)) and (
-                type(co_attr).__name__ != specs_attr.type.as_python()
-            ):
-                yield AttributeValidationResultOne(
-                    attribute_name=specs_attr.name,
-                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                )
-
-    # Semantic attributes
-    if geometries := co.get("geometry"):
-        for geometry in geometries:
-            if semantics := geometry.get("semantics"):
-                for semantic_surface in semantics["surfaces"]:
-                    specs_surface_attributes = dict(
-                        specs.applies_to(
-                            data_format="cityjson",
-                            locations=(
-                                CityJSONLocation.from_string(semantic_surface["type"]),
-                            ),
-                        )
-                    )
-                    semantic_surface_attributes = {
-                        k: v
-                        for k, v in semantic_surface.items()
-                        if k != "type" and k != "children" and k != "parent"
-                    }
-                    surface_diff_specs = set(semantic_surface_attributes).difference(
-                        specs_surface_attributes
-                    )
-                    if len(surface_diff_specs) > 0:
-                        yield AttributeValidationResultOne(
-                            attribute_name=",".join(surface_diff_specs),
-                            outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
-                        )
-
-                    specs_diff_surface = set(specs_surface_attributes).difference(
-                        semantic_surface_attributes
-                    )
-                    if len(specs_diff_surface) > 0:
-                        yield AttributeValidationResultOne(
-                            attribute_name=",".join(specs_diff_surface),
-                            outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
-                        )
-                    for specs_attr in specs_surface_attributes.values():
-                        if (
-                            sem_attr := semantic_surface_attributes.get(specs_attr.name)
-                        ) and (type(sem_attr).__name__ != specs_attr.type.as_python()):
-                            yield AttributeValidationResultOne(
-                                attribute_name=specs_attr.name,
-                                outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                            )
-
-
 def cityjson(
     system: CommandRunner,
     validation_runner: CommandRunner,
@@ -390,6 +238,10 @@ def cityjson(
         inputfile.unlink(missing_ok=True)
         return results
 
+    if not results.zip_ok:
+        results.file_ok = False
+        return results
+
     # unzip
     try:
         cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
@@ -416,51 +268,24 @@ def cityjson(
         inputfile.unlink(missing_ok=True)
         return results
 
-    # cjio feature and lod count
-    try:
-        cmd = " ".join(
-            [
-                "{exe}",
-                str(inputfile),
-                "info",
-                "--long",
-            ]
-        )
-        result = validation_runner.run(cmd, exe_name="cjio", local_path=dirpath)
-        try:
-            results.nr_building = int(
-                re.search(r"(?<=Building \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to extract number of buildings from output")
-            results.nr_building = -1
-        try:
-            results.nr_buildingpart = int(
-                re.search(r"(?<=BuildingPart \()\d+", result.stdout).group(0)  # type: ignore[union-attr]
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to extract number of building parts from output")
-            results.nr_buildingpart = -1
-        try:
-            results.lod = ast.literal_eval(
-                re.search(r"(?<=LoD = ).+", result.stdout).group(0)  # type: ignore[union-attr]
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to extract LoD from output")
-            results.lod = [
-                "",
-            ]
-    except Exception:
-        logger.error("Failed to run cjio info command.")
-        inputfile.unlink(missing_ok=True)
-        raise
-
-    # Read the whole CityJSON again, so that we can match the val3dity errors to the
-    # errors in the b3_val3dity attributes. It would be better to combine this with the
-    # object and lod count above.
-    with inputfile.open("r") as fo:
+    with inputfile.open("r", encoding="utf-8") as fo:
         cm = json.load(fo)
-        cityobjects = cm["CityObjects"]
+    cityobjects = cm["CityObjects"]
+    results.nr_building = sum(co["type"] == "Building" for co in cityobjects.values())
+    results.nr_buildingpart = sum(
+        co["type"] == "BuildingPart" for co in cityobjects.values()
+    )
+    results.lod = sorted(
+        {
+            str(g["lod"])
+            for co in cityobjects.values()
+            for g in co.get("geometry", [])
+            if "lod" in g
+        }
+    )
+    for co in cityobjects.values():
+        for outcome in cityobject_validate_attributes(specs, co):
+            results.attributes_with_errors.add_error(outcome)
 
     # val3dity & attribute validation
     reportfile = dirpath / "report.json"
@@ -483,7 +308,7 @@ def cityjson(
 
         result = validation_runner.run(cmd, exe_name="val3dity", local_path=dirpath)
         results.file_ok = not (not result.success or "error" in result.stdout.lower())
-        with reportfile.open("r") as fo:
+        with reportfile.open("r", encoding="utf-8") as fo:
             report = json.load(fo)
             nr_invalid_building = 0
             nr_invalid_lod12 = 0
@@ -531,24 +356,26 @@ def cityjson(
                 cj_co = cityobjects.get(feature["id"])
                 if cj_co and (attributes := cj_co.get("attributes")):
                     if v_lod12 := attributes.get("b3_val3dity_lod12"):
-                        if e12 != set(eval(v_lod12)):
+                        if e12 != set(
+                            json.loads(v_lod12) if isinstance(v_lod12, str) else v_lod12
+                        ):
                             nr_mismatch_errors_lod12 += 1
                     elif e12 is not None:
                         nr_mismatch_errors_lod12 += 1
                     if v_lod13 := attributes.get("b3_val3dity_lod13"):
-                        if e13 != set(eval(v_lod13)):
+                        if e13 != set(
+                            json.loads(v_lod13) if isinstance(v_lod13, str) else v_lod13
+                        ):
                             nr_mismatch_errors_lod13 += 1
                     elif e13 is not None:
                         nr_mismatch_errors_lod13 += 1
                     if v_lod22 := attributes.get("b3_val3dity_lod22"):
-                        if e22 != set(eval(v_lod22)):
+                        if e22 != set(
+                            json.loads(v_lod22) if isinstance(v_lod22, str) else v_lod22
+                        ):
                             nr_mismatch_errors_lod22 += 1
                     elif e22 is not None:
                         nr_mismatch_errors_lod22 += 1
-                    for res_one in cityobject_validate_attributes(
-                        specs=specs, co=cj_co
-                    ):
-                        results.attributes_with_errors.add_error(res_one)
             results.nr_invalid_building = nr_invalid_building
             results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
             results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
@@ -564,7 +391,7 @@ def cityjson(
         inputfile.unlink(missing_ok=True)
         raise
     finally:
-        reportfile.unlink()
+        reportfile.unlink(missing_ok=True)
         logfile.unlink(missing_ok=True)
 
     # cjval
@@ -580,6 +407,11 @@ def cityjson(
         inputfile.unlink(missing_ok=True)
         raise
 
+    results.file_ok = bool(
+        results.file_ok
+        and results.schema_valid
+        and results.attributes_with_errors.all_ok()
+    )
     # clean up
     inputfile.unlink()
     return results
@@ -662,7 +494,7 @@ def obj(
                 building_ids = set()
                 buildingpart_ids_temp_until_obj_fix = []
                 buildingpart_ids = set()
-                with inputfile.open("r") as obj_file:
+                with inputfile.open("r", encoding="utf-8") as obj_file:
                     for line in obj_file:
                         bid_match = re.search(r"(?<=o )NL\.IMBAG\.Pand\.\d{16}", line)
                         # For now, the OBJ object IDs do not contain the building part suffix, which
@@ -705,10 +537,13 @@ def obj(
                 result = validation_runner.run(
                     cmd, exe_name="val3dity", local_path=dirpath
                 )
-                results.file_ok = not (
-                    not result.success or "error" in result.stdout.lower()
+                current_ok = result.success and "error" not in result.stdout.lower()
+                results.file_ok = (
+                    current_ok
+                    if results.file_ok is None
+                    else results.file_ok and current_ok
                 )
-                with reportfile.open("r") as fo:
+                with reportfile.open("r", encoding="utf-8") as fo:
                     report = json.load(fo)
 
                 current_lod = re.search(r"(?<=LoD)\d{2}", inputfile.name).group(0)  # type: ignore[union-attr]
@@ -746,7 +581,7 @@ def obj(
                 elif current_lod == "22":
                     results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
                     results.errors_lod22 = list(errors_lod22)
-                reportfile.unlink()
+                reportfile.unlink(missing_ok=True)
                 logfile.unlink(missing_ok=True)
             except Exception as e:
                 logger.error("Failed to run val3dity command.")
@@ -754,77 +589,17 @@ def obj(
                 logfile.unlink(missing_ok=True)
                 inputfile.unlink(missing_ok=True)
                 raise
-    results.nr_building = min(nr_building_all)
-    results.nr_buildingpart = min(nr_buildingpart_all)
-    results.nr_invalid_building = max(nr_invalid_building_all)
+    if nr_building_all and nr_buildingpart_all and nr_invalid_building_all:
+        results.nr_building = min(nr_building_all)
+        results.nr_buildingpart = min(nr_buildingpart_all)
+        results.nr_invalid_building = max(nr_invalid_building_all)
+    else:
+        results.file_ok = False
+        logger.error(f"Tile {file_id}, OBJ: empty geometry/count results in {dirpath}")
 
     for inputfile in inputfiles:
         inputfile.unlink()
     return results
-
-
-def gpkg_validate_attributes(
-    specs: Specs3DBAGResource, gpkg_info: dict
-) -> Generator[AttributeValidationResultOne, None, None]:
-    """Validate the attributes of a GPKG against the 3DBAG attributes specs.
-
-    Args:
-        specs (Specs3DBAGResource): 3DBAG specifications
-        gpkg_info (dict): The output of OGRInfo in JSON format, deserialized to python
-
-    Returns:
-        A list of `AttributeValidationResultOne`.
-    """
-    for layer in gpkg_info["layers"]:
-        gpkg_location = GpkgLocation.from_string(layer["name"])
-        specs_attributes = dict(
-            specs.applies_to(data_format="gpkg", locations=(gpkg_location,))
-        )
-
-        layer_fields = layer["fields"]
-        gpkg_field_names = {f["name"] for f in layer_fields}
-        gpkg_diff_specs = gpkg_field_names.difference(specs_attributes)
-        if gpkg_location in GpkgLocation.building_layers():
-            error_extra_attributes = (
-                AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES
-            )
-            error_missing_attributes = (
-                AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES
-            )
-        else:
-            error_extra_attributes = AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES
-            error_missing_attributes = (
-                AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES
-            )
-        # Check for extra/missing attributes
-        if len(gpkg_diff_specs) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(gpkg_diff_specs),
-                outcome=error_extra_attributes,
-            )
-
-        specs_diff_gpkg = set(specs_attributes).difference(gpkg_field_names)
-        if len(specs_diff_gpkg) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(specs_diff_gpkg),
-                outcome=error_missing_attributes,
-            )
-
-        # Check attribute types
-        for gpkg_attr in layer_fields:
-            a_name = gpkg_attr["name"]
-            if spec_attr := specs_attributes.get(a_name):
-                if gpkg_attr["type"] != spec_attr.type.as_ogr():
-                    yield AttributeValidationResultOne(
-                        attribute_name=a_name,
-                        outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                    )
-
-                if gpkg_attr["nullable"] != spec_attr.nullable:
-                    yield AttributeValidationResultOne(
-                        attribute_name=a_name,
-                        outcome=AttributeValidationOutcome.INCORRECT_NULLABLE,
-                    )
 
 
 def gpkg(
@@ -838,151 +613,26 @@ def gpkg(
     url_file_id: str | None = None,
 ) -> GPKGFileResults:
     results = GPKGFileResults()
-    inputzipfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz")
-    inputfile = dirpath.joinpath(file_id).with_suffix(".gpkg")
-    propertiesfile = dirpath.joinpath(file_id).with_suffix(".gpkg.gz.properties")
-
-    # test zip
-    try:
-        cmd = " ".join(["gunzip", "-t", str(inputzipfile)])
-        result = system.run(cmd, cwd=str(dirpath))
-        results.zip_ok = bool(result.success and len(result.stdout) == 0)
-    except Exception:  # noqa: BLE001
-        logger.error(f"Failed to test zip with file {inputzipfile}")
-        return results
-
-    # unzip
-    try:
-        cmd = " ".join(["gunzip", "--keep", str(inputzipfile)])
-        system.run(cmd, cwd=str(dirpath))
-    except Exception:  # noqa: BLE001
-        logger.error(f"Failed to unzip file {inputzipfile}")
-        inputfile.unlink(missing_ok=True)
-        return results
-
-    # download link and sha256
-    try:
-        cmd = " ".join(["sha256sum", str(inputzipfile)])
-        result = system.run(cmd, cwd=str(dirpath))
-        sha256 = result.stdout.split(" ")[0]
-        results.sha256 = sha256
-        results.download = create_download_link(
-            url_root=url_root,
-            format="gpkg",
-            file_id=url_file_id or file_id,
-            version=version,
-        )
-    except Exception:  # noqa: BLE001
-        logger.error("Failed to compute sha256 or create download link")
-        return results
-    finally:
-        inputfile.unlink(missing_ok=True)
-
-    # ogrinfo
-    nr_building_all = []
-    nr_buildingpart_all = []
-    nr_invalid_2d_geom_all = []
-
-    try:
-        for layer in ["lod12_3d", "lod13_3d", "lod22_3d"]:
-            sql_buildingpart_count = f"-sql 'select count(identificatie) from {layer}'"
-            sql_building_count = (
-                f"-sql 'select count(distinct identificatie) from {layer}'"
-            )
-
-            cmd = " ".join(
-                [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                    "{exe}",
-                    sql_buildingpart_count,
-                    f"/vsigzip//{inputzipfile}",
-                ]
-            )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
-            results.file_ok = not (
-                not result.success or "error" in result.stdout.lower()
-            )
-            re_buildingpart_count = r"(?<=count\(identificatie\) \(Integer\) = )\d+"
-
-            try:
-                n = int(re.search(re_buildingpart_count, result.stdout).group(0))  # type: ignore[union-attr]
-                nr_buildingpart_all.append(n)
-
-            except Exception:  # noqa: BLE001
-                logger.warning(
-                    f"Failed to extract number of building parts from output for layer {layer}"
-                )
-                n = None
-
-            cmd = " ".join(
-                [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                    "{exe}",
-                    sql_building_count,
-                    f"/vsigzip//{inputzipfile}",
-                ]
-            )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
-            re_building_count = (
-                r"(?<=count\(distinct identificatie\) \(Integer\) = )\d+"
-            )
-            try:
-                n = int(re.search(re_building_count, result.stdout).group(0))  # type: ignore[union-attr]
-                nr_building_all.append(n)
-            except Exception:  # noqa: BLE001
-                logger.warning(
-                    f"Failed to extract number of buildings from output for layer {layer}"
-                )
-                n = None
-        for layer in ["lod12_2d", "lod13_2d", "lod22_2d"]:
-            sql_invalid_geom_count = f"""-sql 'SELECT COUNT(DISTINCT identificatie) as invalid_count FROM {layer} WHERE identificatie IN (SELECT identificatie FROM {layer} WHERE ST_IsValid(geom) = false)'"""
-
-            cmd = " ".join(
-                [
-                    "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                    "{exe}",
-                    sql_invalid_geom_count,
-                    f"/vsigzip//{inputzipfile}",
-                ]
-            )
-            result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
-            re_invalid_count = r"(?<=invalid_count \(Integer\) = )\d+"
-            try:
-                n = int(re.search(re_invalid_count, result.stdout).group(0))  # type: ignore[union-attr]
-                nr_invalid_2d_geom_all.append(n)
-            except Exception:  # noqa: BLE001
-                logger.warning(
-                    f"Failed to extract number of valid geometries from output for layer {layer}"
-                )
-                n = None
-        # Attribute validation
-        cmd = " ".join(
-            [
-                "LD_LIBRARY_PATH=/opt/lib:$LD_LIBRARY_PATH",
-                "{exe}",
-                "-so",
-                "-json",
-                f"/vsigzip//{inputzipfile}",
-            ]
-        )
-        result = gdal_runner.run(cmd, exe_name="ogrinfo", local_path=dirpath)
-        try:
-            gpkg_info = json.loads(result.stdout)
-            for res_one in gpkg_validate_attributes(specs=specs, gpkg_info=gpkg_info):
-                results.attributes_with_errors.add_error(res_one)
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to get the json ogrinfo for file")
-    except Exception:
-        logger.error("Failed to run validation for gpkg")
-        raise
-    # Temporary compatibility fix until 3dbag-specs is refactored to provide
-    # format projections for validating Tyler's new GeoPackage layer schema.
-    results.nr_building = min(nr_building_all, default=None)
-    results.nr_buildingpart = min(nr_buildingpart_all, default=None)
-    results.nr_invalid_2d_geom = min(nr_invalid_2d_geom_all, default=None)
-    if not nr_building_all or not nr_buildingpart_all or not nr_invalid_2d_geom_all:
-        results.file_ok = False
-    propertiesfile.unlink(missing_ok=True)
+    archive = dirpath / f"{file_id}.gpkg.gz"
+    results.download = create_download_link(
+        url_root, "gpkg", url_file_id or file_id, version
+    )
+    with archive.open("rb") as stream:
+        results.sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
+    # A private directory avoids clobbering an uncompressed export on retries.
+    with TemporaryDirectory(prefix=f".validate-{file_id}-", dir=dirpath) as temporary:
+        path = Path(temporary) / f"{file_id}.gpkg"
+        with gzip.open(archive, "rb") as source, path.open("wb") as target:
+            shutil.copyfileobj(source, target)
+        results.zip_ok = True
+        info, counts, failures = inspect_geopackage(path, specs, gdal_runner)
+        for outcome in gpkg_validate_attributes(specs, info):
+            results.attributes_with_errors.add_error(outcome)
+        for key, count in counts.items():
+            setattr(results, key, count)
+        for failure in failures:
+            logger.error(f"Tile {file_id}, GeoPackage: {failure}")
+        results.file_ok = not failures and results.attributes_with_errors.all_ok()
     return results
 
 
@@ -1003,7 +653,7 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     return link
 
 
-def check_formats(inputs) -> TileResults:
+def _check_formats(inputs) -> TileResults:
     """Worker function - no Dagster context available."""
     validation_runner, gdal_runner, dirpath, tile_id, url_root, version = inputs
 
@@ -1054,6 +704,15 @@ def check_formats(inputs) -> TileResults:
     return TileResults(tile_id, cj_results, obj_results, gpkg_results)
 
 
+def check_formats(inputs) -> TileResults:
+    try:
+        return _check_formats(inputs)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Tile {inputs[3]}: serialized artifact validation failed"
+        ) from exc
+
+
 class ValidationConfig(Config):
     concurrency: int = Field(
         default_factory=lambda: int(getenv("BAG3D_CONCURRENCY_TOOL_VALIDATION", "4")),
@@ -1065,6 +724,9 @@ class ValidationConfig(Config):
     ins={
         "export_index": AssetIn(key_prefix="export"),
         "metadata": AssetIn(key_prefix="export"),
+        "reconstruction_output_3dtiles_lod12": AssetIn(key_prefix="export"),
+        "reconstruction_output_3dtiles_lod13": AssetIn(key_prefix="export"),
+        "reconstruction_output_3dtiles_lod22": AssetIn(key_prefix="export"),
     },
     deps=[AssetKey(("export", "compressed_tiles"))],
     pool="validation",
@@ -1073,6 +735,9 @@ def compressed_tiles_validation(
     config: ValidationConfig,
     export_index: Path,
     metadata: Path,
+    reconstruction_output_3dtiles_lod12: Path,
+    reconstruction_output_3dtiles_lod13: Path,
+    reconstruction_output_3dtiles_lod22: Path,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     gdal: GDALResource,
@@ -1099,13 +764,13 @@ def compressed_tiles_validation(
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
     url_root = "https://data.3dbag.nl"
-    with metadata.open("r") as fo:
+    with metadata.open("r", encoding="utf-8") as fo:
         metadata_json = json.load(fo)
         version_str = metadata_json["identificationInfo"]["citation"]["edition"]
         logger.debug(f"{version_str=}")
     validation_runner = validation.runner
     gdal_runner = gdal.runner
-    with export_index.open("r") as fo:
+    with export_index.open("r", encoding="utf-8") as fo:
         csvreader = csv.reader(fo)
         _ = next(csvreader)  # header
         tileids = [
@@ -1113,15 +778,41 @@ def compressed_tiles_validation(
                 validation_runner,
                 gdal_runner,
                 path_export_dir.joinpath("t", row[0]).parent,
-                row[0].rsplit("/", 1)[-1],
+                row[0],
                 url_root,
                 version_str,
             )
             for row in csvreader
         ]
 
+    specs = Specs3DBAGResource()
+    with (path_export_dir / "validate_3dtiles.csv").open(
+        "w", encoding="utf-8", newline=""
+    ) as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["lod", "attribute", "outcome"])
+        for lod, directory in (
+            ("lod12", reconstruction_output_3dtiles_lod12),
+            ("lod13", reconstruction_output_3dtiles_lod13),
+            ("lod22", reconstruction_output_3dtiles_lod22),
+        ):
+            outcomes = set(inspect_tileset(directory, lod, specs))
+            if outcomes:
+                writer.writerows(
+                    (lod, result.attribute_name, result.outcome.name)
+                    for result in sorted(
+                        outcomes,
+                        key=lambda result: (
+                            result.attribute_name,
+                            result.outcome.value,
+                        ),
+                    )
+                )
+            else:
+                writer.writerow([lod, "", "OK"])
+
     output_path = path_export_dir.joinpath("validate_compressed_files.csv")
-    fo = output_path.open("w")
+    fo = output_path.open("w", encoding="utf-8", newline="")
     csvwriter = csv.DictWriter(
         fo, quoting=csv.QUOTE_NONNUMERIC, fieldnames=TileResults().fieldnames()
     )

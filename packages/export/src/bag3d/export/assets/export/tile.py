@@ -9,12 +9,6 @@ from bag3d.common.resources.executables import TylerResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.specs.core import (
-    CityJSONLocation,
-    GpkgLocation,
-    ObjLocation,
-    Ogc3dTilesLocation,
-)
 from dagster import (
     AssetIn,
     AssetKey,
@@ -25,6 +19,16 @@ from dagster import (
 from pydantic import Field
 
 logger = get_dagster_logger("export.tile")
+
+
+class LevelOfDetail(StrEnum):
+    lod12 = "lod12"
+    lod13 = "lod13"
+    lod22 = "lod22"
+
+    @property
+    def lod(self) -> str:
+        return f"{self.value[3]}.{self.value[4]}"
 
 
 class TylerOutputFormat(StrEnum):
@@ -38,10 +42,7 @@ class TylerOutputFormat(StrEnum):
 def generate_tyler_config(
     specs: Specs3DBAGResource,
     data_format: TylerOutputFormat,
-    locations: tuple[CityJSONLocation]
-    | tuple[GpkgLocation]
-    | tuple[Ogc3dTilesLocation]
-    | tuple[ObjLocation],
+    locations: tuple[LevelOfDetail, ...],
     export_dir: Path,
 ) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
@@ -52,7 +53,7 @@ def generate_tyler_config(
         locations: The data format locations to generate the config for. Can only generate tyler config for ogc3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
         export_dir:  The location of the export directory where all exported formats are stored.
     Raises:
-        ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, Ogc3dTilesLocation)`.
+        ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, LevelOfDetail)`.
     """
     cli_params = [
         f"--format={data_format}",
@@ -60,14 +61,14 @@ def generate_tyler_config(
     ]
     output_dir = None
     if data_format == TylerOutputFormat.OGC3DTILES:
-        if len(locations) > 1:
+        if len(locations) != 1:
             raise ValueError(
                 "Can only generate tyler config for ogc3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
             )
         location = locations[0]
-        if not isinstance(location, Ogc3dTilesLocation):
+        if not isinstance(location, LevelOfDetail):
             raise ValueError(
-                "With data_format 'ogc3dtiles' the location must be a single Ogc3dTilesLocation."
+                "With data_format 'ogc3dtiles' the location must be a single LevelOfDetail."
             )
         output_dir = export_dir.joinpath(data_format, str(location))
         cli_params.extend(
@@ -81,13 +82,16 @@ def generate_tyler_config(
                 "--include-parent-attributes",
             ]
         )
-        # TODO: temporary fix until Tyler renames the "3dtiles" format to "ogc3dtiles". We need "ogc3dtiles", because python identifiers cannot start with a number.
-        data_format_temp_override = "ogc3dtiles"
-        attributes = specs.applies_to(
-            data_format=data_format_temp_override, locations=(location,)
-        )
-        for a_name, a_spec in attributes:
-            cli_params.append(f"--object-attribute={a_name}:{a_spec.type.as_geof()}")
+        projected = specs.tileset(location.value)
+        for name in projected.properties:
+            # Tyler's CLI vocabulary belongs to the exporter adapter.
+            base_type = specs.attributes[name].type.base_type.value
+            tyler_type = {
+                "date": "string",
+                "datetime": "string",
+                "array": "string",
+            }.get(base_type, base_type)
+            cli_params.append(f"--object-attribute={name}:{tyler_type}")
     elif data_format == TylerOutputFormat.GPKG:
         output_dir = export_dir
         cli_params.extend(
@@ -123,14 +127,14 @@ def generate_tyler_config(
             ]
         )
     elif data_format == TylerOutputFormat.OBJ:
-        if len(locations) > 1:
+        if len(locations) != 1:
             raise ValueError(
                 "Can only generate tyler config for obj for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD."
             )
         location = locations[0]
-        if not isinstance(location, ObjLocation):
+        if not isinstance(location, LevelOfDetail):
             raise ValueError(
-                "With data_format 'obj' the location must be a single ObjLocation."
+                "With data_format 'obj' the location must be a single LevelOfDetail."
             )
         output_dir = export_dir
         cli_params.extend(
@@ -344,7 +348,7 @@ def reconstruction_output_obj_lod12(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod12,),
+        locations=(LevelOfDetail.lod12,),
         verbose=config.verbose,
     )
 
@@ -375,7 +379,7 @@ def reconstruction_output_obj_lod13(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod13,),
+        locations=(LevelOfDetail.lod13,),
         verbose=config.verbose,
     )
 
@@ -406,7 +410,7 @@ def reconstruction_output_obj_lod22(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(ObjLocation.lod22,),
+        locations=(LevelOfDetail.lod22,),
         verbose=config.verbose,
     )
 
@@ -437,7 +441,7 @@ def reconstruction_output_3dtiles_lod12(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Ogc3dTilesLocation.lod12,),
+        locations=(LevelOfDetail.lod12,),
         verbose=config.verbose,
     )
 
@@ -468,7 +472,7 @@ def reconstruction_output_3dtiles_lod13(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Ogc3dTilesLocation.lod13,),
+        locations=(LevelOfDetail.lod13,),
         verbose=config.verbose,
     )
 
@@ -499,6 +503,6 @@ def reconstruction_output_3dtiles_lod22(
         tyler=tyler,
         version_3dbag=version_3dbag,
         rayon_num_threads=config.concurrency,
-        locations=(Ogc3dTilesLocation.lod22,),
+        locations=(LevelOfDetail.lod22,),
         verbose=config.verbose,
     )

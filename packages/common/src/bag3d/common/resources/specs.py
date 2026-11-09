@@ -1,59 +1,59 @@
-from collections.abc import Generator
+from collections.abc import Mapping
+from functools import cached_property
 
-from bag3d.specs.core import (
-    Attribute,
-    CityJSONLocation,
-    GpkgLocation,
-    Ogc3dTilesLocation,
-    load_attributes_spec,
+from bag3d.specs.projections.cityjson import (
+    CityJSONAttribute,
+    CityJSONProjection,
+    load_cityjson_projection,
 )
+from bag3d.specs.projections.geopackage import (
+    GeoPackageContainer,
+    GeoPackageProjection,
+    load_geopackage_projection,
+)
+from bag3d.specs.projections.ogc3dtiles import (
+    Ogc3DTilesProjection,
+    Tileset,
+    load_ogc3dtiles_projection,
+)
+from bag3d.specs.semantic import Attribute, load_attributes
 from dagster import ConfigurableResource
-from pydantic import PrivateAttr
 
 
 class Specs3DBAGResource(ConfigurableResource):
-    """
-    The 3DBAG specifications.
+    """Semantic attributes and native distribution projections, loaded once."""
 
-    Source: https://github.com/3DBAG/3dbag-specs
-    """
+    @cached_property
+    def attributes(self) -> Mapping[str, Attribute]:
+        return load_attributes()
 
-    _attributes_specs: dict[str, Attribute] | None = PrivateAttr(default=None)
+    @cached_property
+    def cityjson(self) -> CityJSONProjection:
+        return load_cityjson_projection()
 
-    @property
-    def attributes(self) -> dict[str, Attribute]:
-        """Returns the complete attributes specification."""
-        # Lazy load the attributes
-        if self._attributes_specs is None:
-            self._attributes_specs = load_attributes_spec()
-        return self._attributes_specs
+    @cached_property
+    def geopackage(self) -> GeoPackageProjection:
+        return load_geopackage_projection()
 
-    def applies_to(
-        self,
-        data_format: str,
-        locations: tuple[CityJSONLocation]
-        | tuple[GpkgLocation]
-        | tuple[Ogc3dTilesLocation],
-    ) -> Generator[tuple[str, Attribute], None, None]:
-        """Filter the attributes spec for the specified data format and location.
+    @cached_property
+    def ogc3dtiles(self) -> Ogc3DTilesProjection:
+        return load_ogc3dtiles_projection()
 
-        Args:
-            data_format: The data format that contains the attribute (`cityjson`, `gpkg`, `ogc3dtiles`).
-            locations: The tuple of locations for the attribute in the data format.
+    def cityjson_attributes(
+        self, object_type: str, *, surface: bool = False
+    ) -> Mapping[str, CityJSONAttribute]:
+        containers = (
+            self.cityjson.semantic_surfaces if surface else self.cityjson.objects
+        )
+        if object_type not in containers:
+            raise ValueError(f"Unprojected CityJSON container {object_type!r}")
+        return containers[object_type]
 
-        Returns:
-            A generator that only contains the attributes that are only in the requested data format and location.
-        """
-        allowed_formats = ["cityjson", "gpkg", "ogc3dtiles"]
-        requested_locations = set(locations)
-        if data_format not in allowed_formats:
-            raise ValueError(
-                f"Unsupported data format: {data_format}. Allowed formats are: {allowed_formats}"
-            )
-        for a_name, a_spec in self.attributes.items():
-            if (
-                (format_spec := getattr(a_spec.applies_to, data_format))
-                and (attribute_locations := format_spec["locations"])
-                and len(requested_locations.intersection(attribute_locations)) > 0
-            ):
-                yield a_name, a_spec
+    def geopackage_container(self, name: str) -> GeoPackageContainer | None:
+        return next((c for c in self.geopackage.containers if c.name == name), None)
+
+    def tileset(self, lod: str) -> Tileset:
+        matches = [t for t in self.ogc3dtiles.tilesets if t.lod == lod]
+        if len(matches) != 1:
+            raise ValueError(f"Expected one projected tileset for {lod!r}")
+        return matches[0]

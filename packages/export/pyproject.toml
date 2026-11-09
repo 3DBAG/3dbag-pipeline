@@ -26,6 +26,7 @@ dependencies = [
     "dagster-postgres~=0.29.15",
     "lxml~=6.1.1",
     "bag3d-common",
+    "meshopt==0.1.1",
     "certifi>=2026.10.19",
     "rich<14",  # rich 14.x introduced a regression in box.py causing ValueError on import
     "fabric~=3.2",

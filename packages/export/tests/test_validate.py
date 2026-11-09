@@ -1,7 +1,7 @@
 import pytest
 from bag3d.common.resources.specs import Specs3DBAGResource
 
-from bag3d.export.assets.export.validate import (
+from bag3d.export.assets.export.attributes import (
     AttributeValidationOutcome,
     AttributeValidationResultOne,
     AttributeValidationResults,
@@ -142,6 +142,30 @@ class TestCityobjectValidateAttributes:
         assert any(
             r.outcome == AttributeValidationOutcome.INCORRECT_DATA_TYPE for r in results
         )
+        for field, value, expected in (
+            ("b3_bouwlagen", False, AttributeValidationOutcome.INCORRECT_DATA_TYPE),
+            ("identificatie", None, AttributeValidationOutcome.INCORRECT_NULLABLE),
+            (
+                "b3_val3dity_lod22",
+                '["error"]',
+                AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+            ),
+            ("b3_dak_type", "invalid-roof-category", AttributeValidationOutcome.INCORRECT_VALUE),
+        ):
+            outcomes = list(
+                cityobject_validate_attributes(
+                    specs, {"type": "Building", "attributes": {field: value}}
+                )
+            )
+            assert any(
+                result.attribute_name == field and result.outcome == expected
+                for result in outcomes
+            )
+        missing = list(cityobject_validate_attributes(specs, {"type": "Building"}))
+        assert any(
+            result.outcome == AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES
+            for result in missing
+        )
 
     def test_semantic_surface_validation(self, specs):
         """Test validation of semantic surface attributes."""
@@ -174,11 +198,11 @@ class TestGpkgValidateAttributes:
         gpkg_info_valid = {
             "layers": [
                 {
-                    "name": "lod12_3d",
+                    "name": "building_multisurface_lod0",
                     "fields": [
                         {"name": "fid", "type": "Integer64", "nullable": False},
                         {
-                            "name": "b3_bag_bag_overlap",
+                            "name": "attributes__b3_bag_bag_overlap",
                             "type": "Real",
                             "nullable": True,
                         },
@@ -197,7 +221,7 @@ class TestGpkgValidateAttributes:
         gpkg_info_extra = {
             "layers": [
                 {
-                    "name": "lod12_3d",
+                    "name": "building_multisurface_lod0",
                     "fields": [
                         {"name": "extra_field", "type": "String", "nullable": True}
                     ],
@@ -216,7 +240,7 @@ class TestGpkgValidateAttributes:
         gpkg_info = {
             "layers": [
                 {
-                    "name": "lod22_2d",  # This is a surface layer
+                    "name": "semantics",  # This is a surface layer
                     "fields": [
                         {"name": "fid", "type": "Integer64", "nullable": False},
                         {
@@ -240,16 +264,16 @@ class TestGpkgValidateAttributes:
         gpkg_info = {
             "layers": [
                 {
-                    "name": "lod12_3d",
+                    "name": "building_multisurface_lod0",
                     "fields": [
                         {
-                            "name": "labels",
+                            "name": "attributes__b3_val3dity_lod22",
                             "type": "StringList",
-                            "nullable": False,
+                            "nullable": True,
                         },  # Wrong type
                         {
-                            "name": "b3_pand_deel_id",
-                            "type": "Integer",
+                            "name": "attributes__identificatie",
+                            "type": "String",
                             "nullable": True,
                         },  # Wrong nullable
                         {"name": "identificatie", "type": "String", "nullable": False},
