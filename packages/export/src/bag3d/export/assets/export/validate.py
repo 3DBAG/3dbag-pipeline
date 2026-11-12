@@ -2,6 +2,7 @@ import ast
 import csv
 import json
 import re
+import zipfile
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
@@ -228,6 +229,27 @@ class GPKGFileResults:
 
 
 @dataclass
+class IFCFileResults:
+    """Results of the IFC archive validation for a single tile.
+
+    Attributes:
+        zip_ok (bool): Whether the archive is valid and contains the expected
+            number of IFC files (one per LoD).
+        nr_ifc_files (int): Number of IFC files in the archive.
+        download (str): The URL of the file download.
+        sha256 (str): The SHA256 of the zipfile.
+    """
+
+    zip_ok: bool | None = None
+    nr_ifc_files: int | None = None
+    download: str | None = None
+    sha256: str | None = None
+
+    def asdict(self) -> dict:
+        return {f"ifc_{k}": v for k, v in self.__dict__.items()}
+
+
+@dataclass
 class TileResults:
     """Results of the validation of each compressed file for the given tile.
 
@@ -236,12 +258,14 @@ class TileResults:
         cityjson (CityJSONFileResults): CityJSON file validation results.
         obj (OBJFileResults): OBJ file validation results.
         gpkg (GPKGFileResults): GPKG file validation results.
+        ifc (IFCFileResults): IFC archive validation results.
     """
 
     tile_id: str | None = None
     cityjson: CityJSONFileResults = field(default_factory=CityJSONFileResults)
     obj: OBJFileResults = field(default_factory=OBJFileResults)
     gpkg: GPKGFileResults = field(default_factory=GPKGFileResults)
+    ifc: IFCFileResults = field(default_factory=IFCFileResults)
 
     def fieldnames(self) -> list[str]:
         return [
@@ -249,6 +273,7 @@ class TileResults:
             *self.cityjson.asdict().keys(),
             *self.obj.asdict().keys(),
             *self.gpkg.asdict().keys(),
+            *self.ifc.asdict().keys(),
         ]
 
     def asdict(self) -> dict:
@@ -257,6 +282,7 @@ class TileResults:
             **self.cityjson.asdict(),
             **self.obj.asdict(),
             **self.gpkg.asdict(),
+            **self.ifc.asdict(),
         }
 
 
@@ -986,6 +1012,63 @@ def gpkg(
     return results
 
 
+def ifc(
+    system: CommandRunner,
+    dirpath: Path,
+    file_id: str,
+    url_root: str,
+    version: str,
+    archive_file_id: str | None = None,
+    url_file_id: str | None = None,
+) -> IFCFileResults:
+    """Validate a single IFC archive.
+
+    Args:
+        system: CommandRunner for system tools
+        dirpath: Directory with the IFC archive
+        file_id: File name without extension
+        url_root: 3DBAG download page url root
+        version: 3DBAG version
+
+    Returns: The aggregated validation results. See ``IFCFileResults`` for details.
+    """
+    results = IFCFileResults()
+    inputzipfile = dirpath.joinpath(f"{archive_file_id or file_id}-ifc.zip")
+
+    # test zip
+    try:
+        cmd = " ".join(["unzip", "-t", str(inputzipfile)])
+        result = system.run(cmd, cwd=str(dirpath))
+        results.zip_ok = result.stdout.count("OK") == 4
+    except Exception:  # noqa: BLE001
+        logger.error(f"Failed to test zip with file {inputzipfile}")
+        return results
+
+    # download link and sha256
+    try:
+        cmd = " ".join(["sha256sum", str(inputzipfile)])
+        result = system.run(cmd, cwd=str(dirpath))
+        results.sha256 = result.stdout.split(" ")[0]
+        results.download = create_download_link(
+            url_root=url_root,
+            format="ifc",
+            file_id=url_file_id or file_id,
+            version=version,
+        )
+    except Exception:  # noqa: BLE001
+        logger.error("Failed to compute sha256 or create download link")
+        return results
+
+    # number of IFC files in the archive
+    try:
+        with zipfile.ZipFile(inputzipfile) as zf:
+            results.nr_ifc_files = len(zf.namelist())
+    except Exception:  # noqa: BLE001
+        logger.error(f"Failed to read zip {inputzipfile}")
+
+    return results
+
+
 def create_download_link(url_root: str, format: str, file_id: str, version: str) -> str:
     tile_id = file_id.replace("-", "/")
     version_stripped = version.replace(".", "")
@@ -998,8 +1081,13 @@ def create_download_link(url_root: str, format: str, file_id: str, version: str)
     elif format == "obj":
         filename = f"{file_id}-obj.zip"
         link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
+    elif format == "ifc":
+        filename = f"{file_id}-ifc.zip"
+        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     else:
-        raise ValueError(f"only cityjson, obj, gpkg format is allowed, got {format}")
+        raise ValueError(
+            f"only cityjson, obj, gpkg, ifc format is allowed, got {format}"
+        )
     return link
 
 
@@ -1051,7 +1139,16 @@ def check_formats(inputs) -> TileResults:
         specs=specs,
         url_file_id=tile_id.replace("/", "-"),
     )
-    return TileResults(tile_id, cj_results, obj_results, gpkg_results)
+    ifc_results = ifc(
+        system,
+        dirpath,
+        file_id,
+        url_root=url_root,
+        version=version,
+        archive_file_id=tile_id.replace("/", "-"),
+        url_file_id=tile_id.replace("/", "-"),
+    )
+    return TileResults(tile_id, cj_results, obj_results, gpkg_results, ifc_results)
 
 
 class ValidationConfig(Config):
