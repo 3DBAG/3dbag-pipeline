@@ -28,8 +28,8 @@ def test_filter_bag_extract_filters_archive(tmp_path):
     source.mkdir()
     xml = (
         b'<root xmlns:gml="http://www.opengis.net/gml">'
-        b'<stand id="inside"><gml:pos>141000 486000 0</gml:pos></stand>'
-        b'<stand id="outside"><gml:pos>122000 486000 0</gml:pos></stand>'
+        b'<stand id="inside"><gml:pos>123000 486000 0</gml:pos></stand>'
+        b'<stand id="outside"><gml:pos>140000 500000 0</gml:pos></stand>'
         b"</root>"
     )
     with ZipFile(source / f"{layer.name}.zip", "w") as archive:
