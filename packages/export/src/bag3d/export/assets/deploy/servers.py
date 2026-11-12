@@ -21,6 +21,7 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "export_index")),
         AssetKey(("export", "compressed_tiles")),
         AssetKey(("export", "compressed_tiles_validation")),
+        AssetKey(("export", "reconstruction_output_ifc")),
         AssetKey(("export", "reconstruction_output_gpkg")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod12")),
         AssetKey(("export", "reconstruction_output_3dtiles_lod13")),

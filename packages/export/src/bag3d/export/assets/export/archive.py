@@ -172,6 +172,16 @@ def compress_files(input_tile_path):
     else:
         logger.warning(f"GPKG file {gpkg_file} does not exist, skipping compression.")
 
+    # IFC
+    ifc_zip = basename.with_name(f"{lid_in_filename}-ifc.zip")
+    ifc_files = tuple(basename.parent.glob(f"{basename.name}*.ifc"))
+    with ZipFile(
+        file=ifc_zip, mode="a", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as iz:
+        for f in ifc_files:
+            iz.write(filename=f, arcname=f.name)
+            f.unlink()
+
 
 class CompressionConfig(Config):
     concurrency: int = Field(
@@ -182,7 +192,8 @@ class CompressionConfig(Config):
 
 @asset(
     deps={
-        AssetKey("geopackage"),
+        AssetKey(("export", "geopackage")),
+        AssetKey(("export", "reconstruction_output_ifc")),
     },
     pool="compression",
 )

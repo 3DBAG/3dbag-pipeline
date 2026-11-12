@@ -26,12 +26,12 @@ from bag3d.core.fixture_contract import (
 )
 from bag3d.core.utils import sha256_file
 
-AOI_WKT = "POLYGON ((140100 485750, 141500 485750, 141500 486550, 140100 486550, 140100 485750))"
+AOI_WKT = "POLYGON ((122000 485750, 123400 485750, 123400 486550, 122000 486550, 122000 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
-    "140000_485000",
-    "140000_486000",
-    "141000_485000",
-    "141000_486000",
+    "122000_485000",
+    "122000_486000",
+    "123000_485000",
+    "123000_486000",
 ]
 _NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 _EXTENT = re.compile(
@@ -47,7 +47,7 @@ _BAG_LAYER_NAME = re.compile(
     r"(?:\d{4}[A-Za-z]+|GEM-WPL-RELATIE-)(\d{8})(?:\.zip)?", re.IGNORECASE
 )
 _AOI_COORDINATE = re.compile(
-    rb"(?:^|\s|>)(?:14[01]\d{3})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)"
+    rb"(?:^|\s|>)(?:12[23]\d{3})(?:\.\d+)?\s+(?:485[7-9]\d{2}|486[0-5]\d{2})(?:\.\d+)?(?:\s|$)"
 )
 BUFFER_METRES = 10.0
 
