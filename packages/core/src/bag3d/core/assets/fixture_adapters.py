@@ -1,6 +1,5 @@
 """Read-only adapters for the local integration-data snapshot."""
 
-import hashlib
 import json
 import shutil
 from collections.abc import Mapping
@@ -17,8 +16,8 @@ from bag3d.core.assets.ahn.core import (
     tiles_in_batch,
 )
 from bag3d.core.assets.ahn.download import BatchLAZDownload, LAZDownload
-
 from bag3d.core.fixture_contract import VECTOR_PROCESSING, validate_dataset_extents
+from bag3d.core.utils import sha256_file
 
 
 @dataclass(frozen=True)
@@ -65,10 +64,7 @@ def _verify(root: Path, manifest: Mapping[str, Any], relative: str) -> None:
     )
     if entry.get("size") is not None and path.stat().st_size != int(entry["size"]):
         raise ValueError(f"Fixture file size does not match manifest: {relative}")
-    if (
-        entry.get("sha256")
-        and hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]
-    ):
+    if entry.get("sha256") and sha256_file(path) != entry["sha256"]:
         raise ValueError(f"Fixture checksum does not match manifest: {relative}")
 
 
@@ -365,7 +361,7 @@ def _laz(store, version, tile, pointcloud_store):
         or destination_lax.stat().st_size != source_lax.stat().st_size
     ):
         shutil.copy2(source_lax, destination_lax)
-    digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+    digest = sha256_file(destination)
     expected = entry.get("sha256")
     if expected and digest != expected:
         raise ValueError(

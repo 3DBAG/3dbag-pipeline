@@ -1,6 +1,5 @@
 """AOI-subset source-data fixtures for integration and pipeline tests."""
 
-import hashlib
 import json
 import re
 import shutil
@@ -25,6 +24,7 @@ from bag3d.core.fixture_contract import (
     VECTOR_PROCESSING,
     validate_dataset_extents,
 )
+from bag3d.core.utils import sha256_file
 
 AOI_WKT = "POLYGON ((122000 485750, 123400 485750, 123400 486550, 122000 486550, 122000 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
@@ -876,7 +876,7 @@ def integration_manifest(
         for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     ):
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = sha256_file(path)
         files[str(path.relative_to(root))] = {
             "size": path.stat().st_size,
             "sha256": digest,
@@ -909,9 +909,7 @@ def integration_manifest(
                 "path": rel(version_dir / Path(entry["url"]).name),
                 "url": entry["url"],
                 "size": (version_dir / Path(entry["url"]).name).stat().st_size,
-                "sha256": hashlib.sha256(
-                    (version_dir / Path(entry["url"]).name).read_bytes()
-                ).hexdigest(),
+                "sha256": sha256_file(version_dir / Path(entry["url"]).name),
             }
             for tile_id, entry in index.items()
             if entry.get("url") and (version_dir / Path(entry["url"]).name).is_file()
@@ -928,7 +926,7 @@ def integration_manifest(
                 "path": rel(path),
                 "url": entry["url"],
                 "size": path.stat().st_size,
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "sha256": sha256_file(path),
             }
     manifest = {
         "fixture_version": FIXTURE_VERSION,
