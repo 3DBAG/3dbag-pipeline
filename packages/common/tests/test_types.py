@@ -9,6 +9,7 @@ def test_export_result(tmp_path):
         tile_id="z/x/y",
         cityjson_path=tmp_path,
         gpkg_path=tmp_path,
+        ifc_path=tmp_path,
         obj_paths=[
             Path(tmp_path),
         ],
@@ -18,5 +19,6 @@ def test_export_result(tmp_path):
     assert d["tile_id"] == "z/x/y"
     assert export_result.has_cityjson is True
     assert export_result.has_gpkg is True
+    assert export_result.has_ifc is True
     # has_obj option needs 3 paths to validate True
     assert export_result.has_obj is False
