@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from functools import cached_property
+from pathlib import Path
 
 from bag3d.specs.projections.cityjson import (
     CityJSONAttribute,
@@ -16,12 +17,23 @@ from bag3d.specs.projections.ogc3dtiles import (
     Tileset,
     load_ogc3dtiles_projection,
 )
+from bag3d.specs.resources import resource_file
 from bag3d.specs.semantic import Attribute, load_attributes
 from dagster import ConfigurableResource
 
 
 class Specs3DBAGResource(ConfigurableResource):
     """Semantic attributes and native distribution projections, loaded once."""
+
+    @cached_property
+    def attribute_specification(self) -> Path:
+        """Manifest from the installed specs bundle, alongside its referenced files."""
+        manifest = resource_file("attribute-specification.json")
+        if not isinstance(manifest, Path):
+            raise TypeError(
+                "Tyler requires the specs package installed on the filesystem"
+            )
+        return manifest
 
     @cached_property
     def attributes(self) -> Mapping[str, Attribute]:

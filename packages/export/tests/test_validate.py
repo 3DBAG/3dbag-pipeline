@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from bag3d.common.resources.specs import Specs3DBAGResource
 
@@ -107,7 +109,13 @@ class TestCityobjectValidateAttributes:
     """Test cityobject_validate_attributes function."""
 
     def test_building_validation(self, specs):
-        """Test validation of building attributes."""
+        """Test validation and the filesystem bundle passed to Tyler."""
+        manifest = specs.attribute_specification
+        assert manifest.is_file()
+        bundle = json.loads(manifest.read_text(encoding="utf-8"))
+        assert bundle["contractVersion"] == "1.0"
+        for relative_path in [bundle["semantic"], *bundle["projections"].values()]:
+            assert (manifest.parent / relative_path).is_file()
         # Valid CityObject with correct attributes
         co_valid = {
             "type": "Building",
@@ -150,7 +158,11 @@ class TestCityobjectValidateAttributes:
                 '["error"]',
                 AttributeValidationOutcome.INCORRECT_DATA_TYPE,
             ),
-            ("b3_dak_type", "invalid-roof-category", AttributeValidationOutcome.INCORRECT_VALUE),
+            (
+                "b3_dak_type",
+                "invalid-roof-category",
+                AttributeValidationOutcome.INCORRECT_VALUE,
+            ),
         ):
             outcomes = list(
                 cityobject_validate_attributes(

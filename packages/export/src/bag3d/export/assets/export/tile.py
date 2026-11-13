@@ -1,5 +1,6 @@
 import csv
 import json
+import shlex
 from enum import StrEnum
 from os import getenv
 from pathlib import Path
@@ -55,10 +56,19 @@ def generate_tyler_config(
     Raises:
         ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, LevelOfDetail)`.
     """
+    tyler_format = (
+        "3dtiles" if data_format == TylerOutputFormat.OGC3DTILES else data_format
+    )
     cli_params = [
-        f"--format={data_format}",
+        f"--format={tyler_format}",
         "--qtree-capacity=280000",
     ]
+    if data_format in (
+        TylerOutputFormat.OGC3DTILES,
+        TylerOutputFormat.GPKG,
+        TylerOutputFormat.CITYJSON,
+    ):
+        cli_params.append(f"--attribute-specification={specs.attribute_specification}")
     output_dir = None
     if data_format == TylerOutputFormat.OGC3DTILES:
         if len(locations) != 1:
@@ -74,7 +84,7 @@ def generate_tyler_config(
         cli_params.extend(
             [
                 f"--output={output_dir}",
-                "--3dtiles-metadata-class=building",
+                f"--attribute-tileset={location.value}",
                 "--grid-minz=-50",
                 "--grid-maxz=400",
                 f"--lod-building-part={location.lod}",
@@ -82,16 +92,6 @@ def generate_tyler_config(
                 "--include-parent-attributes",
             ]
         )
-        projected = specs.tileset(location.value)
-        for name in projected.properties:
-            # Tyler's CLI vocabulary belongs to the exporter adapter.
-            base_type = specs.attributes[name].type.base_type.value
-            tyler_type = {
-                "date": "string",
-                "datetime": "string",
-                "array": "string",
-            }.get(base_type, base_type)
-            cli_params.append(f"--object-attribute={name}:{tyler_type}")
     elif data_format == TylerOutputFormat.GPKG:
         output_dir = export_dir
         cli_params.extend(
@@ -183,9 +183,10 @@ def reconstruction_output_tiles_func(
         f"RUST_LOG={'debug' if kwargs.get('verbose', False) else 'info'}",
         "{exe}",
     ]
-    cmd.extend(cli_params)
-    # Append the input directory path as last
-    cmd.append(str(reconstructed_root_dir))
+    if kwargs.get("verbose", False):
+        cli_params.append("--verbose")
+    # Quote CLI arguments independently of the shell environment assignments.
+    cmd.append(shlex.join([*cli_params, str(reconstructed_root_dir)]))
     logger.debug(" ".join(cmd))
     tyler.runner.run(
         " ".join(cmd),
