@@ -21,4 +21,10 @@ job_terrain_process = define_asset_job(
 )
 job_terrain = define_asset_job("terrain", selection=all_selection)
 
-all_jobs = [job_terrain_download, job_terrain_process, job_terrain]
+job_terrain_ahn = define_asset_job(
+    "terrain_ahn",
+    description="Prepare filled AHN in NAP for underpass height estimation.",
+    selection=AssetSelection.assets(AssetKey(["terrain", "ahn_filled"])).upstream(),
+)
+
+all_jobs = [job_terrain_download, job_terrain_process, job_terrain, job_terrain_ahn]

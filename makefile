@@ -15,7 +15,7 @@ endef
 MANIFEST_ENV := $(shell python3 scripts/manifest_versions.py env | tr '\n' ';')
 $(eval $(subst ;,$(newline),$(MANIFEST_ENV)))
 export BAG3D_PIPELINE_VERSION BAG3D_TOOLS_IMAGE BAG3D_TOOLS_IMAGE_TAG BAG3D_CORE_IMAGE \
-	BAG3D_FLOORS_ESTIMATION_IMAGE BAG3D_PARTY_WALLS_IMAGE BAG3D_TERRAIN_IMAGE BAG3D_EXPORT_IMAGE \
+	BAG3D_FLOORS_ESTIMATION_IMAGE BAG3D_PARTY_WALLS_IMAGE BAG3D_UNDERPASSES_IMAGE BAG3D_TERRAIN_IMAGE BAG3D_EXPORT_IMAGE \
 	BAG3D_DAGSTER_IMAGE
 
 .PHONY: help \
@@ -136,6 +136,7 @@ test:
 	uv --project packages/floors_estimation run --locked pytest -m 'not integration' packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run --locked pytest -m 'not integration' packages/party_walls/tests/ -v || FAILED=1; \
 	uv --project packages/terrain run --locked pytest -m 'not integration' packages/terrain/tests/ -v || FAILED=1; \
+	uv --project packages/underpasses run --locked pytest -m 'not integration' packages/underpasses/tests/ -v || FAILED=1; \
 	exit $$FAILED
 
 test_coverage:
@@ -147,6 +148,7 @@ test_coverage:
 	uv --project packages/floors_estimation run --locked coverage run --source=packages/floors_estimation/src --data-file=.coverage.floors_estimation -m pytest -m 'not integration' packages/floors_estimation/tests/ -v || FAILED=1; \
 	uv --project packages/party_walls run --locked coverage run --source=packages/party_walls/src --data-file=.coverage.party_walls -m pytest -m 'not integration' packages/party_walls/tests/ -v || FAILED=1; \
 	uv --project packages/terrain run --locked coverage run --source=packages/terrain/src --data-file=.coverage.terrain -m pytest -m 'not integration' packages/terrain/tests/ -v || FAILED=1; \
+	uv --project packages/underpasses run --locked coverage run --source=packages/underpasses/src --data-file=.coverage.underpasses -m pytest -m 'not integration' packages/underpasses/tests/ -v || FAILED=1; \
 	echo ""; \
 	echo "=== Coverage per package ==="; \
 	echo ""; \
@@ -167,6 +169,9 @@ test_coverage:
 	echo ""; \
 	echo "--- terrain ---"; \
 	uv --project packages/terrain run --locked coverage report --data-file=.coverage.terrain; \
+	echo ""; \
+	echo "--- underpasses ---"; \
+	uv --project packages/underpasses run --locked coverage report --data-file=.coverage.underpasses; \
 	exit $$FAILED
 
 test_report:
@@ -193,6 +198,8 @@ lint:
 	uv --project packages/party_walls run --locked pyright packages/party_walls || FAILED=1; \
 	echo "Type check: terrain"; \
 	uv --project packages/terrain run --locked pyright --project packages/terrain || FAILED=1; \
+	echo "Type check: underpasses"; \
+	uv --project packages/underpasses run --locked pyright packages/underpasses || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
@@ -210,6 +217,7 @@ local_venv:
 	uv --project packages/floors_estimation sync
 	uv --project packages/party_walls sync
 	uv --project packages/terrain sync
+	uv --project packages/underpasses sync
 
 local_dev:
 	uv run dagster dev -w tests/dagster_home/workspace.yaml

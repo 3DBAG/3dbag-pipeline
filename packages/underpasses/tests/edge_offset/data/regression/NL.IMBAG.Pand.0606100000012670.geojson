@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "underpasses.edges",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+"features": [
+{"type":"Feature","properties":{"identificatie":"NL.IMBAG.Pand.0606100000012670","underpass_id":201591,"edge_id":237177,"edge_type":"interior"},"geometry":{"type":"LineString","coordinates":[[85284.195000000006985,438168.113000000012107],[85288.116687594301766,438168.605960730288643]]}},
+{"type":"Feature","properties":{"identificatie":"NL.IMBAG.Pand.0606100000012670","underpass_id":201591,"edge_id":642378,"edge_type":"exterior"},"geometry":{"type":"LineString","coordinates":[[85288.410000000003492,438166.271],[85284.487999999997555,438165.775000000023283]]}},
+{"type":"Feature","properties":{"identificatie":"NL.IMBAG.Pand.0606100000012670","underpass_id":201591,"edge_id":905813,"edge_type":"shared"},"geometry":{"type":"LineString","coordinates":[[85284.487999999997555,438165.775000000023283],[85284.195000000006985,438168.113000000012107]]}},
+{"type":"Feature","properties":{"identificatie":"NL.IMBAG.Pand.0606100000012670","underpass_id":201591,"edge_id":905814,"edge_type":"shared"},"geometry":{"type":"LineString","coordinates":[[85288.116687594301766,438168.605960730288643],[85288.410000000003492,438166.271]]}}
+]
+}
