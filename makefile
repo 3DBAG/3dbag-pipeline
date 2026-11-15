@@ -198,7 +198,7 @@ lint:
 	echo "Type check: terrain"; \
 	uv --project packages/terrain run --locked pyright --project packages/terrain || FAILED=1; \
 	echo "Type check: underpasses"; \
-	uv --project packages/underpasses run --locked pyright --project packages/underpasses || FAILED=1; \
+	uv --project packages/underpasses run --locked pyright packages/underpasses || FAILED=1; \
 	exit $$FAILED
 
 lint_fix:
