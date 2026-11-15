@@ -186,10 +186,12 @@ def create_roofer_config(
 ):
     toml_template = """
     polygon-source = {footprint_file}
+    polygon-snap-threshold = 0.001
     underpass-source = {underpass_source}
+    underpass-attributes = ["underpass_confidence", "underpass_source"]
     underpass-id-attribute = "identificatie"
     underpass-height-attribute = "underpass_candidate_elevations"
-    underpass-default-height = 2.5
+    underpass-default-height = 3.0
     id-attribute = "identificatie"
     force-lod11-attribute = "b3_kas_warenhuis"
     yoc-attribute = "oorspronkelijkbouwjaar"
