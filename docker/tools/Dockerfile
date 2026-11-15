@@ -117,9 +117,16 @@ FROM tyler AS roofer
 ARG JOBS=2
 ARG BAG3D_PIPELINE_LOCATION=/opt/3dbag-pipeline
 
-COPY --from=roofer-source /opt/roofer/bin/. $BAG3D_PIPELINE_LOCATION/tools/bin/
-COPY --from=roofer-source /opt/roofer/share/proj $BAG3D_PIPELINE_LOCATION/tools/share/proj
-COPY --from=roofer-source /opt/roofer/share/gdal $BAG3D_PIPELINE_LOCATION/tools/share/gdal
+# Roofer's Nix loader and runtime dependencies require this exact store path.
+COPY --from=roofer-source /nix/store/ /nix/store/
+COPY --from=roofer-source /bin/roofer $BAG3D_PIPELINE_LOCATION/tools/bin/roofer-nix
+
+# Keep Roofer's bundled GDAL/PROJ resources separate from the Ubuntu tools.
+RUN printf '%s\n' '#!/bin/sh' \
+      'unset PROJ_DATA PROJ_LIB GDAL_DATA GDAL_DRIVER_PATH LD_LIBRARY_PATH' \
+      'exec "$(dirname "$0")/roofer-nix" "$@"' \
+      > "$BAG3D_PIPELINE_LOCATION/tools/bin/roofer" && \
+    chmod +x "$BAG3D_PIPELINE_LOCATION/tools/bin/roofer"
 
 FROM roofer AS dagster
 
