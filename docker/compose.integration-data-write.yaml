@@ -1,0 +1,15 @@
+# Production integration-data generation overlay. Use with compose.yaml so the
+# integration_data job writes the snapshot into a canonical host directory.
+#
+# Unlike compose.integration-data.yaml (dev fixture consumption), the mount is
+# read-write and BAG3D_INPUT_MODE stays "normal", so the integration_data job
+# downloads source datasets and stores them in the snapshot directory instead of
+# reading pre-made fixtures.
+services:
+  bag3d-core:
+    environment:
+      BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+    volumes:
+      - type: bind
+        source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
+        target: ${BAG3D_INTEGRATION_DATA_DIR}
