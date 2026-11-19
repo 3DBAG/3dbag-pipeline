@@ -1,17 +1,17 @@
 """Discover manually supplied streetlidar datasets at materialization time."""
 
 import json
-from os import getenv
 from pathlib import Path
 from shlex import quote
 
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.streetlidar import (
     TILE_INDEX,
     discover,
-    empty_catalog,
     ensure_tables,
+    inventory,
     publish,
     read_catalog,
 )
@@ -19,11 +19,9 @@ from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import postgrestable_metadata
 from dagster import Config, DataVersion, Output, asset
 from psycopg import connect
-from pydantic import Field
 
 
 class StreetLidarConfig(Config):
-    root: str | None = Field(default_factory=lambda: getenv("BAG3D_STREETLIDAR_ROOT"))
     force: bool = False
 
 
@@ -87,43 +85,36 @@ def tile_index(
     config: StreetLidarConfig,
     computation_db: DatabaseResource,
     pdal: PDALResource,
+    streetlidar_store: FileStoreResource,
 ) -> Output[PostgresTableIdentifier]:
     """Ready streetlidar tiles from all directories in the root manifest."""
+    root = Path(streetlidar_store.root_dir).resolve()
     with connect(computation_db.connection.dsn) as connection:
         ensure_tables(connection)
         previous = {}
-        if config.root:
-            root = Path(config.root).resolve()
-            state = connection.execute(
-                "SELECT root FROM streetlidar.catalog_state WHERE singleton"
-            ).fetchone()
-            if state and state[0] == str(root):
-                previous = {
-                    tile.location: tile for tile in read_catalog(connection).tiles
-                }
-            catalog = discover(
-                root, lambda path: inspect_tile(path, pdal), previous, config.force
-            )
-        else:
-            catalog = empty_catalog()
+        state = connection.execute(
+            "SELECT root FROM streetlidar.catalog_state WHERE singleton"
+        ).fetchone()
+        if state and state[0] == str(root):
+            previous = {tile.location: tile for tile in read_catalog(connection).tiles}
+        catalog = discover(
+            root, lambda path: inspect_tile(path, pdal), previous, config.force
+        )
         stats = publish(connection, catalog)
         # Publication can take time: never commit an inventory that changed meanwhile.
-        if catalog.root:
-            from bag3d.common.streetlidar import inventory
-
-            manifest, digest, files = inventory(catalog.root)
-            if (
-                manifest != catalog.manifest
-                or digest != catalog.manifest_sha256
-                or files
-                != {
-                    tile.location: (tile.dataset_id, tile.size, tile.mtime_ns)
-                    for tile in catalog.tiles
-                }
-            ):
-                raise ValueError(
-                    "Streetlidar source changed during publication; retry refresh"
-                )
+        manifest, digest, files = inventory(root)
+        if (
+            manifest != catalog.manifest
+            or digest != catalog.manifest_sha256
+            or files
+            != {
+                tile.location: (tile.dataset_id, tile.size, tile.mtime_ns)
+                for tile in catalog.tiles
+            }
+        ):
+            raise ValueError(
+                "Streetlidar source changed during publication; retry refresh"
+            )
     return Output(
         TILE_INDEX,
         metadata={**postgrestable_metadata(computation_db, TILE_INDEX), **stats},

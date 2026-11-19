@@ -40,6 +40,7 @@ def test_postgis_fixture_height_round_trip(tmp_path, monkeypatch):
     import rasterio
     from bag3d.common.resources.executables import LASToolsResource, PDALResource
     from bag3d.common.resources.database import DatabaseResource
+    from bag3d.common.resources.files import FileStoreResource
     from bag3d.common.types import PostgresTableIdentifier
     from dagster import materialize
     from psycopg import connect
@@ -88,8 +89,11 @@ def test_postgis_fixture_height_round_trip(tmp_path, monkeypatch):
     )
     result = materialize(
         [tile_index],
-        resources={"computation_db": database, "pdal": pdal},
-        run_config={"ops": {tile_index.op.name: {"config": {"root": str(root)}}}},
+        resources={
+            "computation_db": database,
+            "pdal": pdal,
+            "streetlidar_store": FileStoreResource(root_dir=str(root)),
+        },
     )
     assert result.success
     assert result.output_for_node(tile_index.op.name) == TILE_INDEX
@@ -97,7 +101,13 @@ def test_postgis_fixture_height_round_trip(tmp_path, monkeypatch):
     target.mkdir(parents=True)
     (target / "stale.laz").write_bytes(b"old crop")
     crop_catalog(
-        dsn, TILE_INDEX, target, (122000, 485750, 122050, 485800), lastools, pdal
+        dsn,
+        TILE_INDEX,
+        target,
+        (122000, 485750, 122050, 485800),
+        lastools,
+        pdal,
+        streetlidar_root=root,
     )
     assert not (target / "stale.laz").exists()
     relocated = tmp_path / "relocated"
@@ -159,6 +169,7 @@ def test_postgis_fixture_height_round_trip(tmp_path, monkeypatch):
         terrain_manifest,
         HeightSettings(batch_workers=1, pip_workers=1),
         TILE_INDEX,
+        streetlidar_root=relocated / "streetlidar",
     )
     assert stats["statuses"] == {"success": 1}
     assert stats["streetlidar_catalog_fingerprint"] == loaded.identity
@@ -173,7 +184,13 @@ def test_postgis_fixture_height_round_trip(tmp_path, monkeypatch):
     (relocated / "streetlidar" / loaded.tiles[0].location).unlink()
     with pytest.raises((ValueError, FileNotFoundError)):
         run_heights(
-            dsn, source, result_table, terrain_manifest, HeightSettings(), TILE_INDEX
+            dsn,
+            source,
+            result_table,
+            terrain_manifest,
+            HeightSettings(),
+            TILE_INDEX,
+            streetlidar_root=relocated / "streetlidar",
         )
     with connect(dsn) as connection:
         assert connection.execute(

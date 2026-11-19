@@ -130,9 +130,9 @@ the snapshot should be refreshed.
 
 ## Live streetlidar
 
-Production sets `BAG3D_STREETLIDAR_ROOT=/data/streetlidar` in its environment
+Production sets `BAG3D_STREETLIDAR_DIR=/data/pointcloud/streetlidar` in its environment
 file. The existing `/data:/data` mount exposes the directory to core and
 underpasses, alongside AHN's `/data/pointcloud`; no dedicated overlay is needed.
 For other deployments, configure the source path in ordinary deployment storage
-and set `BAG3D_STREETLIDAR_ROOT` accordingly. Fixture deployments use their
+and set `BAG3D_STREETLIDAR_DIR` accordingly. Fixture deployments use their
 snapshot instead. See [streetlidar datasets](../docs/streetlidar.md).

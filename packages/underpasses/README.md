@@ -163,12 +163,13 @@ lidar coverage. Missing terrain never produces unfiltered lidar peaks.
 
 Streetlidar comes from the managed `streetlidar/tile_index` asset in core,
 backed by the computation database's `streetlidar.tile_index` table. Configure
-its source with `BAG3D_STREETLIDAR_ROOT` and a root `manifest.json` declaring
+its `streetlidar_store` with
+`BAG3D_STREETLIDAR_DIR=/data/pointcloud/streetlidar` and a root `manifest.json` declaring
 `"crs": "EPSG:7415"` and dataset IDs/directories. Materialize the index after
 adding data; `source_input` also refreshes it during complete runs. Heights
 queries intersecting tiles, combines all active datasets, and records the catalog
-fingerprint alongside terrain provenance. An unconfigured or explicitly empty
-source retains heuristic results. A configured missing or invalid source fails.
+fingerprint alongside terrain provenance. An explicitly empty manifest retains
+heuristic results. A missing or invalid source fails.
 The source root must be readable at the same path by core and underpasses.
 See the streetlidar dataset guide for onboarding, mounts, and fixture generation.
 

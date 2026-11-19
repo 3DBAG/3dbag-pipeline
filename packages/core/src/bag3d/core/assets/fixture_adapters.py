@@ -455,6 +455,7 @@ def fixture_laz_files_ahn6(
 @asset(name="tile_index", key_prefix="streetlidar", group_name="streetlidar")
 def fixture_streetlidar_index(
     integration_data_store: FileStoreResource,
+    streetlidar_store: FileStoreResource,
     computation_db: DatabaseResource,
 ) -> Output[PostgresTableIdentifier]:
     m = _m(integration_data_store)
@@ -466,6 +467,7 @@ def fixture_streetlidar_index(
         if source
         else empty_catalog()
     )
+    catalog.validate_root(Path(streetlidar_store.root_dir))
     with connect(computation_db.connection.dsn) as connection:
         ensure_tables(connection)
         stats = publish(connection, catalog)

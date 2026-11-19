@@ -81,6 +81,12 @@ def test_adjacency_input_matches_core_package_registration(monkeypatch):
 
 
 def test_enrichment_dependencies():
+    assert (
+        "streetlidar_store"
+        in defs.get_assets_def(
+            AssetKey(["underpasses", "heights"])
+        ).required_resource_keys
+    )
     graph = defs.resolve_asset_graph()
     assert graph.get(AssetKey(["underpasses", "heights"])).parent_keys == {
         AssetKey(["underpasses", "extended_geometries"]),

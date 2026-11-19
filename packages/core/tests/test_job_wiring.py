@@ -56,10 +56,13 @@ def test_core_assets_validate_with_mock_resources():
 def test_streetlidar_job_and_fixture_dependencies():
     from bag3d.core.assets.fixture_adapters import fixture_streetlidar_index
     from bag3d.core.assets.streetlidar import tile_index
+    from bag3d.core.assets.integration_data import integration_streetlidar
 
     key = dg.AssetKey(["streetlidar", "tile_index"])
     assert tile_index.key == fixture_streetlidar_index.key == key
     assert tile_index.op.name == fixture_streetlidar_index.op.name
+    for definition in (tile_index, fixture_streetlidar_index, integration_streetlidar):
+        assert "streetlidar_store" in definition.required_resource_keys
     for job in ("source_input", "integration_data", "streetlidar_index"):
         assert tile_index.op.name in defs.resolve_job_def(job).graph.node_names()
     graph = defs.resolve_asset_graph()

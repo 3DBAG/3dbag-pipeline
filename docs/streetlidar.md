@@ -7,10 +7,10 @@ contains only the datasets listed in the last successful refresh.
 
 ## Add or retire a dataset
 
-On Gilfoyle, place complete datasets under `/data/streetlidar`, for example:
+On Gilfoyle, place complete datasets under `/data/pointcloud/streetlidar`, for example:
 
 ```text
-/data/streetlidar/
+/data/pointcloud/streetlidar/
   manifest.json
   amsterdam/2025/
     georizon-dataset-.../
@@ -66,21 +66,25 @@ Production configures the source alongside the AHN pointcloud directory:
 
 ```sh
 BAG3D_POINTCLOUD_DIR=/data/pointcloud
-BAG3D_STREETLIDAR_ROOT=/data/streetlidar
+BAG3D_STREETLIDAR_DIR=/data/pointcloud/streetlidar
 ```
 
 The production environment files in the admin and `3dbag-ctl` repositories set
-`BAG3D_STREETLIDAR_ROOT`. The existing `/data:/data` mount exposes the directory
+`BAG3D_STREETLIDAR_DIR`. The shared `streetlidar_store` resource supplies this
+directory to discovery, height estimation, and fixture generation. The existing
+`/data:/data` mount exposes the directory
 to core and underpasses at the same path. Streetlidar uses ordinary deployment
 storage configuration; no dedicated overlay or b3d source-selection logic is
 needed. The discovery asset reads the inputs and writes its index to PostGIS.
 
 For development or direct Compose runs using only the shared `/data/volume`
-Docker volume, place the source in that volume and set
-`BAG3D_STREETLIDAR_ROOT` to its container path, or configure an ordinary bind mount
-in the deployment configuration. For execution outside Docker, set the variable
-directly or supply the index asset's `root` config. The effective root must be
-readable at the same path by core and underpasses.
+Docker volume, the resource defaults to
+`<BAG3D_FILESTORE>/pointcloud/streetlidar` (normally
+`/data/volume/pointcloud/streetlidar`). Override it with `BAG3D_STREETLIDAR_DIR`
+and an ordinary bind mount when needed. For launch-time resource configuration,
+set `streetlidar_store.root_dir`; the asset config only controls `force`.
+The directory must be readable at the same path by core and underpasses.
+After changing the directory, refresh the index before running consumers.
 
 `source_input` includes the catalog refresh, so clean complete pipeline runs
 prepare the input before underpasses. `underpasses/heights` consumes the managed
@@ -90,9 +94,9 @@ asset settings `index`, `pointcloud_root`, and `index_layer`, and
 configurable. After a manual index refresh, materialize heights and downstream
 outputs when you want to use the new data.
 
-Leaving the source unconfigured, or publishing an explicit empty manifest,
-produces an empty catalog and the existing heuristic fallback. A configured
-missing source is an error.
+Publish an explicit empty manifest (`"datasets": []`) for heuristic-only
+results. The configured store must contain a manifest; a missing directory or
+manifest is an error.
 
 ## Integration snapshots
 
@@ -110,8 +114,10 @@ catalog fingerprint. The root fixture manifest references this JSON catalog as
 files. This format is portable between host directories and deployments.
 
 In fixture mode, core's replacement `streetlidar/tile_index` asset loads only
-manifest-declared snapshot files into PostGIS. Underpasses receives a read-only
-snapshot mount. Live streetlidar sources are never consulted. Fixture versions
+manifest-declared snapshot files into PostGIS. The integration overlay sets
+`BAG3D_STREETLIDAR_DIR` to `<BAG3D_INTEGRATION_DATA_DIR>/streetlidar`, so both
+core and underpasses use the snapshot through `streetlidar_store`. The snapshot
+remains read-only. Live streetlidar sources are never consulted. Fixture versions
 2 and 3 without a streetlidar section remain supported and publish an empty
 catalog; newly generated snapshots explicitly record an empty selection when
 no streetlidar is available.

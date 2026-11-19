@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import create_schema, postgrestable_metadata
 from dagster import (
@@ -43,6 +44,7 @@ def heights(
     context: AssetExecutionContext,
     config: HeightsConfig,
     computation_db: DatabaseResource,
+    streetlidar_store: FileStoreResource,
     extended_geometries: PostgresTableIdentifier,
     ahn_filled: Path,
     streetlidar_index: PostgresTableIdentifier,
@@ -59,6 +61,7 @@ def heights(
         ahn_filled,
         HeightSettings(**config.model_dump()),
         streetlidar_index,
+        streetlidar_root=Path(streetlidar_store.root_dir),
     )
     return Output(
         target, metadata={**postgrestable_metadata(computation_db, target), **stats}

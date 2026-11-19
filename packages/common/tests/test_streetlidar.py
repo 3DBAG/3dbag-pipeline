@@ -142,6 +142,9 @@ def test_fixture_catalog_relocation_and_declared_files_only(tmp_path):
     assert loaded.source_fingerprint == catalog.identity
     fixture_root = loaded.root
     assert fixture_root is not None
+    assert loaded.validate_root(target) == target
+    with pytest.raises(ValueError, match="refresh streetlidar/tile_index"):
+        loaded.validate_root(root)
     assert all(t.path(fixture_root).is_file() for t in loaded.tiles)
     declared.pop()
     with pytest.raises(ValueError, match="undeclared"):
