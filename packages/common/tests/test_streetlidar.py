@@ -39,6 +39,22 @@ def inspect(path):
     return (0.0, 0.0, 100.0, 100.0), 200, {"crs": CRS}
 
 
+@pytest.mark.parametrize("bounds", [(1.0, 2.0, 1.0, 2.0), (1.0, 2.0, 1.0, 3.0)])
+def test_discovery_accepts_single_point_and_collinear_tiles(tmp_path, bounds):
+    root, _ = source(tmp_path)
+    catalog = discover(root, lambda path: (bounds, 1, {}))
+    assert all(tile.bounds == bounds for tile in catalog.tiles)
+
+
+@pytest.mark.parametrize(
+    "bounds,count", [((2.0, 1.0, 1.0, 2.0), 1), ((1.0, 2.0, 1.0, 2.0), 0)]
+)
+def test_discovery_rejects_reversed_bounds_and_empty_tiles(tmp_path, bounds, count):
+    root, _ = source(tmp_path)
+    with pytest.raises(ValueError, match="Invalid or empty streetlidar tile"):
+        discover(root, lambda path: (bounds, count, {}))
+
+
 def test_discovery_changes_and_manifest_authority(tmp_path):
     root, manifest = source(tmp_path)
     ignored = root / "unlisted"

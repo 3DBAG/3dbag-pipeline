@@ -89,8 +89,8 @@ class Tile:
         if (
             len(self.bounds) != 4
             or not all(math.isfinite(v) for v in self.bounds)
-            or self.bounds[0] >= self.bounds[2]
-            or self.bounds[1] >= self.bounds[3]
+            or self.bounds[0] > self.bounds[2]
+            or self.bounds[1] > self.bounds[3]
             or self.point_count <= 0
             or self.size <= 0
         ):
