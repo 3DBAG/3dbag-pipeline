@@ -21,6 +21,7 @@ defs = Definitions(
         *all_assets,
         *(UnderpassEnrichmentComponent().build_defs().assets or []),
         AssetSpec(["terrain", "ahn_filled"]),
+        AssetSpec(["streetlidar", "tile_index"]),
         AssetSpec(["input", "intermediary", "bag_adjacency"]),
         AssetSpec(["input", "intermediary", "bag_bgt_join"]),
         AssetSpec(["bag", "bag_pandactueelbestaand"]),

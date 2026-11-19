@@ -5,6 +5,7 @@ from collections import Counter
 from hashlib import sha256
 from pathlib import Path
 
+from bag3d.common.streetlidar import read_catalog, selected_locations
 from psycopg import connect, sql
 from psycopg.types.json import Jsonb
 from shapely import from_wkb
@@ -30,13 +31,33 @@ def terrain_inputs(path: Path):
     return tuple(record["path"] for record in files), sha256(payload).hexdigest()
 
 
-def run_heights(dsn, source, target, terrain_manifest, settings):
-    from underpass_tools.heights import UnderpassRecord, estimate_heights
+def run_heights(
+    dsn, source, target, terrain_manifest, settings, streetlidar_index=None
+):
+    from underpass_tools.heights import TileRecord, UnderpassRecord, estimate_heights
     from underpass_tools.lidar import result_metadata
 
     rasters, identity = terrain_inputs(Path(terrain_manifest))
     counts = Counter()
+    lidar_identity = None
+    dataset_ids = []
     with connect(dsn) as connection, connection.cursor() as cursor:
+        cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+        tiles = []
+        if streetlidar_index is not None:
+            catalog = read_catalog(connection, streetlidar_index)
+            lidar_identity = catalog.identity
+            locations = selected_locations(
+                connection, source, settings.polygon_buffer, streetlidar_index
+            )
+            selected = [tile for tile in catalog.tiles if tile.location in locations]
+            dataset_ids = sorted({tile.dataset_id for tile in selected})
+            for tile in selected:
+                if catalog.root is None:
+                    raise ValueError("Nonempty streetlidar catalog has no root")
+                from shapely.geometry import box
+
+                tiles.append(TileRecord(tile.path(catalog.root), box(*tile.bounds)))
         cursor.execute(sql.SQL("DROP TABLE IF EXISTS {}").format(target.id))
         cursor.execute(
             sql.SQL("CREATE TABLE {} AS SELECT * FROM {}").format(target.id, source.id)
@@ -70,7 +91,7 @@ def run_heights(dsn, source, target, terrain_manifest, settings):
             target.id
         )
         seen = set()
-        for results in estimate_heights(records, rasters, settings):
+        for results in estimate_heights(records, rasters, settings, tiles=tiles):
             rows = []
             for result in results:
                 key = (result.identificatie, result.underpass_id)
@@ -81,6 +102,7 @@ def run_heights(dsn, source, target, terrain_manifest, settings):
                 metadata = {
                     **result_metadata(result),
                     "terrain_manifest_sha256": identity,
+                    "streetlidar_catalog_fingerprint": lidar_identity,
                 }
                 rows.append(
                     (
@@ -104,4 +126,6 @@ def run_heights(dsn, source, target, terrain_manifest, settings):
         "processed": len(seen),
         "statuses": dict(counts),
         "terrain_manifest_sha256": identity,
+        "streetlidar_catalog_fingerprint": lidar_identity,
+        "streetlidar_datasets": dataset_ids,
     }

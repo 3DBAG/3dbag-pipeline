@@ -14,9 +14,11 @@ from bag3d.core.jobs import (
     job_reconstruct,
     job_reconstruct_debug,
     job_source_input,
+    job_streetlidar_index,
 )
 
 JOB_DEFS = [
+    job_streetlidar_index,
     job_bgt,
     job_cbs,
     job_source_input,
@@ -49,3 +51,16 @@ def test_core_assets_validate_with_mock_resources():
         sensors=all_sensors,
     )
     dg.Definitions.validate_loadable(mocked_defs)
+
+
+def test_streetlidar_job_and_fixture_dependencies():
+    from bag3d.core.assets.fixture_adapters import fixture_streetlidar_index
+    from bag3d.core.assets.streetlidar import tile_index
+
+    key = dg.AssetKey(["streetlidar", "tile_index"])
+    assert tile_index.key == fixture_streetlidar_index.key == key
+    assert tile_index.op.name == fixture_streetlidar_index.op.name
+    for job in ("source_input", "integration_data", "streetlidar_index"):
+        assert tile_index.op.name in defs.resolve_job_def(job).graph.node_names()
+    graph = defs.resolve_asset_graph()
+    assert key in graph.get(dg.AssetKey("integration_streetlidar")).parent_keys

@@ -5,7 +5,13 @@ The main pipeline stages pass data through the file system via **stage directori
 ## Stage directory pipeline
 
 ```
-underpasses.heights (street lidar + terrain/ahn_filled NAP rasters)
+streetlidar manifest + LAS/LAZ directories
+        |
+        v
+streetlidar/tile_index (PostGIS, active EPSG:7415 datasets)
+        |
+        v
+underpasses.heights (streetlidar catalog + terrain/ahn_filled NAP rasters)
         |
         |  Roofer reconstruction with underpass carving
         v

@@ -161,12 +161,16 @@ confidence, source, status, timestamp, and JSON diagnostics including the terrai
 manifest SHA-256. Every offset polygon gets a result, including polygons outside
 lidar coverage. Missing terrain never produces unfiltered lidar peaks.
 
-Set `BAG3D_STREETLIDAR_INDEX` to the GeoPackage index (with a `location` field)
-and `BAG3D_STREETLIDAR_ROOT` to its LAZ root, or set `index` and `pointcloud_root`
-in the heights asset config. Both must be supplied together; leaving both unset
-explicitly produces heuristic results for all polygons. Lidar XYZ must use RD New
-and NAP. Containers must be able to read these paths; mount external lidar data
-into the underpasses service when it is outside the shared data volume.
+Streetlidar comes from the managed `streetlidar/tile_index` asset in core,
+backed by the computation database's `streetlidar.tile_index` table. Configure
+its source with `BAG3D_STREETLIDAR_ROOT` and a root `manifest.json` declaring
+`"crs": "EPSG:7415"` and dataset IDs/directories. Materialize the index after
+adding data; `source_input` also refreshes it during complete runs. Heights
+queries intersecting tiles, combines all active datasets, and records the catalog
+fingerprint alongside terrain provenance. An unconfigured or explicitly empty
+source retains heuristic results. A configured missing or invalid source fails.
+The source root must be readable at the same path by core and underpasses.
+See the streetlidar dataset guide for onboarding, mounts, and fixture generation.
 
 The default profile follows the experiment: 500 m spatial grid, 16 batch workers,
 5 point-in-polygon workers and 1 height worker per batch, with 3 Rayon threads.
@@ -190,15 +194,15 @@ reads it through `reconstruction_index`. Roofer owns ceiling semantics and
 geometry diagnostics; the old carving reports and custom surface provenance are
 retired. Historical `stages/underpasses/` data is unused.
 
-The height implementation is installed from the prebuilt Linux x86_64 wheel in
-[`3DBAG/underpass-tools` v0.2.0](https://github.com/3DBAG/underpass-tools/releases/tag/v0.2.0).
-The release URL is pinned in `pyproject.toml`; the lockfile records its SHA-256.
-The wheel bundles the Zig point-in-polygon shared library, so local installation,
-CI lint/tests, and the pipeline image build need no Zig compiler. This dependency
-targets Linux x86_64; it is used by the pipeline's Python 3.12 CI and Docker images.
-Upstream tool tests run in the tool repository; the pipeline retains its adapter
-and PostGIS tests. Optional PostGIS tests use `BAG3D_UNDERPASSES_TEST_DSN` and
-exercise height results and transactional rollback.
+The height implementation uses `underpass-tools` 0.3.0, with a caller-owned
+tile-record API so database access remains in the pipeline adapter. The pinned
+Linux x86_64 wheel comes from the immutable
+[v0.3.0 release](https://github.com/3DBAG/underpass-tools/releases/tag/v0.3.0).
+Its URL is pinned in `pyproject.toml` and its SHA-256 is recorded in the lockfile.
+It bundles the Zig point-in-polygon library and needs no compiler during
+installation. The companion repository retains its standalone GeoPackage CLI
+interface. Upstream tool tests run there; the pipeline retains its adapter,
+fixture, and optional PostGIS tests.
 
 Materialize preprocessing and `terrain/ahn_filled`, then run the `underpasses` job
 before reconstructing and regenerating downstream outputs. Avoid overlapping
