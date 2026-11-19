@@ -87,7 +87,14 @@ job_source_input = define_asset_job(
     | AssetSelection.assets(["bag", "bag_verblijfsobjectactueelbestaand"])
     | AssetSelection.groups("bgt")
     | AssetSelection.groups("cbs")
-    | AssetSelection.groups("top10nl"),
+    | AssetSelection.groups("top10nl")
+    | AssetSelection.assets(["streetlidar", "tile_index"]),
+)
+
+job_streetlidar_index = define_asset_job(
+    name="streetlidar_index",
+    description="Refresh the manifest-driven PostGIS streetlidar tile catalog.",
+    selection=AssetSelection.assets(["streetlidar", "tile_index"]),
 )
 
 
@@ -124,6 +131,7 @@ job_integration_data = define_asset_job(
     },
     description="Refresh the AOI-specific native-format integration-data fixtures.",
     selection=AssetSelection.groups("integration_data")
+    | AssetSelection.assets(["streetlidar", "tile_index"])
     | AssetSelection.assets(["bag", "extract_bag"])
     | AssetSelection.assets(["bgt", "extract_bgt"])
     | AssetSelection.assets(["top10nl", "extract_top10nl"])

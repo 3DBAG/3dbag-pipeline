@@ -30,6 +30,7 @@ from bag3d.core.jobs import (
     job_reconstruct,
     job_reconstruct_debug,
     job_source_input,
+    job_streetlidar_index,
 )
 from bag3d.core.schedules import integration_data_schedule
 from bag3d.core.sensors import ahn_checksum_sensor
@@ -44,6 +45,7 @@ all_assets = [
 ]
 
 all_jobs = [
+    job_streetlidar_index,
     job_bgt,
     job_cbs,
     job_source_input,

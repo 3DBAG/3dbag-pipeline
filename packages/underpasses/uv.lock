@@ -150,7 +150,7 @@ requires-dist = [
     { name = "rich", specifier = "<14" },
     { name = "shapely", specifier = "~=2.1.2" },
     { name = "sqlalchemy", specifier = "<2.1" },
-    { name = "underpass-tools", url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.2.0/underpass_tools-0.2.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl" },
+    { name = "underpass-tools", url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.3.0/underpass_tools-0.3.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl" },
 ]
 
 [package.metadata.requires-dev]
@@ -2310,8 +2310,8 @@ wheels = [
 
 [[package]]
 name = "underpass-tools"
-version = "0.2.0"
-source = { url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.2.0/underpass_tools-0.2.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl" }
+version = "0.3.0"
+source = { url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.3.0/underpass_tools-0.3.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl" }
 dependencies = [
     { name = "laspy", extra = ["lazrs"] },
     { name = "numpy" },
@@ -2320,7 +2320,7 @@ dependencies = [
     { name = "shapely" },
 ]
 wheels = [
-    { url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.2.0/underpass_tools-0.2.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:411c0379af677a0402542b1d2845ad35b844460e1656b78a283a9d6a9a3d8053" },
+    { url = "https://github.com/3DBAG/underpass-tools/releases/download/v0.3.0/underpass_tools-0.3.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ebf43adceef2ba5f9fe24c7e3fd35acea03b5ccc0f77ee002be1971ec130f2f1" },
 ]
 
 [package.metadata]

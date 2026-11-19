@@ -85,4 +85,5 @@ def test_enrichment_dependencies():
     assert graph.get(AssetKey(["underpasses", "heights"])).parent_keys == {
         AssetKey(["underpasses", "extended_geometries"]),
         AssetKey(["terrain", "ahn_filled"]),
+        AssetKey(["streetlidar", "tile_index"]),
     }

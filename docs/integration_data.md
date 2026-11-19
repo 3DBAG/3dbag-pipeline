@@ -80,3 +80,13 @@ relabelled as version 3. Validate the replacement snapshot in an isolated
 deployment before switching consumers, retaining the previous snapshot for
 rollback. Failed GDAL imports now fail the staging asset instead of returning
 success with missing metadata.
+
+## Streetlidar input
+
+New snapshots also contain the manifest-selected streetlidar subset. The
+`integration_streetlidar` asset queries the managed PostGIS tile index, crops
+points to the AOI plus 10 m, and writes a portable JSON catalog alongside the
+cropped files. Fixture adapters load that catalog into the deployment's PostGIS
+index; underpasses reads the snapshot through a read-only mount. Existing version
+2/3 snapshots without streetlidar retain heuristic heights. See the
+[streetlidar guide](streetlidar.md) for configuration and generation details.

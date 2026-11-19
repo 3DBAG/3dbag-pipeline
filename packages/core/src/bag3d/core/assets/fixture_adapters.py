@@ -8,7 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from bag3d.common.resources.files import FileStoreResource
-from dagster import AssetExecutionContext, AssetKey, Output, asset
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.streetlidar import (
+    TILE_INDEX,
+    empty_catalog,
+    ensure_tables,
+    fixture_catalog,
+    publish,
+)
+from bag3d.common.types import PostgresTableIdentifier
+from psycopg import connect
+from dagster import AssetExecutionContext, AssetKey, DataVersion, Output, asset
 
 from bag3d.core.assets.ahn.core import (
     partition_definition_ahn,
@@ -220,6 +230,12 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
                 f"Invalid source entry in integration-data manifest: {name}"
             )
         _verify(root, manifest, source["path"])
+    if "streetlidar" in sources:
+        fixture_catalog(
+            root,
+            sources["streetlidar"]["path"],
+            lambda name: _verify(root, manifest, name),
+        )
     return FixtureManifest(root, manifest)
 
 
@@ -436,7 +452,30 @@ def fixture_laz_files_ahn6(
     )
 
 
+@asset(name="tile_index", key_prefix="streetlidar", group_name="streetlidar")
+def fixture_streetlidar_index(
+    integration_data_store: FileStoreResource,
+    computation_db: DatabaseResource,
+) -> Output[PostgresTableIdentifier]:
+    m = _m(integration_data_store)
+    source = m.value["sources"].get("streetlidar")
+    catalog = (
+        fixture_catalog(
+            m.root, source["path"], lambda name: _verify(m.root, m.value, name)
+        )
+        if source
+        else empty_catalog()
+    )
+    with connect(computation_db.connection.dsn) as connection:
+        ensure_tables(connection)
+        stats = publish(connection, catalog)
+    return Output(
+        TILE_INDEX, metadata=stats, data_version=DataVersion(catalog.identity)
+    )
+
+
 fixture_assets = [
+    fixture_streetlidar_index,
     fixture_extract_bag,
     fixture_extract_bgt,
     fixture_extract_top10nl,

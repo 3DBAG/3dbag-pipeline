@@ -1,6 +1,15 @@
 # Opt-in fixture-backed deployment preset. Use with compose.yaml and set
 # BAG3D_INTEGRATION_DATA_HOST_DIR to the canonical host snapshot directory.
 services:
+  bag3d-underpasses:
+    environment:
+      BAG3D_INPUT_MODE: integration_data
+      BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+    volumes:
+      - type: bind
+        source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
+        target: ${BAG3D_INTEGRATION_DATA_DIR}
+        read_only: true
   bag3d-core:
     environment:
       BAG3D_INPUT_MODE: integration_data

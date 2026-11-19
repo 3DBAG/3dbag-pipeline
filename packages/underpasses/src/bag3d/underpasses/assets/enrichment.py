@@ -1,6 +1,5 @@
 """Height-bearing underpass polygons for Roofer reconstruction."""
 
-from os import getenv
 from pathlib import Path
 
 from bag3d.common.resources.database import DatabaseResource
@@ -20,11 +19,6 @@ from bag3d.underpasses.enrichment_workflow import run_heights
 
 
 class HeightsConfig(Config):
-    index: str | None = Field(default_factory=lambda: getenv("BAG3D_STREETLIDAR_INDEX"))
-    pointcloud_root: str | None = Field(
-        default_factory=lambda: getenv("BAG3D_STREETLIDAR_ROOT")
-    )
-    index_layer: str | None = None
     batch_workers: int = Field(default=16, ge=1)
     pip_workers: int = Field(default=5, ge=1)
     height_workers: int = Field(default=1, ge=1)
@@ -39,13 +33,19 @@ class HeightsConfig(Config):
     terrain_peak_exclusion_distance: float = Field(default=2, ge=0, allow_inf_nan=False)
 
 
-@asset(ins={"ahn_filled": AssetIn(key=AssetKey(["terrain", "ahn_filled"]))})
+@asset(
+    ins={
+        "ahn_filled": AssetIn(key=AssetKey(["terrain", "ahn_filled"])),
+        "streetlidar_index": AssetIn(key=AssetKey(["streetlidar", "tile_index"])),
+    }
+)
 def heights(
     context: AssetExecutionContext,
     config: HeightsConfig,
     computation_db: DatabaseResource,
     extended_geometries: PostgresTableIdentifier,
     ahn_filled: Path,
+    streetlidar_index: PostgresTableIdentifier,
 ) -> Output[PostgresTableIdentifier]:
     """Underpass polygons with NAP ceiling estimates and terrain provenance."""
     from underpass_tools.heights import HeightSettings
@@ -58,6 +58,7 @@ def heights(
         target,
         ahn_filled,
         HeightSettings(**config.model_dump()),
+        streetlidar_index,
     )
     return Output(
         target, metadata={**postgrestable_metadata(computation_db, target), **stats}

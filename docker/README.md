@@ -127,3 +127,12 @@ The overlay sets `BAG3D_INPUT_MODE=integration_data` and mounts the snapshot at
 `/data/volume/integration-data` as read-only. The Dagster schedule
 `integration_data_monthly` is installed but stopped by default; enable it only when
 the snapshot should be refreshed.
+
+## Live streetlidar
+
+Production sets `BAG3D_STREETLIDAR_ROOT=/data/streetlidar` in its environment
+file. The existing `/data:/data` mount exposes the directory to core and
+underpasses, alongside AHN's `/data/pointcloud`; no dedicated overlay is needed.
+For other deployments, configure the source path in ordinary deployment storage
+and set `BAG3D_STREETLIDAR_ROOT` accordingly. Fixture deployments use their
+snapshot instead. See [streetlidar datasets](../docs/streetlidar.md).

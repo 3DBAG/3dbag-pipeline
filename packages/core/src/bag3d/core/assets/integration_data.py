@@ -13,6 +13,9 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import PDALResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_file
 from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
@@ -68,6 +71,32 @@ class IntegrationDataConfig(Config):
     cbs_year: str = Field(default="2025")
     ahn6_allowlist: list[str] = Field(
         default_factory=lambda: AHN6_AOI_TILE_ALLOWLIST.copy()
+    )
+
+
+@asset(
+    group_name="integration_data",
+    ins={"streetlidar_index": AssetIn(key=AssetKey(["streetlidar", "tile_index"]))},
+    automation_condition=AutomationCondition.eager(),
+)
+def integration_streetlidar(
+    config: IntegrationDataConfig,
+    integration_data_store: FileStoreResource,
+    computation_db: DatabaseResource,
+    streetlidar_index: PostgresTableIdentifier,
+    lastools: LASToolsResource,
+    pdal: PDALResource,
+) -> Path:
+    """Cropped streetlidar and a portable catalog for the integration AOI."""
+    from bag3d.core.streetlidar_fixture import crop_catalog
+
+    return crop_catalog(
+        computation_db.connection.dsn,
+        streetlidar_index,
+        integration_data_store.path / "streetlidar",
+        _buffered_extent(_aoi_bbox(config.geofilter)),
+        lastools,
+        pdal,
     )
 
 
@@ -840,6 +869,7 @@ def integration_manifest(
     integration_ahn4,
     integration_ahn5,
     integration_ahn6,
+    integration_streetlidar,
     extract_bag,
     extract_bgt,
     extract_top10nl,
@@ -865,6 +895,7 @@ def integration_manifest(
             Path(integration_ahn4),
             Path(integration_ahn5),
             Path(integration_ahn6),
+            Path(integration_streetlidar).parent,
         ),
         aoi,
         gdal,
@@ -887,6 +918,7 @@ def integration_manifest(
 
     bag_value = extract_bag if isinstance(extract_bag, tuple) else (extract_bag, {}, "")
     sources = {
+        "streetlidar": {"path": rel(integration_streetlidar)},
         "bag": {
             "path": rel(integration_bag),
             "metadata": bag_value[1],
