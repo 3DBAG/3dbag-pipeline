@@ -60,7 +60,7 @@ def test_roofer_config_and_tile_selection(tmp_path):
     args = inputs(tmp_path)
     path, _, _ = module.create_roofer_config(**args)
     config = tomllib.loads(path.read_text())
-    assert config["underpass-default-height"] == 2.5
+    assert config["underpass-default-height"] == 2.4
     assert config["underpass-height-attribute"] == "underpass_candidate_elevations"
     assert config["underpass-id-attribute"] == "identificatie"
     assert "u_10/1/2" in config["underpass-source"]
