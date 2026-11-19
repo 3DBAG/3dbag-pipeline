@@ -184,7 +184,7 @@ def bag_bgt_join(
 ) -> Output[PostgresTableIdentifier]:
     """Spatial join of BAG Pand and BGT Pand, aggregating BGT polygon geometries per
     BAG building identification."""
-    create_schema(computation_db, "bag", logger=logger)
+    create_schema(computation_db, RECONSTRUCTION_INPUT_SCHEMA, logger=logger)
     new_table = PostgresTableIdentifier(RECONSTRUCTION_INPUT_SCHEMA, "bag_bgt_join")
     query = load_sql(
         query_params={
