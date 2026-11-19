@@ -32,7 +32,14 @@ def terrain_inputs(path: Path):
 
 
 def run_heights(
-    dsn, source, target, terrain_manifest, settings, streetlidar_index=None
+    dsn,
+    source,
+    target,
+    terrain_manifest,
+    settings,
+    streetlidar_index=None,
+    *,
+    streetlidar_root: Path | None = None,
 ):
     from underpass_tools.heights import TileRecord, UnderpassRecord, estimate_heights
     from underpass_tools.lidar import result_metadata
@@ -45,7 +52,12 @@ def run_heights(
         cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
         tiles = []
         if streetlidar_index is not None:
+            if streetlidar_root is None:
+                raise ValueError(
+                    "A streetlidar store is required with the managed index"
+                )
             catalog = read_catalog(connection, streetlidar_index)
+            streetlidar_root = catalog.validate_root(streetlidar_root)
             lidar_identity = catalog.identity
             locations = selected_locations(
                 connection, source, settings.polygon_buffer, streetlidar_index
@@ -53,11 +65,9 @@ def run_heights(
             selected = [tile for tile in catalog.tiles if tile.location in locations]
             dataset_ids = sorted({tile.dataset_id for tile in selected})
             for tile in selected:
-                if catalog.root is None:
-                    raise ValueError("Nonempty streetlidar catalog has no root")
                 from shapely.geometry import box
 
-                tiles.append(TileRecord(tile.path(catalog.root), box(*tile.bounds)))
+                tiles.append(TileRecord(tile.path(streetlidar_root), box(*tile.bounds)))
         cursor.execute(sql.SQL("DROP TABLE IF EXISTS {}").format(target.id))
         cursor.execute(
             sql.SQL("CREATE TABLE {} AS SELECT * FROM {}").format(target.id, source.id)

@@ -21,11 +21,14 @@ def crop_catalog(
     bounds: tuple[float, float, float, float],
     lastools: LASToolsResource,
     pdal: PDALResource,
+    *,
+    streetlidar_root: Path,
 ) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     with connect(dsn) as connection:
         connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         catalog = read_catalog(connection, table)
+        streetlidar_root = catalog.validate_root(streetlidar_root)
         locations = {
             row[0]
             for row in connection.execute(
@@ -42,9 +45,7 @@ def crop_catalog(
         for tile in catalog.tiles:
             if tile.location not in locations:
                 continue
-            if catalog.root is None:
-                raise ValueError("Streetlidar catalog has tiles but no root")
-            source = tile.path(catalog.root)
+            source = tile.path(streetlidar_root)
             destination = working / tile.location
             destination.parent.mkdir(parents=True, exist_ok=True)
             minx, miny, maxx, maxy = bounds
@@ -112,8 +113,7 @@ def crop_catalog(
         # Validate every source again before publishing the generated subtree.
         for tile in catalog.tiles:
             if tile.location in locations:
-                assert catalog.root is not None
-                tile.path(catalog.root)
+                tile.path(streetlidar_root)
         backup = Path(temporary) / "previous"
         if target.exists():
             target.rename(backup)

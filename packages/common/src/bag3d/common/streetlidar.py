@@ -115,6 +115,16 @@ class Catalog:
     tiles: list[Tile]
     source_fingerprint: str | None = None
 
+    def validate_root(self, root: Path) -> Path:
+        """Require consumers to use the store from the published catalog."""
+        root = root.resolve()
+        if self.root is not None and self.root.resolve() != root:
+            raise ValueError(
+                "Streetlidar store differs from the published catalog; "
+                "refresh streetlidar/tile_index after changing the directory"
+            )
+        return root
+
     @property
     def identity(self) -> str:
         return fingerprint(

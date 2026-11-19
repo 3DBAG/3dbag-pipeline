@@ -82,6 +82,7 @@ class IntegrationDataConfig(Config):
 def integration_streetlidar(
     config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
+    streetlidar_store: FileStoreResource,
     computation_db: DatabaseResource,
     streetlidar_index: PostgresTableIdentifier,
     lastools: LASToolsResource,
@@ -97,6 +98,7 @@ def integration_streetlidar(
         _buffered_extent(_aoi_bbox(config.geofilter)),
         lastools,
         pdal,
+        streetlidar_root=Path(streetlidar_store.root_dir),
     )
 
 

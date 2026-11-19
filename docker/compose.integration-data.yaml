@@ -5,6 +5,7 @@ services:
     environment:
       BAG3D_INPUT_MODE: integration_data
       BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+      BAG3D_STREETLIDAR_DIR: ${BAG3D_INTEGRATION_DATA_DIR}/streetlidar
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
@@ -14,6 +15,7 @@ services:
     environment:
       BAG3D_INPUT_MODE: integration_data
       BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+      BAG3D_STREETLIDAR_DIR: ${BAG3D_INTEGRATION_DATA_DIR}/streetlidar
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
@@ -23,6 +25,7 @@ services:
     environment:
       BAG3D_INPUT_MODE: integration_data
       BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+      BAG3D_STREETLIDAR_DIR: ${BAG3D_INTEGRATION_DATA_DIR}/streetlidar
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
@@ -32,6 +35,7 @@ services:
     environment:
       BAG3D_INPUT_MODE: integration_data
       BAG3D_INTEGRATION_DATA_DIR: ${BAG3D_INTEGRATION_DATA_DIR}
+      BAG3D_STREETLIDAR_DIR: ${BAG3D_INTEGRATION_DATA_DIR}/streetlidar
     volumes:
       - type: bind
         source: ${BAG3D_INTEGRATION_DATA_HOST_DIR}
