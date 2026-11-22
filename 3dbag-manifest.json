@@ -3,7 +3,7 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.11.19.1",
+      "version": "2026.11.21",
       "digest": "sha256:d14b5b25ee73fe1551d817dcd55cd0e94f6723b9539a424b8da660a7bcba5b31"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
@@ -41,7 +41,7 @@
       "version": "develop",
       "image": {
         "repository": "docker.io/3dgi/roofer",
-        "digest": "sha256:5aed9499a393088754978410e1102d12d8c54ae59de957aa69f98dd0abd11cf1"
+        "digest": "sha256:4e9a40b4f472449c2cb4e6eb4cc747d5fb5336ad9ad418b204112c1c647bad86"
       },
       "type": "docker",
       "display_name": "roofer",
@@ -104,8 +104,8 @@
       "description": "Computing point cloud metadata"
     },
     "val3dity": {
-      "version": "2.4.0",
-      "url": "https://github.com/tudelft3d/val3dity/archive/refs/tags/2.4.0.zip",
+      "version": "877c6bb1e0bd0a4fd1a944de6ebfd1a938622d04",
+      "url": "https://github.com/tudelft3d/val3dity/archive/877c6bb1e0bd0a4fd1a944de6ebfd1a938622d04.zip",
       "type": "source"
     },
     "cjio": {

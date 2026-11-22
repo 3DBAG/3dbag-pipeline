@@ -78,7 +78,11 @@ def test_roofer_config_and_tile_selection(tmp_path):
 def test_views_cleaned_after_roofer_failure(tmp_path, monkeypatch, drop_views):
     args = inputs(tmp_path)
     roofer = MagicMock()
-    roofer.runner.run.side_effect = RuntimeError("roofer failed")
+    monkeypatch.setattr(
+        module,
+        "write_validated_tile",
+        MagicMock(side_effect=RuntimeError("roofer failed")),
+    )
     monkeypatch.setattr(
         module,
         "create_roofer_config",
@@ -97,6 +101,7 @@ def test_views_cleaned_after_roofer_failure(tmp_path, monkeypatch, drop_views):
             config=module.RooferConfig(drop_views=drop_views),
             computation_db=args["computation_db"],
             roofer=roofer,
+            validation=MagicMock(),
             file_store=args["file_store"],
             nl_transform=args["nl_transform"],
             tiles=args["tiles"],

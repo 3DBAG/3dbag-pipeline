@@ -8,16 +8,16 @@ from os import getenv
 
 from bag3d.common.resources import NlTransform, tool_versions
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.executables import RooferResource
+from bag3d.common.resources.executables import RooferResource, ValidationResource
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.dagster import format_date
+from bag3d.common.utils.manifest import get_tool_metadata
 from dagster import (
     AssetExecutionContext,
     AssetIn,
     AssetKey,
     Config,
-    Failure,
     StaticPartitionsDefinition,
     asset,
     get_dagster_logger,
@@ -28,6 +28,7 @@ from pydantic import Field
 
 from bag3d.core.assets.input import RECONSTRUCTION_INPUT_SCHEMA
 from bag3d.core.assets.input.tile import get_tile_ids
+from bag3d.core.assets.reconstruction.stream import write_validated_tile
 
 logger = get_dagster_logger("reconstruction.reconstruction")
 
@@ -87,7 +88,7 @@ class PartitionDefinition3DBagReconstruction(StaticPartitionsDefinition):
         "index": AssetIn(key_prefix="input"),
         "reconstruction_input": AssetIn(key_prefix="input"),
     },
-    code_version=tool_versions.get_version("roofer"),
+    code_version=f"{get_tool_metadata('roofer')['image']['digest']}+{get_tool_metadata('val3dity')['version']}",
     pool="roofer",
 )
 def reconstructed_building_models(
@@ -95,6 +96,7 @@ def reconstructed_building_models(
     config: RooferConfig,
     computation_db: DatabaseResource,
     roofer: RooferResource,
+    validation: ValidationResource,
     file_store: FileStoreResource,
     nl_transform: NlTransform,
     tiles,
@@ -127,17 +129,42 @@ def reconstructed_building_models(
             metadata_ahn6=metadata_ahn6_index,
             underpass_heights=underpass_heights,
         )
-        result = roofer.runner.run(
-            f"{{exe}} --config {{local_path}} {output_dir} -j {config.concurrency} --loglevel {config.loglevel} --skip-pc-check",
-            exe_name="roofer",
-            local_path=roofer_toml,
-            logger=logger,
-            env=roofer_environment(computation_db),
+        # Reuse a legacy coordinate-named tile on reruns so cjindex sees one copy.
+        existing = list(output_dir.glob("*.city.jsonl"))
+        if len(existing) > 1:
+            raise ValueError(f"Multiple reconstruction sequences in {output_dir}")
+        target = (
+            existing[0] if existing else output_dir / f"{output_dir.name}.city.jsonl"
         )
-        logger.debug(f"{result.returncode=}")
-        if not result.success or "error" in result.stdout.lower():
-            logger.error(result.stdout)
-            raise Failure()
+        if not validation.exe_val3dity:
+            raise ValueError(
+                "Configure the validation resource's exe_val3dity or set EXE_PATH_VAL3DITY"
+            )
+        counts = write_validated_tile(
+            [
+                roofer.exes["roofer"],
+                "--config",
+                str(roofer_toml),
+                "-j",
+                str(config.concurrency),
+                "--loglevel",
+                config.loglevel,
+                "--skip-pc-check",
+                "-",
+            ],
+            roofer_environment(computation_db),
+            validation.exe_val3dity,
+            target,
+        )
+        context.add_output_metadata(
+            {
+                "buildings": counts.buildings,
+                "buildings_with_validation_errors": counts.buildings_with_errors,
+                "cityjsonseq": str(target),
+                "roofer_version": tool_versions.get_version("roofer"),
+                "val3dity_pin": get_tool_metadata("val3dity")["version"],
+            }
+        )
     finally:
         if config.drop_views:
             computation_db.connection.send_query(
@@ -199,7 +226,6 @@ def create_roofer_config(
 
     split-cjseq = false
     omit-metadata = false
-    output-directory = "{output_path}"
 
     lod12 = true
     lod13 = true
@@ -357,7 +383,6 @@ def create_roofer_config(
         ahn4_files=laz_files_ahn4,
         ahn5_files=laz_files_ahn5,
         ahn6_files=laz_files_ahn6,
-        output_path=output_dir,
         nl_transform_scale=nl_transform.scale,
         nl_transform_translate=nl_transform.translate,
     )
