@@ -212,6 +212,7 @@ def create_roofer_config(
     underpass_heights: PostgresTableIdentifier,
 ):
     toml_template = """
+    [input]
     polygon-source = {footprint_file}
     polygon-snap-threshold = 0.001
     underpass-source = {underpass_source}
@@ -222,36 +223,40 @@ def create_roofer_config(
     id-attribute = "identificatie"
     force-lod11-attribute = "b3_kas_warenhuis"
     yoc-attribute = "oorspronkelijkbouwjaar"
-    lod11-fallback-area = 30000
 
-    split-cjseq = false
-    omit-metadata = false
-
-    lod12 = true
-    lod13 = true
-    lod22 = true
-
-    [[pointclouds]]
+    [[input.pointclouds]]
     name = "ahn3"
     quality = 3
     source = {ahn3_files}
 
-    [[pointclouds]]
+    [[input.pointclouds]]
     name = "ahn4"
     quality = 2
     source = {ahn4_files}
 
-    [[pointclouds]]
+    [[input.pointclouds]]
     name = "ahn5"
     quality = 1
     source = {ahn5_files}
 
-    [[pointclouds]]
+    [[input.pointclouds]]
     name = "ahn6"
     quality = 0
     source = {ahn6_files}
 
-    [output-attributes]
+    [crop]
+    lod11-fallback-area = 30000
+
+    [reconstruction]
+    lod12 = true
+    lod13 = true
+    lod22 = true
+
+    [output]
+    split-cjseq = false
+    omit-metadata = false
+
+    [output.attributes]
     success = ""
     force_lod11 = ""
     h_pc_98p = ""
