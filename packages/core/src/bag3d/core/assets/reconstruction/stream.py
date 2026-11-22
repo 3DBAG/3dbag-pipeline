@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, Popen
-from typing import BinaryIO
+from typing import IO
 from uuid import uuid4
 
 LOD_FIELDS = {
@@ -87,7 +87,7 @@ def enrich_building(feature: dict, validate: Callable[[bytes, str], list[int]]) 
 
 
 def _request(
-    stdin: BinaryIO, stdout: BinaryIO, record: bytes, expected: str
+    stdin: IO[bytes], stdout: IO[bytes], record: bytes, expected: str
 ) -> list[int]:
     stdin.write(record)
     stdin.flush()
@@ -113,9 +113,11 @@ def _request(
 
 
 @contextmanager
-def _child(args: list[str], **kwargs) -> Iterator[Popen[bytes]]:
+def _child(
+    args: list[str], *, stdin: int | None = None, env: dict[str, str] | None = None
+) -> Iterator[Popen[bytes]]:
     # Inherit stderr so Dagster compute logs receive both tools' diagnostics live.
-    with Popen(args, stdout=PIPE, **kwargs) as child:
+    with Popen(args, stdin=stdin, stdout=PIPE, env=env) as child:
         try:
             yield child
         finally:
