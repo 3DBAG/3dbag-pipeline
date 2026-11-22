@@ -64,7 +64,7 @@ def test_full_workflow_and_offline_processing_rerun(
     monkeypatch.setattr(downloads, "download_grids", lambda *a: grids)
     config = {
         "resources": {
-            "file_store": {"config": {"root_dir": str(tmp_path / "store")}},
+            "terrain_store": {"config": {"root_dir": str(tmp_path / "store")}},
             "terrain": {"config": {"workers": 1}},
         }
     }

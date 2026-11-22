@@ -11,6 +11,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import rasterio
 import requests
+from bag3d.common.terrain import padded_bounds
 from rasterio.warp import transform_bounds
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -110,11 +111,8 @@ def selection_bounds(bounds, radius_m):
     """Include interpolation neighbors and the source-transition warp buffer."""
     if bounds is None:
         return None
-    west, south, east, north = transform_bounds(4326, 28992, *bounds)
-    halo = radius_m + 300
-    return transform_bounds(
-        28992, 4326, west - halo, south - halo, east + halo, north + halo
-    )
+    rd_bounds = transform_bounds(4326, 28992, *bounds)
+    return transform_bounds(28992, 4326, *padded_bounds(rd_bounds, radius_m))
 
 
 def ahn_collections(client, catalog_url: str) -> list[str]:

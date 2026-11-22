@@ -19,7 +19,7 @@ from bag3d.common.resources.executables import (
     TylerResource,
     ValidationResource,
 )
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, file_store_from_env
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.values import NlTransform
@@ -91,6 +91,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "file_store": FileStoreResource.configure_at_launch(),
             "pointcloud_store": FileStoreResource.configure_at_launch(),
             "streetlidar_store": FileStoreResource.configure_at_launch(),
+            "terrain_store": FileStoreResource.configure_at_launch(),
             "integration_data_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
@@ -114,31 +115,15 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 exe_sozip=os.getenv("EXE_PATH_SOZIP"),
             ),
             "file_store": FileStoreResource(root_dir=os.environ["BAG3D_FILESTORE"]),
-            "pointcloud_store": FileStoreResource(
-                root_dir=os.getenv(
-                    "BAG3D_POINTCLOUD_DIR",
-                    str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
-                ),
+            "terrain_store": file_store_from_env("BAG3D_TERRAIN_DIR", "terrain"),
+            "pointcloud_store": file_store_from_env(
+                "BAG3D_POINTCLOUD_DIR", "pointcloud"
             ),
-            "streetlidar_store": FileStoreResource(
-                root_dir=os.getenv(
-                    "BAG3D_STREETLIDAR_DIR",
-                    str(
-                        Path(os.environ["BAG3D_FILESTORE"])
-                        / "pointcloud"
-                        / "streetlidar"
-                    ),
-                ),
+            "streetlidar_store": file_store_from_env(
+                "BAG3D_STREETLIDAR_DIR", "pointcloud/streetlidar"
             ),
-            "integration_data_store": FileStoreResource(
-                root_dir=os.getenv(
-                    "BAG3D_INTEGRATION_DATA_DIR",
-                    str(
-                        Path(os.environ["BAG3D_FILESTORE"])
-                        / "pipeline"
-                        / "integration-data"
-                    ),
-                )
+            "integration_data_store": file_store_from_env(
+                "BAG3D_INTEGRATION_DATA_DIR", "pipeline/integration-data"
             ),
             "computation_db": DatabaseResource(
                 host=os.environ["BAG3D_PG_HOST"],

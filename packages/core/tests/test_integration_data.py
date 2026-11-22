@@ -263,6 +263,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
             }
         }
     monkeypatch.setattr(integration_data, "_validate_outputs", lambda *args: {})
+    monkeypatch.setattr(integration_data, "terrain_snapshot", lambda *args: {})
     generate = cast(
         Any, integration_data.integration_manifest.op.compute_fn
     ).decorated_fn
@@ -273,6 +274,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
     manifest_path = generate(
         integration_streetlidar=tmp_path / "streetlidar" / "catalog.json",
+        integration_terrain=tmp_path / "terrain" / "catalog.json",
         integration_data_store=SimpleNamespace(path=tmp_path),
         tile_index_ahn6={},
         gdal=None,
@@ -280,6 +282,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         **kwargs,
     )
     manifest = json.loads(manifest_path.read_text())
+    assert manifest["sources"]["terrain"] == {"path": "terrain/catalog.json"}
     assert manifest["fixture_version"] == "3"
     assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
     assert manifest["clipping"]["vectors"]["top10nl"] == "pdok_aoi_whole_objects"

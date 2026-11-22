@@ -11,10 +11,6 @@ from .settings import TerrainSettings
 from .state import file_record, read_manifest, valid_record
 
 
-def root(file_store: FileStoreResource) -> Path:
-    return file_store.stage_dir("terrain")
-
-
 def result(context: AssetExecutionContext, path: Path) -> Output[Path]:
     manifest = read_manifest(path)
     metadata = {
@@ -44,14 +40,14 @@ def result(context: AssetExecutionContext, path: Path) -> Output[Path]:
 @asset
 def ahn_catalog(
     context: AssetExecutionContext,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Saved paginated AHN5+AHN6 5 m DTM catalog, including interpolation neighbors."""
     return result(
         context,
         downloads.ahn_catalog(
-            root(file_store), terrain.bounds, terrain.interpolation_radius_m
+            terrain_store.path, terrain.bounds, terrain.interpolation_radius_m
         ),
     )
 
@@ -60,36 +56,39 @@ def ahn_catalog(
 def ahn_download(
     context: AssetExecutionContext,
     ahn_catalog: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Immutable downloaded AHN rasters and their output extent."""
     return result(
-        context, downloads.download_ahn(root(file_store), ahn_catalog, terrain.workers)
+        context,
+        downloads.download_ahn(terrain_store.path, ahn_catalog, terrain.workers),
     )
 
 
 @asset
 def proj_grids_download(
     context: AssetExecutionContext,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Mandatory NSGI RDTRANS2018/NLGEO2018 and NGA EGM2008 transformation grids."""
-    return result(context, downloads.download_grids(root(file_store), terrain.workers))
+    return result(
+        context, downloads.download_grids(terrain_store.path, terrain.workers)
+    )
 
 
 @asset
 def glo30_download(
     context: AssetExecutionContext,
     ahn_download: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Regional GLO-30 input rasters plus catalog-confirmed omitted ocean cells."""
     return result(
         context,
-        downloads.download_glo30(root(file_store), ahn_download, terrain.workers),
+        downloads.download_glo30(terrain_store.path, ahn_download, terrain.workers),
     )
 
 
@@ -97,7 +96,7 @@ def glo30_download(
 def ahn_rasters(
     context: AssetExecutionContext,
     ahn_download: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Separate north-up RD New COGs retaining the original NAP heights."""
@@ -106,7 +105,7 @@ def ahn_rasters(
     )
     return result(
         context,
-        processing.normalize_ahn(root(file_store), ahn_download, terrain.workers),
+        processing.normalize_ahn(terrain_store.path, ahn_download, terrain.workers),
     )
 
 
@@ -114,7 +113,7 @@ def ahn_rasters(
 def ahn_filled(
     context: AssetExecutionContext,
     ahn_rasters: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """AHN nodata interpolated with neighbors within a ground-distance radius."""
@@ -124,7 +123,7 @@ def ahn_filled(
     return result(
         context,
         processing.fill_ahn(
-            root(file_store),
+            terrain_store.path,
             ahn_rasters,
             terrain.interpolation_radius_m,
             terrain.workers,
@@ -137,14 +136,14 @@ def ahn_ellipsoid(
     context: AssetExecutionContext,
     ahn_filled: Path,
     proj_grids_download: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Filled AHN converted from NAP to ellipsoidal heights on the native RD grid."""
     return result(
         context,
         processing.convert_ahn(
-            root(file_store), ahn_filled, proj_grids_download, terrain.workers
+            terrain_store.path, ahn_filled, proj_grids_download, terrain.workers
         ),
     )
 
@@ -154,14 +153,14 @@ def glo30_ellipsoid(
     context: AssetExecutionContext,
     glo30_download: Path,
     proj_grids_download: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Regional GLO-30 and ocean fallback converted from EGM2008 to ellipsoid."""
     return result(
         context,
         processing.convert_glo(
-            root(file_store), glo30_download, proj_grids_download, terrain.workers
+            terrain_store.path, glo30_download, proj_grids_download, terrain.workers
         ),
     )
 
@@ -171,11 +170,11 @@ def aggregation_plan(
     context: AssetExecutionContext,
     ahn_ellipsoid: Path,
     glo30_ellipsoid: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
 ) -> Output[Path]:
     """Mapterhorn work areas using AHN first and GLO-30 to fill remaining gaps."""
     return result(
-        context, tiles.make_plan(root(file_store), ahn_ellipsoid, glo30_ellipsoid)
+        context, tiles.make_plan(terrain_store.path, ahn_ellipsoid, glo30_ellipsoid)
     )
 
 
@@ -183,14 +182,14 @@ def aggregation_plan(
 def terrain_tiles(
     context: AssetExecutionContext,
     aggregation_plan: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Detailed 512 px lossless Terrarium tiles packed into per-area PMTiles."""
     return result(
         context,
         tiles.aggregate(
-            root(file_store), aggregation_plan, terrain.workers, terrain.gdal_bin_dir
+            terrain_store.path, aggregation_plan, terrain.workers, terrain.gdal_bin_dir
         ),
     )
 
@@ -199,12 +198,12 @@ def terrain_tiles(
 def terrain_overviews(
     context: AssetExecutionContext,
     terrain_tiles: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Lower zoom levels downsampled by averaging decoded 2×2 height samples."""
     return result(
-        context, tiles.overviews(root(file_store), terrain_tiles, terrain.workers)
+        context, tiles.overviews(terrain_store.path, terrain_tiles, terrain.workers)
     )
 
 
@@ -212,10 +211,10 @@ def terrain_overviews(
 def terrain_bundles(
     context: AssetExecutionContext,
     terrain_overviews: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
 ) -> Output[Path]:
     """Retained low-zoom and regional PMTiles bundles with terrain metadata."""
-    return result(context, tiles.bundle(root(file_store), terrain_overviews))
+    return result(context, tiles.bundle(terrain_store.path, terrain_overviews))
 
 
 def export_xyz(store_root: Path, bundles_path: Path, settings: TerrainSettings) -> Path:
@@ -253,8 +252,8 @@ def export_xyz(store_root: Path, bundles_path: Path, settings: TerrainSettings) 
 def terrain_xyz(
     context: AssetExecutionContext,
     terrain_bundles: Path,
-    file_store: FileStoreResource,
+    terrain_store: FileStoreResource,
     terrain: TerrainSettings,
 ) -> Output[Path]:
     """Static XYZ lossless WebP pyramid and TileJSON for the 3DBAG viewer."""
-    return result(context, export_xyz(root(file_store), terrain_bundles, terrain))
+    return result(context, export_xyz(terrain_store.path, terrain_bundles, terrain))

@@ -1,9 +1,20 @@
+import os
 from pathlib import Path
 from shutil import rmtree
 
 from dagster import ConfigurableResource, get_dagster_logger
 
 logger = get_dagster_logger("resources.file_store")
+
+
+def file_store_from_env(variable: str, subdir: str):
+    """Resolve a store override, its BAG3D_FILESTORE default, or launch configuration."""
+    root = os.getenv(variable)
+    if root is None and "BAG3D_FILESTORE" in os.environ:
+        root = str(Path(os.environ["BAG3D_FILESTORE"]) / subdir)
+    if root is None:
+        return FileStoreResource.configure_at_launch()
+    return FileStoreResource(root_dir=root)
 
 
 class FileStoreResource(ConfigurableResource):

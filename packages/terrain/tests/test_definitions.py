@@ -32,7 +32,7 @@ def test_definitions_and_job_selections():
         AssetKey(["terrain", "proj_grids_download"]),
     }
     assert defs.resources is not None
-    assert set(defs.resources) == {"file_store", "terrain"}
+    assert set(defs.resources) == {"terrain_store", "terrain"}
 
 
 def test_import_has_no_network_database_or_filesystem_work(tmp_path):
@@ -95,3 +95,22 @@ def test_python_file_workspace_entrypoint():
         str(Path(code_location.__file__).resolve()), str(Path.cwd())
     )
     Definitions.validate_loadable(module.defs)
+
+
+@pytest.mark.parametrize("override", [None, "/custom/terrain"])
+def test_terrain_store_environment_default(monkeypatch, tmp_path, override):
+    from bag3d.common.resources.files import FileStoreResource, file_store_from_env
+    from bag3d.terrain.components.terrain_component import TerrainComponent
+
+    monkeypatch.setenv("BAG3D_FILESTORE", str(tmp_path))
+    monkeypatch.delenv("BAG3D_TERRAIN_DIR", raising=False)
+    if override is not None:
+        monkeypatch.setenv("BAG3D_TERRAIN_DIR", override)
+    expected = override or str(tmp_path / "terrain")
+    resource = file_store_from_env("BAG3D_TERRAIN_DIR", "terrain")
+    assert isinstance(resource, FileStoreResource)
+    assert resource.root_dir == expected
+    resources = TerrainComponent().build_defs().resources
+    assert resources is not None
+    assert resources["terrain_store"].root_dir == expected
+    assert not list(tmp_path.iterdir())

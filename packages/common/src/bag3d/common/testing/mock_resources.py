@@ -4,6 +4,7 @@ MOCK_RESOURCES = {
     "file_store": dg.ResourceDefinition.mock_resource(),
     "pointcloud_store": dg.ResourceDefinition.mock_resource(),
     "streetlidar_store": dg.ResourceDefinition.mock_resource(),
+    "terrain_store": dg.ResourceDefinition.mock_resource(),
     "integration_data_store": dg.ResourceDefinition.mock_resource(),
     "gdal": dg.ResourceDefinition.mock_resource(),
     "computation_db": dg.ResourceDefinition.mock_resource(),
