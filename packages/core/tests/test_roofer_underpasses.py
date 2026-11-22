@@ -60,11 +60,34 @@ def test_roofer_config_and_tile_selection(tmp_path):
     args = inputs(tmp_path)
     path, _, _ = module.create_roofer_config(**args)
     config = tomllib.loads(path.read_text())
-    assert config["underpass-default-height"] == 2.4
-    assert config["underpass-height-attribute"] == "underpass_candidate_elevations"
-    assert config["underpass-id-attribute"] == "identificatie"
-    assert "u_10/1/2" in config["underpass-source"]
-    assert "(geom)" in config["underpass-source"]
+    assert set(config) == {"input", "crop", "reconstruction", "output"}
+    source = config["input"]
+    assert source["polygon-snap-threshold"] == 0.001
+    assert source["underpass-default-height"] == 2.4
+    assert source["underpass-height-attribute"] == "underpass_candidate_elevations"
+    assert source["underpass-id-attribute"] == "identificatie"
+    assert source["underpass-attributes"] == [
+        "underpass_confidence",
+        "underpass_source",
+    ]
+    assert "u_10/1/2" in source["underpass-source"]
+    assert "(geom)" in source["underpass-source"]
+    assert "t_10/1/2" in source["polygon-source"]
+    assert source["id-attribute"] == "identificatie"
+    assert source["force-lod11-attribute"] == "b3_kas_warenhuis"
+    assert source["yoc-attribute"] == "oorspronkelijkbouwjaar"
+    assert source["pointclouds"] == [
+        {"name": f"ahn{version}", "quality": 6 - version, "source": ["/data/ahn.laz"]}
+        for version in range(3, 7)
+    ]
+    assert config["crop"]["lod11-fallback-area"] == 30000
+    assert config["reconstruction"] == {"lod12": True, "lod13": True, "lod22": True}
+    output = config["output"]
+    assert output["split-cjseq"] is False
+    assert output["omit-metadata"] is False
+    assert output["attributes"]["pc_select"] == "b3_pw_selectie_reden"
+    assert output["attributes"]["reconstruction_time"] == "b3_t_run"
+    assert output["attributes"]["val3dity_lod22"] == "b3_val3dity_lod22"
     assert "secret" not in path.read_text()
     calls = args["computation_db"].connection.send_query.call_args_list
     query = calls[-1].args[0].as_string()
