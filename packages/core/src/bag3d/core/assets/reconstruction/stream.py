@@ -128,24 +128,13 @@ def _child(
 def write_validated_tile(
     roofer_args: list[str], roofer_env: dict[str, str], val3dity: str, target: Path
 ) -> TileCounts:
-    # Match the tolerances used by export.validate for the published geometries.
-    validator_args = [
-        val3dity,
-        "--planarity_n_tol",
-        "20",
-        "--planarity_d2p_tol",
-        "0.0001",
-        "--snap_tol",
-        "0.0001",
-        "stdin",
-    ]
     partial_path = target.with_name(f".{target.name}.{uuid4().hex}.partial")
     counts = TileCounts()
     try:
         with (
             partial_path.open("xb") as output,
             _child(roofer_args, env=roofer_env) as roofer,
-            _child(validator_args, stdin=PIPE) as validator,
+            _child([val3dity, "stdin"], stdin=PIPE) as validator,
         ):
             assert roofer.stdout and validator.stdin and validator.stdout
 
