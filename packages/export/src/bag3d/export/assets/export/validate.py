@@ -459,9 +459,6 @@ def cityjson(
     validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
-    planarity_n_tol: float,
-    planarity_d2p_tol: float,
-    snap_tol: float,
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
@@ -474,9 +471,6 @@ def cityjson(
         validation_runner: CommandRunner for validation tools
         dirpath: Directory with the compressed cityjson file
         file_id: File name without extension
-        planarity_n_tol: Val3dity ``planarity_n_tol`` parameter
-        planarity_d2p_tol: Val3dity ``planarity_d2p_tol`` parameter
-        snap_tol: Val3dity ``snap_tol`` parameter
         url_root: 3DBAG download page url root
         version: 3DBAG version
         specs: 3DBAG specifications resource
@@ -574,20 +568,7 @@ def cityjson(
     reportfile = dirpath / "report.json"
     logfile = dirpath / "val3dity.log"
     try:
-        cmd = " ".join(
-            [
-                "{exe}",
-                "--planarity_n_tol",
-                str(planarity_n_tol),
-                "--planarity_d2p_tol",
-                str(planarity_d2p_tol),
-                "--snap_tol",
-                str(snap_tol),
-                "--report",
-                str(reportfile),
-                str(inputfile),
-            ]
-        )
+        cmd = " ".join(["{exe}", "--report", str(reportfile), str(inputfile)])
 
         result = validation_runner.run(cmd, exe_name="val3dity", local_path=dirpath)
         with reportfile.open() as fo:
@@ -625,9 +606,6 @@ def obj(
     validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
-    planarity_n_tol: float,
-    planarity_d2p_tol: float,
-    snap_tol: float,
     url_root: str,
     version: str,
     archive_file_id: str | None = None,
@@ -722,20 +700,7 @@ def obj(
                 inputfile.unlink(missing_ok=True)
                 return results
             try:
-                cmd = " ".join(
-                    [
-                        "{exe}",
-                        "--planarity_n_tol",
-                        str(planarity_n_tol),
-                        "--planarity_d2p_tol",
-                        str(planarity_d2p_tol),
-                        "--snap_tol",
-                        str(snap_tol),
-                        "--report",
-                        str(reportfile),
-                        str(inputfile),
-                    ]
-                )
+                cmd = " ".join(["{exe}", "--report", str(reportfile), str(inputfile)])
 
                 result = validation_runner.run(
                     cmd, exe_name="val3dity", local_path=dirpath
@@ -1087,17 +1052,11 @@ def check_formats(inputs) -> TileResults:
 
     specs = Specs3DBAGResource()
     file_id = tile_id.rsplit("/", 1)[-1]
-    planarity_n_tol = 20.0
-    planarity_d2p_tol = 0.0001
-    snap_tol = 0.0001
     cj_results = cityjson(
         system=system,
         validation_runner=validation_runner,
         dirpath=dirpath,
         file_id=file_id,
-        planarity_n_tol=planarity_n_tol,
-        planarity_d2p_tol=planarity_d2p_tol,
-        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
         specs=specs,
@@ -1108,9 +1067,6 @@ def check_formats(inputs) -> TileResults:
         validation_runner,
         dirpath,
         file_id,
-        planarity_n_tol=planarity_n_tol,
-        planarity_d2p_tol=planarity_d2p_tol,
-        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
         archive_file_id=tile_id.replace("/", "-"),
