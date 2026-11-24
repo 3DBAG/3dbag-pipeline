@@ -242,12 +242,15 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
 
     from bag3d.core.assets import integration_data
 
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+
     # Current indexes use "url" for every AHN version. Include an unselected
     # tile to ensure the manifest only declares files present in this fixture.
     indexes = {}
     expected = {}
     for version in (3, 4, 5):
-        path = tmp_path / "pointclouds" / f"AHN{version}" / "C_25GN1.LAZ"
+        path = staging / "pointclouds" / f"AHN{version}" / "C_25GN1.LAZ"
         path.parent.mkdir(parents=True)
         path.write_bytes(f"clipped AHN{version}".encode())
         indexes[version] = {
@@ -256,7 +259,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         }
         expected[str(version)] = {
             "25gn1": {
-                "path": str(path.relative_to(tmp_path)),
+                "path": str(path.relative_to(staging)),
                 "url": indexes[version]["25gn1"]["url"],
                 "size": path.stat().st_size,
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -267,18 +270,20 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         Any, integration_data.integration_manifest.op.compute_fn
     ).decorated_fn
     sources = ("bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart")
-    kwargs = {f"integration_{name}": tmp_path / name for name in sources}
+    kwargs = {f"integration_{name}": staging / name for name in sources}
     kwargs.update({f"extract_{name}": None for name in sources})
-    kwargs.update({f"integration_ahn{version}": tmp_path for version in (3, 4, 5, 6)})
+    kwargs.update({f"integration_ahn{version}": staging for version in (3, 4, 5, 6)})
     kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
     manifest_path = generate(
-        integration_streetlidar=tmp_path / "streetlidar" / "catalog.json",
-        integration_data_store=SimpleNamespace(path=tmp_path),
+        integration_streetlidar=staging / "streetlidar" / "catalog.json",
+        integration_data_store=SimpleNamespace(root_dir=str(root)),
         tile_index_ahn6={},
         gdal=None,
         lastools=None,
         **kwargs,
     )
+    # The manifest is published into the snapshot root once everything is built.
+    assert manifest_path == root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     assert manifest["fixture_version"] == "3"
     assert manifest["clipping"]["vectors"]["bgt"] == "gdal"
@@ -355,6 +360,67 @@ def test_clip_native_gml_archive_preserves_previous_fixture_on_failure(
         )
 
     assert destination.read_bytes() == b"previous fixture"
+
+
+def test_publish_integration_snapshot_swaps_staging_into_place(tmp_path):
+    from types import SimpleNamespace
+
+    from bag3d.core.assets import integration_data
+
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    (staging / "bgt").mkdir(parents=True)
+    (staging / "manifest.json").write_text("new manifest")
+
+    result = integration_data._publish_integration_snapshot(
+        SimpleNamespace(root_dir=str(root)), staging
+    )
+
+    assert result == root
+    assert (root / "manifest.json").read_text() == "new manifest"
+    assert (root / "bgt").is_dir()
+    assert not staging.exists()
+
+
+def test_publish_integration_snapshot_replaces_existing_snapshot(tmp_path):
+    from types import SimpleNamespace
+
+    from bag3d.core.assets import integration_data
+
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    backup = root.parent / f".{root.name}.previous"
+    root.mkdir(parents=True)
+    (root / "manifest.json").write_text("old manifest")
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / "manifest.json").write_text("new manifest")
+
+    integration_data._publish_integration_snapshot(
+        SimpleNamespace(root_dir=str(root)), staging
+    )
+
+    assert (root / "manifest.json").read_text() == "new manifest"
+    assert not staging.exists()
+    assert not backup.exists()
+
+
+def test_reset_integration_staging_clears_previous_staging(tmp_path):
+    from types import SimpleNamespace
+
+    from bag3d.core.assets import integration_data
+
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    staging.mkdir(parents=True)
+    (staging / "stale.txt").write_text("stale")
+
+    result = integration_data._reset_integration_staging(
+        SimpleNamespace(root_dir=str(root))
+    )
+
+    assert result == staging
+    assert staging.is_dir()
+    assert not (staging / "stale.txt").exists()
 
 
 def test_integration_job_supplies_aoi_for_manual_and_scheduled_runs():
