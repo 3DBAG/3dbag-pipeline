@@ -128,13 +128,16 @@ def _semantic_value(
     }[kind]
     if not valid_type:
         return AttributeValidationOutcome.INCORRECT_DATA_TYPE
-    if kind == BaseType.FLOAT and not math.isfinite(value):
-        return AttributeValidationOutcome.INCORRECT_VALUE
+    if kind == BaseType.FLOAT:
+        assert isinstance(value, (int, float))
+        if not math.isfinite(value):
+            return AttributeValidationOutcome.INCORRECT_VALUE
     if definition.values is not None:
         key = str(value).lower() if isinstance(value, bool) else str(value)
         if key not in definition.values:
             return AttributeValidationOutcome.INCORRECT_VALUE
     if kind in (BaseType.DATE, BaseType.DATETIME):
+        assert isinstance(value, str)
         # Check the logical calendar type, never the descriptive valueFormat.
         try:
             if kind == BaseType.DATE:
@@ -144,8 +147,11 @@ def _semantic_value(
         except ValueError:
             return AttributeValidationOutcome.INCORRECT_VALUE
     if kind == BaseType.ARRAY and isinstance(definition, Attribute):
+        assert isinstance(value, list)
+        items = definition.items
+        assert items is not None, "Array attributes require an item definition"
         for item in value:
-            outcome = _semantic_value(item, definition.items)
+            outcome = _semantic_value(item, items)
             if outcome != AttributeValidationOutcome.OK:
                 return outcome
     return AttributeValidationOutcome.OK

@@ -35,7 +35,11 @@ def inspect_geopackage(
     path: Path, specs: Specs3DBAGResource, runner: CommandRunner
 ) -> tuple[dict, dict[str, int | None], list[str]]:
     info = _ogr_json(runner, path)
-    counts = {"nr_building": None, "nr_buildingpart": None, "nr_invalid_2d_geom": None}
+    counts: dict[str, int | None] = {
+        "nr_building": None,
+        "nr_buildingpart": None,
+        "nr_invalid_2d_geom": None,
+    }
     failures = []
     building_counts, part_counts, invalid_counts = [], [], []
     observed = {layer["name"]: layer for layer in info["layers"]}
