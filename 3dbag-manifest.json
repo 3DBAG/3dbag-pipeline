@@ -3,7 +3,7 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.11.21",
+      "version": "2026.11.24",
       "digest": "sha256:b175d8646a541d5786674f6c96dbcea84fc340c2f5bb58e64abcc5e3c52706ce"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
