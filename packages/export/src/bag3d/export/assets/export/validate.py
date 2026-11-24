@@ -5,6 +5,8 @@ import json
 import re
 import shutil
 import zipfile
+from collections import Counter, defaultdict
+from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from os import getenv
@@ -220,14 +222,178 @@ class TileResults:
         }
 
 
+_LOD_ERROR_FIELDS = {"b3_val3dity_lod12", "b3_val3dity_lod13", "b3_val3dity_lod22"}
+
+
+def _lod_error_codes(value: object) -> list[int] | None:
+    """Read a native array or Roofer's historical JSON-string representation."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return None
+    if isinstance(value, list) and all(type(code) is int for code in value):
+        return value
+    return None
+
+
+def _matches_lod_report(value: object, expected: set[int] | None) -> bool:
+    if value is None:
+        return expected is None
+    codes = _lod_error_codes(value)
+    return codes is not None and set(codes) == expected
+
+
+def _record_cityjson_report(
+    results: CityJSONFileResults,
+    report: dict,
+    cityobjects: dict,
+    specs: Specs3DBAGResource,
+) -> None:
+    """Join val3dity's flat geometry error IDs to the source CityJSON LoDs."""
+    lod_suffixes = {"1.2": "12", "1.3": "13", "2.2": "22"}
+    invalid = Counter()
+    mismatches = Counter()
+    tile_codes: dict[str, set[int]] = {lod: set() for lod in lod_suffixes}
+    results.nr_invalid_building = 0
+    for feature in report["features"]:
+        if feature["type"] != "Building":
+            continue
+        fid = feature["id"]
+        building = cityobjects[fid]
+        attrs = building.get("attributes", {})
+        results.nr_invalid_building += int(not feature["validity"])
+        # Shell/face errors identify one geometry. BuildingPart overlap identifies both.
+        geometry_errors: dict[tuple[str, int], set[int]] = defaultdict(set)
+        for error in feature["errors"]:
+            for oid, index in re.findall(r"coid=([^|]+)\|geom=(\d+)", error["id"]):
+                geometry_errors[oid, int(index)].add(error["code"])
+
+        building_codes: dict[str, set[int]] = {}
+        for oid in (fid, *building.get("children", [])):
+            for index, geom in enumerate(cityobjects[oid].get("geometry", [])):
+                lod = str(geom["lod"])
+                if lod in lod_suffixes:
+                    codes = geometry_errors.get((oid, index), set())
+                    building_codes.setdefault(lod, set()).update(codes)
+                    invalid[lod] += int(bool(codes))
+        for lod, suffix in lod_suffixes.items():
+            expected = building_codes.get(lod)
+            if expected is None:
+                # As in the existing release metrics, count a missing LoD as invalid.
+                invalid[lod] += 1
+            else:
+                tile_codes[lod].update(expected)
+            if attrs and not _matches_lod_report(
+                attrs.get(f"b3_val3dity_lod{suffix}"), expected
+            ):
+                mismatches[lod] += 1
+        for result in cityobject_validate_attributes(specs, building):
+            results.attributes_with_errors.add_error(result)
+
+    for lod, suffix in lod_suffixes.items():
+        setattr(results, f"nr_invalid_buildingpart_lod{suffix}", invalid[lod])
+        setattr(results, f"errors_lod{suffix}", sorted(tile_codes[lod]))
+        setattr(results, f"nr_mismatch_errors_lod{suffix}", mismatches[lod])
+
+
+def cityobject_validate_attributes(
+    specs: Specs3DBAGResource, co: dict
+) -> Generator[AttributeValidationResultOne, None, None]:
+    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
+
+    Args:
+        specs (Specs3DBAGResource): The 3DBAG specifications
+        co (dict): A single CityObject
+    Returns:
+        A list of `AttributeValidationResultOne`.
+    """
+    # CityObject attributes
+    if co_attributes := co.get("attributes"):
+        building_attributes = dict(
+            specs.applies_to(
+                data_format="cityjson",
+                locations=(CityJSONLocation.from_string(co["type"]),),
+            )
+        )
+        co_diff_specs = set(co_attributes).difference(building_attributes)
+        if len(co_diff_specs) > 0:
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(co_diff_specs),
+                outcome=AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES,
+            )
+
+        specs_diff_co = set(building_attributes).difference(co_attributes)
+        if len(specs_diff_co) > 0:
+            yield AttributeValidationResultOne(
+                attribute_name=",".join(specs_diff_co),
+                outcome=AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES,
+            )
+        for specs_attr in building_attributes.values():
+            co_attr = co_attributes.get(specs_attr.name)
+            if specs_attr.name in _LOD_ERROR_FIELDS:
+                incorrect = co_attr is not None and _lod_error_codes(co_attr) is None
+            else:
+                incorrect = (
+                    bool(co_attr)
+                    and type(co_attr).__name__ != specs_attr.type.as_python()
+                )
+            if incorrect:
+                yield AttributeValidationResultOne(
+                    attribute_name=specs_attr.name,
+                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                )
+
+    # Semantic attributes
+    if geometries := co.get("geometry"):
+        for geometry in geometries:
+            if semantics := geometry.get("semantics"):
+                for semantic_surface in semantics["surfaces"]:
+                    specs_surface_attributes = dict(
+                        specs.applies_to(
+                            data_format="cityjson",
+                            locations=(
+                                CityJSONLocation.from_string(semantic_surface["type"]),
+                            ),
+                        )
+                    )
+                    semantic_surface_attributes = {
+                        k: v
+                        for k, v in semantic_surface.items()
+                        if k != "type" and k != "children" and k != "parent"
+                    }
+                    surface_diff_specs = set(semantic_surface_attributes).difference(
+                        specs_surface_attributes
+                    )
+                    if len(surface_diff_specs) > 0:
+                        yield AttributeValidationResultOne(
+                            attribute_name=",".join(surface_diff_specs),
+                            outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
+                        )
+
+                    specs_diff_surface = set(specs_surface_attributes).difference(
+                        semantic_surface_attributes
+                    )
+                    if len(specs_diff_surface) > 0:
+                        yield AttributeValidationResultOne(
+                            attribute_name=",".join(specs_diff_surface),
+                            outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
+                        )
+                    for specs_attr in specs_surface_attributes.values():
+                        if (
+                            sem_attr := semantic_surface_attributes.get(specs_attr.name)
+                        ) and (type(sem_attr).__name__ != specs_attr.type.as_python()):
+                            yield AttributeValidationResultOne(
+                                attribute_name=specs_attr.name,
+                                outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
+                            )
+
+
 def cityjson(
     system: CommandRunner,
     validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
-    planarity_n_tol: float,
-    planarity_d2p_tol: float,
-    snap_tol: float,
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
@@ -240,9 +406,6 @@ def cityjson(
         validation_runner: CommandRunner for validation tools
         dirpath: Directory with the compressed cityjson file
         file_id: File name without extension
-        planarity_n_tol: Val3dity ``planarity_n_tol`` parameter
-        planarity_d2p_tol: Val3dity ``planarity_d2p_tol`` parameter
-        snap_tol: Val3dity ``snap_tol`` parameter
         url_root: 3DBAG download page url root
         version: 3DBAG version
         specs: 3DBAG specifications resource
@@ -317,101 +480,13 @@ def cityjson(
     reportfile = dirpath / "report.json"
     logfile = dirpath / "val3dity.log"
     try:
-        cmd = " ".join(
-            [
-                "{exe}",
-                "--planarity_n_tol",
-                str(planarity_n_tol),
-                "--planarity_d2p_tol",
-                str(planarity_d2p_tol),
-                "--snap_tol",
-                str(snap_tol),
-                "--report",
-                str(reportfile),
-                str(inputfile),
-            ]
-        )
+        cmd = " ".join(["{exe}", "--report", str(reportfile), str(inputfile)])
 
         result = validation_runner.run(cmd, exe_name="val3dity", local_path=dirpath)
-        results.file_ok = not (not result.success or "error" in result.stdout.lower())
-        with reportfile.open("r", encoding="utf-8") as fo:
+        with reportfile.open() as fo:
             report = json.load(fo)
-            nr_invalid_building = 0
-            nr_invalid_lod12 = 0
-            nr_invalid_lod13 = 0
-            nr_invalid_lod22 = 0
-            errors_lod12 = set()
-            errors_lod13 = set()
-            errors_lod22 = set()
-            nr_mismatch_errors_lod12 = 0
-            nr_mismatch_errors_lod13 = 0
-            nr_mismatch_errors_lod22 = 0
-            lod12_idx = 1
-            lod13_idx = 2
-            lod22_idx = 3
-            for feature in report["features"]:
-                if feature["validity"] is False:
-                    nr_invalid_building += 1
-                primitives = feature["primitives"]
-                # If we don't have all 4 primitives in the val3dity report, then we
-                # assume all of them are invalid, because cannot tell which primitive
-                # refers to which LoD in the report
-                e12 = None
-                e13 = None
-                e22 = None
-                if len(primitives) == 4:
-                    nr_invalid_lod12 += 0 if primitives[lod12_idx]["validity"] else 1
-                    nr_invalid_lod13 += 0 if primitives[lod13_idx]["validity"] else 1
-                    nr_invalid_lod22 += 0 if primitives[lod22_idx]["validity"] else 1
-                    e12 = {
-                        e["code"] for e in feature["primitives"][lod12_idx]["errors"]
-                    }
-                    e13 = {
-                        e["code"] for e in feature["primitives"][lod13_idx]["errors"]
-                    }
-                    e22 = {
-                        e["code"] for e in feature["primitives"][lod22_idx]["errors"]
-                    }
-                    errors_lod12.update(e12)
-                    errors_lod13.update(e13)
-                    errors_lod22.update(e22)
-                else:
-                    nr_invalid_lod12 += 1
-                    nr_invalid_lod13 += 1
-                    nr_invalid_lod22 += 1
-                cj_co = cityobjects.get(feature["id"])
-                if cj_co and (attributes := cj_co.get("attributes")):
-                    if v_lod12 := attributes.get("b3_val3dity_lod12"):
-                        if e12 != set(
-                            json.loads(v_lod12) if isinstance(v_lod12, str) else v_lod12
-                        ):
-                            nr_mismatch_errors_lod12 += 1
-                    elif e12 is not None:
-                        nr_mismatch_errors_lod12 += 1
-                    if v_lod13 := attributes.get("b3_val3dity_lod13"):
-                        if e13 != set(
-                            json.loads(v_lod13) if isinstance(v_lod13, str) else v_lod13
-                        ):
-                            nr_mismatch_errors_lod13 += 1
-                    elif e13 is not None:
-                        nr_mismatch_errors_lod13 += 1
-                    if v_lod22 := attributes.get("b3_val3dity_lod22"):
-                        if e22 != set(
-                            json.loads(v_lod22) if isinstance(v_lod22, str) else v_lod22
-                        ):
-                            nr_mismatch_errors_lod22 += 1
-                    elif e22 is not None:
-                        nr_mismatch_errors_lod22 += 1
-            results.nr_invalid_building = nr_invalid_building
-            results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
-            results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
-            results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
-            results.errors_lod12 = list(errors_lod12)
-            results.errors_lod13 = list(errors_lod13)
-            results.errors_lod22 = list(errors_lod22)
-            results.nr_mismatch_errors_lod12 = nr_mismatch_errors_lod12
-            results.nr_mismatch_errors_lod13 = nr_mismatch_errors_lod13
-            results.nr_mismatch_errors_lod22 = nr_mismatch_errors_lod22
+        results.file_ok = result.success and report["validity"]
+        _record_cityjson_report(results, report, cityobjects, specs)
     except Exception:
         logger.error("Failed to run val3dity command.")
         inputfile.unlink(missing_ok=True)
@@ -448,9 +523,6 @@ def obj(
     validation_runner: CommandRunner,
     dirpath: Path,
     file_id: str,
-    planarity_n_tol: float,
-    planarity_d2p_tol: float,
-    snap_tol: float,
     url_root: str,
     version: str,
     archive_file_id: str | None = None,
@@ -545,71 +617,33 @@ def obj(
                 inputfile.unlink(missing_ok=True)
                 return results
             try:
-                cmd = " ".join(
-                    [
-                        "{exe}",
-                        "--planarity_n_tol",
-                        str(planarity_n_tol),
-                        "--planarity_d2p_tol",
-                        str(planarity_d2p_tol),
-                        "--snap_tol",
-                        str(snap_tol),
-                        "--report",
-                        str(reportfile),
-                        str(inputfile),
-                    ]
-                )
+                cmd = " ".join(["{exe}", "--report", str(reportfile), str(inputfile)])
 
                 result = validation_runner.run(
                     cmd, exe_name="val3dity", local_path=dirpath
                 )
-                current_ok = result.success and "error" not in result.stdout.lower()
-                results.file_ok = (
-                    current_ok
-                    if results.file_ok is None
-                    else results.file_ok and current_ok
-                )
-                with reportfile.open("r", encoding="utf-8") as fo:
+                with reportfile.open() as fo:
                     report = json.load(fo)
-
+                results.file_ok = (
+                    results.file_ok is not False
+                    and result.success
+                    and report["validity"]
+                )
                 current_lod = re.search(r"(?<=LoD)\d{2}", inputfile.name).group(0)  # type: ignore[union-attr]
-                invalid_building_ids = set()
-                nr_invalid_lod12 = 0
-                nr_invalid_lod13 = 0
-                nr_invalid_lod22 = 0
-                errors_lod12 = set()
-                errors_lod13 = set()
-                errors_lod22 = set()
-                for feature in report["features"]:
-                    for primitive in feature["primitives"]:
-                        if primitive["validity"] is False:
-                            building_id = primitive["id"][:31]
-                            invalid_building_ids.add(building_id)
-                            if current_lod == "12":
-                                nr_invalid_lod12 += 1
-                                for e in primitive["errors"]:
-                                    errors_lod12.add(e["code"])
-                            elif current_lod == "13":
-                                nr_invalid_lod13 += 1
-                                for e in primitive["errors"]:
-                                    errors_lod13.add(e["code"])
-                            elif current_lod == "22":
-                                nr_invalid_lod22 += 1
-                                for e in primitive["errors"]:
-                                    errors_lod22.add(e["code"])
-                nr_invalid_building_all.append(len(invalid_building_ids))
-                if current_lod == "12":
-                    results.nr_invalid_buildingpart_lod12 = nr_invalid_lod12
-                    results.errors_lod12 = list(errors_lod12)
-                elif current_lod == "13":
-                    results.nr_invalid_buildingpart_lod13 = nr_invalid_lod13
-                    results.errors_lod13 = list(errors_lod13)
-                elif current_lod == "22":
-                    results.nr_invalid_buildingpart_lod22 = nr_invalid_lod22
-                    results.errors_lod22 = list(errors_lod22)
-                reportfile.unlink(missing_ok=True)
+                # Each OBJ object is one report feature, including repeated building IDs.
+                invalid_parts = [f for f in report["features"] if not f["validity"]]
+                invalid_buildings = {f["id"].partition("-")[0] for f in invalid_parts}
+                codes = {error["code"] for f in invalid_parts for error in f["errors"]}
+                nr_invalid_building_all.append(len(invalid_buildings))
+                setattr(
+                    results,
+                    f"nr_invalid_buildingpart_lod{current_lod}",
+                    len(invalid_parts),
+                )
+                setattr(results, f"errors_lod{current_lod}", sorted(codes))
+                reportfile.unlink()
                 logfile.unlink(missing_ok=True)
-            except Exception as e:
+            except Exception:
                 logger.error("Failed to run val3dity command.")
                 reportfile.unlink(missing_ok=True)
                 logfile.unlink(missing_ok=True)
@@ -750,17 +784,11 @@ def _check_formats(inputs) -> TileResults:
 
     specs = Specs3DBAGResource()
     file_id = tile_id.rsplit("/", 1)[-1]
-    planarity_n_tol = 20.0
-    planarity_d2p_tol = 0.0001
-    snap_tol = 0.0001
     cj_results = cityjson(
         system=system,
         validation_runner=validation_runner,
         dirpath=dirpath,
         file_id=file_id,
-        planarity_n_tol=planarity_n_tol,
-        planarity_d2p_tol=planarity_d2p_tol,
-        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
         specs=specs,
@@ -771,9 +799,6 @@ def _check_formats(inputs) -> TileResults:
         validation_runner,
         dirpath,
         file_id,
-        planarity_n_tol=planarity_n_tol,
-        planarity_d2p_tol=planarity_d2p_tol,
-        snap_tol=snap_tol,
         url_root=url_root,
         version=version,
         archive_file_id=tile_id.replace("/", "-"),

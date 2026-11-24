@@ -7,6 +7,9 @@ from bag3d.export.assets.export.attributes import (
     AttributeValidationOutcome,
     AttributeValidationResultOne,
     AttributeValidationResults,
+    CityJSONFileResults,
+    _matches_lod_report,
+    _record_cityjson_report,
     cityobject_validate_attributes,
     gpkg_validate_attributes,
 )
@@ -309,3 +312,62 @@ class TestGpkgValidateAttributes:
 
         assert len(type_errors) == 1
         assert len(nullable_errors) == 1
+
+
+@pytest.mark.parametrize(
+    ("value", "expected", "valid"),
+    [
+        ("[]", set(), True),
+        ("[101,302]", {101, 302}, True),
+        ([], set(), True),
+        (None, None, True),
+        (None, set(), False),
+        ("bad", set(), False),
+        ("[true]", {1}, False),
+    ],
+)
+def test_lod_error_representation(specs, value, expected, valid):
+    assert _matches_lod_report(value, expected) is valid
+    results = cityobject_validate_attributes(
+        specs, {"type": "Building", "attributes": {"b3_val3dity_lod22": value}}
+    )
+    incorrect = any(
+        r.attribute_name == "b3_val3dity_lod22"
+        and r.outcome == AttributeValidationOutcome.INCORRECT_DATA_TYPE
+        for r in results
+    )
+    assert incorrect is (value in ("bad", "[true]"))
+
+
+def test_flat_report_maps_errors_to_each_parts_actual_lod(specs):
+    objects = {
+        "building": {
+            "type": "Building",
+            "children": ["a", "b"],
+            "attributes": {"b3_val3dity_lod12": "[]", "b3_val3dity_lod22": "[302,601]"},
+        },
+        "a": {"type": "BuildingPart", "geometry": [{"lod": "2.2"}, {"lod": "1.2"}]},
+        "b": {"type": "BuildingPart", "geometry": [{"lod": "1.2"}, {"lod": "2.2"}]},
+    }
+    report = {
+        "features": [
+            {
+                "type": "Building",
+                "id": "building",
+                "validity": False,
+                "errors": [
+                    {"code": 302, "id": "coid=a|geom=0|shell=0|face="},
+                    {"code": 601, "id": "coid=a|geom=0&&coid=b|geom=1"},
+                ],
+            }
+        ]
+    }
+    results = CityJSONFileResults()
+    _record_cityjson_report(results, report, objects, specs)
+    assert results.nr_invalid_building == 1
+    assert results.nr_invalid_buildingpart_lod12 == 0
+    assert results.nr_invalid_buildingpart_lod22 == 2
+    assert results.errors_lod12 == []
+    assert results.errors_lod22 == [302, 601]
+    assert results.nr_mismatch_errors_lod12 == results.nr_mismatch_errors_lod22 == 0
+    assert results.nr_mismatch_errors_lod13 == 0

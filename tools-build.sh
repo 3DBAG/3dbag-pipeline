@@ -294,17 +294,12 @@ fi
 if [ "$build_val3dity" = true ] ; then
   printf "\n\nInstalling Val3dity...\n\n"
   cd $root_dir || exit
-  wget --no-verbose https://github.com/tudelft3d/val3dity/archive/refs/tags/${val3dity_version}.zip -O ${val3dity_version}.zip
-  unzip -q ${val3dity_version}.zip
-  mkdir val3dity-${val3dity_version}/build
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$root_dir \
-    -S val3dity-${val3dity_version} \
-    -B val3dity-${val3dity_version}/build
-  cmake --build val3dity-${val3dity_version}/build -j $jobs --target install --config Release
-  rm -rf val3dity-${val3dity_version}
-  rm ${val3dity_version}.zip
+  src="val3dity-${val3dity_version}"
+  wget --no-verbose "https://github.com/tudelft3d/val3dity/archive/${val3dity_version}.zip" -O "${src}.zip" &&
+    unzip -q "${src}.zip" &&
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$root_dir" -S "$src" -B "$src/build" &&
+    cmake --build "$src/build" --parallel "$jobs" --target install --config Release || exit 1
+  rm -rf "$src" "${src}.zip"
 fi
 
 if [ "$build_cjval" = true ] ; then

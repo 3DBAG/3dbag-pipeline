@@ -90,6 +90,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "gdal": GDALResource.configure_at_launch(),
             "file_store": FileStoreResource.configure_at_launch(),
             "pointcloud_store": FileStoreResource.configure_at_launch(),
+            "streetlidar_store": FileStoreResource.configure_at_launch(),
             "integration_data_store": FileStoreResource.configure_at_launch(),
             "computation_db": DatabaseResource.configure_at_launch(),
             "pdal": PDALResource.configure_at_launch(),
@@ -117,6 +118,16 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
                 root_dir=os.getenv(
                     "BAG3D_POINTCLOUD_DIR",
                     str(Path(os.environ["BAG3D_FILESTORE"]) / "pointcloud"),
+                ),
+            ),
+            "streetlidar_store": FileStoreResource(
+                root_dir=os.getenv(
+                    "BAG3D_STREETLIDAR_DIR",
+                    str(
+                        Path(os.environ["BAG3D_FILESTORE"])
+                        / "pointcloud"
+                        / "streetlidar"
+                    ),
                 ),
             ),
             "integration_data_store": FileStoreResource(

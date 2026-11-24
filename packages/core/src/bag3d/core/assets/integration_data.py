@@ -1,6 +1,5 @@
 """AOI-subset source-data fixtures for integration and pipeline tests."""
 
-import hashlib
 import json
 import re
 import shutil
@@ -14,6 +13,9 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from bag3d.common.resources.executables import GDALResource, LASToolsResource
+from bag3d.common.resources.database import DatabaseResource
+from bag3d.common.resources.executables import PDALResource
+from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.utils.requests import download_file
 from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
@@ -25,6 +27,7 @@ from bag3d.core.fixture_contract import (
     VECTOR_PROCESSING,
     validate_dataset_extents,
 )
+from bag3d.core.utils import sha256_file
 
 AOI_WKT = "POLYGON ((122000 485750, 123400 485750, 123400 486550, 122000 486550, 122000 485750))"
 AHN6_AOI_TILE_ALLOWLIST = [
@@ -68,6 +71,34 @@ class IntegrationDataConfig(Config):
     cbs_year: str = Field(default="2025")
     ahn6_allowlist: list[str] = Field(
         default_factory=lambda: AHN6_AOI_TILE_ALLOWLIST.copy()
+    )
+
+
+@asset(
+    group_name="integration_data",
+    ins={"streetlidar_index": AssetIn(key=AssetKey(["streetlidar", "tile_index"]))},
+    automation_condition=AutomationCondition.eager(),
+)
+def integration_streetlidar(
+    config: IntegrationDataConfig,
+    integration_data_store: FileStoreResource,
+    streetlidar_store: FileStoreResource,
+    computation_db: DatabaseResource,
+    streetlidar_index: PostgresTableIdentifier,
+    lastools: LASToolsResource,
+    pdal: PDALResource,
+) -> Path:
+    """Cropped streetlidar and a portable catalog for the integration AOI."""
+    from bag3d.core.streetlidar_fixture import crop_catalog
+
+    return crop_catalog(
+        computation_db.connection.dsn,
+        streetlidar_index,
+        integration_data_store.path / "streetlidar",
+        _buffered_extent(_aoi_bbox(config.geofilter)),
+        lastools,
+        pdal,
+        streetlidar_root=Path(streetlidar_store.root_dir),
     )
 
 
@@ -840,6 +871,7 @@ def integration_manifest(
     integration_ahn4,
     integration_ahn5,
     integration_ahn6,
+    integration_streetlidar,
     extract_bag,
     extract_bgt,
     extract_top10nl,
@@ -865,6 +897,7 @@ def integration_manifest(
             Path(integration_ahn4),
             Path(integration_ahn5),
             Path(integration_ahn6),
+            Path(integration_streetlidar).parent,
         ),
         aoi,
         gdal,
@@ -876,7 +909,7 @@ def integration_manifest(
         for path in root.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     ):
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = sha256_file(path)
         files[str(path.relative_to(root))] = {
             "size": path.stat().st_size,
             "sha256": digest,
@@ -887,6 +920,7 @@ def integration_manifest(
 
     bag_value = extract_bag if isinstance(extract_bag, tuple) else (extract_bag, {}, "")
     sources = {
+        "streetlidar": {"path": rel(integration_streetlidar)},
         "bag": {
             "path": rel(integration_bag),
             "metadata": bag_value[1],
@@ -909,9 +943,7 @@ def integration_manifest(
                 "path": rel(version_dir / Path(entry["url"]).name),
                 "url": entry["url"],
                 "size": (version_dir / Path(entry["url"]).name).stat().st_size,
-                "sha256": hashlib.sha256(
-                    (version_dir / Path(entry["url"]).name).read_bytes()
-                ).hexdigest(),
+                "sha256": sha256_file(version_dir / Path(entry["url"]).name),
             }
             for tile_id, entry in index.items()
             if entry.get("url") and (version_dir / Path(entry["url"]).name).is_file()
@@ -928,7 +960,7 @@ def integration_manifest(
                 "path": rel(path),
                 "url": entry["url"],
                 "size": path.stat().st_size,
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "sha256": sha256_file(path),
             }
     manifest = {
         "fixture_version": FIXTURE_VERSION,

@@ -272,6 +272,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     kwargs.update({f"integration_ahn{version}": tmp_path for version in (3, 4, 5, 6)})
     kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
     manifest_path = generate(
+        integration_streetlidar=tmp_path / "streetlidar" / "catalog.json",
         integration_data_store=SimpleNamespace(path=tmp_path),
         tile_index_ahn6={},
         gdal=None,

@@ -3,6 +3,7 @@ from os import getenv
 from bag3d.common.resources import DagsterDeployment, resource_defs
 from dagster import (
     AssetSelection,
+    AssetSpec,
     AutomationConditionSensorDefinition,
     DefaultSensorStatus,
     Definitions,
@@ -29,6 +30,7 @@ from bag3d.core.jobs import (
     job_reconstruct,
     job_reconstruct_debug,
     job_source_input,
+    job_streetlidar_index,
 )
 from bag3d.core.schedules import integration_data_schedule
 from bag3d.core.sensors import ahn_checksum_sensor
@@ -39,9 +41,11 @@ all_assets = [
     *input_assets,
     *reconstruction_assets,
     *integration_data_assets,
+    AssetSpec(["underpasses", "heights"]),
 ]
 
 all_jobs = [
+    job_streetlidar_index,
     job_bgt,
     job_cbs,
     job_source_input,

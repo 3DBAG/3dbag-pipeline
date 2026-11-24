@@ -115,4 +115,4 @@ check_exe_lastools "las2las64"
 check_exe_lastools "lasindex64"
 check_exe_lastools "lasinfo64"
 
-exit #$all_ok
+exit "$all_ok"

@@ -226,6 +226,42 @@ def test_collection_discovery_resolves_current_relative_items_link(monkeypatch):
         ) == ["https://catalog.example/collections/replacement-layer/items"]
 
 
+def test_rewrite_host_swaps_matching_host_and_preserves_port():
+    rewrites = {"basisdata.nl": "fsn1.your-objectstorage.com"}
+    assert (
+        downloads._rewrite_host("https://basisdata.nl/a/b.tif", rewrites)
+        == "https://fsn1.your-objectstorage.com/a/b.tif"
+    )
+    assert (
+        downloads._rewrite_host("https://basisdata.nl:8080/a.tif", rewrites)
+        == "https://fsn1.your-objectstorage.com:8080/a.tif"
+    )
+    assert (
+        downloads._rewrite_host("https://other.example/a.tif", rewrites)
+        == "https://other.example/a.tif"
+    )
+
+
+def test_ahn_catalog_applies_host_rewrite(tmp_path, monkeypatch):
+    replies = catalog_responses() + [
+        Response(
+            {
+                "features": [
+                    feature("https://basisdata.nl/hwh-ahn/AHN5/02b_DTM_5m/x.tif"),
+                    feature("https://other.example/tile.tif"),
+                ]
+            }
+        ),
+        Response({"features": []}),
+    ]
+    mock_session(monkeypatch, replies)
+    catalog = read_manifest(downloads.ahn_catalog(tmp_path, None, 500))
+    assert [source["url"] for source in catalog["sources"]] == [
+        "https://fsn1.your-objectstorage.com/hwh-ahn/AHN5/02b_DTM_5m/x.tif",
+        "https://other.example/tile.tif",
+    ]
+
+
 def test_download_is_atomic_revalidated_and_content_addressed(
     tmp_path, write_raster, monkeypatch
 ):

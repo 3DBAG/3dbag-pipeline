@@ -7,7 +7,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import rasterio
 import requests
@@ -135,6 +135,23 @@ def ahn_collections(client, catalog_url: str) -> list[str]:
     return urls
 
 
+def _rewrite_host(url: str, rewrites: dict[str, str]) -> str:
+    """Rewrite a URL's host when it matches a configured mapping.
+
+    ``basisdata.nl`` is a redirecting front for the AHN object storage; hitting
+    the object storage host directly avoids the extra hop and any egress
+    restrictions that apply to the front host.
+    """
+    parts = urlsplit(url)
+    target = rewrites.get(parts.hostname or "")
+    if target is None:
+        return url
+    netloc = target
+    if parts.port is not None:
+        netloc = f"{netloc}:{parts.port}"
+    return urlunsplit(parts._replace(netloc=netloc))
+
+
 def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
     specification = json.loads((DATA / "ahn5m.json").read_text())
     selection = selection_bounds(bounds, radius_m)
@@ -174,6 +191,9 @@ def ahn_catalog(root: Path, bounds, radius_m: float) -> Path:
                         continue
                     if not isinstance(source, str) or not source.startswith("https://"):
                         raise ValueError(f"Invalid AHN DTM URL: {source!r}")
+                    source = _rewrite_host(
+                        source, specification.get("host_rewrite", {})
+                    )
                     entries[source] = {"url": source, "collection": collection}
                 following = [
                     link["href"]

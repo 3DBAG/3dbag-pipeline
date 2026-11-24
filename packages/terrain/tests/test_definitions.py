@@ -23,6 +23,10 @@ def test_definitions_and_job_selections():
         len(set(defs.resolve_job_def("terrain").asset_layer.executable_asset_keys))
         == 13
     )
+    assert defs.resolve_job_def("terrain_ahn").asset_layer.executable_asset_keys == {
+        AssetKey(["terrain", name])
+        for name in ("ahn_catalog", "ahn_download", "ahn_rasters", "ahn_filled")
+    }
     assert graph.get(AssetKey(["terrain", "ahn_ellipsoid"])).parent_keys == {
         AssetKey(["terrain", "ahn_filled"]),
         AssetKey(["terrain", "proj_grids_download"]),
