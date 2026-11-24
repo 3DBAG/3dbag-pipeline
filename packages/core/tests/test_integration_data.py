@@ -7,6 +7,7 @@ from bag3d.common.resources.executables import (
     GDALResource,
     LASToolsResource,
 )
+from bag3d.common.resources.files import FileStoreResource
 
 from bag3d.core.assets.integration_data import (
     _native_archive_extents,
@@ -308,8 +309,9 @@ def test_clip_native_gml_archive_clips_to_aoi(tmp_path, dataset):
     with ZipFile(source, "w") as archive:
         archive.writestr(member, b"<original/>")
 
-    def run(command, *, exe_name=None, kwargs=None, **rest):
-        assert exe_name == "ogr2ogr"
+    def run(command, **call_kwargs):
+        kwargs = call_kwargs["kwargs"]
+        assert call_kwargs["exe_name"] == "ogr2ogr"
         assert kwargs["aoi"] == AOI_WKT
         assert kwargs["feature_type"] == feature
         assert kwargs["input_path"] == f"/vsizip/{source}/{member}"
@@ -363,8 +365,6 @@ def test_clip_native_gml_archive_preserves_previous_fixture_on_failure(
 
 
 def test_publish_integration_snapshot_swaps_staging_into_place(tmp_path):
-    from types import SimpleNamespace
-
     from bag3d.core.assets import integration_data
 
     root = tmp_path / "snapshot"
@@ -373,7 +373,7 @@ def test_publish_integration_snapshot_swaps_staging_into_place(tmp_path):
     (staging / "manifest.json").write_text("new manifest")
 
     result = integration_data._publish_integration_snapshot(
-        SimpleNamespace(root_dir=str(root)), staging
+        FileStoreResource(root_dir=str(root)), staging
     )
 
     assert result == root
@@ -383,8 +383,6 @@ def test_publish_integration_snapshot_swaps_staging_into_place(tmp_path):
 
 
 def test_publish_integration_snapshot_replaces_existing_snapshot(tmp_path):
-    from types import SimpleNamespace
-
     from bag3d.core.assets import integration_data
 
     root = tmp_path / "snapshot"
@@ -396,7 +394,7 @@ def test_publish_integration_snapshot_replaces_existing_snapshot(tmp_path):
     (staging / "manifest.json").write_text("new manifest")
 
     integration_data._publish_integration_snapshot(
-        SimpleNamespace(root_dir=str(root)), staging
+        FileStoreResource(root_dir=str(root)), staging
     )
 
     assert (root / "manifest.json").read_text() == "new manifest"
@@ -405,8 +403,6 @@ def test_publish_integration_snapshot_replaces_existing_snapshot(tmp_path):
 
 
 def test_reset_integration_staging_clears_previous_staging(tmp_path):
-    from types import SimpleNamespace
-
     from bag3d.core.assets import integration_data
 
     root = tmp_path / "snapshot"
@@ -415,7 +411,7 @@ def test_reset_integration_staging_clears_previous_staging(tmp_path):
     (staging / "stale.txt").write_text("stale")
 
     result = integration_data._reset_integration_staging(
-        SimpleNamespace(root_dir=str(root))
+        FileStoreResource(root_dir=str(root))
     )
 
     assert result == staging
