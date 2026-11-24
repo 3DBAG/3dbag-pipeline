@@ -11,6 +11,11 @@ from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.specs.semantic import ArrayItemDefinition, Attribute, BaseType
 
 
+_LOD_ERROR_FIELDS = frozenset(
+    {"b3_val3dity_lod12", "b3_val3dity_lod13", "b3_val3dity_lod22"}
+)
+
+
 class AttributeValidationOutcome(Enum):
     """Types of outcomes that can happen during attribute validation.
 
@@ -174,6 +179,18 @@ def validate_value(
     return _semantic_value(value, definition)
 
 
+def lod_error_codes(value: object) -> list[int] | None:
+    """Read native error arrays and JSON strings from older reconstruction tiles."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return None
+    if isinstance(value, list) and all(type(code) is int for code in value):
+        return value
+    return None
+
+
 def _cityjson_values(
     specs: Specs3DBAGResource,
     observed: dict,
@@ -187,6 +204,15 @@ def _cityjson_values(
         name = names[physical_name]
         entry = projected[name]
         value = observed[physical_name]
+        # The pinned Tyler can pass through Roofer's JSON-encoded error arrays.
+        if (
+            entry.type == "array"
+            and name in _LOD_ERROR_FIELDS
+            and isinstance(value, str)
+        ):
+            codes = lod_error_codes(value)
+            if codes is not None:
+                value = codes
         physical_ok = (
             value is None
             or {

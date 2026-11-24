@@ -7,11 +7,13 @@ from bag3d.export.assets.export.attributes import (
     AttributeValidationOutcome,
     AttributeValidationResultOne,
     AttributeValidationResults,
+    cityobject_validate_attributes,
+    gpkg_validate_attributes,
+)
+from bag3d.export.assets.export.validate import (
     CityJSONFileResults,
     _matches_lod_report,
     _record_cityjson_report,
-    cityobject_validate_attributes,
-    gpkg_validate_attributes,
 )
 
 
@@ -320,10 +322,12 @@ class TestGpkgValidateAttributes:
         ("[]", set(), True),
         ("[101,302]", {101, 302}, True),
         ([], set(), True),
+        ([101, 302], {101, 302}, True),
         (None, None, True),
         (None, set(), False),
         ("bad", set(), False),
         ("[true]", {1}, False),
+        ("null", None, False),
     ],
 )
 def test_lod_error_representation(specs, value, expected, valid):
@@ -336,10 +340,10 @@ def test_lod_error_representation(specs, value, expected, valid):
         and r.outcome == AttributeValidationOutcome.INCORRECT_DATA_TYPE
         for r in results
     )
-    assert incorrect is (value in ("bad", "[true]"))
+    assert incorrect is (value in ("bad", "[true]", "null"))
 
 
-def test_flat_report_maps_errors_to_each_parts_actual_lod(specs):
+def test_flat_report_maps_errors_to_each_parts_actual_lod():
     objects = {
         "building": {
             "type": "Building",
@@ -363,7 +367,7 @@ def test_flat_report_maps_errors_to_each_parts_actual_lod(specs):
         ]
     }
     results = CityJSONFileResults()
-    _record_cityjson_report(results, report, objects, specs)
+    _record_cityjson_report(results, report, objects)
     assert results.nr_invalid_building == 1
     assert results.nr_invalid_buildingpart_lod12 == 0
     assert results.nr_invalid_buildingpart_lod22 == 2

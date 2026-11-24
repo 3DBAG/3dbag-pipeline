@@ -6,7 +6,6 @@ import re
 import shutil
 import zipfile
 from collections import Counter, defaultdict
-from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from os import getenv
@@ -28,6 +27,7 @@ from bag3d.export.assets.export.attributes import (
     AttributeValidationResults,
     cityobject_validate_attributes,
     gpkg_validate_attributes,
+    lod_error_codes,
 )
 from bag3d.export.assets.export.inspect_geopackage import inspect_geopackage
 from bag3d.export.assets.export.inspect_tiles import inspect_tileset
@@ -222,25 +222,10 @@ class TileResults:
         }
 
 
-_LOD_ERROR_FIELDS = {"b3_val3dity_lod12", "b3_val3dity_lod13", "b3_val3dity_lod22"}
-
-
-def _lod_error_codes(value: object) -> list[int] | None:
-    """Read a native array or Roofer's historical JSON-string representation."""
-    if isinstance(value, str):
-        try:
-            value = json.loads(value)
-        except ValueError:
-            return None
-    if isinstance(value, list) and all(type(code) is int for code in value):
-        return value
-    return None
-
-
 def _matches_lod_report(value: object, expected: set[int] | None) -> bool:
     if value is None:
         return expected is None
-    codes = _lod_error_codes(value)
+    codes = lod_error_codes(value)
     return codes is not None and set(codes) == expected
 
 
@@ -248,7 +233,6 @@ def _record_cityjson_report(
     results: CityJSONFileResults,
     report: dict,
     cityobjects: dict,
-    specs: Specs3DBAGResource,
 ) -> None:
     """Join val3dity's flat geometry error IDs to the source CityJSON LoDs."""
     lod_suffixes = {"1.2": "12", "1.3": "13", "2.2": "22"}
@@ -288,105 +272,11 @@ def _record_cityjson_report(
                 attrs.get(f"b3_val3dity_lod{suffix}"), expected
             ):
                 mismatches[lod] += 1
-        for result in cityobject_validate_attributes(specs, building):
-            results.attributes_with_errors.add_error(result)
 
     for lod, suffix in lod_suffixes.items():
         setattr(results, f"nr_invalid_buildingpart_lod{suffix}", invalid[lod])
         setattr(results, f"errors_lod{suffix}", sorted(tile_codes[lod]))
         setattr(results, f"nr_mismatch_errors_lod{suffix}", mismatches[lod])
-
-
-def cityobject_validate_attributes(
-    specs: Specs3DBAGResource, co: dict
-) -> Generator[AttributeValidationResultOne, None, None]:
-    """Validate the attributes of a CityObject against the 3DBAG attributes specs.
-
-    Args:
-        specs (Specs3DBAGResource): The 3DBAG specifications
-        co (dict): A single CityObject
-    Returns:
-        A list of `AttributeValidationResultOne`.
-    """
-    # CityObject attributes
-    if co_attributes := co.get("attributes"):
-        building_attributes = dict(
-            specs.applies_to(
-                data_format="cityjson",
-                locations=(CityJSONLocation.from_string(co["type"]),),
-            )
-        )
-        co_diff_specs = set(co_attributes).difference(building_attributes)
-        if len(co_diff_specs) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(co_diff_specs),
-                outcome=AttributeValidationOutcome.BUILDING_EXTRA_ATTRIBUTES,
-            )
-
-        specs_diff_co = set(building_attributes).difference(co_attributes)
-        if len(specs_diff_co) > 0:
-            yield AttributeValidationResultOne(
-                attribute_name=",".join(specs_diff_co),
-                outcome=AttributeValidationOutcome.BUILDING_MISSING_ATTRIBUTES,
-            )
-        for specs_attr in building_attributes.values():
-            co_attr = co_attributes.get(specs_attr.name)
-            if specs_attr.name in _LOD_ERROR_FIELDS:
-                incorrect = co_attr is not None and _lod_error_codes(co_attr) is None
-            else:
-                incorrect = (
-                    bool(co_attr)
-                    and type(co_attr).__name__ != specs_attr.type.as_python()
-                )
-            if incorrect:
-                yield AttributeValidationResultOne(
-                    attribute_name=specs_attr.name,
-                    outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                )
-
-    # Semantic attributes
-    if geometries := co.get("geometry"):
-        for geometry in geometries:
-            if semantics := geometry.get("semantics"):
-                for semantic_surface in semantics["surfaces"]:
-                    specs_surface_attributes = dict(
-                        specs.applies_to(
-                            data_format="cityjson",
-                            locations=(
-                                CityJSONLocation.from_string(semantic_surface["type"]),
-                            ),
-                        )
-                    )
-                    semantic_surface_attributes = {
-                        k: v
-                        for k, v in semantic_surface.items()
-                        if k != "type" and k != "children" and k != "parent"
-                    }
-                    surface_diff_specs = set(semantic_surface_attributes).difference(
-                        specs_surface_attributes
-                    )
-                    if len(surface_diff_specs) > 0:
-                        yield AttributeValidationResultOne(
-                            attribute_name=",".join(surface_diff_specs),
-                            outcome=AttributeValidationOutcome.SURFACE_EXTRA_ATTRIBUTES,
-                        )
-
-                    specs_diff_surface = set(specs_surface_attributes).difference(
-                        semantic_surface_attributes
-                    )
-                    if len(specs_diff_surface) > 0:
-                        yield AttributeValidationResultOne(
-                            attribute_name=",".join(specs_diff_surface),
-                            outcome=AttributeValidationOutcome.SURFACE_MISSING_ATTRIBUTES,
-                        )
-                    for specs_attr in specs_surface_attributes.values():
-                        if (
-                            sem_attr := semantic_surface_attributes.get(specs_attr.name)
-                        ) and (type(sem_attr).__name__ != specs_attr.type.as_python()):
-                            yield AttributeValidationResultOne(
-                                attribute_name=specs_attr.name,
-                                outcome=AttributeValidationOutcome.INCORRECT_DATA_TYPE,
-                            )
 
 
 def cityjson(
@@ -486,7 +376,7 @@ def cityjson(
         with reportfile.open() as fo:
             report = json.load(fo)
         results.file_ok = result.success and report["validity"]
-        _record_cityjson_report(results, report, cityobjects, specs)
+        _record_cityjson_report(results, report, cityobjects)
     except Exception:
         logger.error("Failed to run val3dity command.")
         inputfile.unlink(missing_ok=True)
