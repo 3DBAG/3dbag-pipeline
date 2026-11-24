@@ -331,11 +331,9 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         assert exe_name == "tyler"
         assert "--debug-dump-grid" in command
         arguments = shlex.split(command)
-        assert (
-            f"--attribute-specification={Specs3DBAGResource().attribute_specification}"
-            in arguments
-        )
-        assert "--verbose" in arguments
+        assert "RUST_LOG=debug" in arguments
+        assert "--verbose" not in arguments
+        assert not any(arg.startswith("--attribute-") for arg in arguments)
         debug_dir = Path(cwd) / "debug"
         debug_dir.mkdir()
         (debug_dir / "quadtree_level-3.tsv").write_text(
@@ -363,7 +361,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
 
 
 def test_reconstruction_output_obj_lods(tmp_path):
-    """Export arguments select the packaged specification and the correct LoD."""
+    """Export arguments select the correct LoD and 3D Tiles attributes."""
     from bag3d.export.assets.export.tile import LevelOfDetail
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
@@ -400,23 +398,21 @@ def test_reconstruction_output_obj_lods(tmp_path):
             locations=(loc,),
             export_dir=export_dir,
         )
-        assert (
-            f"--attribute-specification={specs.attribute_specification}" in tiles_params
-        )
-        assert "--format=3dtiles" in tiles_params
-        assert f"--attribute-tileset={loc.value}" in tiles_params
+        assert "--format=ogc3dtiles" in tiles_params
+        assert "--3dtiles-metadata-class=building" in tiles_params
         assert "--include-parent-attributes" in tiles_params
-        assert not any(
-            p.startswith(("--object-attribute", "--3dtiles-metadata-class"))
+        assert not any(p.startswith("--attribute-") for p in tiles_params)
+        assert {
+            p.removeprefix("--object-attribute=").split(":", 1)[0]
             for p in tiles_params
-        )
+            if p.startswith("--object-attribute=")
+        } == set(specs.tileset(loc.value).properties)
 
     for data_format in (TylerOutputFormat.CITYJSON, TylerOutputFormat.GPKG):
         params, _ = generate_tyler_config(
             specs=specs, data_format=data_format, locations=(), export_dir=export_dir
         )
-        assert f"--attribute-specification={specs.attribute_specification}" in params
-        assert not any(p.startswith("--attribute-tileset") for p in params)
+        assert not any(p.startswith("--attribute-") for p in params)
 
     # Test asset functions
     ran_commands = []
