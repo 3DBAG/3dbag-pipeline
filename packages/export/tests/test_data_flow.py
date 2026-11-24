@@ -6,6 +6,7 @@ and produce the expected output files.
 
 import csv
 import json
+import shlex
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -13,6 +14,7 @@ from unittest.mock import MagicMock, patch
 
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 
 from bag3d.export.assets.export import metadata as metadata_module
@@ -328,6 +330,10 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     def run(command, *, exe_name, cwd, logger):
         assert exe_name == "tyler"
         assert "--debug-dump-grid" in command
+        arguments = shlex.split(command)
+        assert "RUST_LOG=debug" in arguments
+        assert "--verbose" not in arguments
+        assert not any(arg.startswith("--attribute-") for arg in arguments)
         debug_dir = Path(cwd) / "debug"
         debug_dir.mkdir()
         (debug_dir / "quadtree_level-3.tsv").write_text(
@@ -338,12 +344,12 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     tyler = SimpleNamespace(runner=runner)
 
     gpkg_output = reconstruction_output_gpkg(
-        TylerConfig(concurrency=1),
+        TylerConfig(concurrency=1, verbose=True),
         metadata_path,
         tyler,
         file_store,
         version,
-        MagicMock(),
+        Specs3DBAGResource(),
     )
     assert isinstance(gpkg_output, Path)
 
@@ -355,8 +361,8 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
 
 
 def test_reconstruction_output_obj_lods(tmp_path):
-    """The OBJ assets run tyler with the correct LoD parameters."""
-    from bag3d.specs.core import ObjLocation
+    """Export arguments select the correct LoD and 3D Tiles attributes."""
+    from bag3d.export.assets.export.tile import LevelOfDetail
 
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
@@ -365,14 +371,14 @@ def test_reconstruction_output_obj_lods(tmp_path):
         json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
     )
 
-    specs = MagicMock()
+    specs = Specs3DBAGResource()
     export_dir = tmp_path / "stages" / "export" / VERSION
 
     # Test generate_tyler_config for each LoD
     for loc, expected_lod in [
-        (ObjLocation.lod12, "1.2"),
-        (ObjLocation.lod13, "1.3"),
-        (ObjLocation.lod22, "2.2"),
+        (LevelOfDetail.lod12, "1.2"),
+        (LevelOfDetail.lod13, "1.3"),
+        (LevelOfDetail.lod22, "2.2"),
     ]:
         params, out_dir = generate_tyler_config(
             specs=specs,
@@ -385,6 +391,28 @@ def test_reconstruction_output_obj_lods(tmp_path):
         assert f"--output={export_dir}" in params
         assert "--object-type=BuildingPart" in params
         assert f"--lod-building-part={expected_lod}" in params
+        assert not any(p.startswith("--attribute-") for p in params)
+        tiles_params, _ = generate_tyler_config(
+            specs=specs,
+            data_format=TylerOutputFormat.OGC3DTILES,
+            locations=(loc,),
+            export_dir=export_dir,
+        )
+        assert "--format=ogc3dtiles" in tiles_params
+        assert "--3dtiles-metadata-class=building" in tiles_params
+        assert "--include-parent-attributes" in tiles_params
+        assert not any(p.startswith("--attribute-") for p in tiles_params)
+        assert {
+            p.removeprefix("--object-attribute=").split(":", 1)[0]
+            for p in tiles_params
+            if p.startswith("--object-attribute=")
+        } == set(specs.tileset(loc.value).properties)
+
+    for data_format in (TylerOutputFormat.CITYJSON, TylerOutputFormat.GPKG):
+        params, _ = generate_tyler_config(
+            specs=specs, data_format=data_format, locations=(), export_dir=export_dir
+        )
+        assert not any(p.startswith("--attribute-") for p in params)
 
     # Test asset functions
     ran_commands = []
