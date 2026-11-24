@@ -334,13 +334,41 @@ def filter_bag_extract(
     return destination
 
 
-def _copy_archive(source: Path, destination: Path) -> Path:
-    """Publish the PDOK archive unchanged; objects are selected at download time."""
+def _clip_native_gml_archive(
+    source: Path, destination: Path, dataset: str, geofilter: str, gdal: GDALResource
+) -> Path:
+    """Clip the downloaded PDOK GML archive to the AOI and republish it.
+
+    PDOK's download geofilter selects whole map sheets, so the downloaded
+    extract overshoots the AOI by kilometres. Clip the native GML locally so
+    the fixture stays AOI-sized.
+    """
+    config = _NATIVE_VECTOR_DATASETS[dataset]
+    feature_type = config["feature_type"]
+    xsd = config["xsd"]
+    member = f"{dataset}_{feature_type}.gml"
+    _aoi_bbox(geofilter)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
-        output = Path(temp_dir) / destination.name
-        shutil.copyfile(source, output)
-        output.replace(destination)
+        output = Path(temp_dir) / member
+        result = gdal.runner.run(
+            "{exe} -f GML -clipsrc '{aoi}' -oo XSD='{xsd}' -oo WRITE_GFS=NO "
+            "'{output}' '{input_path}' {feature_type}",
+            exe_name="ogr2ogr",
+            kwargs={
+                "aoi": geofilter,
+                "xsd": xsd,
+                "output": output,
+                "input_path": f"/vsizip/{source}/{member}",
+                "feature_type": feature_type,
+            },
+        )
+        if not result.success or not output.is_file():
+            raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
+        temp_zip = Path(temp_dir) / destination.name
+        with ZipFile(temp_zip, "w", ZIP_DEFLATED) as archive:
+            archive.write(output, member)
+        temp_zip.replace(destination)
     return destination
 
 
@@ -404,11 +432,17 @@ def integration_bag(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bgt(
+    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_bgt,
+    gdal: GDALResource,
 ) -> Path:
-    return _copy_archive(
-        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip"
+    return _clip_native_gml_archive(
+        Path(extract_bgt),
+        integration_data_store.path / "bgt" / "bgt.zip",
+        "bgt",
+        config.geofilter,
+        gdal,
     )
 
 
@@ -418,12 +452,17 @@ def integration_bgt(
     automation_condition=AutomationCondition.eager(),
 )
 def integration_top10nl(
+    config: IntegrationDataConfig,
     integration_data_store: FileStoreResource,
     extract_top10nl,
+    gdal: GDALResource,
 ) -> Path:
-    return _copy_archive(
+    return _clip_native_gml_archive(
         Path(extract_top10nl),
         integration_data_store.path / "top10nl" / "top10nl.zip",
+        "top10nl",
+        config.geofilter,
+        gdal,
     )
 
 
