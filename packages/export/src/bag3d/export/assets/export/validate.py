@@ -5,7 +5,6 @@ import json
 import re
 import shutil
 import zipfile
-from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from os import getenv
