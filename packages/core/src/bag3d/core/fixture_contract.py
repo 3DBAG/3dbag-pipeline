@@ -5,8 +5,8 @@ import math
 FIXTURE_VERSION = "3"
 VECTOR_PROCESSING = {
     "bag": "native_subset",
-    "bgt": "gdal",
-    "top10nl": "gdal",
+    "bgt": "pdok_aoi_whole_objects",
+    "top10nl": "pdok_aoi_whole_objects",
     "cbs_buurtkaart": "gdal",
 }
 

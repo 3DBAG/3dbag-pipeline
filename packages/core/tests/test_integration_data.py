@@ -287,8 +287,8 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     assert manifest_path == root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     assert manifest["fixture_version"] == "3"
-    assert manifest["clipping"]["vectors"]["bgt"] == "gdal"
-    assert manifest["clipping"]["vectors"]["top10nl"] == "gdal"
+    assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
+    assert manifest["clipping"]["vectors"]["top10nl"] == "pdok_aoi_whole_objects"
     assert manifest["ahn"]["partitions"] == {**expected, "6": {}}
     for partitions in expected.values():
         entry = partitions["25gn1"]
