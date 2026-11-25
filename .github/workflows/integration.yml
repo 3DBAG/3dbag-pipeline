@@ -26,11 +26,63 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'merge_group' && github.event.merge_group.base_ref == 'refs/heads/develop')
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
+      - name: Check integration inputs
+        id: changes
+        if: github.event_name == 'merge_group'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const deploymentFiles = new Set([
+              '.dockerignore',
+              '.github/workflows/integration.yml',
+              '3dbag-manifest.json',
+              'scripts/manifest_versions.py',
+              'tools-build.sh',
+              'tools-test.sh',
+            ]);
+            const affectsIntegration = path =>
+              deploymentFiles.has(path) ||
+              /^packages\/[^/]+\/src\//.test(path) ||
+              /^(?:packages\/[^/]+\/)?(?:pyproject\.toml|uv\.lock)$/.test(path) ||
+              (path.startsWith('docker/') && path !== 'docker/README.md');
+
+            try {
+              const {base_sha: base, head_sha: head} = context.payload.merge_group;
+              const sha = /^[0-9a-f]{40}$/;
+              if (!sha.test(base) || !sha.test(head)) {
+                throw new Error('Missing merge group commit SHA.');
+              }
+              const {data} = await github.request('GET /repos/{owner}/{repo}/compare/{basehead}', {
+                ...context.repo,
+                basehead: base + '...' + head,
+                per_page: 1,
+              });
+              const {files} = data;
+              // GitHub caps the comparison at 300 changed files, even with pagination.
+              if (data.status !== 'ahead' || data.merge_base_commit?.sha !== base ||
+                  !Array.isArray(files) || files.length >= 300) {
+                throw new Error('GitHub did not return a complete merge group comparison.');
+              }
+              const paths = files.flatMap(file => file.status === 'renamed'
+                ? [file.filename, file.previous_filename]
+                : [file.filename]);
+              if (paths.some(affectsIntegration)) {
+                core.info('Integration inputs changed.');
+                return;
+              }
+              await core.summary.addRaw('Skipped Gilfoyle integration because no integration inputs changed.', true).write();
+              core.setOutput('skip_integration', 'true');
+            } catch (error) {
+              core.warning('Running integration because the merge group comparison was inconclusive. ' + error.message);
+            }
       # No local checkout: only an immutable SHA and its queue ref cross the boundary.
       - name: Run on Gilfoyle
+        if: steps.changes.outputs.skip_integration != 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}

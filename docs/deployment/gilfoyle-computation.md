@@ -4,17 +4,23 @@ PRs targeting `develop` run unit tests and lint before review. After at least
 one approving review, a maintainer clicks **Merge when ready** to enter GitHub's
 merge queue. New commits dismiss stale approvals; review threads must be resolved.
 
-`.github/workflows/integration.yml` reports a skipped job on the PR and runs
-the computation on `merge_group: checks_requested`.
-It sends the queue's immutable `head_sha` and `head_ref` to admin's `pipeline-dev.yml`
+`.github/workflows/integration.yml` reports a skipped job on the PR. On
+`merge_group: checks_requested`, the workflow compares the group's base and head
+commits. Changes to package source or runtime assets, dependency manifests or
+lockfiles, Docker inputs, tools build inputs, or the integration workflow itself
+trigger the computation. When none of those paths change, the required check
+passes and records why the remote run was skipped. An inconclusive comparison
+triggers the computation.
+
+The workflow sends the queue's immutable `head_sha` and `head_ref` to admin's `pipeline-dev.yml`
 on `main`. Admin accepts the SHA only if it exactly matches the live
 `refs/heads/gh-readonly-queue/develop/...` ref in the fixed pipeline repository.
-Manual dispatches still require a SHA reachable from `develop`.
+Manual dispatches always run the computation and require a SHA reachable from `develop`.
 
 The **Test Integration** workflow reports the required check **Test Integration**.
 **Unit tests** and **Lint** must pass before the PR enters the queue, then report
 skipped jobs on the queued commit. GitHub accepts skipped jobs for required
-checks, so the queue waits for the integration result. A failure removes the PR
+checks, so the queue waits for the integration check. A failure removes the PR
 from the queue. The queue builds and merges one entry at a time, with a six-hour
 check timeout. Orchestration runs on a GitHub-hosted runner, and admin executes
 through Kaiju and the existing Gilfoyle deployment account.
