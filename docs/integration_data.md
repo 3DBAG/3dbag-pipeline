@@ -68,11 +68,20 @@ schedule. The job defaults supply `AOI_WKT` to both `extract_bgt` and
 Individual asset materializations outside this job still require explicit
 extraction configuration. The supported snapshot AOI remains the fixed `AOI_WKT`.
 
-Version 3 snapshots copy the PDOK BGT and TOP10NL ZIPs unchanged. PDOK selects
-whole objects using the AOI; no local clipping or GML rewriting occurs. Building
-footprints can extend outside the AOI plus 10 m. Validation uses generic GDAL extents, checks finite and ordered bounds,
-and requires each dataset’s combined extent to overlap the AOI. BAG, CBS and
-point clouds retain the existing containment checks. Version 2 snapshots retain their original validation contract.
+The `integration_bgt` and `integration_top10nl` assets clip the downloaded
+PDOK GML to the AOI with `ogr2ogr -clipsrc`. PDOK's download geofilter selects
+whole map sheets, so the raw download overshoots the AOI by kilometres; the
+local clip keeps the fixture AOI-sized. Validation checks each dataset's
+combined extent against the AOI. BAG, CBS and point clouds retain the existing
+containment checks. Version 2 snapshots retain their original validation contract.
+
+The job builds the snapshot in a sibling staging directory
+(`<root>.staging`) and only publishes it once `integration_manifest` has
+finished writing `manifest.json`. Publication is an atomic directory swap, so
+the live snapshot directory always holds a consistent manifest and files; it is
+never left in a partially-written state and can be used by tests throughout the
+run. A stale staging directory left behind by a failed run is cleared when the
+next run starts.
 
 Upgrade pipeline, ctl and admin consumers before switching to a version 3
 snapshot. Regenerate the extracts with the job's AOI defaults and rebuild the

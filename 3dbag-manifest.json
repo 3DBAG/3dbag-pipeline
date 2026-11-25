@@ -3,8 +3,8 @@
   "images": {
     "tools": {
       "repository": "3dgi/3dbag-pipeline-tools",
-      "version": "2026.11.21",
-      "digest": "sha256:d14b5b25ee73fe1551d817dcd55cd0e94f6723b9539a424b8da660a7bcba5b31"
+      "version": "2026.11.24",
+      "digest": "sha256:ab119b03019460588e53080f6b407f45e50a49f0e8838ba3317ebec4db4651c5"
     },
     "core": { "repository": "3dgi/3dbag-pipeline-core" },
     "floors-estimation": { "repository": "3dgi/3dbag-pipeline-floors-estimation" },
@@ -41,7 +41,7 @@
       "version": "develop",
       "image": {
         "repository": "docker.io/3dgi/roofer",
-        "digest": "sha256:4e9a40b4f472449c2cb4e6eb4cc747d5fb5336ad9ad418b204112c1c647bad86"
+        "digest": "sha256:a8698d19ca6e2653425d3d715f7022e440cc2f6b87b8df4779487aeebeac18ea"
       },
       "type": "docker",
       "display_name": "roofer",
