@@ -19,7 +19,11 @@ from bag3d.common.resources.executables import (
     TylerResource,
     ValidationResource,
 )
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import (
+    DEFAULT_TILES_DIR_NAME,
+    FileStoreResource,
+    TilesDirResource,
+)
 from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.values import NlTransform
@@ -96,6 +100,7 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "pdal": PDALResource.configure_at_launch(),
             "lastools": LASToolsResource.configure_at_launch(),
             "tyler": TylerResource.configure_at_launch(),
+            "tiles_dir": TilesDirResource.configure_at_launch(),
             "validation": ValidationResource.configure_at_launch(),
             "roofer": RooferResource.configure_at_launch(),
             "version": version,
@@ -157,6 +162,9 @@ def resources_by_deployment(dagster_deployment: str) -> dict:
             "tyler": TylerResource(
                 exe_tyler=os.getenv("EXE_PATH_TYLER"),
                 exe_tyler_db=os.getenv("EXE_PATH_TYLER_DB"),
+            ),
+            "tiles_dir": TilesDirResource(
+                name=os.getenv("BAG3D_TILES_DIR", DEFAULT_TILES_DIR_NAME)
             ),
             "validation": ValidationResource(
                 exe_val3dity=os.getenv("EXE_PATH_VAL3DITY"),

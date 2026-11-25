@@ -6,7 +6,11 @@ from pathlib import Path
 
 from bag3d.common.resources import tool_versions
 from bag3d.common.resources.executables import TylerResource
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import (
+    DEFAULT_TILES_DIR_NAME,
+    FileStoreResource,
+    TilesDirResource,
+)
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import (
@@ -48,6 +52,8 @@ def generate_tyler_config(
     data_format: TylerOutputFormat,
     locations: tuple[LevelOfDetail, ...],
     export_dir: Path,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> tuple[list[str], Path]:
     """Generate the CLI parameters for tyler based on the 3DBAG Specifications.
 
@@ -56,11 +62,16 @@ def generate_tyler_config(
         data_format: Tyler output format (multi, ogc3dtiles)
         locations: The data format locations to generate the config for. Can only generate tyler config for ogc3dtiles for one location at a time, because the location contains the Level of Detail and we produce a separate tileset per LoD.
         export_dir:  The location of the export directory where all exported formats are stored.
+        tiles_dir_name: Name of the tiles subdirectory under the Tyler output directory.
     Raises:
         ValueError: With `format=='ogc3dtiles'` if `if len(locations) > 1` or `if not isinstance(location, LevelOfDetail)`.
     """
+    cli_format = (
+        "3dtiles" if data_format == TylerOutputFormat.OGC3DTILES else data_format
+    )
     cli_params = [
-        f"--format={data_format}",
+        f"--format={cli_format}",
+        f"--tiles-dir={tiles_dir_name}",
         "--qtree-capacity=280000",
     ]
     output_dir = None
@@ -97,7 +108,7 @@ def generate_tyler_config(
                 "datetime": "string",
                 "array": "string",
             }.get(base_type, base_type)
-            cli_params.append(f"--object-attribute={name}:{tyler_type}")
+            cli_params.append(f"--object-attributes={name}:{tyler_type}")
     elif data_format == TylerOutputFormat.GPKG:
         output_dir = export_dir
         cli_params.extend(
@@ -167,6 +178,7 @@ def reconstruction_output_tiles_func(
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
     tyler: TylerResource,
+    tiles_dir: TilesDirResource,
     *,
     version_3dbag: str,
     rayon_num_threads: int,
@@ -181,6 +193,7 @@ def reconstruction_output_tiles_func(
         data_format=data_format,
         locations=locations,
         export_dir=export_dir,
+        tiles_dir_name=tiles_dir.name,
     )
     cmd = [
         f"RAYON_NUM_THREADS={rayon_num_threads}",
@@ -240,6 +253,7 @@ def reconstruction_output_cityjson(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution in CityJSON format.
     Generated with tyler."""
@@ -249,6 +263,7 @@ def reconstruction_output_cityjson(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(),
@@ -333,6 +348,7 @@ def reconstruction_output_gpkg(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution in GPKG format.
     Generated with tyler."""
@@ -342,6 +358,7 @@ def reconstruction_output_gpkg(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(),
@@ -376,6 +393,7 @@ def reconstruction_output_obj_lod12(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in OBJ format, LoD1.2 BuildingPart.
     Generated with tyler."""
@@ -385,6 +403,7 @@ def reconstruction_output_obj_lod12(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod12,),
@@ -404,6 +423,7 @@ def reconstruction_output_obj_lod13(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in OBJ format, LoD1.3 BuildingPart.
     Generated with tyler."""
@@ -413,6 +433,7 @@ def reconstruction_output_obj_lod13(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod13,),
@@ -432,6 +453,7 @@ def reconstruction_output_obj_lod22(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in OBJ format, LoD2.2 BuildingPart.
     Generated with tyler."""
@@ -441,6 +463,7 @@ def reconstruction_output_obj_lod22(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod22,),
@@ -460,6 +483,7 @@ def reconstruction_output_3dtiles_lod12(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 1.2 buildings.
     Generated with tyler."""
@@ -469,6 +493,7 @@ def reconstruction_output_3dtiles_lod12(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod12,),
@@ -488,6 +513,7 @@ def reconstruction_output_3dtiles_lod13(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 1.3 buildings.
     Generated with tyler."""
@@ -497,6 +523,7 @@ def reconstruction_output_3dtiles_lod13(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod13,),
@@ -516,6 +543,7 @@ def reconstruction_output_3dtiles_lod22(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     specs: Specs3DBAGResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Tiles for distribution, in Ogc 3D Tiles format, Level of Detail 2.2 buildings.
     Generated with tyler."""
@@ -525,6 +553,7 @@ def reconstruction_output_3dtiles_lod22(
         version=version,
         specs=specs,
         tyler=tyler,
+        tiles_dir=tiles_dir,
         version_3dbag=read_export_edition(metadata),
         rayon_num_threads=config.concurrency,
         locations=(LevelOfDetail.lod22,),

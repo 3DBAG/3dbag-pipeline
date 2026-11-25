@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bag3d.common.resources.cjindex import CityIndexResource
 from bag3d.common.resources.executables import CommandResult
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import MetadataValue, Output, asset, materialize
@@ -239,21 +239,26 @@ def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
         (basename.with_name(f"{basename.name}{suffix}")).write_text("")
 
 
-def test_export_index_reads_quadtree(tmp_path):
+@pytest.mark.parametrize(
+    ("tiles_resource", "directory_name"),
+    [(TilesDirResource(), "tiles"), (TilesDirResource(name="t"), "t")],
+)
+def test_export_index_reads_quadtree(tmp_path, tiles_resource, directory_name):
     """export_index parses quadtree.tsv and checks tile file existence."""
     tile_ids = ["10/434/716", "10/435/717"]
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "t"
+    tiles_dir = export_dir / directory_name
 
     _make_quadtree_tsv(export_dir / "quadtree.tsv", tile_ids)
     for tid in tile_ids:
         _make_tile_files(tiles_dir, tid)
 
     output = cast(
-        Output[Path], export_index(file_store, version, export_dir / "quadtree.tsv")
+        Output[Path],
+        export_index(file_store, version, export_dir / "quadtree.tsv", tiles_resource),
     )
     result_path = output.value
 
@@ -286,9 +291,10 @@ def test_compressed_tiles(tmp_path):
     lid = tile_id.replace("/", "-")
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
+    tiles_resource = TilesDirResource(name="custom-tiles")
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    tiles_dir = export_dir / "t"
+    tiles_dir = export_dir / tiles_resource.name
     tile_dir = tiles_dir / tile_id
     tile_dir.parent.mkdir(parents=True, exist_ok=True)
 
@@ -319,6 +325,7 @@ def test_compressed_tiles(tmp_path):
             file_store,
             version,
             export_index_path,
+            tiles_resource,
         ),
     )
 
@@ -341,6 +348,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     """The mocked Tyler runner produces both the export directory and quadtree asset."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
+    tiles_resource = TilesDirResource(name="custom-tiles")
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
@@ -353,6 +361,8 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         assert "--debug-dump-grid" in command
         arguments = shlex.split(command)
         assert "RUST_LOG=debug" in arguments
+        assert "--tiles-dir=custom-tiles" in arguments
+        assert f"--output={cwd}" in arguments
         assert "--verbose" not in arguments
         assert not any(arg.startswith("--attribute-") for arg in arguments)
         debug_dir = Path(cwd) / "debug"
@@ -360,6 +370,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         (debug_dir / "quadtree_level-3.tsv").write_text(
             "node_id\tnode_level\tnr_items\twkt\n3/434/716\t3\t10\tPOLYGON((0 0,1 0,1 1,0 1,0 0))\n"
         )
+        _make_tile_files(Path(cwd) / tiles_resource.name, "3/434/716")
         return CommandResult(0, "")
 
     runner.run.side_effect = run
@@ -374,6 +385,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
             file_store,
             version,
             Specs3DBAGResource(),
+            tiles_resource,
         ),
     )
     assert gpkg_output.value == tmp_path / "stages" / "export" / VERSION
@@ -391,6 +403,11 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
     assert quadtree_path.is_file()
     event = result.asset_materializations_for_node("merged_quadtree")[0]
     assert event.metadata["artifact path"] == MetadataValue.path(quadtree_path)
+    index = cast(
+        Output[Path], export_index(file_store, version, quadtree_path, tiles_resource)
+    )
+    assert index.value == gpkg_output.value / "export_index.csv"
+    assert index.metadata["indexed tiles"].value == 1
 
 
 def test_reconstruction_output_obj_lods(tmp_path):
@@ -422,29 +439,34 @@ def test_reconstruction_output_obj_lods(tmp_path):
         assert out_dir == export_dir
         assert f"--format={TylerOutputFormat.OBJ}" in params
         assert f"--output={export_dir}" in params
+        assert "--tiles-dir=tiles" in params
         assert "--object-type=BuildingPart" in params
         assert f"--lod-building-part={expected_lod}" in params
         assert not any(p.startswith("--attribute-") for p in params)
-        tiles_params, _ = generate_tyler_config(
+        tiles_params, tileset_dir = generate_tyler_config(
             specs=specs,
             data_format=TylerOutputFormat.OGC3DTILES,
             locations=(loc,),
             export_dir=export_dir,
+            tiles_dir_name="custom-tiles",
         )
-        assert "--format=ogc3dtiles" in tiles_params
+        assert tileset_dir == export_dir / "ogc3dtiles" / loc.value
+        assert "--tiles-dir=custom-tiles" in tiles_params
+        assert "--format=3dtiles" in tiles_params
         assert "--3dtiles-metadata-class=building" in tiles_params
         assert "--include-parent-attributes" in tiles_params
         assert not any(p.startswith("--attribute-") for p in tiles_params)
         assert {
-            p.removeprefix("--object-attribute=").split(":", 1)[0]
+            p.removeprefix("--object-attributes=").split(":", 1)[0]
             for p in tiles_params
-            if p.startswith("--object-attribute=")
+            if p.startswith("--object-attributes=")
         } == set(specs.tileset(loc.value).properties)
 
     for data_format in (TylerOutputFormat.CITYJSON, TylerOutputFormat.GPKG):
         params, _ = generate_tyler_config(
             specs=specs, data_format=data_format, locations=(), export_dir=export_dir
         )
+        assert "--tiles-dir=tiles" in params
         assert not any(p.startswith("--attribute-") for p in params)
 
     # Test asset functions
@@ -472,11 +494,14 @@ def test_reconstruction_output_obj_lods(tmp_path):
                 file_store,
                 version,
                 specs,
+                TilesDirResource(name="custom-tiles"),
             ),
         )
         assert out.value == export_dir
         assert out.metadata["LoDs"].value == expected_lod
-        assert any(f"--lod-building-part={expected_lod}" in cmd for cmd in ran_commands)
+        arguments = shlex.split(ran_commands[-1])
+        assert f"--lod-building-part={expected_lod}" in arguments
+        assert "--tiles-dir=custom-tiles" in arguments
 
 
 def test_tyler_failure_reports_export_and_command_error(tmp_path):
@@ -500,6 +525,7 @@ def test_tyler_failure_reports_export_and_command_error(tmp_path):
             file_store,
             version,
             Specs3DBAGResource(),
+            TilesDirResource(),
         )
     assert str(tmp_path / "stages" / "export" / VERSION) in str(error.value)
 
@@ -508,10 +534,11 @@ def test_geopackage_index_failure_reports_layer_and_command_error(tmp_path):
     tile_id = "10/434/716"
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
+    tiles_resource = TilesDirResource(name="custom-tiles")
     export_dir = tmp_path / "stages" / "export" / VERSION
     quadtree = export_dir / "quadtree.tsv"
     _make_quadtree_tsv(quadtree, [tile_id])
-    _make_tile_files(export_dir / "t", tile_id)
+    _make_tile_files(export_dir / tiles_resource.name, tile_id)
     runner = MagicMock()
     runner.run.side_effect = [
         CommandResult(0, ""),
@@ -522,4 +549,7 @@ def test_geopackage_index_failure_reports_layer_and_command_error(tmp_path):
     with pytest.raises(
         RuntimeError, match=r"ogrinfo .*spatial index for pand .*exit 1.*missing layer"
     ):
-        geopackage(file_store, gdal, version, quadtree)
+        geopackage(file_store, gdal, version, quadtree, tiles_resource)
+
+    command = shlex.split(runner.run.call_args_list[0].args[0])
+    assert str(export_dir / tiles_resource.name / f"{tile_id}.gpkg") in command

@@ -5,7 +5,7 @@ from itertools import islice
 from os import getenv
 from pathlib import Path
 
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import AssetKey, Config, MetadataValue, Output, asset, get_dagster_logger
 from pydantic import Field
@@ -41,6 +41,7 @@ def reconstruction_output_ifc(
     config: IFCConfig,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[None]:
     """Tiles for distribution in IFC format.
 
@@ -50,15 +51,15 @@ def reconstruction_output_ifc(
     before they are gzipped by ``compressed_tiles``.
     """
     export_dir = file_store.stage_subdir("export", version.version)
-    tiles_dir = export_dir / "t"
-    cityjson_files = sorted(tiles_dir.rglob("*.city.json"))
+    path_tiles_dir = export_dir / tiles_dir.name
+    cityjson_files = sorted(path_tiles_dir.rglob("*.city.json"))
     if not cityjson_files:
-        compressed = next(tiles_dir.rglob("*.city.json.gz"), None)
+        compressed = next(path_tiles_dir.rglob("*.city.json.gz"), None)
         detail = (
             f" Found a compressed CityJSON tile at {compressed}." if compressed else ""
         )
         raise FileNotFoundError(
-            f"No uncompressed *.city.json tiles under {tiles_dir} for {version.version}. "
+            f"No uncompressed *.city.json tiles under {path_tiles_dir} for {version.version}. "
             "Run export/reconstruction_output_cityjson before the IFC export."
             f"{detail}"
         )
@@ -66,7 +67,7 @@ def reconstruction_output_ifc(
     logger.info(
         "Converting %d CityJSON tiles under %s to IFC at LoDs %s with %d workers",
         len(cityjson_files),
-        tiles_dir,
+        path_tiles_dir,
         ", ".join(LODS),
         config.concurrency,
     )
@@ -86,13 +87,13 @@ def reconstruction_output_ifc(
         sample = ", ".join(str(path) for path in islice(failed, 10))
         raise RuntimeError(
             f"IFC conversion produced no files for {len(failed)} of {len(cityjson_files)} "
-            f"tiles under {tiles_dir}. Check the input CityJSON and write permissions. "
+            f"tiles under {path_tiles_dir}. Check the input CityJSON and write permissions. "
             f"Example inputs: {sample}"
         )
     return Output(
         None,
         metadata={
-            "artifact path": MetadataValue.path(tiles_dir),
+            "artifact path": MetadataValue.path(path_tiles_dir),
             "CityJSON tiles converted": len(cityjson_files),
             "IFC files written": produced,
             "LoDs": ", ".join(LODS),

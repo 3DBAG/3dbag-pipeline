@@ -15,7 +15,7 @@ from bag3d.common.resources.cjindex import (
     read_package_feature_json,
 )
 from bag3d.common.resources.database import DatabaseResource
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.utils.dagster import format_date
 from bag3d.common.utils.files import check_export_results
@@ -297,6 +297,7 @@ def export_index(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     merged_quadtree: Path,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Index of the distribution tiles.
 
@@ -306,6 +307,7 @@ def export_index(
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
     path_export_index = path_export_dir.joinpath("export_index.csv")
+    path_tiles_dir = path_export_dir / tiles_dir.name
 
     format_fields = ("has_cityjson", "has_gpkg", "has_ifc", "has_obj")
     indexed_tiles = 0
@@ -315,7 +317,9 @@ def export_index(
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
         try:
-            for result in check_export_results(merged_quadtree, path_export_dir):
+            for result in check_export_results(
+                merged_quadtree, path_export_dir, tiles_dir_name=tiles_dir.name
+            ):
                 row = dict(result)
                 csvwriter.writerow(row)
                 indexed_tiles += 1
@@ -324,7 +328,7 @@ def export_index(
         except (OSError, KeyError, ValueError) as exc:
             raise RuntimeError(
                 f"Could not build {path_export_index} from quadtree {merged_quadtree} "
-                f"and tile directory {path_export_dir / 't'}."
+                f"and tile directory {path_tiles_dir}."
             ) from exc
     if not indexed_tiles:
         logger.warning(
@@ -332,7 +336,7 @@ def export_index(
             "wrote files for nonempty quadtree leaves under %s.",
             merged_quadtree,
             path_export_index,
-            path_export_dir / "t",
+            path_tiles_dir,
         )
     if (
         missing_formats["has_cityjson"]

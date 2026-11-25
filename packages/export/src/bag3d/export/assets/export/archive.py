@@ -9,9 +9,8 @@ from shutil import copyfileobj
 from zipfile import ZipFile
 
 from bag3d.common.resources.executables import CommandRunner, GDALResource
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from bag3d.common.utils.files import export_tile_path
 from dagster import (
     AssetIn,
     AssetKey,
@@ -52,10 +51,11 @@ def geopackage(
     gdal: GDALResource,
     version: ReleaseVersionResource,
     merged_quadtree: Path,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """GeoPackage of the whole Netherlands, containing all 3D BAG layers."""
     path_export_dir = file_store.stage_subdir("export", version.version)
-    path_tiles_dir = path_export_dir.joinpath("t")
+    path_tiles_dir = path_export_dir / tiles_dir.name
     path_nl = path_export_dir.joinpath("3dbag_nl.gpkg")
 
     # Remove existing
@@ -217,19 +217,19 @@ def create_path_layer(id_layer, path_tiles_dir):
     return path_tiles_dir.joinpath(id_layer).with_suffix(".gpkg")
 
 
-def compress_files(input_tile_path):
-    tile_id, export_dir = input_tile_path
+def compress_files(input_tile_path: tuple[str, Path]) -> dict[str, Path]:
+    tile_id, tiles_dir = input_tile_path
     try:
-        return _compress_files(tile_id, export_dir)
+        return _compress_files(tile_id, tiles_dir)
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
         raise RuntimeError(
-            f"Could not compress tile {tile_id} under {export_dir / 't'}. "
+            f"Could not compress tile {tile_id} under {tiles_dir}. "
             "Check the source files and output archives for this tile."
         ) from exc
 
 
-def _compress_files(tile_id: str, export_dir: Path) -> dict[str, Path]:
-    basename = export_tile_path(export_dir, tile_id, "")
+def _compress_files(tile_id: str, tiles_dir: Path) -> dict[str, Path]:
+    basename = tiles_dir / tile_id
     lid_in_filename = tile_id.replace("/", "-")
     missing = {}
 
@@ -248,7 +248,7 @@ def _compress_files(tile_id: str, export_dir: Path) -> dict[str, Path]:
             f.unlink()
 
     # CityJSON
-    cj_file = export_tile_path(export_dir, tile_id, ".city.json")
+    cj_file = basename.with_suffix(".city.json")
     cj_zip = cj_file.with_suffix(".json.gz")
     if cj_file.exists():
         with cj_file.open("rb") as f_in, gzip.open(cj_zip, "wb") as f_out:
@@ -258,7 +258,7 @@ def _compress_files(tile_id: str, export_dir: Path) -> dict[str, Path]:
         missing["CityJSON"] = cj_file
 
     # GPKG
-    gpkg_file = export_tile_path(export_dir, tile_id, ".gpkg")
+    gpkg_file = basename.with_suffix(".gpkg")
     gpkg_zip = gpkg_file.with_suffix(".gpkg.gz")
     if gpkg_file.exists():
         with gpkg_file.open("rb") as f_in, gzip.open(gpkg_zip, "wb") as f_out:
@@ -300,24 +300,26 @@ def compressed_tiles(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     export_index: Path,
+    tiles_dir: TilesDirResource,
 ) -> Output[None]:
     """Each format is gzipped individually in each tile, for better transfer over the
     web. The OBJ files are collected into a single .zip file."""
     path_export_dir = file_store.stage_subdir("export", version.version)
+    path_tiles_dir = path_export_dir / tiles_dir.name
     tile_ids = read_indexed_tile_ids(export_index)
 
     logger.info(
         "Compressing %d indexed tiles from %s under %s with %d workers",
         len(tile_ids),
         export_index,
-        path_export_dir / "t",
+        path_tiles_dir,
         config.concurrency,
     )
     missing_counts: Counter[str] = Counter()
     first_missing = {}
     with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         compressed = executor.map(
-            compress_files, ((tile_id, path_export_dir) for tile_id in tile_ids)
+            compress_files, ((tile_id, path_tiles_dir) for tile_id in tile_ids)
         )
         for tile_id, missing in zip(tile_ids, compressed):
             missing_counts.update(missing.keys())
@@ -342,7 +344,7 @@ def compressed_tiles(
     return Output(
         None,
         metadata={
-            "artifact path": MetadataValue.path(path_export_dir / "t"),
+            "artifact path": MetadataValue.path(path_tiles_dir),
             "export index": MetadataValue.path(export_index),
             "tiles processed": len(tile_ids),
             "missing inputs by format": MetadataValue.json(dict(missing_counts)),

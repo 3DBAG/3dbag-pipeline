@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from os import getenv
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from urllib.parse import quote
 
 from bag3d.common.resources.executables import (
     CommandResult,
@@ -19,7 +20,11 @@ from bag3d.common.resources.executables import (
     GDALResource,
     ValidationResource,
 )
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import (
+    DEFAULT_TILES_DIR_NAME,
+    FileStoreResource,
+    TilesDirResource,
+)
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from dagster import (
@@ -329,6 +334,8 @@ def cityjson(
     version: str,
     specs: Specs3DBAGResource,
     url_file_id: str | None = None,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> CityJSONFileResults:
     """Validate a single CityJSON file.
 
@@ -396,6 +403,7 @@ def cityjson(
             format="cityjson",
             file_id=url_file_id or file_id,
             version=version,
+            tiles_dir_name=tiles_dir_name,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error(
@@ -481,6 +489,8 @@ def obj(
     version: str,
     archive_file_id: str | None = None,
     url_file_id: str | None = None,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> OBJFileResults:
     results = OBJFileResults()
     inputzipfile = dirpath.joinpath(f"{archive_file_id or file_id}-obj.zip")
@@ -527,6 +537,7 @@ def obj(
             format="obj",
             file_id=url_file_id or file_id,
             version=version,
+            tiles_dir_name=tiles_dir_name,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error(
@@ -645,11 +656,13 @@ def gpkg(
     version: str,
     specs: Specs3DBAGResource,
     url_file_id: str | None = None,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> GPKGFileResults:
     results = GPKGFileResults()
     archive = dirpath / f"{file_id}.gpkg.gz"
     results.download = create_download_link(
-        url_root, "gpkg", url_file_id or file_id, version
+        url_root, "gpkg", url_file_id or file_id, version, tiles_dir_name=tiles_dir_name
     )
     with archive.open("rb") as stream:
         results.sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -680,6 +693,8 @@ def ifc(
     version: str,
     archive_file_id: str | None = None,
     url_file_id: str | None = None,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> IFCFileResults:
     """Validate a single IFC archive.
 
@@ -724,6 +739,7 @@ def ifc(
             format="ifc",
             file_id=url_file_id or file_id,
             version=version,
+            tiles_dir_name=tiles_dir_name,
         )
     except Exception as exc:  # noqa: BLE001
         logger.error(
@@ -745,32 +761,43 @@ def ifc(
     return results
 
 
-def create_download_link(url_root: str, format: str, file_id: str, version: str) -> str:
+def create_download_link(
+    url_root: str,
+    format: str,
+    file_id: str,
+    version: str,
+    *,
+    tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
+) -> str:
     tile_id = file_id.replace("-", "/")
     version_stripped = version.replace(".", "")
     if format == "cityjson":
         filename = f"{file_id}.city.json.gz"
-        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "gpkg":
         filename = f"{file_id}.gpkg.gz"
-        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "obj":
         filename = f"{file_id}-obj.zip"
-        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     elif format == "ifc":
         filename = f"{file_id}-ifc.zip"
-        link = f"{url_root}/{version_stripped}/tiles/{tile_id}/{filename}"
     else:
         raise ValueError(
             f"Cannot build a download link for tile {file_id} in release {version} "
             f"with format {format!r}. Use cityjson, obj, gpkg, or ifc."
         )
-    return link
+    return f"{url_root}/{version_stripped}/{quote(tiles_dir_name, safe='')}/{tile_id}/{filename}"
 
 
 def _check_formats(inputs) -> TileResults:
     """Worker function - no Dagster context available."""
-    validation_runner, gdal_runner, dirpath, tile_id, url_root, version = inputs
+    (
+        validation_runner,
+        gdal_runner,
+        dirpath,
+        tile_id,
+        url_root,
+        version,
+        tiles_dir_name,
+    ) = inputs
 
     # System tools runner (no configured exes needed)
     system = CommandRunner()
@@ -786,6 +813,7 @@ def _check_formats(inputs) -> TileResults:
         version=version,
         specs=specs,
         url_file_id=tile_id.replace("/", "-"),
+        tiles_dir_name=tiles_dir_name,
     )
     obj_results = obj(
         system,
@@ -796,6 +824,7 @@ def _check_formats(inputs) -> TileResults:
         version=version,
         archive_file_id=tile_id.replace("/", "-"),
         url_file_id=tile_id.replace("/", "-"),
+        tiles_dir_name=tiles_dir_name,
     )
     gpkg_results = gpkg(
         system,
@@ -806,6 +835,7 @@ def _check_formats(inputs) -> TileResults:
         version=version,
         specs=specs,
         url_file_id=tile_id.replace("/", "-"),
+        tiles_dir_name=tiles_dir_name,
     )
     ifc_results = ifc(
         system,
@@ -815,6 +845,7 @@ def _check_formats(inputs) -> TileResults:
         version=version,
         archive_file_id=tile_id.replace("/", "-"),
         url_file_id=tile_id.replace("/", "-"),
+        tiles_dir_name=tiles_dir_name,
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results, ifc_results)
 
@@ -857,6 +888,7 @@ def compressed_tiles_validation(
     version: ReleaseVersionResource,
     gdal: GDALResource,
     validation: ValidationResource,
+    tiles_dir: TilesDirResource,
 ) -> Output[Path]:
     """Validates the compressed distribution tiles, for each format.
     Save the validation results to a CSV.
@@ -878,6 +910,7 @@ def compressed_tiles_validation(
     The computed attributes are described at the members of the TileResults class.
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
+    path_tiles_dir = path_export_dir / tiles_dir.name
     url_root = "https://data.3dbag.nl"
     version_str = read_export_edition(metadata)
     validation_runner = validation.runner
@@ -887,17 +920,19 @@ def compressed_tiles_validation(
         (
             validation_runner,
             gdal_runner,
-            path_export_dir.joinpath("t", tile_id).parent,
+            (path_tiles_dir / tile_id).parent,
             tile_id,
             url_root,
             version_str,
+            tiles_dir.name,
         )
         for tile_id in tile_ids
     )
     logger.info(
-        "Validating release %s using %d tiles from %s and 3D Tiles under %s",
+        "Validating release %s using %d tiles under %s indexed in %s and 3D Tiles under %s",
         version_str,
         len(tile_ids),
+        path_tiles_dir,
         export_index,
         path_export_dir,
     )

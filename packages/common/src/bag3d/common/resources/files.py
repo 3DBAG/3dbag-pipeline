@@ -1,9 +1,12 @@
+import re
 from pathlib import Path
 from shutil import rmtree
 
 from dagster import ConfigurableResource, get_dagster_logger
+from pydantic import field_validator
 
 logger = get_dagster_logger("resources.file_store")
+DEFAULT_TILES_DIR_NAME = "tiles"
 
 
 class FileStoreResource(ConfigurableResource):
@@ -55,3 +58,19 @@ class FileStoreResource(ConfigurableResource):
         d = self.stage_dir(stage).joinpath(*parts)
         d.mkdir(parents=True, exist_ok=True)
         return d
+
+
+class TilesDirResource(ConfigurableResource):
+    """Name of the tiles subdirectory inside a Tyler output directory."""
+
+    name: str = DEFAULT_TILES_DIR_NAME
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, name: str) -> str:
+        if name in {".", ".."} or not re.fullmatch(r"[A-Za-z0-9._~-]+", name):
+            raise ValueError(
+                "Use a tiles directory name with ASCII letters, digits, hyphens, "
+                "underscores, periods, or tildes. Choose a name other than '.' or '..'."
+            )
+        return name

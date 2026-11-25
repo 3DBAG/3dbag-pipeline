@@ -14,9 +14,18 @@ class BadArchiveError(OSError):
     """The archive contains a bad file"""
 
 
-def export_tile_path(export_dir: Path, tile_id: str, suffix: str) -> Path:
+_LEGACY_TILES_DIR_NAME = "t"
+
+
+def export_tile_path(
+    export_dir: Path,
+    tile_id: str,
+    suffix: str,
+    *,
+    tiles_dir_name: str = _LEGACY_TILES_DIR_NAME,
+) -> Path:
     """Return the path of a Tyler tile output."""
-    return export_dir.joinpath("t", tile_id).with_suffix(suffix)
+    return export_dir.joinpath(tiles_dir_name, tile_id).with_suffix(suffix)
 
 
 def unzip(file: Path, dest: Path, remove: bool = True) -> None:
@@ -45,7 +54,10 @@ def unzip(file: Path, dest: Path, remove: bool = True) -> None:
 
 
 def check_export_results(
-    path_quadtree_tsv: Path, export_dir: Path
+    path_quadtree_tsv: Path,
+    export_dir: Path,
+    *,
+    tiles_dir_name: str = _LEGACY_TILES_DIR_NAME,
 ) -> Iterator[ExportResult]:
     """Parse the `quadtree.tsv` written by *tyler*, check if all formats exists for each
     tile, add the tile WKT.
@@ -58,7 +70,9 @@ def check_export_results(
         for row in csvreader:
             if row["leaf"] == "true" and int(row["nr_items"]) > 0:
                 leaf_id = row["id"]
-                basename = export_tile_path(export_dir, leaf_id, "")
+                basename = export_tile_path(
+                    export_dir, leaf_id, "", tiles_dir_name=tiles_dir_name
+                )
                 obj_paths = tuple(basename.parent.glob(f"{basename.name}*.obj"))
                 ifc_path = basename.with_name(f"{leaf_id.replace('/', '-')}-ifc.zip")
                 expected_paths = (
