@@ -1,6 +1,9 @@
 # Validate queued merge SHAs through trusted admin main; observe the exact run without retrying computation.
 name: Test Integration
-run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.merge_group.head_sha || github.sha }}
+run-name: >-
+  Integration · ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number)
+    || github.event_name == 'merge_group' && 'merge queue'
+    || 'manual' }}
 
 on:
   workflow_dispatch:
@@ -18,19 +21,16 @@ permissions: {}
 
 jobs:
   compute:
-    name: Fixture-backed dev computation
-    if: github.event_name != 'merge_group' || github.event.merge_group.base_ref == 'refs/heads/develop'
+    name: Test Integration
+    # A skipped job satisfies the required check before the PR enters the queue.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'merge_group' && github.event.merge_group.base_ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      # Required checks must pass on the PR before GitHub admits it to the queue.
-      # The expensive computation runs only on the queue's combined commit.
-      - name: Defer computation until queued after review
-        if: github.event_name == 'pull_request'
-        run: echo 'Integration computation will run in the merge queue after approval.'
       # No local checkout: only an immutable SHA and its queue ref cross the boundary.
-      - name: Dispatch and observe the exact admin run
-        if: github.event_name != 'pull_request'
+      - name: Run on Gilfoyle
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}
