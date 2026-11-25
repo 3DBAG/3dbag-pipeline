@@ -25,6 +25,7 @@ from dagster import (
     AssetIn,
     AssetKey,
     AssetRecordsFilter,
+    MetadataValue,
     Output,
     asset,
     get_dagster_logger,
@@ -32,6 +33,45 @@ from dagster import (
 from psycopg.sql import SQL
 
 logger = get_dagster_logger("export.metadata")
+
+
+def read_export_edition(metadata_path: Path) -> str:
+    """Read the release edition from the generated metadata file."""
+    try:
+        with metadata_path.open("r", encoding="utf-8") as stream:
+            edition = json.load(stream)["identificationInfo"]["citation"]["edition"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ValueError(
+            f"Could not read identificationInfo.citation.edition from {metadata_path}. "
+            "Check the file or materialize export/metadata again."
+        ) from exc
+    if not isinstance(edition, str) or not edition.strip():
+        raise ValueError(
+            f"Expected a non-empty release edition in {metadata_path}, got {edition!r}. "
+            "Check export/metadata."
+        )
+    return edition
+
+
+def read_indexed_tile_ids(index_path: Path) -> list[str]:
+    with index_path.open("r", encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        if "tile_id" not in (reader.fieldnames or ()):
+            raise ValueError(
+                f"Export index {index_path} is missing the tile_id column. "
+                "Materialize export/export_index again."
+            )
+        tile_ids = []
+        for row in reader:
+            tile_id = row["tile_id"]
+            if not tile_id:
+                raise ValueError(
+                    f"Missing tile_id in export index {index_path} at line {reader.line_num}. "
+                    "Check export/export_index."
+                )
+            tile_ids.append(tile_id)
+    return tile_ids
+
 
 # (manifest_key, resource_key, executable, version_cmd)
 _SOFTWARE_TOOLS = [
@@ -74,7 +114,20 @@ def _build_software_list() -> list[dict]:
         kwargs = {}
         if version_cmd is not None:
             kwargs["version_cmd"] = version_cmd
-        version = resource_defs[resource_key].runner.version(executable, **kwargs)
+        try:
+            version = resource_defs[resource_key].runner.version(executable, **kwargs)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Could not read the {executable} version for export metadata. "
+                f"Check the {resource_key} executable configuration."
+            ) from exc
+        if not version.strip():
+            logger.warning(
+                "%s returned an empty version for export metadata. "
+                "Check the executable configured under %s.",
+                executable,
+                resource_key,
+            )
         if manifest_key == "pdal":
             version = version.replace("-", "").replace(",", "")
         software.append(
@@ -150,7 +203,7 @@ def feature_evaluation(
     computation_db: DatabaseResource,
     version: ReleaseVersionResource,
     reconstruction_index: CityIndexResource,
-) -> Path:
+) -> Output[Path]:
     """Compare the reconstruction output to the input, for each feature.
     Check if all LoD-s are generated for the feature and include some attributes from
     the CityObjects"""
@@ -181,19 +234,28 @@ def feature_evaluation(
     reconstructed_buildings = set()
     cityobjects = {}
 
+    logger.info(
+        "Evaluating reconstruction features from %s against reconstruction_input.reconstruction_input",
+        reconstruction_index.dataset_dir,
+    )
     idx = open_ready_index(reconstruction_index)
-    for refs in iter_package_refs(idx, _PAGE_SIZE):
-        for ref in refs:
-            reconstructed_buildings.add(ref.model_id)
-            cityjson = read_package_feature_json(idx, ref)
-            codata = get_info_per_cityobject(
-                cityjson, deepcopy(cityobject_info), attributes_to_include
-            )
-            cityobjects.update(codata)
-    idx.close()
-
-    logger.debug(f"len(reconstructed_buildings)={len(reconstructed_buildings)}")
-    logger.debug(f"len(cityobjects)={len(cityobjects)}")
+    try:
+        for refs in iter_package_refs(idx, _PAGE_SIZE):
+            for ref in refs:
+                reconstructed_buildings.add(ref.model_id)
+                try:
+                    cityjson = read_package_feature_json(idx, ref)
+                    codata = get_info_per_cityobject(
+                        cityjson, deepcopy(cityobject_info), attributes_to_include
+                    )
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Could not evaluate CityJSON model {ref.model_id} from "
+                        f"the reconstruction index at {reconstruction_index.dataset_dir}."
+                    ) from exc
+                cityobjects.update(codata)
+    finally:
+        idx.close()
 
     res = conn.get_query(
         SQL("""
@@ -202,26 +264,30 @@ def feature_evaluation(
         """)
     )
     input_buildings = {row[0] for row in res}
-    logger.debug(f"len(input_buildings)={len(input_buildings)}")
-
     not_reconstructed = input_buildings.difference(reconstructed_buildings)
-    logger.debug(f"len(not_reconstructed)={len(not_reconstructed)}")
 
     # Save not_reconstructed buildings to a text file
     not_reconstructed_file = output_dir.joinpath("not_reconstructed_buildings.txt")
     with not_reconstructed_file.open("w") as f:
         for building_id in sorted(not_reconstructed):
             f.write(f"{building_id}\n")
-    logger.info(
-        f"Saved {len(not_reconstructed)} not reconstructed building IDs to {not_reconstructed_file}"
-    )
 
     for feature in not_reconstructed:
         cityobjects[feature] = cityobject_info
 
     features_to_csv(output_csv, cityobjects, cityobject_info, list(lods))
 
-    return output_csv
+    return Output(
+        output_csv,
+        metadata={
+            "artifact path": MetadataValue.path(output_csv),
+            "input buildings": len(input_buildings),
+            "reconstructed buildings": len(reconstructed_buildings),
+            "unreconstructed buildings": len(not_reconstructed),
+            "CSV rows": len(cityobjects),
+            "unreconstructed building IDs": MetadataValue.path(not_reconstructed_file),
+        },
+    )
 
 
 @asset(
@@ -231,30 +297,66 @@ def export_index(
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
     merged_quadtree: Path,
-) -> Path:
+) -> Output[Path]:
     """Index of the distribution tiles.
 
     Parses the quadtree.tsv file output by *tyler* and checks if all formats exist for
     a tile. If a tile does not have any features in the quadtree, it is not included.
-    Output it written to export_index.csv.
+    The index is written to export_index.csv.
     """
     path_export_dir = file_store.stage_subdir("export", version.version)
     path_export_index = path_export_dir.joinpath("export_index.csv")
 
+    format_fields = ("has_cityjson", "has_gpkg", "has_ifc", "has_obj")
+    indexed_tiles = 0
+    missing_formats: dict[str, int] = {field: 0 for field in format_fields}
     with path_export_index.open("w") as fw:
-        fieldnames = [
-            "tile_id",
-            "has_cityjson",
-            "has_gpkg",
-            "has_ifc",
-            "has_obj",
-            "wkt",
-        ]
+        fieldnames = ["tile_id", *format_fields, "wkt"]
         csvwriter = csv.DictWriter(fw, fieldnames=fieldnames, extrasaction="ignore")
         csvwriter.writeheader()
-        export_results_gen = check_export_results(merged_quadtree, path_export_dir)
-        csvwriter.writerows(dict(export_result) for export_result in export_results_gen)
-    return path_export_index
+        try:
+            for result in check_export_results(merged_quadtree, path_export_dir):
+                row = dict(result)
+                csvwriter.writerow(row)
+                indexed_tiles += 1
+                for field in format_fields:
+                    missing_formats[field] += not row[field]
+        except (OSError, KeyError, ValueError) as exc:
+            raise RuntimeError(
+                f"Could not build {path_export_index} from quadtree {merged_quadtree} "
+                f"and tile directory {path_export_dir / 't'}."
+            ) from exc
+    if not indexed_tiles:
+        logger.warning(
+            "No exported tiles from %s were indexed in %s. Check that Tyler "
+            "wrote files for nonempty quadtree leaves under %s.",
+            merged_quadtree,
+            path_export_index,
+            path_export_dir / "t",
+        )
+    if (
+        missing_formats["has_cityjson"]
+        or missing_formats["has_gpkg"]
+        or missing_formats["has_obj"]
+    ):
+        logger.warning(
+            "Incomplete Tyler exports in %s. Missing CityJSON on %d tiles, "
+            "GeoPackage on %d, and complete OBJ outputs on %d. "
+            "Use the has_* columns to identify the tile IDs and inspect the corresponding Tyler runs.",
+            path_export_index,
+            missing_formats["has_cityjson"],
+            missing_formats["has_gpkg"],
+            missing_formats["has_obj"],
+        )
+    return Output(
+        path_export_index,
+        metadata={
+            "artifact path": MetadataValue.path(path_export_index),
+            "quadtree": MetadataValue.path(merged_quadtree),
+            "indexed tiles": indexed_tiles,
+            "indexed tiles missing each format": MetadataValue.json(missing_formats),
+        },
+    )
 
 
 ASSET_DEPENDENCIES_FOR_METADATA = [
@@ -291,6 +393,7 @@ def metadata(
     # Get only the last asset materialization, because if an asset is materialized then
     # is has succeeded.
     process_step_list = []
+    missing_lineage = []
     for asset_key in asset_keys:
         event_record_list = instance.fetch_materializations(
             records_filter=AssetRecordsFilter(
@@ -319,6 +422,16 @@ def metadata(
                         "dataVersion": tags.get("dagster/data_version"),
                     }
                 )
+                continue
+        missing_lineage.append(asset_key.to_user_string())
+
+    if missing_lineage:
+        logger.warning(
+            "Release %s metadata has no lineage materializations for %s. "
+            "Verify that those assets were materialized in this Dagster instance.",
+            version_3dbag,
+            ", ".join(missing_lineage),
+        )
 
     top10NLdates = [
         ps["dataVersion"]
@@ -441,4 +554,11 @@ def metadata(
     outfile = output_dir.joinpath("metadata.json")
     with outfile.open("w") as fo:
         json.dump(metadata, fo)
-    return Output(outfile, metadata=metadata)
+    return Output(
+        outfile,
+        metadata={
+            "artifact path": MetadataValue.path(outfile),
+            "release": version_3dbag,
+            **metadata,
+        },
+    )

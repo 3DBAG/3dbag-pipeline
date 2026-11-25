@@ -28,11 +28,20 @@ def _local_uri(base: Path, uri: str) -> Path:
     return base / unquote(parsed.path)
 
 
+def _read_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(f"Could not parse JSON in {path}. {exc}") from exc
+
+
 def _content_paths(path: Path, visited: set[Path]) -> Iterator[Path]:
     if path in visited:
         raise ValueError(f"Cyclic tileset reference: {path}")
     visited.add(path)
-    tileset = json.loads(path.read_text(encoding="utf-8"))
+    tileset = _read_json(path)
+    if "root" not in tileset:
+        raise ValueError(f"Tileset {path} is missing the root tile.")
     stack = [tileset["root"]]
     while stack:
         tile = stack.pop()
@@ -68,10 +77,15 @@ def _read_gltf(path: Path) -> tuple[dict, list[bytes]]:
                 raise ValueError(f"Truncated GLB chunk: {path}")
             chunks[kind] = data[offset + 8 : offset + 8 + length]
             offset += 8 + length
-        model = json.loads(chunks[0x4E4F534A])
+        try:
+            model = json.loads(chunks[0x4E4F534A])
+        except (KeyError, ValueError) as exc:
+            raise ValueError(
+                f"Missing or invalid JSON chunk in GLB file {path}."
+            ) from exc
         binary = chunks.get(0x004E4942)
     elif path.suffix.lower() == ".gltf":
-        model = json.loads(path.read_text(encoding="utf-8"))
+        model = _read_json(path)
     else:
         raise ValueError(f"Unsupported 3D Tiles content: {path}")
     buffers = []
@@ -181,11 +195,7 @@ def inspect_tileset(
             continue
         schema = metadata.get("schema")
         if schema is None and "schemaUri" in metadata:
-            schema = json.loads(
-                _local_uri(path.parent, metadata["schemaUri"]).read_text(
-                    encoding="utf-8"
-                )
-            )
+            schema = _read_json(_local_uri(path.parent, metadata["schemaUri"]))
         if schema is None:
             raise ValueError(f"No metadata schema in {path}")
         classes = schema["classes"]
@@ -236,9 +246,21 @@ def inspect_tileset(
                     yield Result(f"{path}:{name}", Outcome.INCORRECT_NULLABLE)
                 if prop.get("normalized", False) or "offset" in prop or "scale" in prop:
                     yield Result(f"{path}:{name}", Outcome.INCORRECT_VALUE)
-                for value in _values(
-                    model, buffers, prop, table["properties"][name], table["count"]
-                ):
+                try:
+                    values = _values(
+                        model, buffers, prop, table["properties"][name], table["count"]
+                    )
+                except (
+                    KeyError,
+                    IndexError,
+                    ValueError,
+                    RuntimeError,
+                    struct.error,
+                ) as exc:
+                    raise ValueError(
+                        f"Could not decode 3D Tiles property {name!r} in {path}. {exc}"
+                    ) from exc
+                for value in values:
                     if value == entry.no_data or (
                         entry.null_encoding == "empty-string" and value == ""
                     ):

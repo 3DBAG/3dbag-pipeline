@@ -12,13 +12,20 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pytest
 from bag3d.common.resources.cjindex import CityIndexResource
+from bag3d.common.resources.executables import CommandResult
 from bag3d.common.resources.files import FileStoreResource
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
+from dagster import MetadataValue, Output, asset, materialize
 
 from bag3d.export.assets.export import metadata as metadata_module
-from bag3d.export.assets.export.archive import CompressionConfig, compressed_tiles
+from bag3d.export.assets.export.archive import (
+    CompressionConfig,
+    compressed_tiles,
+    geopackage,
+)
 from bag3d.export.assets.export.metadata import export_index, feature_evaluation
 from bag3d.export.assets.export.tile import (
     TylerConfig,
@@ -134,12 +141,16 @@ def test_feature_evaluation_reads_reconstruction(tmp_path):
         "bag3d.export.assets.export.metadata.open_ready_index",
         return_value=mock_idx,
     ):
-        result_csv = cast(
-            Path, feature_evaluation(file_store, mock_db, version, recon_resource)
+        output = cast(
+            Output[Path],
+            feature_evaluation(file_store, mock_db, version, recon_resource),
         )
 
+    result_csv = output.value
     assert result_csv.exists()
     assert result_csv.name == "reconstructed_features.csv"
+    assert output.metadata["artifact path"] == MetadataValue.path(result_csv)
+    assert output.metadata["unreconstructed buildings"].value == 1
 
     with result_csv.open() as f:
         reader = csv.DictReader(f)
@@ -201,6 +212,7 @@ def test_metadata_creates_versioned_export_directory(tmp_path, monkeypatch):
     output_path = tmp_path / "stages" / "export" / VERSION / "metadata.json"
     assert output_path.exists()
     assert cast(Path, result.value) == output_path
+    assert result.metadata["artifact path"] == MetadataValue.path(output_path)
 
     metadata_json = json.loads(output_path.read_text())
     assert metadata_json["dataQualityInfo"]["lineage"]["software"] == []
@@ -240,12 +252,15 @@ def test_export_index_reads_quadtree(tmp_path):
     for tid in tile_ids:
         _make_tile_files(tiles_dir, tid)
 
-    result_path = cast(
-        Path, export_index(file_store, version, export_dir / "quadtree.tsv")
+    output = cast(
+        Output[Path], export_index(file_store, version, export_dir / "quadtree.tsv")
     )
+    result_path = output.value
 
     assert result_path.exists()
     assert result_path.name == "export_index.csv"
+    assert output.metadata["artifact path"] == MetadataValue.path(result_path)
+    assert output.metadata["indexed tiles"].value == 2
 
     with result_path.open() as f:
         reader = csv.DictReader(f)
@@ -297,17 +312,23 @@ def test_compressed_tiles(tmp_path):
             [tile_id, "True", "True", "True", "POLYGON((0 0,1 0,1 1,0 1,0 0))"]
         )
 
-    compressed_tiles(
-        CompressionConfig(concurrency=1),
-        file_store,
-        version,
-        export_index_path,
+    output = cast(
+        Output[None],
+        compressed_tiles(
+            CompressionConfig(concurrency=1),
+            file_store,
+            version,
+            export_index_path,
+        ),
     )
 
     # Compressed files exist
     assert tile_dir.with_suffix(".city.json.gz").exists()
     assert tile_dir.with_suffix(".gpkg.gz").exists()
     assert tile_dir.with_name(f"{lid}-obj.zip").exists()
+    assert output.metadata["artifact path"] == MetadataValue.path(tiles_dir)
+    assert output.metadata["tiles processed"].value == 1
+    assert output.metadata["missing inputs by format"].value == {"IFC": 1}
 
     # Original uncompressed files are deleted
     assert not cj_file.exists()
@@ -339,25 +360,37 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         (debug_dir / "quadtree_level-3.tsv").write_text(
             "node_id\tnode_level\tnr_items\twkt\n3/434/716\t3\t10\tPOLYGON((0 0,1 0,1 1,0 1,0 0))\n"
         )
+        return CommandResult(0, "")
 
     runner.run.side_effect = run
     tyler = SimpleNamespace(runner=runner)
 
-    gpkg_output = reconstruction_output_gpkg(
-        TylerConfig(concurrency=1, verbose=True),
-        metadata_path,
-        tyler,
-        file_store,
-        version,
-        Specs3DBAGResource(),
+    gpkg_output = cast(
+        Output[Path],
+        reconstruction_output_gpkg(
+            TylerConfig(concurrency=1, verbose=True),
+            metadata_path,
+            tyler,
+            file_store,
+            version,
+            Specs3DBAGResource(),
+        ),
     )
-    assert isinstance(gpkg_output, Path)
+    assert gpkg_output.value == tmp_path / "stages" / "export" / VERSION
+    assert gpkg_output.metadata["artifact path"] == MetadataValue.path(
+        gpkg_output.value
+    )
 
-    quadtree_output = merged_quadtree(gpkg_output)
-    assert isinstance(quadtree_output, Path)
-    assert gpkg_output == tmp_path / "stages" / "export" / VERSION
-    assert quadtree_output == gpkg_output / "debug" / "quadtree.tsv"
-    assert quadtree_output.is_file()
+    @asset(key_prefix="export", name="reconstruction_output_gpkg")
+    def tyler_result() -> Path:
+        return gpkg_output.value
+
+    result = materialize([tyler_result, merged_quadtree])
+    quadtree_path = result.output_for_node("merged_quadtree")
+    assert quadtree_path == gpkg_output.value / "debug" / "quadtree.tsv"
+    assert quadtree_path.is_file()
+    event = result.asset_materializations_for_node("merged_quadtree")[0]
+    assert event.metadata["artifact path"] == MetadataValue.path(quadtree_path)
 
 
 def test_reconstruction_output_obj_lods(tmp_path):
@@ -417,7 +450,12 @@ def test_reconstruction_output_obj_lods(tmp_path):
     # Test asset functions
     ran_commands = []
     runner = MagicMock()
-    runner.run.side_effect = lambda cmd, **kwargs: ran_commands.append(cmd)
+
+    def run(command, **kwargs):
+        ran_commands.append(command)
+        return CommandResult(0, "")
+
+    runner.run.side_effect = run
     tyler = SimpleNamespace(runner=runner)
 
     for asset_func, expected_lod in [
@@ -425,13 +463,63 @@ def test_reconstruction_output_obj_lods(tmp_path):
         (reconstruction_output_obj_lod13, "1.3"),
         (reconstruction_output_obj_lod22, "2.2"),
     ]:
-        out = asset_func(
-            TylerConfig(concurrency=1),
+        out = cast(
+            Output[Path],
+            asset_func(
+                TylerConfig(concurrency=1),
+                metadata_path,
+                tyler,
+                file_store,
+                version,
+                specs,
+            ),
+        )
+        assert out.value == export_dir
+        assert out.metadata["LoDs"].value == expected_lod
+        assert any(f"--lod-building-part={expected_lod}" in cmd for cmd in ran_commands)
+
+
+def test_tyler_failure_reports_export_and_command_error(tmp_path):
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps({"identificationInfo": {"citation": {"edition": VERSION}}})
+    )
+    runner = MagicMock()
+    runner.run.return_value = CommandResult(2, "", "missing input tiles")
+    tyler = SimpleNamespace(runner=runner)
+
+    with pytest.raises(
+        RuntimeError, match=r"Tyler obj .*LoD 1.2.*exit 2.*missing input tiles"
+    ) as error:
+        reconstruction_output_obj_lod12(
+            TylerConfig(),
             metadata_path,
             tyler,
             file_store,
             version,
-            specs,
+            Specs3DBAGResource(),
         )
-        assert out == export_dir
-        assert any(f"--lod-building-part={expected_lod}" in cmd for cmd in ran_commands)
+    assert str(tmp_path / "stages" / "export" / VERSION) in str(error.value)
+
+
+def test_geopackage_index_failure_reports_layer_and_command_error(tmp_path):
+    tile_id = "10/434/716"
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    export_dir = tmp_path / "stages" / "export" / VERSION
+    quadtree = export_dir / "quadtree.tsv"
+    _make_quadtree_tsv(quadtree, [tile_id])
+    _make_tile_files(export_dir / "t", tile_id)
+    runner = MagicMock()
+    runner.run.side_effect = [
+        CommandResult(0, ""),
+        CommandResult(1, "", "missing layer"),
+    ]
+    gdal = SimpleNamespace(runner=runner)
+
+    with pytest.raises(
+        RuntimeError, match=r"ogrinfo .*spatial index for pand .*exit 1.*missing layer"
+    ):
+        geopackage(file_store, gdal, version, quadtree)
