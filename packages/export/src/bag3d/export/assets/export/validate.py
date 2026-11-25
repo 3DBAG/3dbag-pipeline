@@ -27,6 +27,7 @@ from bag3d.common.resources.files import (
 )
 from bag3d.common.resources.specs import Specs3DBAGResource
 from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.common.utils.files import tile_basename
 from dagster import (
     AssetIn,
     AssetKey,
@@ -333,7 +334,6 @@ def cityjson(
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
-    url_file_id: str | None = None,
     *,
     tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> CityJSONFileResults:
@@ -401,7 +401,7 @@ def cityjson(
         results.download = create_download_link(
             url_root=url_root,
             format="cityjson",
-            file_id=url_file_id or file_id,
+            file_id=file_id,
             version=version,
             tiles_dir_name=tiles_dir_name,
         )
@@ -487,13 +487,11 @@ def obj(
     file_id: str,
     url_root: str,
     version: str,
-    archive_file_id: str | None = None,
-    url_file_id: str | None = None,
     *,
     tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> OBJFileResults:
     results = OBJFileResults()
-    inputzipfile = dirpath.joinpath(f"{archive_file_id or file_id}-obj.zip")
+    inputzipfile = dirpath / f"{file_id}-obj.zip"
     inputfiles = [
         dirpath / f"{file_id}-LoD12-3D.obj",
         dirpath / f"{file_id}-LoD12-3D.obj.mtl",
@@ -535,7 +533,7 @@ def obj(
         results.download = create_download_link(
             url_root=url_root,
             format="obj",
-            file_id=url_file_id or file_id,
+            file_id=file_id,
             version=version,
             tiles_dir_name=tiles_dir_name,
         )
@@ -655,14 +653,13 @@ def gpkg(
     url_root: str,
     version: str,
     specs: Specs3DBAGResource,
-    url_file_id: str | None = None,
     *,
     tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> GPKGFileResults:
     results = GPKGFileResults()
     archive = dirpath / f"{file_id}.gpkg.gz"
     results.download = create_download_link(
-        url_root, "gpkg", url_file_id or file_id, version, tiles_dir_name=tiles_dir_name
+        url_root, "gpkg", file_id, version, tiles_dir_name=tiles_dir_name
     )
     with archive.open("rb") as stream:
         results.sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -691,8 +688,6 @@ def ifc(
     file_id: str,
     url_root: str,
     version: str,
-    archive_file_id: str | None = None,
-    url_file_id: str | None = None,
     *,
     tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> IFCFileResults:
@@ -708,7 +703,7 @@ def ifc(
     Returns: The aggregated validation results. See ``IFCFileResults`` for details.
     """
     results = IFCFileResults()
-    inputzipfile = dirpath.joinpath(f"{archive_file_id or file_id}-ifc.zip")
+    inputzipfile = dirpath / f"{file_id}-ifc.zip"
 
     # test zip
     try:
@@ -737,7 +732,7 @@ def ifc(
         results.download = create_download_link(
             url_root=url_root,
             format="ifc",
-            file_id=url_file_id or file_id,
+            file_id=file_id,
             version=version,
             tiles_dir_name=tiles_dir_name,
         )
@@ -769,7 +764,7 @@ def create_download_link(
     *,
     tiles_dir_name: str = DEFAULT_TILES_DIR_NAME,
 ) -> str:
-    tile_id = file_id.replace("-", "/")
+    tile_dir = tile_basename(Path(tiles_dir_name), file_id.replace("-", "/")).parent
     version_stripped = version.replace(".", "")
     if format == "cityjson":
         filename = f"{file_id}.city.json.gz"
@@ -784,7 +779,8 @@ def create_download_link(
             f"Cannot build a download link for tile {file_id} in release {version} "
             f"with format {format!r}. Use cityjson, obj, gpkg, or ifc."
         )
-    return f"{url_root}/{version_stripped}/{quote(tiles_dir_name, safe='')}/{tile_id}/{filename}"
+    relative_path = quote((tile_dir / filename).as_posix(), safe="/")
+    return f"{url_root}/{version_stripped}/{relative_path}"
 
 
 def _check_formats(inputs) -> TileResults:
@@ -792,7 +788,7 @@ def _check_formats(inputs) -> TileResults:
     (
         validation_runner,
         gdal_runner,
-        dirpath,
+        path_tiles_dir,
         tile_id,
         url_root,
         version,
@@ -803,7 +799,9 @@ def _check_formats(inputs) -> TileResults:
     system = CommandRunner()
 
     specs = Specs3DBAGResource()
-    file_id = tile_id.rsplit("/", 1)[-1]
+    basename = tile_basename(path_tiles_dir, tile_id)
+    dirpath = basename.parent
+    file_id = basename.name
     cj_results = cityjson(
         system=system,
         validation_runner=validation_runner,
@@ -812,7 +810,6 @@ def _check_formats(inputs) -> TileResults:
         url_root=url_root,
         version=version,
         specs=specs,
-        url_file_id=tile_id.replace("/", "-"),
         tiles_dir_name=tiles_dir_name,
     )
     obj_results = obj(
@@ -822,8 +819,6 @@ def _check_formats(inputs) -> TileResults:
         file_id,
         url_root=url_root,
         version=version,
-        archive_file_id=tile_id.replace("/", "-"),
-        url_file_id=tile_id.replace("/", "-"),
         tiles_dir_name=tiles_dir_name,
     )
     gpkg_results = gpkg(
@@ -834,7 +829,6 @@ def _check_formats(inputs) -> TileResults:
         url_root=url_root,
         version=version,
         specs=specs,
-        url_file_id=tile_id.replace("/", "-"),
         tiles_dir_name=tiles_dir_name,
     )
     ifc_results = ifc(
@@ -843,8 +837,6 @@ def _check_formats(inputs) -> TileResults:
         file_id,
         url_root=url_root,
         version=version,
-        archive_file_id=tile_id.replace("/", "-"),
-        url_file_id=tile_id.replace("/", "-"),
         tiles_dir_name=tiles_dir_name,
     )
     return TileResults(tile_id, cj_results, obj_results, gpkg_results, ifc_results)
@@ -920,7 +912,7 @@ def compressed_tiles_validation(
         (
             validation_runner,
             gdal_runner,
-            (path_tiles_dir / tile_id).parent,
+            path_tiles_dir,
             tile_id,
             url_root,
             version_str,

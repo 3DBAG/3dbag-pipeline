@@ -11,6 +11,7 @@ from zipfile import ZipFile
 from bag3d.common.resources.executables import CommandRunner, GDALResource
 from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.common.utils.files import tile_basename, tile_sidecars
 from dagster import (
     AssetIn,
     AssetKey,
@@ -90,8 +91,8 @@ def geopackage(
     # Find the first leaf that actually has exported data
     first_i_with_data = None
     for i, lid in enumerate(leaf_ids):
-        path_first = create_path_layer(lid, path_tiles_dir)
-        if path_first.exists():
+        path_first = tile_basename(path_tiles_dir, lid).with_suffix(".gpkg")
+        if path_first.is_file():
             first_i_with_data = i
             break
     if first_i_with_data is None:
@@ -104,7 +105,7 @@ def geopackage(
 
     # Init the gpkg-s so that we can append to them later
     lid = leaf_ids[first_i_with_data]
-    first_path_with_data = create_path_layer(lid, path_tiles_dir)
+    first_path_with_data = tile_basename(path_tiles_dir, lid).with_suffix(".gpkg")
     cmd = [
         "OGR_SQLITE_SYNCHRONOUS=OFF",
         "{exe}",
@@ -125,11 +126,11 @@ def geopackage(
     nr_failed = first_i_with_data
     failed_sample = leaf_ids[: min(first_i_with_data, 10)]
     failure_details = [
-        f"{lid}: {create_path_layer(lid, path_tiles_dir)} was missing"
+        f"{lid}: {tile_basename(path_tiles_dir, lid).with_suffix('.gpkg')} was missing"
         for lid in failed_sample
     ]
     for lid in leaf_ids[first_i_with_data + 1 :]:
-        path_with_data = create_path_layer(lid, path_tiles_dir)
+        path_with_data = tile_basename(path_tiles_dir, lid).with_suffix(".gpkg")
         cmd = [
             "OGR_SQLITE_SYNCHRONOUS=OFF",
             "{exe}",
@@ -213,10 +214,6 @@ def geopackage(
     return Output(path_nl_zip, metadata=metadata)
 
 
-def create_path_layer(id_layer, path_tiles_dir):
-    return path_tiles_dir.joinpath(id_layer).with_suffix(".gpkg")
-
-
 def compress_files(input_tile_path: tuple[str, Path]) -> dict[str, Path]:
     tile_id, tiles_dir = input_tile_path
     try:
@@ -229,15 +226,12 @@ def compress_files(input_tile_path: tuple[str, Path]) -> dict[str, Path]:
 
 
 def _compress_files(tile_id: str, tiles_dir: Path) -> dict[str, Path]:
-    basename = tiles_dir / tile_id
-    lid_in_filename = tile_id.replace("/", "-")
+    basename = tile_basename(tiles_dir, tile_id)
     missing = {}
 
     # OBJ
-    obj_zip = basename.with_name(f"{lid_in_filename}-obj.zip")
-    obj_files = tuple(basename.parent.glob(f"{basename.name}*.obj")) + tuple(
-        basename.parent.glob(f"{basename.name}*.mtl")
-    )
+    obj_zip = basename.with_name(f"{basename.name}-obj.zip")
+    obj_files = tile_sidecars(basename, ".obj", ".mtl")
     if not obj_files and not obj_zip.exists():
         missing["OBJ"] = basename
     with ZipFile(
@@ -268,8 +262,8 @@ def _compress_files(tile_id: str, tiles_dir: Path) -> dict[str, Path]:
         missing["GeoPackage"] = gpkg_file
 
     # IFC
-    ifc_zip = basename.with_name(f"{lid_in_filename}-ifc.zip")
-    ifc_files = tuple(basename.parent.glob(f"{basename.name}*.ifc"))
+    ifc_zip = basename.with_name(f"{basename.name}-ifc.zip")
+    ifc_files = tile_sidecars(basename, ".ifc")
     if not ifc_files and not ifc_zip.exists():
         missing["IFC"] = basename
     with ZipFile(

@@ -1,5 +1,7 @@
 """IFC tile export."""
 
+import re
+from collections.abc import Iterator
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
 from os import getenv
@@ -7,6 +9,7 @@ from pathlib import Path
 
 from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
+from bag3d.common.utils.files import tile_basename
 from dagster import AssetKey, Config, MetadataValue, Output, asset, get_dagster_logger
 from pydantic import Field
 
@@ -33,6 +36,18 @@ def _convert_tile(args: tuple[Path, bool]) -> list[Path]:
     )
 
 
+def _cityjson_tiles(tiles_dir: Path, suffix: str) -> Iterator[Path]:
+    for path in tiles_dir.glob(f"*/*/*-*-*{suffix}"):
+        file_id = path.name.removesuffix(suffix)
+        if re.fullmatch(r"[0-9]+-[0-9]+-[0-9]+", file_id):
+            tile_id = file_id.replace("-", "/")
+            if (
+                path == tile_basename(tiles_dir, tile_id).with_suffix(suffix)
+                and path.is_file()
+            ):
+                yield path
+
+
 @asset(
     deps={AssetKey(("export", "reconstruction_output_cityjson"))},
     pool="ifc",
@@ -52,9 +67,9 @@ def reconstruction_output_ifc(
     """
     export_dir = file_store.stage_subdir("export", version.version)
     path_tiles_dir = export_dir / tiles_dir.name
-    cityjson_files = sorted(path_tiles_dir.rglob("*.city.json"))
+    cityjson_files = sorted(_cityjson_tiles(path_tiles_dir, ".city.json"))
     if not cityjson_files:
-        compressed = next(path_tiles_dir.rglob("*.city.json.gz"), None)
+        compressed = next(_cityjson_tiles(path_tiles_dir, ".city.json.gz"), None)
         detail = (
             f" Found a compressed CityJSON tile at {compressed}." if compressed else ""
         )

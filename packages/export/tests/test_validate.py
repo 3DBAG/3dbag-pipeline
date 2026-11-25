@@ -38,7 +38,7 @@ def test_compressed_tiles_validation_uses_configured_directory(tmp_path, monkeyp
     version = ReleaseVersionResource(version="local-run")
     tiles_dir = TilesDirResource(name="custom-tiles")
     export_dir = file_store.stage_subdir("export", version.version)
-    tile = export_dir / tiles_dir.name / "10/434/716"
+    tile = export_dir / tiles_dir.name / "10/434/10-434-716"
     tile.parent.mkdir(parents=True)
 
     export_index = export_dir / "export_index.csv"
@@ -50,11 +50,11 @@ def test_compressed_tiles_validation_uses_configured_directory(tmp_path, monkeyp
     tile.with_suffix(".gpkg.gz").write_bytes(gzip.compress(b"test geopackage"))
     with zipfile.ZipFile(tile.with_name("10-434-716-obj.zip"), "w") as archive:
         for lod in ("12", "13", "22"):
-            archive.writestr(f"716-LoD{lod}-3D.obj", "")
-            archive.writestr(f"716-LoD{lod}-3D.obj.mtl", "")
+            archive.writestr(f"{tile.name}-LoD{lod}-3D.obj", "")
+            archive.writestr(f"{tile.name}-LoD{lod}-3D.obj.mtl", "")
     with zipfile.ZipFile(tile.with_name("10-434-716-ifc.zip"), "w") as archive:
         for lod in ("0", "1.2", "1.3", "2.2"):
-            archive.writestr(f"716-{lod}.ifc", "")
+            archive.writestr(f"{tile.name}-{lod}.ifc", "")
 
     def fake_val3dity(runner, path, report_path):
         assert path.is_file()
@@ -91,7 +91,7 @@ def test_compressed_tiles_validation_uses_configured_directory(tmp_path, monkeyp
     assert output.value == export_dir / "validate_compressed_files.csv"
     with output.value.open(newline="") as stream:
         row = next(csv.DictReader(stream))
-    prefix = "https://data.3dbag.nl/20261125/custom-tiles/10/434/716/10-434-716"
+    prefix = "https://data.3dbag.nl/20261125/custom-tiles/10/434/10-434-716"
     assert row["cj_download"] == f"{prefix}.city.json.gz"
     assert row["gpkg_download"] == f"{prefix}.gpkg.gz"
     assert row["obj_download"] == f"{prefix}-obj.zip"

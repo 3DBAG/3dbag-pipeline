@@ -228,13 +228,12 @@ def _make_quadtree_tsv(path: Path, tile_ids: list[str]) -> None:
             writer.writerow([tid, "3", "10", "true", "POLYGON((0 0,1 0,1 1,0 1,0 0))"])
 
 
-def _make_tile_files(tiles_dir: Path, tile_id: str) -> None:
+def _make_tile_files(basename: Path) -> None:
     """Create placeholder Tyler tile files."""
-    basename = tiles_dir / tile_id
     basename.parent.mkdir(parents=True, exist_ok=True)
     (basename.with_suffix(".city.json")).write_text("{}")
     (basename.with_suffix(".gpkg")).write_bytes(b"")
-    (basename.with_name(f"{tile_id.replace('/', '-')}-ifc.zip")).write_bytes(b"")
+    (basename.with_name(f"{basename.name}-ifc.zip")).write_bytes(b"")
     for suffix in ("-lod12.obj", "-lod13.obj", "-lod22.obj"):
         (basename.with_name(f"{basename.name}{suffix}")).write_text("")
 
@@ -253,8 +252,8 @@ def test_export_index_reads_quadtree(tmp_path, tiles_resource, directory_name):
     tiles_dir = export_dir / directory_name
 
     _make_quadtree_tsv(export_dir / "quadtree.tsv", tile_ids)
-    for tid in tile_ids:
-        _make_tile_files(tiles_dir, tid)
+    _make_tile_files(tiles_dir / "10/434/10-434-716")
+    _make_tile_files(tiles_dir / "10/435/10-435-717")
 
     output = cast(
         Output[Path],
@@ -287,27 +286,28 @@ def test_export_index_reads_quadtree(tmp_path, tiles_resource, directory_name):
 
 def test_compressed_tiles(tmp_path):
     """compressed_tiles gzips CityJSON/GPKG and zips OBJ files, removing originals."""
-    tile_id = "10/434/716"
-    lid = tile_id.replace("/", "-")
+    tile_id = "10/434/71"
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
     tiles_resource = TilesDirResource(name="custom-tiles")
 
     export_dir = tmp_path / "stages" / "export" / VERSION
     tiles_dir = export_dir / tiles_resource.name
-    tile_dir = tiles_dir / tile_id
-    tile_dir.parent.mkdir(parents=True, exist_ok=True)
+    basename = tiles_dir / "10/434/10-434-71"
+    basename.parent.mkdir(parents=True, exist_ok=True)
 
     # Create tile files
-    cj_file = tile_dir.with_suffix(".city.json")
-    gpkg_file = tile_dir.with_suffix(".gpkg")
-    obj_file = tile_dir.with_suffix(".obj")
-    mtl_file = tile_dir.with_suffix(".mtl")
+    cj_file = basename.with_suffix(".city.json")
+    gpkg_file = basename.with_suffix(".gpkg")
+    obj_file = basename.with_name("10-434-71-lod22.obj")
+    mtl_file = basename.with_name("10-434-71-lod22.obj.mtl")
 
     cj_file.write_text('{"type":"CityJSON"}')
     gpkg_file.write_bytes(b"fake-gpkg-content")
     obj_file.write_text("v 0 0 0")
     mtl_file.write_text("newmtl material")
+    neighboring_obj_file = basename.with_name("10-434-716-lod22.obj")
+    neighboring_obj_file.write_text("v 0 0 0")
 
     # Create export_index.csv as input
     export_index_path = export_dir / "export_index.csv"
@@ -330,9 +330,9 @@ def test_compressed_tiles(tmp_path):
     )
 
     # Compressed files exist
-    assert tile_dir.with_suffix(".city.json.gz").exists()
-    assert tile_dir.with_suffix(".gpkg.gz").exists()
-    assert tile_dir.with_name(f"{lid}-obj.zip").exists()
+    assert basename.with_suffix(".city.json.gz").exists()
+    assert basename.with_suffix(".gpkg.gz").exists()
+    assert basename.with_name("10-434-71-obj.zip").exists()
     assert output.metadata["artifact path"] == MetadataValue.path(tiles_dir)
     assert output.metadata["tiles processed"].value == 1
     assert output.metadata["missing inputs by format"].value == {"IFC": 1}
@@ -342,6 +342,7 @@ def test_compressed_tiles(tmp_path):
     assert not gpkg_file.exists()
     assert not obj_file.exists()
     assert not mtl_file.exists()
+    assert neighboring_obj_file.exists()
 
 
 def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
@@ -370,7 +371,7 @@ def test_reconstruction_output_gpkg_exports_quadtree(tmp_path):
         (debug_dir / "quadtree_level-3.tsv").write_text(
             "node_id\tnode_level\tnr_items\twkt\n3/434/716\t3\t10\tPOLYGON((0 0,1 0,1 1,0 1,0 0))\n"
         )
-        _make_tile_files(Path(cwd) / tiles_resource.name, "3/434/716")
+        _make_tile_files(Path(cwd) / tiles_resource.name / "3/434/3-434-716")
         return CommandResult(0, "")
 
     runner.run.side_effect = run
@@ -530,15 +531,25 @@ def test_tyler_failure_reports_export_and_command_error(tmp_path):
     assert str(tmp_path / "stages" / "export" / VERSION) in str(error.value)
 
 
-def test_geopackage_index_failure_reports_layer_and_command_error(tmp_path):
-    tile_id = "10/434/716"
+@pytest.mark.parametrize(
+    ("tiles_dir_name", "tile_id", "tile_file"),
+    [
+        ("t", "0/0/0", "0/0/0-0-0.gpkg"),
+        ("custom-tiles", "10/434/716", "10/434/10-434-716.gpkg"),
+    ],
+)
+def test_geopackage_index_failure_reports_layer_and_command_error(
+    tmp_path, tiles_dir_name, tile_id, tile_file
+):
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
-    tiles_resource = TilesDirResource(name="custom-tiles")
+    tiles_resource = TilesDirResource(name=tiles_dir_name)
     export_dir = tmp_path / "stages" / "export" / VERSION
     quadtree = export_dir / "quadtree.tsv"
     _make_quadtree_tsv(quadtree, [tile_id])
-    _make_tile_files(export_dir / tiles_resource.name, tile_id)
+    gpkg_path = export_dir / tiles_dir_name / tile_file
+    gpkg_path.parent.mkdir(parents=True)
+    gpkg_path.touch()
     runner = MagicMock()
     runner.run.side_effect = [
         CommandResult(0, ""),
@@ -552,4 +563,28 @@ def test_geopackage_index_failure_reports_layer_and_command_error(tmp_path):
         geopackage(file_store, gdal, version, quadtree, tiles_resource)
 
     command = shlex.split(runner.run.call_args_list[0].args[0])
-    assert str(export_dir / tiles_resource.name / f"{tile_id}.gpkg") in command
+    assert command[-1] == str(gpkg_path)
+
+
+def test_geopackage_rejects_short_tile_filename(tmp_path):
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version=VERSION)
+    tiles_resource = TilesDirResource(name="t")
+    export_dir = file_store.stage_subdir("export", version.version)
+    quadtree = export_dir / "debug" / "quadtree.tsv"
+    _make_quadtree_tsv(quadtree, ["0/0/0"])
+    short_path = export_dir / "t/0/0/0.gpkg"
+    short_path.parent.mkdir(parents=True)
+    short_path.touch()
+    runner = MagicMock()
+
+    with pytest.raises(ValueError, match=r"Did not find any \.gpkg file"):
+        geopackage(
+            file_store,
+            SimpleNamespace(runner=runner),
+            version,
+            quadtree,
+            tiles_resource,
+        )
+
+    runner.run.assert_not_called()

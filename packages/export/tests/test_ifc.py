@@ -124,9 +124,8 @@ def test_compress_files_zips_ifc(tmp_path):
     """compress_files zips the per-LoD IFC files and removes the originals."""
     export_dir = tmp_path / "export"
     tile_id = "10/434/716"
-    lid = tile_id.replace("/", "-")
     tiles_dir = export_dir / "tiles"
-    base = tiles_dir / tile_id
+    base = tiles_dir / "10/434/10-434-716"
     base.parent.mkdir(parents=True, exist_ok=True)
 
     (base.with_suffix(".city.json")).write_text("{}")
@@ -138,7 +137,7 @@ def test_compress_files_zips_ifc(tmp_path):
 
     compress_files((tile_id, tiles_dir))
 
-    ifc_zip = base.parent / f"{lid}-ifc.zip"
+    ifc_zip = base.with_name("10-434-716-ifc.zip")
     assert ifc_zip.exists()
     with zipfile.ZipFile(ifc_zip) as zf:
         assert sorted(zf.namelist()) == sorted(
@@ -171,9 +170,10 @@ def test_reconstruction_output_ifc(tmp_path):
     tiles_resource = TilesDirResource(name="custom-tiles")
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    base = export_dir / tiles_resource.name / "10/434/716"
+    base = export_dir / tiles_resource.name / "10/434/10-434-716"
     base.parent.mkdir(parents=True, exist_ok=True)
     (base.with_suffix(".city.json")).write_text(json.dumps(_minimal_cityjson()))
+    base.with_name("716.city.json").write_text(json.dumps(_minimal_cityjson()))
 
     with patch("bag3d.export.assets.export.ifc.ProcessPoolExecutor", _SyncPool):
         reconstruction_output_ifc(
@@ -182,3 +182,4 @@ def test_reconstruction_output_ifc(tmp_path):
 
     for lod in ("0", "1.2", "1.3", "2.2"):
         assert (base.with_name(f"{base.name}-{lod}.ifc")).exists()
+    assert not list(base.parent.glob("716-*.ifc"))
