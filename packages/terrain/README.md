@@ -58,7 +58,7 @@ Create a run configuration, for example `/tmp/terrain-run.yaml`:
 
 ```yaml
 resources:
-  file_store:
+  terrain_store:
     config:
       root_dir: /absolute/path/to/terrain-data
   terrain:
@@ -83,10 +83,12 @@ uv run dg launch --job terrain --config-file /tmp/terrain-run.yaml
 
 The launchpad in `uv run dg dev` exposes the same jobs and settings. The shared
 local workspace also includes `bag3d.terrain.code_location`. `BAG3D_FILESTORE`
-can supply the file-store root instead of run configuration.
+supplies the general file-store root. Terrain uses `BAG3D_TERRAIN_DIR` when set,
+otherwise `<BAG3D_FILESTORE>/terrain`. Set `terrain_store.root_dir` in run
+configuration for a standalone run without these environment variables.
 
 The final materialization reports a manifest under
-`stages/terrain/builds/<content-id>/terrain_xyz/manifest.json`. The neighboring
+`<terrain_store>/builds/<content-id>/terrain_xyz/manifest.json`. The neighboring
 `xyz/` directory contains `tilejson.json` and `{z}/{x}/{y}.webp`. The base URL is
 metadata for the eventual HTTP server; this package does not start or configure
 a server. The viewer should use Terrarium encoding and the generated TileJSON.
@@ -163,8 +165,12 @@ Processing preserves the local Mapterhorn behavior:
 
 ## Storage, checkpoints and concurrency
 
-Downloads live under `stages/terrain/downloads/`. Generated stages have separate
-content-based directories under `stages/terrain/builds/`. Assets exchange small
+The `terrain_store` FileStoreResource uses `BAG3D_TERRAIN_DIR`, defaulting to
+`<BAG3D_FILESTORE>/terrain`. Gilfoyle production sets `/data/3DBAG/terrain`;
+staging and dev use their own file stores. Downloads live under `downloads/`
+inside this root. Generated stages have separate content-based directories
+under `builds/`. Catalogs and acquisition manifests live in `catalogs/` and
+`manifests/`. Assets exchange small
 JSON manifest paths, not arrays. Manifests retain content hashes, source URLs,
 spatial bounds and height references. Each stage reports counts, bytes and
 relevant coverage metadata to Dagster.
@@ -183,6 +189,33 @@ assets have local work-unit checkpoints rather than one Dagster partition per
 source tile. Concurrent writes to the same checkpoint/export fail promptly on
 file locks. Old completed builds are retained; remove them explicitly when no
 longer needed.
+
+## Integration snapshots
+
+Production snapshot generation reads the last successful `terrain/ahn_download`
+materialization through the shared Dagster IO manager. Materialize
+`terrain_download` or `terrain_ahn` with nationwide coverage, or bounds covering
+the integration AOI plus its sampling buffer and at least the default 500 m
+interpolation radius, before running core's `integration_data` job. Its
+`integration_terrain` asset crops the raw AHN rasters on their original 5 m grid,
+including interpolation neighbors, into the snapshot's `terrain/` directory.
+`terrain/catalog.json` retains relative paths, hashes, coverage and provenance.
+The root manifest declares it as `sources.terrain`.
+
+With `BAG3D_INPUT_MODE=integration_data`, terrain exposes `terrain_ahn`. It
+validates the snapshot and supplies the raw inputs to the ordinary offline
+normalization and fill steps. The snapshot is mounted read-only, and generated
+files and runtime manifests go into the deployment's writable `terrain_store`.
+The filled NAP manifest continues through the shared IO manager to underpasses.
+The snapshot supplies the AOI when `bounds` is omitted. An explicit bounding box
+must fit inside that AOI and the interpolation radius must be at most 500 m.
+Regenerate snapshots lacking terrain data before running `terrain_ahn`.
+
+Existing terrain data under `<BAG3D_FILESTORE>/stages/terrain` can continue to be
+used by setting `BAG3D_TERRAIN_DIR` to that exact directory. To adopt the new
+root, rematerialize acquisition and processing there. Manifests and checkpoints
+contain absolute paths, so copying the old directory alone is insufficient.
+Retain the old directory while consumers still reference its materializations.
 
 ## Validation
 

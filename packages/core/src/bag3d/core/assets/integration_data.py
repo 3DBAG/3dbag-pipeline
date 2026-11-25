@@ -17,6 +17,7 @@ from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.resources.executables import PDALResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.terrain import terrain_snapshot
 from bag3d.common.utils.requests import download_file
 from dagster import AssetIn, AssetKey, AutomationCondition, Config, asset
 from lxml import etree  # pyright: ignore[reportAttributeAccessIssue]
@@ -64,6 +65,20 @@ _NATIVE_VECTOR_DATASETS = {
         "xsd": "https://register.geostandaarden.nl/gmlapplicatieschema/top10nl/1.2.0/top10nl.xsd",
     },
 }
+
+# IMGeo code-list field names that GDAL's GML writer rewrites with underscores
+# ("bgt-status" -> "bgt_status"). The XSD-driven re-import in ``stage_bgt_pand``
+# expects the hyphenated names, so ``_clip_native_gml_archive`` restores them
+# after writing the clipped GML.
+_HYPHENATED_FIELDS = ("bgt-status", "plus-status", "LV-publicatiedatum")
+
+
+def _restore_hyphenated_field_names(path: Path) -> None:
+    """Undo GDAL's hyphen-to-underscore rewriting in a freshly written GML file."""
+    data = path.read_text(encoding="utf-8")
+    for field in _HYPHENATED_FIELDS:
+        data = data.replace(f"ogr:{field.replace('-', '_')}", f"ogr:{field}")
+    path.write_text(data, encoding="utf-8")
 
 
 class IntegrationDataConfig(Config):
@@ -140,6 +155,29 @@ def integration_streetlidar(
         lastools,
         pdal,
         streetlidar_root=Path(streetlidar_store.root_dir),
+    )
+
+
+@asset(
+    group_name="integration_data",
+    ins={
+        "ahn_download": AssetIn(key=AssetKey(["terrain", "ahn_download"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
+)
+def integration_terrain(
+    terrain_store: FileStoreResource,
+    ahn_download: Path,
+    staging: Path,
+) -> Path:
+    """Raw AOI AHN rasters and interpolation neighbors from live terrain."""
+    from bag3d.core.terrain_fixture import crop_terrain
+
+    return crop_terrain(
+        ahn_download,
+        Path(terrain_store.root_dir),
+        staging / "terrain",
+        _aoi_bbox(AOI_WKT),
     )
 
 
@@ -406,6 +444,7 @@ def _clip_native_gml_archive(
         )
         if not result.success or not output.is_file():
             raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
+        _restore_hyphenated_field_names(output)
         temp_zip = Path(temp_dir) / destination.name
         with ZipFile(temp_zip, "w", ZIP_DEFLATED) as archive:
             archive.write(output, member)
@@ -973,6 +1012,7 @@ def integration_manifest(
     integration_ahn5,
     integration_ahn6,
     integration_streetlidar,
+    integration_terrain,
     extract_bag,
     extract_bgt,
     extract_top10nl,
@@ -1008,7 +1048,7 @@ def integration_manifest(
     for path in sorted(
         path
         for path in staging.rglob("*")
-        if path.is_file() and path.name != "manifest.json"
+        if path.is_file() and path.name not in {"manifest.json", ".terrain.lock"}
     ):
         digest = sha256_file(path)
         files[str(path.relative_to(staging))] = {
@@ -1022,6 +1062,7 @@ def integration_manifest(
     bag_value = extract_bag if isinstance(extract_bag, tuple) else (extract_bag, {}, "")
     sources = {
         "streetlidar": {"path": rel(integration_streetlidar)},
+        "terrain": {"path": rel(integration_terrain)},
         "bag": {
             "path": rel(integration_bag),
             "metadata": bag_value[1],
@@ -1094,6 +1135,7 @@ def integration_manifest(
         },
         "files": files,
     }
+    terrain_snapshot(staging, manifest)
     _write_json(staging / "manifest.json", manifest)
     root = _publish_integration_snapshot(integration_data_store, staging)
     return root / "manifest.json"

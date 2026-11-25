@@ -1,5 +1,5 @@
 resources:
-  file_store:
+  terrain_store:
     config:
       root_dir: /tmp/bag3d-terrain-data
   terrain:

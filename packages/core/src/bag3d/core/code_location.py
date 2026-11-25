@@ -42,6 +42,7 @@ all_assets = [
     *reconstruction_assets,
     *integration_data_assets,
     AssetSpec(["underpasses", "heights"]),
+    AssetSpec(["terrain", "ahn_download"]),
 ]
 
 all_jobs = [
