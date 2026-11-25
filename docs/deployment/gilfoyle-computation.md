@@ -51,6 +51,8 @@ a direct `deploy-and-run` before merging this workflow.
 
 The API dispatch response identifies the exact admin run. The source Action links
 it, polls every 30 seconds, and reports run/job/step transitions and final outcome.
+It retries transient run-status read errors until the observation deadline.
+The check uses the admin workflow conclusion when that result is available.
 Admin has a five-hour execution timeout; this observer has six hours. Admin's
 concurrency allows the active run to finish and keeps only the newest pending
 request. Superseded pending requests report cancellation. A remote failure or

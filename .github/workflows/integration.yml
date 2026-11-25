@@ -110,6 +110,7 @@ jobs:
             const link = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
             core.info(`Pipeline ${sha}: ${link}`);
             await core.summary.addLink(`Admin run ${run_id} for ${sha}`, link).addEOL().write();
+            const {setTimeout: wait} = require('node:timers/promises');
             const deadline = Date.now() + 355 * 60 * 1000;
             const previous = new Map();
             function transition(key, state, url) {
@@ -119,19 +120,30 @@ jobs:
               }
             }
             try {
-              while (Date.now() < deadline) {
-                const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers});
+              for (; Date.now() < deadline; await wait(30000)) {
+                let run;
+                try {
+                  ({data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers}));
+                  if (!run?.status || (run.status === 'completed' && !run.conclusion)) {
+                    throw new SyntaxError('Incomplete workflow run response');
+                  }
+                } catch (error) {
+                  if (!(error instanceof SyntaxError) && error.status !== 408 &&
+                      !(error.status >= 500 && error.status < 600)) throw error;
+                  transition('Admin run status', `read failed, retrying: ${error.message}`, link);
+                  continue;
+                }
+                previous.delete('Admin run status');
                 transition('Admin run', `${run.status} / ${run.conclusion || 'pending'}`, link);
                 let jobs = [];
                 try {
                   jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
                     owner, repo, run_id, per_page: 100, headers
                   });
+                  previous.delete('Admin job details');
                 } catch (error) {
-                  // A newly queued dispatch can exist before its jobs endpoint.
-                  // Keep observing the returned run ID; never dispatch it again.
-                  if (error.status !== 404) throw error;
-                  transition('Admin job details', 'not available yet', link);
+                  // Job and step transitions are informational. The run status determines the check.
+                  transition('Admin job details', `unavailable: ${error.message}`, link);
                 }
                 for (const job of jobs) {
                   transition(`Job ${job.id} ${job.name}`, `${job.status} / ${job.conclusion || 'pending'}`, job.html_url);
@@ -148,7 +160,6 @@ jobs:
                   }
                   return;
                 }
-                await new Promise(resolve => setTimeout(resolve, 30000));
               }
               throw new Error('Observation timeout');
             } catch (error) {
