@@ -66,6 +66,20 @@ _NATIVE_VECTOR_DATASETS = {
     },
 }
 
+# IMGeo code-list field names that GDAL's GML writer rewrites with underscores
+# ("bgt-status" -> "bgt_status"). The XSD-driven re-import in ``stage_bgt_pand``
+# expects the hyphenated names, so ``_clip_native_gml_archive`` restores them
+# after writing the clipped GML.
+_HYPHENATED_FIELDS = ("bgt-status", "plus-status", "LV-publicatiedatum")
+
+
+def _restore_hyphenated_field_names(path: Path) -> None:
+    """Undo GDAL's hyphen-to-underscore rewriting in a freshly written GML file."""
+    data = path.read_text(encoding="utf-8")
+    for field in _HYPHENATED_FIELDS:
+        data = data.replace(f"ogr:{field.replace('-', '_')}", f"ogr:{field}")
+    path.write_text(data, encoding="utf-8")
+
 
 class IntegrationDataConfig(Config):
     geofilter: str = Field(default=AOI_WKT)
@@ -430,6 +444,7 @@ def _clip_native_gml_archive(
         )
         if not result.success or not output.is_file():
             raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
+        _restore_hyphenated_field_names(output)
         temp_zip = Path(temp_dir) / destination.name
         with ZipFile(temp_zip, "w", ZIP_DEFLATED) as archive:
             archive.write(output, member)

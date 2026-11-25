@@ -338,6 +338,29 @@ def test_clip_native_gml_archive_clips_to_aoi(tmp_path, dataset):
         assert archive.read(member) == b"<clipped/>"
 
 
+def test_restore_hyphenated_field_names(tmp_path):
+    """GDAL's underscore-rewritten IMGeo code-list fields are restored to hyphens."""
+    from bag3d.core.assets.integration_data import _restore_hyphenated_field_names
+
+    gml = tmp_path / "bgt_pand.gml"
+    gml.write_text(
+        "<ogr:bgt_status>bestaand</ogr:bgt_status>"
+        "<ogr:plus_status>gepland</ogr:plus_status>"
+        "<ogr:LV_publicatiedatum>2016-05-05</ogr:LV_publicatiedatum>"
+        "<ogr:bronhouder>G0363</ogr:bronhouder>",
+        encoding="utf-8",
+    )
+
+    _restore_hyphenated_field_names(gml)
+
+    assert gml.read_text(encoding="utf-8") == (
+        "<ogr:bgt-status>bestaand</ogr:bgt-status>"
+        "<ogr:plus-status>gepland</ogr:plus-status>"
+        "<ogr:LV-publicatiedatum>2016-05-05</ogr:LV-publicatiedatum>"
+        "<ogr:bronhouder>G0363</ogr:bronhouder>"
+    )
+
+
 @pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
 def test_clip_native_gml_archive_preserves_previous_fixture_on_failure(
     tmp_path, dataset
