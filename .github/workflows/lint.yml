@@ -15,6 +15,8 @@ concurrency:
 jobs:
   lint:
     name: Lint
+    # Skipped jobs still report the required check on queued commits.
+    if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
