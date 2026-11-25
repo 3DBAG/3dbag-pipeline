@@ -74,17 +74,58 @@ class IntegrationDataConfig(Config):
     )
 
 
+def _integration_staging_dir(store: FileStoreResource) -> Path:
+    """Sibling directory where the snapshot is assembled before publication."""
+    root = Path(store.root_dir).resolve()
+    return root.parent / f".{root.name}.staging"
+
+
+def _reset_integration_staging(store: FileStoreResource) -> Path:
+    """Remove and recreate the staging directory for a fresh snapshot build."""
+    staging = _integration_staging_dir(store)
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(parents=True, exist_ok=True)
+    return staging
+
+
+def _publish_integration_snapshot(store: FileStoreResource, staging: Path) -> Path:
+    """Atomically replace the snapshot root with the assembled staging directory."""
+    root = Path(store.root_dir).resolve()
+    backup = root.parent / f".{root.name}.previous"
+    if backup.exists():
+        shutil.rmtree(backup)
+    if root.exists():
+        root.rename(backup)
+    staging.rename(root)
+    if backup.exists():
+        shutil.rmtree(backup)
+    return root
+
+
 @asset(
     group_name="integration_data",
-    ins={"streetlidar_index": AssetIn(key=AssetKey(["streetlidar", "tile_index"]))},
+    automation_condition=AutomationCondition.eager(),
+)
+def integration_data_staging(integration_data_store: FileStoreResource) -> Path:
+    """Reset and return the staging directory used to assemble the snapshot."""
+    return _reset_integration_staging(integration_data_store)
+
+
+@asset(
+    group_name="integration_data",
+    ins={
+        "streetlidar_index": AssetIn(key=AssetKey(["streetlidar", "tile_index"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_streetlidar(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     streetlidar_store: FileStoreResource,
     computation_db: DatabaseResource,
     streetlidar_index: PostgresTableIdentifier,
+    staging: Path,
     lastools: LASToolsResource,
     pdal: PDALResource,
 ) -> Path:
@@ -94,7 +135,7 @@ def integration_streetlidar(
     return crop_catalog(
         computation_db.connection.dsn,
         streetlidar_index,
-        integration_data_store.path / "streetlidar",
+        staging / "streetlidar",
         _buffered_extent(_aoi_bbox(config.geofilter)),
         lastools,
         pdal,
@@ -334,13 +375,41 @@ def filter_bag_extract(
     return destination
 
 
-def _copy_archive(source: Path, destination: Path) -> Path:
-    """Publish the PDOK archive unchanged; objects are selected at download time."""
+def _clip_native_gml_archive(
+    source: Path, destination: Path, dataset: str, geofilter: str, gdal: GDALResource
+) -> Path:
+    """Clip the downloaded PDOK GML archive to the AOI and republish it.
+
+    PDOK's download geofilter selects whole map sheets, so the downloaded
+    extract overshoots the AOI by kilometres. Clip the native GML locally so
+    the fixture stays AOI-sized.
+    """
+    config = _NATIVE_VECTOR_DATASETS[dataset]
+    feature_type = config["feature_type"]
+    xsd = config["xsd"]
+    member = f"{dataset}_{feature_type}.gml"
+    _aoi_bbox(geofilter)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp_dir:
-        output = Path(temp_dir) / destination.name
-        shutil.copyfile(source, output)
-        output.replace(destination)
+        output = Path(temp_dir) / member
+        result = gdal.runner.run(
+            "{exe} -f GML -clipsrc '{aoi}' -oo XSD='{xsd}' -oo WRITE_GFS=NO "
+            "'{output}' '{input_path}' {feature_type}",
+            exe_name="ogr2ogr",
+            kwargs={
+                "aoi": geofilter,
+                "xsd": xsd,
+                "output": output,
+                "input_path": f"/vsizip/{source}/{member}",
+                "feature_type": feature_type,
+            },
+        )
+        if not result.success or not output.is_file():
+            raise RuntimeError(f"Could not clip {source.name}: {result.stderr}")
+        temp_zip = Path(temp_dir) / destination.name
+        with ZipFile(temp_zip, "w", ZIP_DEFLATED) as archive:
+            archive.write(output, member)
+        temp_zip.replace(destination)
     return destination
 
 
@@ -384,46 +453,66 @@ def _codes_from_clipped_buurtkaart(path: Path) -> set[str]:
 
 @asset(
     group_name="integration_data",
-    ins={"extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"]))},
+    ins={
+        "extract_bag": AssetIn(key=AssetKey(["bag", "extract_bag"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bag(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     extract_bag,
+    staging: Path,
 ) -> Path:
     source, _, shortdate = extract_bag
     return filter_bag_extract(
-        Path(source), integration_data_store.path / "bag", shortdate, config.geofilter
+        Path(source), staging / "bag", shortdate, config.geofilter
     )
 
 
 @asset(
     group_name="integration_data",
-    ins={"extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"]))},
+    ins={
+        "extract_bgt": AssetIn(key=AssetKey(["bgt", "extract_bgt"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_bgt(
-    integration_data_store: FileStoreResource,
+    config: IntegrationDataConfig,
     extract_bgt,
+    staging: Path,
+    gdal: GDALResource,
 ) -> Path:
-    return _copy_archive(
-        Path(extract_bgt), integration_data_store.path / "bgt" / "bgt.zip"
+    return _clip_native_gml_archive(
+        Path(extract_bgt),
+        staging / "bgt" / "bgt.zip",
+        "bgt",
+        config.geofilter,
+        gdal,
     )
 
 
 @asset(
     group_name="integration_data",
-    ins={"extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"]))},
+    ins={
+        "extract_top10nl": AssetIn(key=AssetKey(["top10nl", "extract_top10nl"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_top10nl(
-    integration_data_store: FileStoreResource,
+    config: IntegrationDataConfig,
     extract_top10nl,
+    staging: Path,
+    gdal: GDALResource,
 ) -> Path:
-    return _copy_archive(
+    return _clip_native_gml_archive(
         Path(extract_top10nl),
-        integration_data_store.path / "top10nl" / "top10nl.zip",
+        staging / "top10nl" / "top10nl.zip",
+        "top10nl",
+        config.geofilter,
+        gdal,
     )
 
 
@@ -434,14 +523,15 @@ def integration_top10nl(
             key=AssetKey(["cbs", "extract_cbs_key_figures"])
         ),
         "clipped_buurtkaart": AssetIn(key=AssetKey(["integration_cbs_buurtkaart"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
     },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_cbs_key_figures(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     extract_cbs_key_figures,
     clipped_buurtkaart,
+    staging: Path,
 ) -> Path:
     codes = _codes_from_clipped_buurtkaart(Path(clipped_buurtkaart))
     records = [
@@ -459,9 +549,7 @@ def integration_cbs_key_figures(
             )
         )
     ]
-    return _write_json(
-        integration_data_store.path / "cbs" / "key_figures.json", records
-    )
+    return _write_json(staging / "cbs" / "key_figures.json", records)
 
 
 @asset(
@@ -469,18 +557,19 @@ def integration_cbs_key_figures(
     ins={
         "extract_cbs_buurtkaart": AssetIn(
             key=AssetKey(["cbs", "extract_cbs_buurtkaart"])
-        )
+        ),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
     },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_cbs_buurtkaart(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     extract_cbs_buurtkaart,
+    staging: Path,
     gdal: GDALResource,
 ) -> Path:
     _aoi_bbox(config.geofilter)
-    target = integration_data_store.path / "cbs" / "buurtkaart.gpkg"
+    target = staging / "cbs" / "buurtkaart.gpkg"
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists():
         target.unlink()
@@ -545,19 +634,22 @@ def _download_ahn_tiles(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn3": AssetIn(key=AssetKey(["ahn", "tile_index_ahn3"]))},
+    ins={
+        "tile_index_ahn3": AssetIn(key=AssetKey(["ahn", "tile_index_ahn3"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn3(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     tile_index_ahn3,
+    staging: Path,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
         tile_index_ahn3,
         3,
-        integration_data_store.path / "pointclouds",
+        staging / "pointclouds",
         config.geofilter,
         lastools,
     )
@@ -565,19 +657,22 @@ def integration_ahn3(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn4": AssetIn(key=AssetKey(["ahn", "tile_index_ahn4"]))},
+    ins={
+        "tile_index_ahn4": AssetIn(key=AssetKey(["ahn", "tile_index_ahn4"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn4(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     tile_index_ahn4,
+    staging: Path,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
         tile_index_ahn4,
         4,
-        integration_data_store.path / "pointclouds",
+        staging / "pointclouds",
         config.geofilter,
         lastools,
     )
@@ -585,19 +680,22 @@ def integration_ahn4(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn5": AssetIn(key=AssetKey(["ahn", "tile_index_ahn5"]))},
+    ins={
+        "tile_index_ahn5": AssetIn(key=AssetKey(["ahn", "tile_index_ahn5"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn5(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     tile_index_ahn5,
+    staging: Path,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
         tile_index_ahn5,
         5,
-        integration_data_store.path / "pointclouds",
+        staging / "pointclouds",
         config.geofilter,
         lastools,
     )
@@ -605,19 +703,22 @@ def integration_ahn5(
 
 @asset(
     group_name="integration_data",
-    ins={"tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"]))},
+    ins={
+        "tile_index_ahn6": AssetIn(key=AssetKey(["ahn", "tile_index_ahn6"])),
+        "staging": AssetIn(key=AssetKey(["integration_data_staging"])),
+    },
     automation_condition=AutomationCondition.eager(),
 )
 def integration_ahn6(
     config: IntegrationDataConfig,
-    integration_data_store: FileStoreResource,
     tile_index_ahn6,
+    staging: Path,
     lastools: LASToolsResource,
 ) -> Path:
     return _download_ahn_tiles(
         tile_index_ahn6,
         6,
-        integration_data_store.path / "pointclouds",
+        staging / "pointclouds",
         config.geofilter,
         lastools,
         config.ahn6_allowlist,
@@ -884,10 +985,10 @@ def integration_manifest(
     gdal: GDALResource,
     lastools: LASToolsResource,
 ) -> Path:
-    root = integration_data_store.path
+    staging = _integration_staging_dir(integration_data_store)
     aoi = _aoi_bbox(AOI_WKT)
     validation = _validate_outputs(
-        root,
+        staging,
         Path(integration_bag),
         Path(integration_bgt),
         Path(integration_top10nl),
@@ -906,17 +1007,17 @@ def integration_manifest(
     files: dict[str, dict[str, Any]] = {}
     for path in sorted(
         path
-        for path in root.rglob("*")
+        for path in staging.rglob("*")
         if path.is_file() and path.name != "manifest.json"
     ):
         digest = sha256_file(path)
-        files[str(path.relative_to(root))] = {
+        files[str(path.relative_to(staging))] = {
             "size": path.stat().st_size,
             "sha256": digest,
         }
 
     def rel(path: Path | str) -> str:
-        return str(Path(path).resolve().relative_to(root.resolve()))
+        return str(Path(path).resolve().relative_to(staging.resolve()))
 
     bag_value = extract_bag if isinstance(extract_bag, tuple) else (extract_bag, {}, "")
     sources = {
@@ -937,7 +1038,7 @@ def integration_manifest(
         (4, tile_index_ahn4),
         (5, tile_index_ahn5),
     ):
-        version_dir = root / "pointclouds" / f"AHN{version}"
+        version_dir = staging / "pointclouds" / f"AHN{version}"
         partitions[str(version)] = {
             tile_id: {
                 "path": rel(version_dir / Path(entry["url"]).name),
@@ -952,7 +1053,7 @@ def integration_manifest(
     for tile_id, entry in tile_index_ahn6.items():
         if not entry.get("url"):
             continue
-        path = root / "pointclouds" / "AHN6" / Path(entry["url"]).name
+        path = staging / "pointclouds" / "AHN6" / Path(entry["url"]).name
         if path.is_file():
             x, y = (int(value) for value in tile_id.split("_"))
             batch = f"{x // 10000 * 10000:06d}_{y // 10000 * 10000:06d}"
@@ -993,4 +1094,6 @@ def integration_manifest(
         },
         "files": files,
     }
-    return _write_json(root / "manifest.json", manifest)
+    _write_json(staging / "manifest.json", manifest)
+    root = _publish_integration_snapshot(integration_data_store, staging)
+    return root / "manifest.json"

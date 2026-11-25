@@ -7,6 +7,7 @@ from bag3d.common.resources.executables import (
     GDALResource,
     LASToolsResource,
 )
+from bag3d.common.resources.files import FileStoreResource
 
 from bag3d.core.assets.integration_data import (
     _native_archive_extents,
@@ -242,12 +243,15 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
 
     from bag3d.core.assets import integration_data
 
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+
     # Current indexes use "url" for every AHN version. Include an unselected
     # tile to ensure the manifest only declares files present in this fixture.
     indexes = {}
     expected = {}
     for version in (3, 4, 5):
-        path = tmp_path / "pointclouds" / f"AHN{version}" / "C_25GN1.LAZ"
+        path = staging / "pointclouds" / f"AHN{version}" / "C_25GN1.LAZ"
         path.parent.mkdir(parents=True)
         path.write_bytes(f"clipped AHN{version}".encode())
         indexes[version] = {
@@ -256,7 +260,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         }
         expected[str(version)] = {
             "25gn1": {
-                "path": str(path.relative_to(tmp_path)),
+                "path": str(path.relative_to(staging)),
                 "url": indexes[version]["25gn1"]["url"],
                 "size": path.stat().st_size,
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -267,18 +271,20 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
         Any, integration_data.integration_manifest.op.compute_fn
     ).decorated_fn
     sources = ("bag", "bgt", "top10nl", "cbs_key_figures", "cbs_buurtkaart")
-    kwargs = {f"integration_{name}": tmp_path / name for name in sources}
+    kwargs = {f"integration_{name}": staging / name for name in sources}
     kwargs.update({f"extract_{name}": None for name in sources})
-    kwargs.update({f"integration_ahn{version}": tmp_path for version in (3, 4, 5, 6)})
+    kwargs.update({f"integration_ahn{version}": staging for version in (3, 4, 5, 6)})
     kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
     manifest_path = generate(
-        integration_streetlidar=tmp_path / "streetlidar" / "catalog.json",
-        integration_data_store=SimpleNamespace(path=tmp_path),
+        integration_streetlidar=staging / "streetlidar" / "catalog.json",
+        integration_data_store=SimpleNamespace(root_dir=str(root)),
         tile_index_ahn6={},
         gdal=None,
         lastools=None,
         **kwargs,
     )
+    # The manifest is published into the snapshot root once everything is built.
+    assert manifest_path == root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     assert manifest["fixture_version"] == "3"
     assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
@@ -293,49 +299,124 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
-def test_native_fixture_preserves_entire_archive(tmp_path, dataset):
-    from types import SimpleNamespace
+def test_clip_native_gml_archive_clips_to_aoi(tmp_path, dataset):
     from bag3d.core.assets import integration_data
+    from bag3d.core.assets.integration_data import AOI_WKT
 
-    member = "arbitrary/nested.data"
-    xml = b"arbitrary content"
+    feature = "pand" if dataset == "bgt" else "gebouw"
+    member = f"{dataset}_{feature}.gml"
     source = tmp_path / "source.zip"
     with ZipFile(source, "w") as archive:
-        archive.writestr(member, xml)
-        archive.writestr("original-schema.xsd", b"original companion schema")
+        archive.writestr(member, b"<original/>")
+
+    def run(command, **call_kwargs):
+        kwargs = call_kwargs["kwargs"]
+        assert call_kwargs["exe_name"] == "ogr2ogr"
+        assert kwargs["aoi"] == AOI_WKT
+        assert kwargs["feature_type"] == feature
+        assert kwargs["input_path"] == f"/vsizip/{source}/{member}"
+        kwargs["output"].write_bytes(b"<clipped/>")
+        return CommandResult(0, "", "")
+
+    gdal = Mock(spec=GDALResource, runner=Mock(run=Mock(side_effect=run)))
+    destination = tmp_path / "fixture" / dataset / f"{dataset}.zip"
+
+    assert (
+        integration_data._clip_native_gml_archive(
+            source, destination, dataset, AOI_WKT, gdal
+        )
+        == destination
+    )
+    command = gdal.runner.run.call_args.args[0]
+    assert "-f GML" in command
+    assert "-clipsrc" in command
+    with ZipFile(destination) as archive:
+        assert archive.namelist() == [member]
+        assert archive.read(member) == b"<clipped/>"
+
+
+@pytest.mark.parametrize("dataset", ["bgt", "top10nl"])
+def test_clip_native_gml_archive_preserves_previous_fixture_on_failure(
+    tmp_path, dataset
+):
+    from bag3d.core.assets import integration_data
+    from bag3d.core.assets.integration_data import AOI_WKT
+
+    feature = "pand" if dataset == "bgt" else "gebouw"
+    member = f"{dataset}_{feature}.gml"
+    source = tmp_path / "source.zip"
+    with ZipFile(source, "w") as archive:
+        archive.writestr(member, b"<original/>")
     destination = tmp_path / "fixture" / dataset / f"{dataset}.zip"
     destination.parent.mkdir(parents=True)
     destination.write_bytes(b"previous fixture")
-    fn = getattr(integration_data, f"integration_{dataset}").op.compute_fn.decorated_fn
-    output = fn(
-        integration_data_store=SimpleNamespace(path=tmp_path / "fixture"),
-        **{f"extract_{dataset}": source},
+
+    gdal = Mock(
+        spec=GDALResource,
+        runner=Mock(run=Mock(return_value=CommandResult(1, "", "ogr2ogr failed"))),
     )
-    assert output == destination
-    assert destination.read_bytes() == source.read_bytes()
-    with ZipFile(destination) as archive:
-        assert archive.read(member) == xml
-        assert archive.read("original-schema.xsd") == b"original companion schema"
+
+    with pytest.raises(RuntimeError, match="Could not clip"):
+        integration_data._clip_native_gml_archive(
+            source, destination, dataset, AOI_WKT, gdal
+        )
+
+    assert destination.read_bytes() == b"previous fixture"
 
 
-def test_native_copy_failure_preserves_previous_fixture(tmp_path, monkeypatch):
+def test_publish_integration_snapshot_swaps_staging_into_place(tmp_path):
     from bag3d.core.assets import integration_data
 
-    source = tmp_path / "source.zip"
-    with ZipFile(source, "w") as archive:
-        archive.writestr("bgt_pand.gml", b"original")
-    target = tmp_path / "fixture.zip"
-    target.write_bytes(b"previous")
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    (staging / "bgt").mkdir(parents=True)
+    (staging / "manifest.json").write_text("new manifest")
 
-    def fail(source, destination):
-        destination.write_bytes(b"partial")
-        raise OSError("copy interrupted")
+    result = integration_data._publish_integration_snapshot(
+        FileStoreResource(root_dir=str(root)), staging
+    )
 
-    monkeypatch.setattr(integration_data.shutil, "copyfile", fail)
-    with pytest.raises(OSError, match="interrupted"):
-        integration_data._copy_archive(source, target)
-    assert target.read_bytes() == b"previous"
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["fixture.zip", "source.zip"]
+    assert result == root
+    assert (root / "manifest.json").read_text() == "new manifest"
+    assert (root / "bgt").is_dir()
+    assert not staging.exists()
+
+
+def test_publish_integration_snapshot_replaces_existing_snapshot(tmp_path):
+    from bag3d.core.assets import integration_data
+
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    backup = root.parent / f".{root.name}.previous"
+    root.mkdir(parents=True)
+    (root / "manifest.json").write_text("old manifest")
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / "manifest.json").write_text("new manifest")
+
+    integration_data._publish_integration_snapshot(
+        FileStoreResource(root_dir=str(root)), staging
+    )
+
+    assert (root / "manifest.json").read_text() == "new manifest"
+    assert not staging.exists()
+    assert not backup.exists()
+
+
+def test_reset_integration_staging_clears_previous_staging(tmp_path):
+    from bag3d.core.assets import integration_data
+
+    root = tmp_path / "snapshot"
+    staging = root.parent / f".{root.name}.staging"
+    staging.mkdir(parents=True)
+    (staging / "stale.txt").write_text("stale")
+
+    result = integration_data._reset_integration_staging(
+        FileStoreResource(root_dir=str(root))
+    )
+
+    assert result == staging
+    assert staging.is_dir()
+    assert not (staging / "stale.txt").exists()
 
 
 def test_integration_job_supplies_aoi_for_manual_and_scheduled_runs():
