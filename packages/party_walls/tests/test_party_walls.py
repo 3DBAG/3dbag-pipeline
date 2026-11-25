@@ -11,12 +11,20 @@ from bag3d.common.testing import build_asset_context_for
 
 from bag3d.party_walls.assets.party_walls import (
     PartyWallsConfig,
+    _has_lod_geometry,
     building_surfaces,
 )
 
 
-def _make_feature_bytes(pand_id: str) -> bytes:
-    """Create a minimal CityJSONFeature payload for testing."""
+def _make_feature_bytes(pand_id: str, lod: str | None = "2.2") -> bytes:
+    """Create a minimal CityJSONFeature payload for testing.
+
+    ``lod=None`` produces a building with no geometry, mirroring an "empty"
+    building that the reconstruction did not model at LoD 2.2.
+    """
+    geometry = (
+        [{"type": "Solid", "lod": lod, "boundaries": []}] if lod is not None else []
+    )
     content = {
         "type": "CityJSONFeature",
         "id": pand_id,
@@ -24,7 +32,7 @@ def _make_feature_bytes(pand_id: str) -> bytes:
             pand_id: {
                 "type": "Building",
                 "attributes": {},
-                "geometry": [],
+                "geometry": geometry,
             }
         },
         "vertices": [],
@@ -58,7 +66,9 @@ def _stream_items(path: Path) -> list[dict]:
 _SOURCE_PATHS: dict[str, str] = {}
 
 
-def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
+def _make_refs_and_index(
+    tmp_path: Path, pand_ids: list[str], tile_id: str, lod: str | None = "2.2"
+):
     """Create PackageRef mocks backed by a tile-level reconstruction source."""
     source_path = (
         tmp_path / "stages" / "reconstruction" / tile_id / "reconstruct.ndjson"
@@ -68,7 +78,7 @@ def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
         b"\n".join(
             [
                 _make_root_bytes(),
-                *[_make_feature_bytes(pand_id) for pand_id in pand_ids],
+                *[_make_feature_bytes(pand_id, lod) for pand_id in pand_ids],
             ]
         )
         + b"\n"
@@ -76,7 +86,7 @@ def _make_refs_and_index(tmp_path: Path, pand_ids: list[str], tile_id: str):
     refs_with_bytes = []
     for pand_id in pand_ids:
         ref = cityjson_index.PackageRef(record_id=0, model_id=pand_id)
-        refs_with_bytes.append((ref, _make_feature_bytes(pand_id)))
+        refs_with_bytes.append((ref, _make_feature_bytes(pand_id, lod)))
     _SOURCE_PATHS.clear()
     _SOURCE_PATHS.update({pand_id: str(source_path) for pand_id in pand_ids})
     return refs_with_bytes
@@ -277,3 +287,72 @@ def test_building_surfaces_writes_profile_summary(tmp_path, monkeypatch):
     assert summary["adjacency_rows"] == 2
     assert summary["max_workers"] == 1
     assert len(summary["top_slowest_buildings"]) == 2
+
+
+def test_has_lod_geometry():
+    feature = {
+        "CityObjects": {
+            "lod22": {"geometry": [{"type": "Solid", "lod": "2.2"}]},
+            "lod12": {"geometry": [{"type": "Solid", "lod": "1.2"}]},
+            "no_geometry": {"attributes": {}},
+        }
+    }
+    assert _has_lod_geometry(feature, "lod22") is True
+    assert _has_lod_geometry(feature, "lod12") is False
+    assert _has_lod_geometry(feature, "no_geometry") is False
+    assert _has_lod_geometry(feature, "missing") is False
+
+
+def test_building_surfaces_writes_null_attributes_without_lod22(tmp_path, monkeypatch):
+    """Buildings with no LoD 2.2 geometry are passed through with null surface attributes."""
+    tile_id = "10/434/716"
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    empty_id = "NL.IMBAG.Pand.0363100012207371"
+
+    resource = CityIndexResource(
+        dataset_dir=str(tmp_path / "stages" / "reconstruction")
+    )
+    refs_with_bytes = _make_refs_and_index(tmp_path, [empty_id], tile_id, lod=None)
+    mock_idx = _stub_open_index(refs_with_bytes)
+
+    mock_db = MagicMock()
+    mock_db.connection.get_dict.return_value = []
+
+    import cityjson_index as _cityjson_index
+
+    monkeypatch.setattr(_cityjson_index.OpenedIndex, "open", lambda *a, **kw: mock_idx)
+
+    with (
+        patch(
+            "bag3d.party_walls.assets.party_walls.open_ready_index",
+            return_value=mock_idx,
+        ),
+        build_asset_context_for(building_surfaces) as context,
+    ):
+        result = building_surfaces(
+            context,
+            PartyWallsConfig(concurrency=1),
+            resource,
+            mock_db,
+            file_store,
+        )
+
+    output_paths = cast(list[Path], result)
+    assert len(output_paths) == 1
+
+    output_path = output_paths[0]
+    assert output_path.exists()
+    items = _stream_items(output_path)
+    assert len(items) == 2
+    assert items[0]["type"] == "CityJSON"
+    feature = items[1]
+    assert feature["id"] == empty_id
+    attributes = feature["CityObjects"][empty_id]["attributes"]
+    for name in (
+        "b3_opp_scheidingsmuur",
+        "b3_opp_buitenmuur",
+        "b3_opp_grond",
+        "b3_opp_dak_plat",
+        "b3_opp_dak_schuin",
+    ):
+        assert attributes[name] is None
