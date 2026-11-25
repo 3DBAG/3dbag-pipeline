@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.terrain import terrain_snapshot
 from bag3d.common.resources.database import DatabaseResource
 from bag3d.common.streetlidar import (
     TILE_INDEX,
@@ -236,6 +237,8 @@ def validate_fixture_manifest(root: Path) -> FixtureManifest:
             sources["streetlidar"]["path"],
             lambda name: _verify(root, manifest, name),
         )
+    if "terrain" in sources:
+        terrain_snapshot(root, manifest)
     return FixtureManifest(root, manifest)
 
 

@@ -21,7 +21,8 @@ The operation log records the executable version, full pipeline SHA, fixture
 path and manifest SHA-256. The dev checkout must include the integration
 Compose overlay. b3d accepts fixture versions `"2"`/`2` and `"3"`/`3`, checks the AOI
 and required AHN partitions, and loads manifest-derived runner overrides after
-the preset. The snapshot mounts read-only on core, Dagster webserver and daemon.
+the preset. The snapshot mounts read-only on core, terrain, underpasses, Dagster webserver
+and daemon.
 An empty AHN6 selection stays empty. Persistent presets and the snapshot are
 preserved. Staging and production do not automatically select this overlay.
 
@@ -99,3 +100,27 @@ cropped files. Fixture adapters load that catalog into the deployment's PostGIS
 index; underpasses reads the snapshot through a read-only mount. Existing version
 2/3 snapshots without streetlidar retain heuristic heights. See the
 [streetlidar guide](streetlidar.md) for configuration and generation details.
+
+## Terrain input
+
+New snapshots include raw AHN5/6 5 m RD/NAP rasters for the integration AOI plus
+sampling and interpolation neighbors. Production configures `terrain_store`
+with `BAG3D_TERRAIN_DIR=/data/3DBAG/terrain`. The general default is
+`<BAG3D_FILESTORE>/terrain`. Each dev and staging deployment keeps its generated
+terrain in its own file store.
+
+Before generating a snapshot, materialize `terrain_download` or `terrain_ahn`
+with a live acquisition covering the AOI, its 10 m sampling buffer, and at least
+the default 500 m interpolation radius. Core's `integration_terrain` reads that
+materialization through the shared IO manager and crops the on-disk rasters on
+their native grid. The snapshot contains `terrain/catalog.json` and its relative
+raster files, declared and checksummed through `sources.terrain` and the root
+file inventory. The catalog records source provenance and neighbor coverage.
+
+Fixture deployments run `terrain_ahn` offline from those raw inputs before
+underpasses. Runtime manifests and normalized/filled rasters go into the writable
+terrain store. Snapshots without `sources.terrain` must be regenerated for this
+stage. Other existing fixture adapters retain support for versions 2 and 3.
+The fixture terrain job reports missing, corrupt, or insufficient input coverage
+as errors. Production snapshot generation and dev fixture consumption must use
+the same Dagster artifact mounts as their respective terrain code location.
