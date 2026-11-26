@@ -1,6 +1,5 @@
 """Deploy 3D BAG to the publication server and perform the final steps of the release"""
 
-import json
 import tarfile
 from pathlib import Path
 
@@ -9,7 +8,9 @@ from bag3d.common.resources.server_transfer import ServerTransferResource
 from bag3d.common.resources.version import ReleaseVersionResource
 from bag3d.common.types import PostgresTableIdentifier
 from bag3d.common.utils.database import load_sql
-from dagster import AssetIn, AssetKey, Output, asset, get_dagster_logger
+from dagster import AssetIn, AssetKey, MetadataValue, Output, asset, get_dagster_logger
+
+from bag3d.export.assets.export.metadata import read_export_edition
 
 logger = get_dagster_logger("deploy")
 
@@ -31,7 +32,7 @@ logger = get_dagster_logger("deploy")
         AssetKey(("export", "reconstruction_output_obj_lod22")),
     ],
 )
-def compressed_export(metadata, version: ReleaseVersionResource) -> Output[Path]:
+def compressed_export(metadata: Path, version: ReleaseVersionResource) -> Output[Path]:
     """Create a compressed tar.gz archive containing the complete 3D BAG export.
     The archive will be named `export_<version>.tar.gz`.
 
@@ -45,11 +46,22 @@ def compressed_export(metadata, version: ReleaseVersionResource) -> Output[Path]
     export_dir = metadata.parent
     version_str = version.version
     output_tarfile = export_dir.parent / f"export_{version_str}.tar.gz"
-    with tarfile.open(output_tarfile, "w:gz") as tar:
-        tar.add(export_dir, arcname=f"export_{version_str}")
+    logger.info(
+        "Archiving release %s from %s to %s", version_str, export_dir, output_tarfile
+    )
+    try:
+        with tarfile.open(output_tarfile, "w:gz") as tar:
+            tar.add(export_dir, arcname=f"export_{version_str}")
+    except (OSError, tarfile.TarError) as exc:
+        raise RuntimeError(
+            f"Could not archive {export_dir} to {output_tarfile}. "
+            f"Check that the export files are readable and the target has free space. {exc}"
+        ) from exc
     metadata_output = {
         "size [Gb]": output_tarfile.stat().st_size * 1e-9,
-        "path": str(output_tarfile),
+        "artifact path": MetadataValue.path(output_tarfile),
+        "source directory": MetadataValue.path(export_dir),
+        "release": version_str,
     }
     return Output(output_tarfile, metadata=metadata_output)
 
@@ -72,43 +84,41 @@ def transfer_to_server(
         (Path to the deployment directory on the remote server, Path to the compressed export on the remote server)
 
     Raises:
-        AssertionError: If SSH commands fail during transfer or extraction
-        Exception: If SSH connection cannot be established
+        RuntimeError: If the connection, transfer or extraction fails.
     """
 
-    with metadata.open("r") as fo:
-        metadata_json = json.load(fo)
-        version = metadata_json["identificationInfo"]["citation"]["edition"]
-        deploy_dir = Path(target_dir) / version
-        compressed_file = Path(target_dir) / compressed_export.name
+    version = read_export_edition(metadata)
+    deploy_dir = Path(target_dir) / version
+    compressed_file = Path(target_dir) / compressed_export.name
 
+    operation = "open SSH connection"
     try:
         with server.connection as c:
-            # test connection
-            result = c.run("echo connected", hide=True)
-            assert result.ok, "Connection command failed"
-            logger.debug("SSH connection successful")
+            c.run("echo connected", hide=True, warn=False)
 
-            logger.debug(f"Transferring {compressed_export} to {target_dir}")
-            result = c.put(compressed_export, remote=target_dir)
-            logger.debug(f"Transferred: {result}")
-
-            logger.debug(f"Creating deploy_dir {deploy_dir}")
-            result = c.run(f"mkdir -p {deploy_dir}")
-            assert result.ok, "Creating deploy_dir failed"
-
-            logger.debug(f"Decompressing {compressed_file} to {deploy_dir}")
-            result = c.run(
-                f"tar --strip-components=1 -C {deploy_dir} -xzvf {compressed_file}"
-            )
-            assert result.ok, "Decompressing failed"
-
+            operation = f"upload {compressed_export} to {compressed_file}"
             logger.info(
-                f"Deployment successful: Files transferred to {deploy_dir} on {server.host}"
+                "Uploading %s to %s:%s", compressed_export, server.host, compressed_file
             )
-    except Exception as e:
-        logger.error(f"SSH connection failed: {e}")
-        raise
+            c.put(compressed_export, remote=target_dir)
+
+            operation = f"create deployment directory {deploy_dir}"
+            c.run(f"mkdir -p {deploy_dir}", warn=False)
+
+            operation = f"extract {compressed_file} into {deploy_dir}"
+            logger.info(
+                "Extracting %s into %s on %s", compressed_file, deploy_dir, server.host
+            )
+            c.run(
+                f"tar --strip-components=1 -C {deploy_dir} -xzf {compressed_file}",
+                warn=False,
+            )
+
+            operation = "close SSH connection after extraction"
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not {operation} on {server.host} for release {version}. {exc}"
+        ) from exc
     return deploy_dir, compressed_file
 
 
@@ -119,13 +129,22 @@ def transfer_to_publication(
     compressed_export: Path,
     metadata: Path,
     publication_server: ServerTransferResource,
-) -> tuple[Path, Path]:
+) -> Output[tuple[Path, Path]]:
     """Transfer the 3D BAG export to the publication server for public downloads and webservices."""
-    return transfer_to_server(
+    deployment = transfer_to_server(
         publication_server,
         compressed_export,
         metadata,
         publication_server.target_dir,
+    )
+    deploy_dir, compressed_file = deployment
+    return Output(
+        deployment,
+        metadata={
+            "host": publication_server.host,
+            "deployment directory": MetadataValue.path(deploy_dir),
+            "remote archive": MetadataValue.path(compressed_file),
+        },
     )
 
 
@@ -133,11 +152,11 @@ def transfer_to_publication(
     deps={AssetKey(("deploy", "transfer_to_publication"))},
 )
 def webservice_publication(
-    transfer_to_publication,
+    transfer_to_publication: tuple[Path, Path],
     computation_db: DatabaseResource,
     publication_server: ServerTransferResource,
     publication_db: DatabaseResource,
-) -> tuple[str, str, str, str]:
+) -> Output[tuple[str, str, str, str]]:
     """
     Load the layers for WFS, WMS to the database on the publication server.
     The layers will be loaded into the schema `webservice_dev` and
@@ -145,14 +164,28 @@ def webservice_publication(
     be done in the `release` job.
     """
     schema = "webservice_dev"
-    sql = f"drop schema if exists {schema} cascade; create schema {schema};"
-    with publication_server.connection as c:
-        logger.debug(sql)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
-        )
-
     deploy_dir, _ = transfer_to_publication
+    archive = deploy_dir / "3dbag_nl.gpkg.zip"
+    database = f"{publication_db.host}:{publication_db.port}/{publication_db.dbname}"
+    psql = (
+        f"psql --dbname {publication_db.dbname} --port {publication_db.port} "
+        f"--host {publication_db.host} --user {publication_db.user}"
+    )
+
+    def run_remote(command: str, operation: str) -> None:
+        logger.info(
+            "%s on %s for database %s", operation, publication_server.host, database
+        )
+        try:
+            with publication_server.connection as connection:
+                connection.run(command, warn=False)
+        except Exception as exc:
+            raise RuntimeError(
+                f"{operation} failed on {publication_server.host} for database {database}. {exc}"
+            ) from exc
+
+    sql = f"drop schema if exists {schema} cascade; create schema {schema};"
+    run_remote(f"{psql} -c '{sql}'", f"Recreate staging schema {schema}")
 
     for layer in ["pand", "lod12_2d", "lod13_2d", "lod22_2d"]:
         cmd = " ".join(
@@ -167,16 +200,13 @@ def webservice_publication(
                 "-f",
                 "PostgreSQL",
                 f'PG:"dbname={publication_db.dbname} port={publication_db.port} host={publication_db.host} user={publication_db.user} active_schema={schema}"',
-                f"/vsizip/{deploy_dir!s}/3dbag_nl.gpkg.zip",
+                f"/vsizip/{archive}",
                 layer,
                 "-nln",
                 layer + "_tmp",
             ]
         )
-        with publication_server.connection as c:
-            logger.debug(cmd)
-            r = c.run(cmd)
-            logger.debug(r.stdout)
+        run_remote(cmd, f"Load {layer} from {archive} into {schema}.{layer}_tmp")
 
     pand_table = PostgresTableIdentifier(schema, "pand_tmp")
     lod12_2d_tmp = PostgresTableIdentifier(schema, "lod12_2d_tmp")
@@ -200,11 +230,7 @@ def webservice_publication(
         },
     )
     sql = computation_db.connection.print_query(sql)
-    with publication_server.connection as c:
-        logger.debug(sql)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
-        )
+    run_remote(f"{psql} -c '{sql}'", f"Build LoD tables in {schema}")
 
     # Create the intermediary export_index and validate_compressed_files tables so that they can be populated from the CSV files
     export_index = PostgresTableIdentifier(schema, "export_index")
@@ -219,38 +245,18 @@ def webservice_publication(
         },
     )
     sql = computation_db.connection.print_query(sql)
-    with publication_server.connection as c:
-        logger.debug(sql)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
-        )
+    run_remote(
+        f"{psql} -c '{sql}'", f"Create tile index and validation tables in {schema}"
+    )
 
     # Load the CSV files into the intermediary tables
-    with publication_server.connection as c:
-        filepath = f"{deploy_dir}/export_index.csv"
-        copy_cmd = (
-            r"\copy "
-            + str(export_index)
-            + " FROM '"
-            + filepath
-            + "' DELIMITER ',' CSV HEADER "
-        )
-        logger.debug(f"{copy_cmd}")
-        c.run(
-            rf'psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c "{copy_cmd}" '
-        )
-        filepath = f"{deploy_dir}/validate_compressed_files.csv"
-        copy_cmd = (
-            r"\copy "
-            + str(validate_compressed_files)
-            + " FROM '"
-            + filepath
-            + "' DELIMITER ',' CSV HEADER "
-        )
-        logger.debug(f"{copy_cmd}")
-        c.run(
-            rf'psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c "{copy_cmd}" '
-        )
+    for filename, table in (
+        ("export_index.csv", export_index),
+        ("validate_compressed_files.csv", validate_compressed_files),
+    ):
+        filepath = deploy_dir / filename
+        copy_cmd = rf"\copy {table} FROM '{filepath}' DELIMITER ',' CSV HEADER"
+        run_remote(f'{psql} -c "{copy_cmd}"', f"Load {filepath} into {table}")
 
     # Create the public 'tiles' table
     tiles = PostgresTableIdentifier(schema, "tiles")
@@ -263,28 +269,29 @@ def webservice_publication(
         },
     )
     sql = computation_db.connection.print_query(sql)
-    with publication_server.connection as c:
-        logger.debug(sql)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{sql}'"
-        )
+    run_remote(f"{psql} -c '{sql}'", f"Build the webservice tiles table {tiles}")
 
     grant_usage = f"GRANT USAGE ON SCHEMA {schema} TO bag_geoserver;"
     grant_select = f"GRANT SELECT ON ALL TABLES IN SCHEMA {schema} TO bag_geoserver;"
 
-    with publication_server.connection as c:
-        logger.debug(grant_usage)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{grant_usage}'"
-        )
-        logger.debug(grant_select)
-        c.run(
-            f"psql --dbname {publication_db.dbname} --port {publication_db.port} --host {publication_db.host} --user {publication_db.user} -c '{grant_select}'"
-        )
+    run_remote(f"{psql} -c '{grant_usage}'", f"Grant bag_geoserver usage on {schema}")
+    run_remote(
+        f"{psql} -c '{grant_select}'",
+        f"Grant bag_geoserver read access to tables in {schema}",
+    )
 
-    return (
+    tables = (
         f"{schema}.lod12_2d",
         f"{schema}.lod13_2d",
         f"{schema}.lod22_2d",
         f"{schema}.tiles",
+    )
+    return Output(
+        tables,
+        metadata={
+            "database": database,
+            "schema": schema,
+            "tables": MetadataValue.json(list(tables)),
+            "source archive": MetadataValue.path(archive),
+        },
     )

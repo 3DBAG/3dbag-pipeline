@@ -1,8 +1,18 @@
+import csv
+import gzip
 import json
+import zipfile
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
+from bag3d.common.resources.executables import CommandResult
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.specs import Specs3DBAGResource
+from bag3d.common.resources.version import ReleaseVersionResource
+from dagster import Output
 
+from bag3d.export.assets.export import validate
 from bag3d.export.assets.export.attributes import (
     AttributeValidationOutcome,
     AttributeValidationResultOne,
@@ -12,6 +22,7 @@ from bag3d.export.assets.export.attributes import (
 )
 from bag3d.export.assets.export.validate import (
     CityJSONFileResults,
+    ValidationConfig,
     _matches_lod_report,
     _record_cityjson_report,
 )
@@ -20,6 +31,71 @@ from bag3d.export.assets.export.validate import (
 @pytest.fixture
 def specs():
     return Specs3DBAGResource()
+
+
+def test_compressed_tiles_validation_uses_configured_directory(tmp_path, monkeypatch):
+    file_store = FileStoreResource(root_dir=str(tmp_path))
+    version = ReleaseVersionResource(version="local-run")
+    tiles_dir = TilesDirResource(name="custom-tiles")
+    export_dir = file_store.stage_subdir("export", version.version)
+    tile = export_dir / tiles_dir.name / "10/434/10-434-716"
+    tile.parent.mkdir(parents=True)
+
+    export_index = export_dir / "export_index.csv"
+    export_index.write_text("tile_id\n10/434/716\n")
+    metadata = export_dir / "metadata.json"
+    metadata.write_text('{"identificationInfo":{"citation":{"edition":"2026.11.25"}}}')
+
+    tile.with_suffix(".city.json.gz").write_bytes(gzip.compress(b'{"CityObjects":{}}'))
+    tile.with_suffix(".gpkg.gz").write_bytes(gzip.compress(b"test geopackage"))
+    with zipfile.ZipFile(tile.with_name("10-434-716-obj.zip"), "w") as archive:
+        for lod in ("12", "13", "22"):
+            archive.writestr(f"{tile.name}-LoD{lod}-3D.obj", "")
+            archive.writestr(f"{tile.name}-LoD{lod}-3D.obj.mtl", "")
+    with zipfile.ZipFile(tile.with_name("10-434-716-ifc.zip"), "w") as archive:
+        for lod in ("0", "1.2", "1.3", "2.2"):
+            archive.writestr(f"{tile.name}-{lod}.ifc", "")
+
+    def fake_val3dity(runner, path, report_path):
+        assert path.is_file()
+        report_path.touch()
+        return CommandResult(0, ""), {"features": [], "validity": True}
+
+    validation = SimpleNamespace(runner=MagicMock())
+    validation.runner.run.return_value = CommandResult(0, "SUMMARY valid")
+    gdal = SimpleNamespace(runner=MagicMock())
+    monkeypatch.setattr(validate, "_read_val3dity_report", fake_val3dity)
+    monkeypatch.setattr(
+        validate, "inspect_geopackage", lambda *args: ({"layers": []}, {}, [])
+    )
+    monkeypatch.setattr(validate, "inspect_tileset", lambda *args: [])
+
+    tilesets = export_dir / "ogc3dtiles"
+    with patch.object(validate, "ProcessPoolExecutor") as executor:
+        executor.return_value.__enter__.return_value.map.side_effect = map
+        output = validate.compressed_tiles_validation(
+            ValidationConfig(concurrency=1),
+            export_index,
+            metadata,
+            tilesets / "lod12",
+            tilesets / "lod13",
+            tilesets / "lod22",
+            file_store,
+            version,
+            gdal,
+            validation,
+            tiles_dir,
+        )
+
+    assert isinstance(output, Output)
+    assert output.value == export_dir / "validate_compressed_files.csv"
+    with output.value.open(newline="") as stream:
+        row = next(csv.DictReader(stream))
+    prefix = "https://data.3dbag.nl/20261125/custom-tiles/10/434/10-434-716"
+    assert row["cj_download"] == f"{prefix}.city.json.gz"
+    assert row["gpkg_download"] == f"{prefix}.gpkg.gz"
+    assert row["obj_download"] == f"{prefix}-obj.zip"
+    assert row["ifc_download"] == f"{prefix}-ifc.zip"
 
 
 class TestAttributeValidationOutcome:

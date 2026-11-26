@@ -1,15 +1,19 @@
 """IFC tile export."""
 
+import re
+from collections.abc import Iterator
 from concurrent.futures import ProcessPoolExecutor
+from itertools import islice
 from os import getenv
 from pathlib import Path
 
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
-from dagster import AssetKey, Config, asset, get_dagster_logger
+from bag3d.common.utils.files import tile_basename
+from dagster import AssetKey, Config, MetadataValue, Output, asset, get_dagster_logger
 from pydantic import Field
 
-from bag3d.export.ifc.convert import convert_cityjson_to_ifc
+from bag3d.export.ifc.convert import LODS, convert_cityjson_to_ifc
 
 logger = get_dagster_logger("export.ifc")
 
@@ -32,6 +36,18 @@ def _convert_tile(args: tuple[Path, bool]) -> list[Path]:
     )
 
 
+def _cityjson_tiles(tiles_dir: Path, suffix: str) -> Iterator[Path]:
+    for path in tiles_dir.glob(f"*/*/*-*-*{suffix}"):
+        file_id = path.name.removesuffix(suffix)
+        if re.fullmatch(r"[0-9]+-[0-9]+-[0-9]+", file_id):
+            tile_id = file_id.replace("-", "/")
+            if (
+                path == tile_basename(tiles_dir, tile_id).with_suffix(suffix)
+                and path.is_file()
+            ):
+                yield path
+
+
 @asset(
     deps={AssetKey(("export", "reconstruction_output_cityjson"))},
     pool="ifc",
@@ -40,7 +56,8 @@ def reconstruction_output_ifc(
     config: IFCConfig,
     file_store: FileStoreResource,
     version: ReleaseVersionResource,
-) -> None:
+    tiles_dir: TilesDirResource,
+) -> Output[None]:
     """Tiles for distribution in IFC format.
 
     Each CityJSON tile is converted to one IFC file per LoD (0, 1.2, 1.3, 2.2).
@@ -49,40 +66,51 @@ def reconstruction_output_ifc(
     before they are gzipped by ``compressed_tiles``.
     """
     export_dir = file_store.stage_subdir("export", version.version)
-    logger.info("IFC export directory: %s (version=%s)", export_dir, version.version)
-    cityjson_files = sorted(export_dir.glob("t/**/*.city.json"))
-    logger.info("Found %d CityJSON tiles to convert", len(cityjson_files))
+    path_tiles_dir = export_dir / tiles_dir.name
+    cityjson_files = sorted(_cityjson_tiles(path_tiles_dir, ".city.json"))
     if not cityjson_files:
-        tiles_dir = export_dir / "t"
-        if tiles_dir.is_dir():
-            listing = [str(p.relative_to(export_dir)) for p in tiles_dir.rglob("*")]
-            detail = f"Contents of {tiles_dir}: {listing}"
-        else:
-            detail = f"{tiles_dir} does not exist"
+        compressed = next(_cityjson_tiles(path_tiles_dir, ".city.json.gz"), None)
+        detail = (
+            f" Found a compressed CityJSON tile at {compressed}." if compressed else ""
+        )
         raise FileNotFoundError(
-            f"No CityJSON tiles found under {export_dir} (version={version.version}). "
+            f"No uncompressed *.city.json tiles under {path_tiles_dir} for {version.version}. "
+            "Run export/reconstruction_output_cityjson before the IFC export."
             f"{detail}"
         )
 
+    logger.info(
+        "Converting %d CityJSON tiles under %s to IFC at LoDs %s with %d workers",
+        len(cityjson_files),
+        path_tiles_dir,
+        ", ".join(LODS),
+        config.concurrency,
+    )
     args = [(path, config.ignore_duplicate_keys) for path in cityjson_files]
-    produced: list[Path] = []
-    failed: list[str] = []
+    produced = 0
+    failed: list[Path] = []
     with ProcessPoolExecutor(max_workers=config.concurrency) as executor:
         for cityjson_path, ifc_files in zip(
             cityjson_files, executor.map(_convert_tile, args)
         ):
             if ifc_files:
-                produced.extend(ifc_files)
+                produced += len(ifc_files)
             else:
-                failed.append(str(cityjson_path))
+                failed.append(cityjson_path)
 
-    logger.info(
-        "Converted %d/%d CityJSON tiles to IFC (%d files)",
-        len(cityjson_files) - len(failed),
-        len(cityjson_files),
-        len(produced),
-    )
     if failed:
+        sample = ", ".join(str(path) for path in islice(failed, 10))
         raise RuntimeError(
-            f"IFC conversion produced no output for {len(failed)} tile(s): {failed}"
+            f"IFC conversion produced no files for {len(failed)} of {len(cityjson_files)} "
+            f"tiles under {path_tiles_dir}. Check the input CityJSON and write permissions. "
+            f"Example inputs: {sample}"
         )
+    return Output(
+        None,
+        metadata={
+            "artifact path": MetadataValue.path(path_tiles_dir),
+            "CityJSON tiles converted": len(cityjson_files),
+            "IFC files written": produced,
+            "LoDs": ", ".join(LODS),
+        },
+    )
