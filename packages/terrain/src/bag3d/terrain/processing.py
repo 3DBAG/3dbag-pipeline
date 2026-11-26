@@ -81,7 +81,8 @@ def validate_selection(manifest_path: Path, bounds, radius: float) -> None:
     if "requested_bounds" not in manifest:
         return  # Locally supplied fixtures have no acquisition selection.
     if manifest["requested_bounds"] != bounds or (
-        bounds is not None and radius > manifest["selection_radius_m"]
+        (bounds is not None or manifest.get("fixture"))
+        and radius > manifest["selection_radius_m"]
     ):
         raise ValueError(
             "Rematerialize terrain_download with the current bounds and radius before processing"
@@ -163,7 +164,7 @@ def normalize_ahn(root: Path, manifest_path: Path, workers: int) -> Path:
     files = parallel_map(normalize_file, tasks, workers)
     acquisition = {
         key: manifest[key]
-        for key in ("requested_bounds", "selection_radius_m")
+        for key in ("requested_bounds", "selection_radius_m", "fixture")
         if key in manifest
     }
     return finish(

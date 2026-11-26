@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from dagster import Definitions
+from dagster import AssetKey, Definitions
 
 
 def test_definitions_loadable():
@@ -13,6 +13,10 @@ def test_definitions_loadable():
 
     # This will raise an error if definitions are not loadable
     Definitions.validate_loadable(defs)
+    job = defs.resolve_job_def("integration_data")
+    keys = job.asset_layer.executable_asset_keys
+    assert AssetKey(["integration_terrain"]) in keys
+    assert AssetKey(["terrain", "ahn_download"]) not in keys
 
 
 def test_code_location_import_fresh_process():

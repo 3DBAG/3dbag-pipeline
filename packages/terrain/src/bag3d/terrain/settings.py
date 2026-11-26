@@ -3,13 +3,14 @@
 import math
 from urllib.parse import urlsplit
 
+from bag3d.common.terrain import DEFAULT_RADIUS_M
 from dagster import ConfigurableResource
 from pydantic import Field, field_validator
 
 
 class TerrainSettings(ConfigurableResource):
     bounds: list[float] | None = None
-    interpolation_radius_m: float = Field(default=500, gt=0)
+    interpolation_radius_m: float = Field(default=DEFAULT_RADIUS_M, gt=0)
     workers: int = Field(default=4, ge=1)
     base_url: str = "http://localhost:8001"
     gdal_bin_dir: str | None = None

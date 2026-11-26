@@ -54,3 +54,18 @@ def test_terrain_development_source_is_mounted_and_image_is_registered():
     )
     manifest = json.loads((ROOT / "3dbag-manifest.json").read_text())
     assert manifest["images"]["terrain"]["repository"] == "3dgi/3dbag-pipeline-terrain"
+
+
+def test_fixture_snapshot_is_read_only_and_outputs_are_separate():
+    services = load_yaml("docker/compose.integration-data.yaml")["services"]
+    terrain = services["bag3d-terrain"]
+    assert terrain["environment"]["BAG3D_INPUT_MODE"] == "integration_data"
+    assert terrain["environment"]["BAG3D_TERRAIN_DIR"] == "${BAG3D_FILESTORE}/terrain"
+    assert terrain["volumes"] == [
+        {
+            "type": "bind",
+            "source": "${BAG3D_INTEGRATION_DATA_HOST_DIR}",
+            "target": "${BAG3D_INTEGRATION_DATA_DIR}",
+            "read_only": True,
+        }
+    ]

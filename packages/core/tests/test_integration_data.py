@@ -267,6 +267,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
             }
         }
     monkeypatch.setattr(integration_data, "_validate_outputs", lambda *args: {})
+    monkeypatch.setattr(integration_data, "terrain_snapshot", lambda *args: {})
     generate = cast(
         Any, integration_data.integration_manifest.op.compute_fn
     ).decorated_fn
@@ -277,6 +278,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     kwargs.update({f"tile_index_ahn{version}": indexes[version] for version in indexes})
     manifest_path = generate(
         integration_streetlidar=staging / "streetlidar" / "catalog.json",
+        integration_terrain=staging / "terrain" / "catalog.json",
         integration_data_store=SimpleNamespace(root_dir=str(root)),
         tile_index_ahn6={},
         gdal=None,
@@ -286,6 +288,7 @@ def test_manifest_declares_downloaded_ahn_partitions(tmp_path, monkeypatch):
     # The manifest is published into the snapshot root once everything is built.
     assert manifest_path == root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
+    assert manifest["sources"]["terrain"] == {"path": "terrain/catalog.json"}
     assert manifest["fixture_version"] == "3"
     assert manifest["clipping"]["vectors"]["bgt"] == "pdok_aoi_whole_objects"
     assert manifest["clipping"]["vectors"]["top10nl"] == "pdok_aoi_whole_objects"
@@ -333,6 +336,29 @@ def test_clip_native_gml_archive_clips_to_aoi(tmp_path, dataset):
     with ZipFile(destination) as archive:
         assert archive.namelist() == [member]
         assert archive.read(member) == b"<clipped/>"
+
+
+def test_restore_hyphenated_field_names(tmp_path):
+    """GDAL's underscore-rewritten IMGeo code-list fields are restored to hyphens."""
+    from bag3d.core.assets.integration_data import _restore_hyphenated_field_names
+
+    gml = tmp_path / "bgt_pand.gml"
+    gml.write_text(
+        "<ogr:bgt_status>bestaand</ogr:bgt_status>"
+        "<ogr:plus_status>gepland</ogr:plus_status>"
+        "<ogr:LV_publicatiedatum>2016-05-05</ogr:LV_publicatiedatum>"
+        "<ogr:bronhouder>G0363</ogr:bronhouder>",
+        encoding="utf-8",
+    )
+
+    _restore_hyphenated_field_names(gml)
+
+    assert gml.read_text(encoding="utf-8") == (
+        "<ogr:bgt-status>bestaand</ogr:bgt-status>"
+        "<ogr:plus-status>gepland</ogr:plus-status>"
+        "<ogr:LV-publicatiedatum>2016-05-05</ogr:LV-publicatiedatum>"
+        "<ogr:bronhouder>G0363</ogr:bronhouder>"
+    )
 
 
 @pytest.mark.parametrize("dataset", ["bgt", "top10nl"])

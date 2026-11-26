@@ -1,6 +1,9 @@
 # Validate queued merge SHAs through trusted admin main; observe the exact run without retrying computation.
 name: Test Integration
-run-name: Gilfoyle computation ${{ inputs.pipeline_sha || github.event.merge_group.head_sha || github.sha }}
+run-name: >-
+  Integration · ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number)
+    || github.event_name == 'merge_group' && 'merge queue'
+    || 'manual' }}
 
 on:
   workflow_dispatch:
@@ -18,19 +21,68 @@ permissions: {}
 
 jobs:
   compute:
-    name: Fixture-backed dev computation
-    if: github.event_name != 'merge_group' || github.event.merge_group.base_ref == 'refs/heads/develop'
+    name: Test Integration
+    # A skipped job satisfies the required check before the PR enters the queue.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'merge_group' && github.event.merge_group.base_ref == 'refs/heads/develop')
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      # Required checks must pass on the PR before GitHub admits it to the queue.
-      # The expensive computation runs only on the queue's combined commit.
-      - name: Defer computation until queued after review
-        if: github.event_name == 'pull_request'
-        run: echo 'Integration computation will run in the merge queue after approval.'
+      - name: Check integration inputs
+        id: changes
+        if: github.event_name == 'merge_group'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const deploymentFiles = new Set([
+              '.dockerignore',
+              '.github/workflows/integration.yml',
+              '3dbag-manifest.json',
+              'scripts/manifest_versions.py',
+              'tools-build.sh',
+              'tools-test.sh',
+            ]);
+            const affectsIntegration = path =>
+              deploymentFiles.has(path) ||
+              /^packages\/[^/]+\/src\//.test(path) ||
+              /^(?:packages\/[^/]+\/)?(?:pyproject\.toml|uv\.lock)$/.test(path) ||
+              (path.startsWith('docker/') && path !== 'docker/README.md');
+
+            try {
+              const {base_sha: base, head_sha: head} = context.payload.merge_group;
+              const sha = /^[0-9a-f]{40}$/;
+              if (!sha.test(base) || !sha.test(head)) {
+                throw new Error('Missing merge group commit SHA.');
+              }
+              const {data} = await github.request('GET /repos/{owner}/{repo}/compare/{basehead}', {
+                ...context.repo,
+                basehead: base + '...' + head,
+                per_page: 1,
+              });
+              const {files} = data;
+              // GitHub caps the comparison at 300 changed files, even with pagination.
+              if (data.status !== 'ahead' || data.merge_base_commit?.sha !== base ||
+                  !Array.isArray(files) || files.length >= 300) {
+                throw new Error('GitHub did not return a complete merge group comparison.');
+              }
+              const paths = files.flatMap(file => file.status === 'renamed'
+                ? [file.filename, file.previous_filename]
+                : [file.filename]);
+              if (paths.some(affectsIntegration)) {
+                core.info('Integration inputs changed.');
+                return;
+              }
+              await core.summary.addRaw('Skipped Gilfoyle integration because no integration inputs changed.', true).write();
+              core.setOutput('skip_integration', 'true');
+            } catch (error) {
+              core.warning('Running integration because the merge group comparison was inconclusive. ' + error.message);
+            }
       # No local checkout: only an immutable SHA and its queue ref cross the boundary.
-      - name: Dispatch and observe the exact admin run
-        if: github.event_name != 'pull_request'
+      - name: Run on Gilfoyle
+        if: steps.changes.outputs.skip_integration != 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           github-token: ${{ secrets.ADMIN_ACTIONS_DISPATCH_TOKEN }}
@@ -58,6 +110,7 @@ jobs:
             const link = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
             core.info(`Pipeline ${sha}: ${link}`);
             await core.summary.addLink(`Admin run ${run_id} for ${sha}`, link).addEOL().write();
+            const {setTimeout: wait} = require('node:timers/promises');
             const deadline = Date.now() + 355 * 60 * 1000;
             const previous = new Map();
             function transition(key, state, url) {
@@ -67,19 +120,30 @@ jobs:
               }
             }
             try {
-              while (Date.now() < deadline) {
-                const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers});
+              for (; Date.now() < deadline; await wait(30000)) {
+                let run;
+                try {
+                  ({data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id, headers}));
+                  if (!run?.status || (run.status === 'completed' && !run.conclusion)) {
+                    throw new SyntaxError('Incomplete workflow run response');
+                  }
+                } catch (error) {
+                  if (!(error instanceof SyntaxError) && error.status !== 408 &&
+                      !(error.status >= 500 && error.status < 600)) throw error;
+                  transition('Admin run status', `read failed, retrying: ${error.message}`, link);
+                  continue;
+                }
+                previous.delete('Admin run status');
                 transition('Admin run', `${run.status} / ${run.conclusion || 'pending'}`, link);
                 let jobs = [];
                 try {
                   jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
                     owner, repo, run_id, per_page: 100, headers
                   });
+                  previous.delete('Admin job details');
                 } catch (error) {
-                  // A newly queued dispatch can exist before its jobs endpoint.
-                  // Keep observing the returned run ID; never dispatch it again.
-                  if (error.status !== 404) throw error;
-                  transition('Admin job details', 'not available yet', link);
+                  // Job and step transitions are informational. The run status determines the check.
+                  transition('Admin job details', `unavailable: ${error.message}`, link);
                 }
                 for (const job of jobs) {
                   transition(`Job ${job.id} ${job.name}`, `${job.status} / ${job.conclusion || 'pending'}`, job.html_url);
@@ -96,7 +160,6 @@ jobs:
                   }
                   return;
                 }
-                await new Promise(resolve => setTimeout(resolve, 30000));
               }
               throw new Error('Observation timeout');
             } catch (error) {

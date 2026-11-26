@@ -150,7 +150,11 @@ there is no need to rerun detection or change national-data mode.
 
 The complete job runs before Roofer. `underpasses/heights` consumes
 `underpasses/extended_geometries` and the manifest returned by
-`terrain/ahn_filled`. The separate `terrain_ahn` job prepares the four AHN stages
+`terrain/ahn_filled`. Terrain files live in `terrain_store`, configured with
+`BAG3D_TERRAIN_DIR` or defaulting to `<BAG3D_FILESTORE>/terrain`. Core and
+underpasses must see the generated files at the same absolute paths. Integration
+snapshots supply raw AHN for the same offline processing stages and require a
+`terrain` source in their manifest. The separate `terrain_ahn` job prepares the four AHN stages
 without generating viewer tiles. Its filled 5 m rasters retain NAP elevations;
 viewer terrain tiles use ellipsoidal heights and are not inputs to this job.
 
