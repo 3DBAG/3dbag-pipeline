@@ -127,7 +127,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bag3d-common", editable = "../common" },
-    { name = "building-surfaces", git = "https://github.com/3DGI/3dbag-surfaces.git?rev=2026.1012" },
+    { name = "building-surfaces", git = "https://github.com/3DGI/3dbag-surfaces.git?rev=b471fb45a34b4ff4aaa19d677698d8008367cb6d" },
     { name = "cityjson-index", specifier = "==0.11.0" },
     { name = "dagster", specifier = "~=1.13.15" },
     { name = "dagster-postgres", specifier = "~=0.29.15" },
@@ -218,8 +218,8 @@ wheels = [
 
 [[package]]
 name = "building-surfaces"
-version = "2026.1012"
-source = { git = "https://github.com/3DGI/3dbag-surfaces.git?rev=2026.1012#a3b6514f938aced316392b700d90f00cb8943a11" }
+version = "2026.1013"
+source = { git = "https://github.com/3DGI/3dbag-surfaces.git?rev=b471fb45a34b4ff4aaa19d677698d8008367cb6d#b471fb45a34b4ff4aaa19d677698d8008367cb6d" }
 dependencies = [
     { name = "mapbox-earcut" },
     { name = "numpy" },
