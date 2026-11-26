@@ -117,7 +117,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=2026.11.26" },
+    { name = "bag3d-specs", git = "https://github.com/3DBAG/3dbag-specs.git?rev=c9cada38a55320808df57f8795a9c222292a02d7" },
     { name = "certifi", specifier = ">=2026.10.19" },
     { name = "cityjson-index", specifier = "==0.11.0" },
     { name = "cityjson-lib", specifier = "==0.11.0" },
@@ -193,7 +193,7 @@ dev = [
 [[package]]
 name = "bag3d-specs"
 version = "2026.11.26"
-source = { git = "https://github.com/3DBAG/3dbag-specs.git?rev=2026.11.26#0d46990d0f855619c46617c315b497cc9b81e006" }
+source = { git = "https://github.com/3DBAG/3dbag-specs.git?rev=c9cada38a55320808df57f8795a9c222292a02d7#c9cada38a55320808df57f8795a9c222292a02d7" }
 dependencies = [
     { name = "jsonschema" },
 ]
