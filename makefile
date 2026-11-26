@@ -25,7 +25,7 @@ export BAG3D_PIPELINE_VERSION BAG3D_TOOLS_IMAGE BAG3D_TOOLS_IMAGE_TAG BAG3D_CORE
 	docker_volume_create_dagster_home docker_volume_create_dagster_postgresql \
 	docker_volume_rm docker_volume_recreate \
 	test test_coverage test_report lint lint_fix \
-	local_install_uv local_venv local_dev \
+	local_install_uv local_venv local_dev lock lock_upgrade \
 	sync_versions
 
 help:
@@ -57,6 +57,8 @@ help:
 	@echo "  local_install_uv             Install uv package manager"
 	@echo "  local_venv                   Create virtualenvs for all packages"
 	@echo "  local_dev                    Start Dagster dev server locally (no Docker)"
+	@echo "  lock                         Refresh package lockfiles"
+	@echo "  lock_upgrade                 Upgrade dependencies in package lockfiles"
 	@echo "  sync_versions                Synchronize package metadata from 3dbag-manifest.json"
 	@echo ""
 
@@ -219,6 +221,12 @@ local_venv:
 
 local_dev:
 	uv run dagster dev -w tests/dagster_home/workspace.yaml
+
+lock_upgrade: UV_LOCK_FLAGS := --upgrade
+lock lock_upgrade:
+	for package in common core export floors_estimation party_walls terrain underpasses; do \
+		uv --project packages/$$package lock $(UV_LOCK_FLAGS); \
+	done
 
 sync_versions:
 	python3 scripts/manifest_versions.py sync
