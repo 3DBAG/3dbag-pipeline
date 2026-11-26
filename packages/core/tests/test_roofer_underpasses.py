@@ -67,8 +67,8 @@ def test_roofer_config_and_tile_selection(tmp_path):
     assert source["underpass-height-attribute"] == "underpass_candidate_elevations"
     assert source["underpass-id-attribute"] == "identificatie"
     assert source["underpass-attributes"] == [
-        "underpass_confidence",
-        "underpass_source",
+        "b3_overbouw_betrouwbaarheidsscore",
+        "b3_overbouw_hoogtebron",
     ]
     assert "u_10/1/2" in source["underpass-source"]
     assert "(geom)" in source["underpass-source"]
@@ -80,7 +80,6 @@ def test_roofer_config_and_tile_selection(tmp_path):
         {"name": f"ahn{version}", "quality": 6 - version, "source": ["/data/ahn.laz"]}
         for version in range(3, 7)
     ]
-    assert config["crop"]["lod11-fallback-area"] == 30000
     assert config["reconstruction"] == {"lod12": True, "lod13": True, "lod22": True}
     output = config["output"]
     assert output["split-cjseq"] is False

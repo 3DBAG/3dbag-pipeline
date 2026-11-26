@@ -76,8 +76,8 @@ def run_heights(
             sql.SQL("""ALTER TABLE {} ADD PRIMARY KEY (identificatie, underpass_id),
             ADD COLUMN underpass_terrain_elevation double precision,
             ADD COLUMN underpass_candidate_elevations double precision,
-            ADD COLUMN underpass_confidence double precision,
-            ADD COLUMN underpass_source text,
+            ADD COLUMN b3_overbouw_betrouwbaarheidsscore double precision,
+            ADD COLUMN b3_overbouw_hoogtebron text,
             ADD COLUMN underpass_status text,
             ADD COLUMN underpass_metadata jsonb,
             ADD COLUMN underpass_updated_at timestamptz""").format(target.id)
@@ -95,8 +95,8 @@ def run_heights(
             for identifier, uid, geometry in cursor
         ]
         update = sql.SQL("""UPDATE {} SET underpass_terrain_elevation=%s,
-            underpass_candidate_elevations=%s, underpass_confidence=%s,
-            underpass_source=%s, underpass_status=%s, underpass_metadata=%s,
+            underpass_candidate_elevations=%s, b3_overbouw_betrouwbaarheidsscore=%s,
+            b3_overbouw_hoogtebron=%s, underpass_status=%s, underpass_metadata=%s,
             underpass_updated_at=now() WHERE identificatie=%s AND underpass_id=%s""").format(
             target.id
         )
@@ -119,9 +119,9 @@ def run_heights(
                         result.terrain_elevation,
                         result.candidate_elevation,
                         result.confidence,
-                        "streetlidar"
+                        "straatlidar"
                         if result.candidate_elevation is not None
-                        else "heuristic",
+                        else "aanname",
                         result.status,
                         Jsonb(metadata),
                         *key,
