@@ -433,6 +433,11 @@ class Cityjson2ifc:
                         parents_children_relations[child]["ParentID"] = obj_id
                     parents_children_relations[obj_id]["Parent"] = IFC_object
 
+                # A CityObject with neither parents nor children (e.g. a
+                # Building reconstructed without BuildingPart children) is never
+                # added to ``parents_children_relations`` above. Treat it as a
+                # top-level object carrying its own attributes.
+                parents_children_relations.setdefault(obj_id, {})
                 if "ParentID" not in parents_children_relations[obj_id]:
                     self.create_property_set(obj.attributes, IFC_object)
                 else:

@@ -81,6 +81,42 @@ def _find_building_part_id(feature: dict[str, Any]) -> str | None:
     return next(iter(city_objects), None)
 
 
+def _has_lod_geometry(
+    feature: dict[str, Any], object_id: str, lod: str = "2.2"
+) -> bool:
+    """Return whether a CityObject has any geometry at the given LoD.
+
+    Mirrors ``building_surfaces.walls.CityModel``, which drops every geometry
+    whose LoD does not match before computing shared walls. A building with no
+    matching geometry would otherwise make ``shared_walls()`` raise.
+    """
+    city_object = feature.get("CityObjects", {}).get(object_id)
+    if city_object is None:
+        return False
+    return any(
+        str(geometry.get("lod")) == lod for geometry in city_object.get("geometry", [])
+    )
+
+
+_SURFACE_ATTRIBUTES: tuple[str, ...] = (
+    "b3_opp_scheidingsmuur",
+    "b3_opp_buitenmuur",
+    "b3_opp_grond",
+    "b3_opp_dak_plat",
+    "b3_opp_dak_schuin",
+)
+
+
+def _set_surface_attributes(
+    feature: dict[str, Any], values: dict[str, float | None]
+) -> None:
+    """Set the ``b3_opp_*`` surface attributes on the feature's Building object."""
+    for obj in feature["CityObjects"].values():
+        if obj["type"] == "Building":
+            obj.setdefault("attributes", {}).update(values)
+            return
+
+
 def _tile_id_from_source_path(
     source_path: str | Path,
     models_root: Path,
@@ -148,6 +184,16 @@ def _process_building(
     if target_part_id is None:
         logger.warning(f"No BuildingPart found in {pand_id}, skipping.")
         return BuildingProcessingResult(tile_id=None, feature_json=None, timing=None)
+    if not _has_lod_geometry(target_feature, target_part_id):
+        logger.warning(
+            f"No LoD 2.2 geometry for {pand_id}, writing null surface attributes."
+        )
+        _set_surface_attributes(
+            target_feature, {name: None for name in _SURFACE_ATTRIBUTES}
+        )
+        return BuildingProcessingResult(
+            tile_id=tile_id, feature_json=target_feature, timing=None
+        )
 
     adjacent_args = []
     adjacent_count = 0
@@ -172,18 +218,16 @@ def _process_building(
     )
     shared_walls_s = perf_counter() - shared_walls_start
 
-    for obj in target_feature["CityObjects"].values():
-        if obj["type"] == "Building":
-            obj.setdefault("attributes", {}).update(
-                {
-                    "b3_opp_scheidingsmuur": result.area_shared_wall,
-                    "b3_opp_buitenmuur": result.area_exterior_wall,
-                    "b3_opp_grond": result.area_ground,
-                    "b3_opp_dak_plat": result.area_roof_flat,
-                    "b3_opp_dak_schuin": result.area_roof_sloped,
-                }
-            )
-            break
+    _set_surface_attributes(
+        target_feature,
+        {
+            "b3_opp_scheidingsmuur": result.area_shared_wall,
+            "b3_opp_buitenmuur": result.area_exterior_wall,
+            "b3_opp_grond": result.area_ground,
+            "b3_opp_dak_plat": result.area_roof_flat,
+            "b3_opp_dak_schuin": result.area_roof_sloped,
+        },
+    )
 
     timing = None
     if profile:
