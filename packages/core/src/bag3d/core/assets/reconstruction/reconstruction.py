@@ -252,6 +252,15 @@ def create_roofer_config(
     lod13 = true
     lod22 = true
 
+    [reconstruction.plane-detector]
+    normal-angle-threshold = 25
+
+    [reconstruction.line-detector]
+    distance-threshold = 0.3
+
+    [reconstruction.arrangement-optimiser]
+    complexity-factor = 0.9
+
     [output]
     split-cjseq = false
     omit-metadata = false
