@@ -216,7 +216,7 @@ def create_roofer_config(
     polygon-source = {footprint_file}
     polygon-snap-threshold = 0.001
     underpass-source = {underpass_source}
-    underpass-attributes = ["underpass_confidence", "underpass_source"]
+    underpass-attributes = ["b3_overbouw_betrouwbaarheidsscore", "b3_overbouw_hoogtebron"]
     underpass-id-attribute = "identificatie"
     underpass-height-attribute = "underpass_candidate_elevations"
     underpass-default-height = 2.4
@@ -245,7 +245,7 @@ def create_roofer_config(
     source = {ahn6_files}
 
     [crop]
-    lod11-fallback-area = 30000
+    lod11-fallback-area = 45000
 
     [reconstruction]
     lod12 = true
@@ -291,6 +291,7 @@ def create_roofer_config(
     pointcloud_unusable = "b3_pw_onvoldoende"
     h_roof_ridge = "b3_h_nok"
     roof_n_ridgelines = "b3_n_nok"
+    has_underpass = "b3_bevat_overbouw"
     """
     tile_id = context.partition_key
     query_laz_tiles = SQL("""

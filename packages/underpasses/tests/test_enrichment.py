@@ -133,10 +133,10 @@ def test_height_rebuild_and_rollback(tmp_path, enrichment_tables, monkeypatch):
     assert stats["processed"] == 1
     with connect(dsn) as db:
         assert db.execute(
-            sql.SQL("SELECT underpass_source,underpass_status FROM {}").format(
+            sql.SQL("SELECT b3_overbouw_hoogtebron,underpass_status FROM {}").format(
                 target.id
             )
-        ).fetchone() == ("heuristic", "no_laz_tiles")
+        ).fetchone() == ("aanname", "no_laz_tiles")
 
     def broken(*args, **kwargs):
         raise RuntimeError("height worker crashed")
