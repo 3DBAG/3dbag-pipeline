@@ -59,7 +59,7 @@ reconstruction_assets = load_assets_from_package_module(
     group_name=RECONSTRUCTION,
 )
 
-# Load fixture assets after production assets have registered shared Dagster types.
+# Load fixture assets after production assets have registered shared Dagster types (BD: TEST TEXT).
 from bag3d.core.assets import integration_data  # noqa: E402
 from bag3d.core.assets.fixture_adapters import fixture_assets  # noqa: E402
 

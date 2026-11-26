@@ -25,10 +25,20 @@ def _ogr_json(runner: CommandRunner, path: Path, *, sql: str | None = None) -> d
         local_path=path.parent,
     )
     if not result.success:
-        raise RuntimeError(
-            f"GeoPackage {path.name}: ogrinfo failed for {sql or 'schema'}: {result.stderr}"
+        detail = (
+            result.stderr.strip() or result.stdout.strip() or "no diagnostic output"
         )
-    return json.loads(result.stdout)
+        raise RuntimeError(
+            f"ogrinfo failed for {path} while reading {sql or 'the layer schema'} "
+            f"(exit {result.returncode}). {detail[-500:]}"
+        )
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"ogrinfo returned invalid JSON for {path} while reading "
+            f"{sql or 'the layer schema'}. {exc}"
+        ) from exc
 
 
 def inspect_geopackage(

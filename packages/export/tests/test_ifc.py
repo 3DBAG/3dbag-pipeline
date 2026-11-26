@@ -5,7 +5,7 @@ import zipfile
 from typing import cast
 from unittest.mock import patch
 
-from bag3d.common.resources.files import FileStoreResource
+from bag3d.common.resources.files import FileStoreResource, TilesDirResource
 from bag3d.common.resources.version import ReleaseVersionResource
 
 from bag3d.export.assets.export.archive import compress_files
@@ -124,8 +124,8 @@ def test_compress_files_zips_ifc(tmp_path):
     """compress_files zips the per-LoD IFC files and removes the originals."""
     export_dir = tmp_path / "export"
     tile_id = "10/434/716"
-    lid = tile_id.replace("/", "-")
-    base = export_dir / "t" / tile_id
+    tiles_dir = export_dir / "tiles"
+    base = tiles_dir / "10/434/10-434-716"
     base.parent.mkdir(parents=True, exist_ok=True)
 
     (base.with_suffix(".city.json")).write_text("{}")
@@ -135,9 +135,9 @@ def test_compress_files_zips_ifc(tmp_path):
         ifc_path.write_text(f"ifc-{lod}")
         ifc_files.append(ifc_path)
 
-    compress_files((tile_id, export_dir))
+    compress_files((tile_id, tiles_dir))
 
-    ifc_zip = base.parent / f"{lid}-ifc.zip"
+    ifc_zip = base.with_name("10-434-716-ifc.zip")
     assert ifc_zip.exists()
     with zipfile.ZipFile(ifc_zip) as zf:
         assert sorted(zf.namelist()) == sorted(
@@ -167,14 +167,19 @@ def test_reconstruction_output_ifc(tmp_path):
     """reconstruction_output_ifc converts all CityJSON tiles to IFC files."""
     file_store = FileStoreResource(root_dir=str(tmp_path))
     version = ReleaseVersionResource(version=VERSION)
+    tiles_resource = TilesDirResource(name="custom-tiles")
 
     export_dir = tmp_path / "stages" / "export" / VERSION
-    base = export_dir / "t" / "10/434/716"
+    base = export_dir / tiles_resource.name / "10/434/10-434-716"
     base.parent.mkdir(parents=True, exist_ok=True)
     (base.with_suffix(".city.json")).write_text(json.dumps(_minimal_cityjson()))
+    base.with_name("716.city.json").write_text(json.dumps(_minimal_cityjson()))
 
     with patch("bag3d.export.assets.export.ifc.ProcessPoolExecutor", _SyncPool):
-        reconstruction_output_ifc(IFCConfig(concurrency=1), file_store, version)
+        reconstruction_output_ifc(
+            IFCConfig(concurrency=1), file_store, version, tiles_resource
+        )
 
     for lod in ("0", "1.2", "1.3", "2.2"):
         assert (base.with_name(f"{base.name}-{lod}.ifc")).exists()
+    assert not list(base.parent.glob("716-*.ifc"))
