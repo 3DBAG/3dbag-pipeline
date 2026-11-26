@@ -120,6 +120,28 @@ def test_convert_cityjson_to_ifc_no_transform(tmp_path):
         assert f.stat().st_size > 0
 
 
+def test_convert_cityjson_to_ifc_standalone_building(tmp_path):
+    """A Building with no parents/children (no BuildingPart) converts without raising."""
+    cj = _minimal_cityjson()
+    building_id = "NL.IMBAG.Pand.0503100000033172"
+    cj["CityObjects"][building_id].pop("children")
+    cj["CityObjects"].pop("NL.IMBAG.Pand.0503100000033172-0")
+    path = tmp_path / "tile.city.json"
+    path.write_text(json.dumps(cj))
+
+    files = convert_cityjson_to_ifc(path)
+
+    assert {f.name for f in files} == {
+        "tile-0.ifc",
+        "tile-1.2.ifc",
+        "tile-1.3.ifc",
+        "tile-2.2.ifc",
+    }
+    for f in files:
+        assert f.exists()
+        assert f.stat().st_size > 0
+
+
 def test_compress_files_zips_ifc(tmp_path):
     """compress_files zips the per-LoD IFC files and removes the originals."""
     export_dir = tmp_path / "export"
