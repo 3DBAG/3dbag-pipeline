@@ -1,0 +1,13 @@
+--- a/src/pages/DownloadView.vue
++++ b/src/pages/DownloadView.vue
+@@ -710,7 +710,9 @@
+ 			if ( ! this.settings.cjloupe || ! [ 'CityJSON', 'CityJSONL' ].includes( format ) ) return null;
+ 			const data = this.activeTileData[ format ];
+ 			if ( ! data || ! isDefinedUrl( data.fileURL ) ) return null;
+-			return `https://3dgi.github.io/CJLoupe/?cj=${ encodeURIComponent( data.fileURL ) }`;
++			const tileUrl = new URL( data.fileURL, window.location.href );
++			tileUrl.pathname = tileUrl.pathname.replace( /\.gz$/, '' );
++			return `/CJLoupe/?cj=${ encodeURIComponent( tileUrl.href ) }`;
+ 
+ 		},
+ 

@@ -1,0 +1,37 @@
+name: b3d-stg-viewer
+services:
+  viewer:
+    build:
+      context: .
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:?Run ./up.sh}
+        TILES_DIR: ${TILES_DIR:-tiles}
+        VIEWER_REVISION: ${VIEWER_REVISION:?Run ./up.sh}
+      additional_contexts:
+        loupe: "https://github.com/3DGI/CJLoupe.git#994854047c0bd2c2aacba51d5d37f673f271b550"
+        viewer: "https://github.com/3DBAG/3dbag-viewer.git#${VIEWER_REVISION}"
+    environment:
+      RELEASE_VERSION: ${RELEASE_VERSION}
+      NGINX_ENVSUBST_FILTER: ^RELEASE_VERSION$
+    ports:
+      - "127.0.0.1:${VIEWER_PORT:-8086}:8080"
+    volumes:
+      - pipeline:/pipeline:ro
+      - index:/index:ro
+    restart: unless-stopped
+  index:
+    image: ${EXPORT_IMAGE:?Run ./up.sh}
+    environment:
+      RELEASE_VERSION: ${RELEASE_VERSION}
+    network_mode: none
+    entrypoint: ["/opt/3dbag-pipeline/venv/bin/python", "-u", "/watch_index.py"]
+    volumes:
+      - pipeline:/pipeline:ro
+      - index:/index
+      - ./watch_index.py:/watch_index.py:ro
+    restart: unless-stopped
+volumes:
+  pipeline:
+    external: true
+    name: ${PIPELINE_VOLUME:?Run ./up.sh}
+  index:

@@ -11,6 +11,8 @@ The setup contains:
 
 The tests that are run on GitHub Actions use this configuration.
 
+For SSH-forwarded access to a running staging export, see the [staging viewer setup](staging-viewer/README.md).
+
 ## Docker images
 
 All Docker image versions and external tool-image digests are declared in
